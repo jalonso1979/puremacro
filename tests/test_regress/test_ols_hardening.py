@@ -510,9 +510,9 @@ def test_scalar_weights_are_broadcast_like_wls():
                                np.asarray(ref.params), rtol=0, atol=ATOL)
     np.testing.assert_allclose(np.asarray(got.bse), np.asarray(ref.bse),
                                rtol=0, atol=ATOL)
-    # llf carries the 0.5 n log(w) term, so the scalar is not a no-op.
+    # For a constant weight the +0.5 n log(w) term cancels the rescaled SSR exactly, so
+    # llf equals the unweighted llf up to rounding; only parity with statsmodels is tested.
     np.testing.assert_allclose(got.llf, ref.llf, rtol=0, atol=ATOL)
-    assert got.llf != ols(y, X).llf
 
 
 def test_wrong_length_weights_name_both_lengths():

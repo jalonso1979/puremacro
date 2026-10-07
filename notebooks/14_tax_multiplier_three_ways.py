@@ -14,15 +14,18 @@
 # # The tax multiplier, three ways
 #
 # **What happens to US GDP after a legislated tax increase of 1% of GDP?** The
-# literature's three canonical answers disagree by a factor of three: about
-# **−1** (Blanchard-Perotti 2002 QJE), about **−3** (Romer-Romer 2010 AER), and
-# something in between once narrative information is used as an *instrument*
-# (Mertens-Ravn 2013 AER, 2014 JME). Same country, same national accounts. This
-# notebook runs all three identification philosophies on **one frozen quarterly
-# dataset** — so every difference you see is identification, not data.
+# literature's canonical answers are far apart. Blanchard and Perotti (2002)
+# find modest tax multipliers (troughs of −0.78 and −1.33 under their two trend
+# assumptions, in the NBER WP 7269 version); Romer and Romer (2010) find that
+# output falls by nearly three percent over three years; and Mertens and Ravn
+# (2014), using the narrative series as an *instrument*, argue for the high end:
+# about two on impact and up to three after six quarters, in absolute value.
+# Same country, same national accounts. This notebook runs all three
+# identification philosophies on **one frozen quarterly dataset**, so every
+# difference you see comes from identification, not data.
 
 # %% [markdown]
-# ## The three identifications in math
+# ## The method in math
 #
 # All three start from the same reduced-form VAR in $x_t = (\tau_t, g_t, y_t)'$
 # — log real federal tax revenue, log real federal spending, log real GDP:
@@ -49,6 +52,19 @@
 # on impact: $\Delta\tau_0 = (Y/T)\times 1\%$ in log points. Then the log-GDP
 # response in percent *is* the dollar-for-dollar cumulative multiplier: the
 # level change in GDP at horizon $h$ per initial tax dollar.
+#
+# ### Baseline Calibration
+#
+# | Symbol | Parameter Description | Baseline Value | Units / Accounting Convention |
+# |---|---|---|---|
+# | $\theta$ | Blanchard–Perotti institutional tax revenue elasticity to GDP | $2.08$ | Dimensionless elasticity ($d \ln T / d \ln Y$) |
+# | $\theta_{\text{alt}}$ | Mertens–Ravn (2014) estimate of the output elasticity of tax revenue | $3.13$ | Dimensionless elasticity |
+# | $T_{\text{sample}}$ | Effective sample length (1950Q1 to 2006Q4) | $228$ | Quarters of observation |
+# | $p$ | Reduced-form VAR lag length; LP lags before augmentation | $4$ | Quarters (1 year of lags) |
+# | $p_{\text{aug}}$ | Lags in the Romer–Romer LP: $p$ plus one augmentation lag (Montiel Olea–Plagborg-Møller 2021) | $5$ | Quarters |
+# | $H$ | SVAR impulse horizon | $16$ | Quarters ($4$ years post-shock) |
+# | $H_{\text{LP}}$ | Local-projection horizons $h = 0, \dots, H_{\text{LP}}$ | $20$ | Quarters ($5$ years post-shock) |
+# | $F_{\text{eff}}$ | Montiel Olea–Pflueger effective first-stage $F$-statistic (output of section 3) | $1.38$ | First-stage instrument strength |
 
 # %% [markdown]
 # **Intuition.** The reduced-form correlation between taxes and output is
@@ -60,6 +76,14 @@
 # instrument, immune to sloppy magnitudes). None of the three estimates more
 # data than the others — they *assume differently*. That is why their answers
 # differ, and why the honest deliverable is the whole menu, not one number.
+#
+# ### Seminal Literature Citations
+#
+# - Blanchard, O., & Perotti, R. (2002). An empirical characterization of the dynamic effects of changes in government spending and taxes on output. *Quarterly Journal of Economics*, 117(4), 1329–1368.
+# - Mertens, K., & Ravn, M. O. (2013). The dynamic effects of personal and corporate income tax changes in the United States. *American Economic Review*, 103(4), 1212–1247.
+# - Mertens, K., & Ravn, M. O. (2014). A reconciliation of SVAR and narrative estimates of tax multipliers. *Journal of Monetary Economics*, 68, S1–S19.
+# - Montiel Olea, J. L., & Plagborg-Møller, M. (2021). Local projection inference is simpler and more robust than you think. *Econometrica*, 89(4), 1789–1823.
+# - Romer, C. D., & Romer, D. H. (2010). The macroeconomic effects of tax changes: Estimates based on a new measure of fiscal shocks. *American Economic Review*, 100(3), 763–801.
 
 # %% [markdown]
 # ## Setup — one frozen dataset
@@ -220,11 +244,14 @@ assert -2.2 < m_bp[8] < -0.6                   # ...builds toward ~ -1
 assert -2.6 < bp_peak < -0.9                   # BP's published ballpark
 
 # %% [markdown]
-# **Read the output.** The BP multiplier starts near zero and builds slowly to
-# about **−1.2 after two years** (peak ≈ −1.5) — Blanchard and Perotti's
-# famous "close to one dollar for a dollar". The impact response is small by
-# construction: after purging the automatic $\theta u^y$ component, what is
-# left of the tax residual barely covaries with output within the quarter.
+# **Read the output.** The BP multiplier starts near zero (−0.18 on impact) and
+# builds slowly to **−1.21 after two years** (peak −1.51 at h=12). That is the
+# territory Blanchard and Perotti report for their tax shock: troughs of −0.78
+# and −1.33 under their two trend specifications, multipliers "often close to
+# one" (NBER WP 7269, sections 5.1 and 10). The impact response is
+# small by construction: after purging the automatic $\theta u^y$ component,
+# what is left of the tax residual barely covaries with output within the
+# quarter.
 # Everything rests on $\theta$ being the *right* out-of-sample number — hold
 # that thought for the fill-in at the end.
 
@@ -235,27 +262,38 @@ assert -2.6 < bp_peak < -0.9                   # BP's published ballpark
 # lag-augmented local projection directly. Note the LP left-hand side is the
 # *change form* $y_{t+h}-y_{t-1}$, so the coefficient is the response of the
 # GDP **level** at $t+h$ — with our 1%-of-GDP units, the multiplier itself.
+# Lag augmentation (Montiel Olea and Plagborg-Møller 2021) adds one lag
+# beyond the four the projection needs, the same at every horizon: five lags
+# of GDP and of the narrative series. With that extra lag, plain
+# heteroskedasticity-robust (Eicker-Huber-White) standard errors are valid
+# without a HAC correction for the overlapping residuals.
 # No revenue equation, no elasticity: the identifying assumption is that the
 # archival reading really did isolate cycle-independent tax changes.
 
 # %%
-H_LP = 20      # LP horizons; lag augmentation p_aug = 4 + 20 (PMW 2021 default)
+H_LP = 20      # LP horizons 0..20 (quarters)
+# la_lp default: p_aug = n_lags + 1 lags at every horizon (Montiel Olea-Plagborg-Moller
+# 2021). puremacro <= 4.3.0 used n_lags + max(h) = 24 here; see docs/ADVISORY.md.
 lp_rr = la_lp(d, y="y", x="rr", horizons=range(0, H_LP + 1), n_lags=4, alpha=0.10)
 m_rr, m_rr_lo, m_rr_hi = (lp_rr["beta"].to_numpy(), lp_rr["lo"].to_numpy(),
                           lp_rr["hi"].to_numpy())
 rr_peak = m_rr[:13].min()
 rr_peak_h = int(m_rr[:13].argmin())
 print(f"RR multiplier: impact {m_rr[0]:+.2f} | 2yr {m_rr[8]:+.2f} | "
-      f"peak {rr_peak:+.2f} at h={rr_peak_h}")
-assert -4.5 < rr_peak < -1.8                       # RR's published -2.5..-3 zone
+      f"peak {rr_peak:+.2f} at h={rr_peak_h}   (p_aug = {lp_rr.attrs['p_aug']} lags)")
+print(f"two-year multiplier, RR / BP = {m_rr[8] / m_bp[8]:.1f}")
+assert lp_rr.attrs["p_aug"] == 5                   # 4 lags + one augmentation lag
+assert -4.5 < rr_peak < -1.8                       # RR (2010, Fig. 4): -3.08 at ten quarters
 assert 4 <= rr_peak_h <= 12
 assert abs(rr_peak) > abs(bp_peak) + 0.5           # narrative >> SVAR, same data
 
 # %% [markdown]
-# **Read the output.** The same 1%-of-GDP tax increase now costs about **−3%
-# of GDP after two years** — roughly *triple* the BP answer, on the identical
-# dataset. This is Romer-Romer's headline (their Figure 4 bottoms out just
-# past −3% at ten quarters). Nothing about the estimator explains the gap; the
+# **Read the output.** The same 1%-of-GDP tax increase now costs **−2.86% of
+# GDP after two years** (peak −2.87 at h=10), 2.4 times the BP two-year value
+# on the identical dataset. Romer and Romer's own Figure 4 (one equation, 12
+# lags of the tax series, no other controls, 1950–2007) bottoms out at −3.08%
+# after ten quarters (AER 2010, p. 781), so the lag-augmented LP lands close to
+# their headline. Nothing about the estimator explains the gap with BP; the
 # narrative series simply embodies a different claim about which tax changes
 # are exogenous.
 
@@ -303,20 +341,23 @@ assert abs(m_prox[8]) > 1.0                       # and the point path is not cr
 # %% [markdown]
 # **Read the output.** The honest headline here is the **F statistic, not the
 # multiplier**. On aggregate federal receipts the MR proxy is *weak* (effective
-# F ≈ 1.4, far below the Olea-Pflueger comfort zone; even the full RR series
-# only reaches ≈ 5). With a weak first stage the unit normalization divides by
-# a noisy near-zero revenue response, so the point path (≈ −2.5 on impact,
-# drifting to ≈ −4.5) is not interpretable — exactly the fragility
+# F = 1.38, far below the Olea-Pflueger comfort zone; even the full RR series
+# only reaches 5.34). With a weak first stage the unit normalization divides by
+# a noisy near-zero revenue response, so the point path (−2.47 on impact,
+# −4.32 at two years, −4.54 at three) is not interpretable, the fragility
 # Jentsch-Lunsford (2019 AER) documented for MR's setup. MR's own strong
 # results use *tax-specific* average tax rates (personal, corporate), not one
-# aggregate revenue pile; the anticipated series' F ≈ 0 confirms their
-# foresight logic beautifully.
+# aggregate revenue pile; the anticipated series' F of 0.06 fits their
+# foresight logic: a change announced in advance carries no surprise when it
+# takes effect.
 #
-# So where does narrative-as-instrument leave the multiplier? Mertens-Ravn's
-# 2014 JME reconciliation extracts the answer differently: the narrative
-# information implies the true output elasticity of revenue is **3.13**, not
-# 2.08 — BP's number is too low because it misses the within-quarter response
-# of collections. Impose $\theta = 3.13$ in the *same* BP machinery:
+# So where does narrative-as-instrument leave the multiplier? Mertens and
+# Ravn's 2014 JME reconciliation extracts the answer differently: their
+# narrative proxy yields an estimated output elasticity of revenue of **3.13**
+# (bootstrap 95% interval 2.73 to 3.55; benchmark row of Table A-1 in their
+# online appendix), well above BP's imposed 2.08, and they argue that the low
+# imposed value is what makes SVAR tax multipliers small. Impose
+# $\theta = 3.13$ in the *same* BP machinery:
 
 # %%
 THETA_MR = 3.13     # Mertens-Ravn (2014 JME): narrative-implied tax-output elasticity
@@ -329,16 +370,19 @@ m_mr, m_mr_lo, m_mr_hi = pt2[:, 2, 0] * c_mr, lo2[:, 2, 0] * c_mr, hi2[:, 2, 0] 
 mr_peak = m_mr[:13].min()
 print(f"MR (theta=3.13) multiplier: impact {m_mr[0]:+.2f} | 2yr {m_mr[8]:+.2f} | "
       f"peak {mr_peak:+.2f} at h={int(m_mr[:13].argmin())}")
-# The reconciliation lands between BP and RR — the task's 'three ways' ordering:
+# On this dataset the reconciliation lands between BP and RR:
 assert m_rr[8] < m_mr[8] < m_bp[8] < 0
 assert abs(bp_peak) < abs(mr_peak) < abs(rr_peak)
 
 # %% [markdown]
 # **Read the output.** With the narrative-implied elasticity, the identical
-# VAR now delivers a two-year multiplier of about **−2.1** (peak ≈ −2.4) —
-# squarely *between* BP's −1 and RR's −3, which is exactly Mertens-Ravn's
-# reconciliation: the BP-vs-RR dispute is not SVAR-vs-LP, it is a dispute
-# about one elasticity, and the narrative record votes for the higher value.
+# VAR now delivers a two-year multiplier of **−2.11** (peak −2.39 at h=12),
+# between BP's −1.21 and RR's −2.86 on this dataset. The BP-vs-RR dispute is
+# therefore largely a dispute about one elasticity, not about SVAR versus LP,
+# and the narrative record votes for the higher value. Mertens and Ravn's own
+# estimates go further, to about two on impact and up to three after six
+# quarters in absolute value; our simplified receipts VAR (no transfers, no
+# trends) stops short of that, especially on impact (−0.84 here).
 
 # %% [markdown]
 # ### Hero figure — one question, three answers
@@ -368,7 +412,8 @@ ax.set_xlabel("Quarters after a tax increase of 1% of GDP")
 ax.set_ylabel("GDP response (% of GDP) = dollar multiplier")
 ax.set_title("The US tax multiplier under three identification schemes\n"
              "(one dataset: 1950Q1-2006Q4)")
-ax.legend(loc="lower left", fontsize=8)
+# Legend below the axes, so it does not hide the weak-proxy line.
+ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=2, fontsize=8)
 
 # %% [markdown]
 # ## 4. The specification curve — is it really identification?
@@ -429,11 +474,14 @@ assert med["MR 3.13"] < med["BP 2.08"] - 0.25
 # See docs/ADVISORY.md.
 assert abs(med["MR proxy"]) > abs(med["BP 2.08"])  # weak proxy is the outlier
 spread_ident = med.max() - med.min()
+spread_credible = med.drop("MR proxy").max() - med.drop("MR proxy").min()
 spread_defl = curve.groupby(["identification", "sample"])["sigma_hat"] \
                    .agg(lambda s: s.max() - s.min()).median()
 print(f"\nspread across identifications (medians): {spread_ident:.2f} "
+      f"| without the weak proxy: {spread_credible:.2f} "
       f"| median spread across deflators, all else fixed: {spread_defl:.2f}")
 assert spread_ident > 3 * spread_defl
+assert spread_credible > 3 * spread_defl          # the gap survives dropping the outlier
 
 # %%
 order = curve.sort_values("sigma_hat").reset_index(drop=True)
@@ -470,12 +518,16 @@ ax2.set_xlabel("Specification (sorted)")
 # %% [markdown]
 # **The punchline.** Read the bottom panel against the top: the sorted curve
 # is *segmented by identification scheme*, not by sample or deflator. Swapping
-# the deflator moves the two-year multiplier by ~0.2; swapping the
-# identification moves it by ~2 (medians: BP ≈ −1.2, MR ≈ −2.1, RR ≈ −2.3,
-# weak proxy ≈ 0). On one dataset, with one estimand, **identification — not
-# estimation — drives the answer.** When someone quotes you "the" tax
-# multiplier, the first question is not "what data?" but "what did they assume
-# to make the shock exogenous?"
+# the deflator moves the two-year multiplier by 0.27 (median over the
+# identification × sample cells). Swapping the identification moves the median
+# by 1.42 among the three credible schemes (BP 2.08 −1.22, MR 3.13 −2.15,
+# RR LP −2.64) and by 3.05 once the weak proxy is included. The weak proxy
+# (median −4.27, first-stage F 1.38 on the full sample) is not a fourth
+# answer: it is the outlier, because a weak instrument destabilises the point
+# estimate instead of shrinking it toward zero. On one dataset, with one
+# estimand, **identification — not estimation — drives the answer.** When
+# someone quotes you "the" tax multiplier, the first question is not "what
+# data?" but "what did they assume to make the shock exogenous?"
 
 # %% [markdown]
 # ## Your turn — the multiplier is a function of one assumption
@@ -499,16 +551,20 @@ print(f"theta = {THETA_TRY:.2f}  ->  two-year multiplier m(8) = {path_try[8]:+.2
 theta0_m8 = var_irf(est_try.A_list, make_bp_impact(0.0)(est_try.A_list, est_try.Sigma, est_try.resid), H)[:, 2, 0]
 theta0_m8 = theta0_m8[8] * (SCALE / make_bp_impact(0.0)(est_try.A_list, est_try.Sigma, est_try.resid)[0, 0])
 assert path_try[8] <= theta0_m8 + 1e-6
+# Predict the direction first: relative to BP's 2.08, a larger theta gives a more
+# negative m(8) and a smaller theta a less negative one (checked for theta in [-1, 6]).
+assert (path_try[8] - m_bp[8]) * (THETA_TRY - THETA_BP) <= 1e-9
 
 # %% [markdown]
-# **Prompts.** (1) *Basic*: set `THETA_TRY = 0.0` and compare with notebook 06's
-# lesson — a Cholesky ordering with taxes first finds almost no multiplier.
-# Why does treating the raw tax residual as the shock bias the answer toward
-# zero? (Think about which way the automatic elasticity runs.) (2)
-# *Intermediate*: re-run section 3's F table on the `1954-2006` sample
-# (rebuild `d`) — does the weak-instrument verdict change? (3) *Stretch*: pass
-# `d["mta"]` (anticipated changes) to `proxy_svar` and interpret the resulting
-# path in light of its F ≈ 0 — why are pre-announced tax changes almost
+# **Prompts.** (1) *Basic*: set `THETA_TRY = 0.0`, a pure Cholesky ordering
+# with taxes first (notebook 06 showed that a recursive shock depends on the
+# ordering). Predict the sign of m(8) before you run it. Why does treating the
+# raw tax residual as the shock bias the answer toward zero? (Think about
+# which way the automatic elasticity runs.) (2) *Intermediate*: re-run section
+# 3's F table on the `1954-2006` sample (rebuild `d`) — does the
+# weak-instrument verdict change? (3) *Stretch*: pass `d["mta"]` (anticipated
+# changes) to `proxy_svar` and interpret the resulting path in light of its
+# first-stage F of 0.06 — why are pre-announced tax changes almost
 # uninformative about tax *surprises*, and what would a "fiscal foresight" VAR
 # need to fix this?
 #

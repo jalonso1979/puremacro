@@ -379,14 +379,14 @@ The device solver reaches the same wages as the NumPy reference to six decimals 
 
 ### 4.6 Call shape of the full PyTorch / MLX solvers (45-sector ICIO calibration)
 
-`solve_trade_equilibrium_gpu`, `solve_trade_equilibrium_mlx` and `solve_homotopy_continuation` are designed for, and tested against, the full 45-sector, 77-country OECD ICIO calibration, whose $M = 3465$ Leontief operators are what the batched GEMM is meant to amortize. That data set is not distributed with the package, so the calls are shown as shapes only, not as an executed example:
+`solve_trade_equilibrium_gpu`, `solve_trade_equilibrium_mlx` and `solve_homotopy_continuation` are designed for, and tested against, the full 45-sector, 77-country OECD ICIO calibration, whose $M = 3465$ Leontief operators are what the batched GEMM is meant to amortize. The 45-sector reference checkpoints those tests use were built from the corrupted `data_2020_SML.csv` export (see the [provenance advisory](ADVISORY.md)), so they are software regressions, not results on the clean OECD tables. That data set is not distributed with the package, so the calls are shown as shapes only, not as an executed example:
 
 ```text
 from puremacro.trade import build_tariff_matrices, calibrate_trade_model
 from puremacro.trade.data import load_raw_45sector_icio
 from puremacro.trade.gpu import solve_homotopy_continuation, solve_trade_equilibrium_gpu, solve_trade_equilibrium_mlx
 
-raw   = load_raw_45sector_icio()                       # needs data_2020_SML.csv (IO_RAW45_PATH)
+raw   = load_raw_45sector_icio()                       # needs a clean OECD ICIOextended/2020_SML.csv (IO_RAW45_PATH); the corrupted data_2020_SML.csv export is refused
 calib = calibrate_trade_model(raw, ns=45, nc=77, nfd=3)
 tau, tau_fd, tauf, tauf_fd = build_tariff_matrices("t10", calib)   # (ns,nc,ns,nc), (ns,nc,nfd,nc), (1,nc), (1,nc)
 

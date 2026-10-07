@@ -235,16 +235,25 @@ fig = diag.plot()
 El cómputo de estados estacionarios deterministas en modelos DSGE de mediana y gran escala falla con frecuencia al utilizar solucionadores de Newton multidimensionales ingenuos. Puremacro incorpora un motor de descomposición en bloques triangulares (`puremacro.dsge.steady`):
 
 1. **Emparejamiento bipartito de Hopcroft-Karp**: halla un emparejamiento de máxima cardinalidad entre ecuaciones y variables en tiempo $O(|E|\sqrt{|V|})$.
-2. **Descomposición de singularidad de Dulmage-Mendelsohn**: cuando no existe un emparejamiento completo, descompone el grafo bipartito de incidencia en subconjuntos sobredeterminados, subdeterminados y bien determinados, generando un error informativo `StructuralSingularityError` que nombra explícitamente los subconjuntos problemáticos:
+2. **Descomposición de singularidad de Dulmage-Mendelsohn**: descompone el grafo bipartito de incidencia en subconjuntos sobredeterminados, subdeterminados y bien determinados. Cuando no existe un emparejamiento completo en el punto inicial, `steady()` ejecuta una resolución `hybr` del sistema completo y vuelve a comprobar el emparejamiento en el punto que alcanza. Si ahí el emparejamiento es completo, la carencia era local al punto inicial y se devuelve la raíz (`info["fallback_reason"] == "incomplete_matching_at_guess"`). En caso contrario, el modelo es estructuralmente singular y su estado estacionario no es localmente único:
+
+   - Si toda ecuación sobredeterminada se reduce a `0 = 0` (la forma estática de una ley de movimiento con raíz unitaria, como `z = z(-1) + e`), se devuelve el punto con un `StructuralSingularityWarning` que nombra las variables libres, e `info["structurally_singular"] = True`, como hace Dynare con los modelos con raíz unitaria.
+   - Cualquier otra estructura (ecuaciones estructuralmente duplicadas, es decir, un subconjunto de ecuaciones en el que intervienen menos variables que ecuaciones, o una variable que no entra en ninguna ecuación) lanza `StructuralSingularityError`. El error nombra los subconjuntos sobredeterminado y subdeterminado y lleva la raíz comprobada en `hybr_point`. Para aceptar el punto, pasa `allow_singular=True` a `steady()`, `build()`, `build_dynare()` o `load_mod()`, o envuelve la llamada en `with allow_structural_singularity():` tras `from puremacro.dsge.steady import allow_structural_singularity`. El ajuste del gestor de contexto solo afecta al hilo actual (o a la tarea asyncio actual).
+   - Con `allow_singular=False`, también las raíces unitarias lanzan el error.
+   - Un sistema inconsistente lanza el error en todos los modos.
+
+   La comprobación es estructural, como `dmperm` en Dynare: no detecta ecuaciones numéricamente colineales con incidencia completa (por ejemplo, `x + y = 2` y `2x + 2y = 4`). Cuando la pasada por bloques deja un residuo mayor que `tol`, se ejecuta un pulido `hybr` del sistema completo, que queda registrado en `info["full_system_polish"]` y en un mensaje de log de nivel INFO. Un modelo creado con `build()`, `build_dynare()` o `load_mod()` conserva ese diccionario `info` en `model.steady_state_info` (`None` cuando el estado estacionario se proporcionó en lugar de calcularse).
+
    ```python
    # requires: standalone snippet
-   from puremacro.dsge.steady import StructuralSingularityError
+   from puremacro.dsge.steady import StructuralSingularityError, steady
 
    try:
        ss, info = steady(equations, variables, guess, params)
    except StructuralSingularityError as err:
        print("Ecuaciones sobredeterminadas :", err.overdetermined_equations)
        print("Variables subdeterminadas    :", err.underdetermined_variables)
+       print("Raíz comprobada              :", err.hybr_point)
    ```
 3. **Componentes fuertemente conexas de Tarjan (SCC)**: descompone el grafo de dependencias inducido por el emparejamiento en sub-bloques topológicos resueltos en secuencia. Las ecuaciones escalares aisladas se resuelven con métodos unidimensionales (Brent / secante), mientras que los bloques acoplados emplean solucionadores vectoriales.
 
@@ -300,9 +309,42 @@ El objeto `IdentificationResult` resultante reporta:
 fig = ident.plot()
 ```
 
+### Dónde se evalúan los jacobianos
+
+La identificación local es una propiedad del jacobiano en un único vector de parámetros $\theta_0$: la condición de rango es $\operatorname{rank} J(\theta_0) = n_\theta$. Todas las columnas de $J_1$, $J_2$, $J_H$ y $J_S$ se calculan en el mismo $\theta_0$. El modelo se resuelve una sola vez en $\theta_0$, y la columna $j$ perturba solo $\theta_j$, con los demás parámetros fijos en su valor de $\theta_0$. $\theta_0$ es la calibración del modelo y la covarianza de perturbaciones declarada, sustituidas primero por `fixed_params` y después por el valor de cada parámetro analizado:
+
+| `params` | Valor de cada parámetro analizado |
+|---|---|
+| un diccionario `{nombre: valor}` (o `p_dict=`) | el valor dado |
+| una lista de nombres | su valor actual: la calibración para un parámetro estructural, $\sqrt{\Sigma_{u,ii}}$ para `SE_<perturbación>` (1.0 si no se declara covarianza), la correlación declarada para `CORR_<s1>_<s2>` (0.0 si no la hay), la entrada de `measurement_error` para `ME_<observable>` (0.0 si no la hay) |
+| `EstimatedParams` / `EstimatedParamSpec` | el `start` de la especificación: su `INITVAL` si se declara; si no, su media a priori |
+| omitido, en un modelo `.mod` con `estimated_params` | cada parámetro declarado en su `start`, como en la fila anterior |
+| omitido, en cualquier otro modelo | cada parámetro calibrado en su calibración |
+
+Una lista de nombres que declara el bloque `estimated_params` también toma el `start` de cada especificación.
+
+`fixed_params` (valores estructurales fijados en $\theta_0$ pero no analizados) y `measurement_error` (desviaciones típicas fijas del error de medida, por observable) son argumentos tanto del método `model.identification()` como de la función `puremacro.dsge.identification(model, ...)`.
+
+**En qué difiere de Dynare.** El comando `identification` de Dynare usa por defecto `parameter_set = prior_mean`. El valor por defecto de puremacro coincide con él solo cuando el bloque no declara ningún `INITVAL`. Para elegir el punto explícitamente, pásalo:
+
+```python
+# requires: standalone snippet
+ep = model._estimated_params
+at_prior_mean = model.identification(params={s.name: s.prior.mean for s in ep.specs})
+at_calibration = model.identification(params={n: model._params[n] for n in ["kappa", "rho_u"]})
+```
+
+Los valores `SE_` son desviaciones típicas de las innovaciones ($Q_{ii} = \sigma_i^2$). Los valores `CORR_` son correlaciones ($Q_{ij} = \rho_{ij}\sigma_i\sigma_j$, con las desviaciones típicas de $\theta_0$). Los valores `ME_` son desviaciones típicas del error de medida ($H_{ii} = \sigma^2$). Es la misma correspondencia que `estimate()` aplica a cada extracción. Una covarianza declarada fuera de la diagonal que ningún parámetro `CORR_` nombra permanece fija *como covarianza* cuando se mueve un `SE_`. Dynare, en cambio, mantiene fija una correlación declarada como correlación.
+
+Las columnas estructurales son diferencias centradas con paso $h = \max(10^{-5}, 10^{-4}|\theta_j|)$. La excepción se da cuando $\theta_j \pm h$ cruza una cota declarada o una resolución falla. La columna es entonces una diferencia unilateral de segundo orden, tomada del lado cuyos puntos quedan dentro de las cotas, lejos de la cota activa. Un paso nunca cruza una cota declarada. Las columnas de perturbaciones y de error de medida son analíticas.
+
+**Conjunto de estados de un modelo `.mod` / `build_dynare`.** `build_dynare` detecta numéricamente las variables predeterminadas: una variable es un estado cuando su retardo tiene un coeficiente no nulo en la calibración. Un retardo cuyo coeficiente está calibrado en 0, como `crhoms`, `crhopinf`, `crhow`, `cmap` y `cmaw` en SW07, no es por tanto un estado del modelo calibrado. Todas las resoluciones de un mismo análisis de identificación usan el mismo conjunto de estados: los estados del modelo, más los retardos activos en $\theta_0$, más los retardos que activa cualquier parámetro estructural analizado al moverse. Cuando ese conjunto difiere del propio del modelo, el modelo se vuelve a resolver con él, incluso en la calibración. Los estados adicionales no cambian los momentos ni los espectros de las observables; sus derivadas, sí. Los modelos creados con `build()` conservan los estados que declaraste.
+
+`prior_mc=N` repite el análisis de rango en `N` extracciones de $\theta_0$ a partir de las distribuciones a priori, truncadas a las cotas declaradas. Cada extracción se analiza en su propio punto completo. Las extracciones en las que el modelo no puede resolverse se omiten y se cuentan en `prior_mc_results["n_failed"]`; `n_draws` cuenta las extracciones analizadas. Si no puede resolverse ninguna, las tasas valen NaN y se emite un `RuntimeWarning`.
+
 ### Comprobación previa de identificación en la estimación
 
-Para evitar el lanzamiento de cadenas MCMC computacionalmente costosas en modelos no identificados, pase `check_identification=True` a `model.estimate()`:
+Para evitar el lanzamiento de cadenas MCMC computacionalmente costosas en modelos no identificados, pase `check_identification=True` a `model.estimate()`. La comprobación se ejecuta en el punto del que parte la estimación: cada parámetro estimado en su `start` (su `INITVAL`; si no, su media a priori), `fixed_params` y `measurement_error` tal como se pasan, y la calibración para todo lo demás. Un nombre de `fixed_params` que no sea un parámetro del modelo hace que `estimate()` lance `ValueError`, con la comprobación o sin ella.
 
 ```python
 # requires: standalone snippet
@@ -321,7 +363,7 @@ Puremacro ofrece soporte integral para el diseño de política monetaria y macro
 
 `model.osr()` optimiza los coeficientes de respuesta en reglas de política simples (como reglas de Taylor) para minimizar una pérdida cuadrática sobre las varianzas teóricas:
 $$L(\gamma) = \sum_i w_i \text{Var}(y_i; \gamma)$$
-sujeta a la condición de determinación de Blanchard-Kahn. Una superficie de penalización numérica continua garantiza la evaluación suave del gradiente cuando los parámetros candidatos ingresan en regiones de indeterminación:
+sujeta a la condición de determinación de Blanchard-Kahn. En una regla candidata indeterminada, o en la que el modelo no puede resolverse, la pérdida se sustituye por una penalización continua, $10^8 + 10^4\lVert\gamma - \gamma_0\rVert^2$, de modo que los optimizadores sin gradiente (Nelder–Mead, Powell) se contraen alejándose de esa región:
 
 ```python
 # requires: standalone snippet
@@ -335,6 +377,10 @@ print(osr_res.summary())
 # Gráfico de barras agrupadas comparando varianzas entre la regla base y la óptima
 fig = osr_res.plot()
 ```
+
+**Tolerancias y precisión.** `model.osr()` y la función `puremacro.dsge.osr(model, ...)` aceptan `xatol` (por defecto `1e-8`, una tolerancia absoluta sobre los coeficientes, en sus propias unidades), `fatol` (por defecto $10^{-12}$ veces la pérdida inicial, como mínimo $10^{-12}$) y `options` (que se pasa en último lugar a `scipy.optimize.minimize`, por ejemplo `{"xtol": ..., "ftol": ...}` para Powell). Una búsqueda que compara valores de la pérdida localiza los coeficientes, y la asignación que implican, solo hasta un error relativo de unos $\sqrt{2\varepsilon/c}$, donde $\varepsilon$ es la precisión relativa de la pérdida y $c$ su curvatura normalizada en el óptimo. Eso son unos $10^{-8}$ en un problema bien escalado, y un error mayor con una pérdida plana o mal escalada. Como `xatol` es absoluto, escálalo con los coeficientes. `xatol=1e-4, fatol=1e-4` reproduce los valores por defecto del propio Nelder–Mead de SciPy, que `osr` usó hasta la 4.3.0 inclusive. Hay ejemplos medidos en [Frontera DSGE, §1.6](dsge_phase_c.md).
+
+`loss_opt` se recalcula resolviendo de nuevo el modelo en los coeficientes devueltos. Si esa resolución falla, o la regla es indeterminada en ese punto, `loss_opt` vale NaN con un `RuntimeWarning` y `optimal_model` es `None`; `loss_initial` vale NaN, también con una advertencia, cuando no pueden evaluarse los momentos de partida. Ninguno de los dos es nunca un valor provisional ni el valor de penalización del optimizador.
 
 ### Política discrecional (`discretionary_policy()`)
 
@@ -356,7 +402,7 @@ print(disc_res.summary())
 
 ### Compromiso lineal-cuadrático (`lq_commitment()`)
 
-`lq_commitment()` resuelve la política óptima bajo compromiso desde la perspectiva intemporal ($\lambda_{-1} = 0$). Plantea el lagrangiano del planificador sobre las condiciones de equilibrio con expectativas racionales, ampliando el vector de estado con multiplicadores de Lagrange hacia adelante:
+`lq_commitment()` resuelve la política óptima bajo compromiso. Plantea el lagrangiano sobre las condiciones de equilibrio con expectativas racionales y amplía el vector de estado con los multiplicadores de Lagrange. La ley de movimiento que devuelve es la misma para el plan de Ramsey elegido en $t_0$ y para la regla de perspectiva atemporal; ambos difieren solo en el multiplicador inicial. El plan de Ramsey fija $\lambda_{-1} = 0$ sea cual sea la historia, mientras que la perspectiva atemporal usa el multiplicador implícito en la política pasada. Las respuestas al impulso y `conditional_loss` parten del estado estacionario, con $\lambda_{-1} = 0$, donde ambos coinciden. `loss` promedia sobre la distribución estacionaria, es decir, evalúa la regla atemporal en promedio, y vale NaN con un `RuntimeWarning` cuando no existe distribución estacionaria. El argumento `timeless` nunca cambió el resultado y está obsoleto. Véase [Frontera DSGE, §1.3](dsge_phase_c.md).
 
 ```python
 # requires: standalone snippet
@@ -392,8 +438,8 @@ Todos los objetos de resultados DSGE (`EigenvalueTable`, `ModelDiagnosticsResult
 
 ## Lo que deliberadamente no hace
 
-- **No hay procesador de macros.** `@#define`, `@#for`, `@#if`, `@#include` y `@{...}` lanzan `DynareFeatureError`. Antes se ignoraban, con lo que el archivo se cargaba limpio y se resolvía un *modelo distinto*. Expándelos con `dynare model.mod savemacro` y pasa el archivo expandido. Previsto para la 2.7.0.
-- **No hay analizador de expresiones**, de modo que `STEADY_STATE()`, `EXPECTATION()`, `normcdf` y una variable local `#` definida sobre una variable endógena fallan. También para la 2.7.0.
+- **Las directivas de macro se expanden, nunca se ignoran.** Desde la 2.7.0, el preprocesador propio de puremacro expande `@#define`, `@#for`, `@#if`, `@#include` y `@{...}` antes de analizar el archivo ([Cuaderno de bocetos DSGE, §4b](dsge_build.md)). En la 2.6.0 lanzaban `DynareFeatureError`; antes se ignoraban, con lo que el archivo se cargaba limpio y se resolvía un *modelo distinto*.
+- **Los parámetros se vuelven a leer solo donde Dynare los vuelve a leer.** El lector de `.mod` analiza `STEADY_STATE()`, `normcdf` y las variables locales `#` del modelo, definidas sobre parámetros o sobre variables endógenas. Las locales se sustituyen simbólicamente y nunca se congelan en la calibración, de modo que un parámetro estimado que solo entra en el modelo a través de ellas (el `constebeta` de SW07, vía `cbeta`, `cbetabar`, `cr`, `conster`, ...) mueve la verosimilitud en cada extracción; hasta la 4.3.0 inclusive esas locales se reducían a números al cargar el archivo y la verosimilitud de `constebeta` era exactamente plana. Las asignaciones de primer nivel como `cbeta = 1/(1+constebeta/100);`, fuera del bloque del modelo, se evalúan una sola vez al leer el archivo y **no** siguen a las extracciones —igual que en Dynare—, así que escribe una cantidad derivada de parámetros como una local `#`. `EXPECTATION(k)(...)` se analiza sintácticamente, pero su residuo compilado lanza `NameError`.
 - **Solo primer orden.** Una solución de segundo orden se rechaza en lugar de linealizarse en silencio; el filtro de partículas correspondiente queda para una versión posterior.
 - **El muestreador adapta un escalar, no una matriz de covarianzas**, y su adaptación solo actúa cada 100 iteraciones, así que un `burn_in` inferior a 100 no adapta nunca y puede dejar la cadena atascada con una tasa de aceptación del 0 %. Dale al menos unos cientos.
 - **`mode_compute` vale `"lbfgs"` por defecto**, y no el mejor `csminwel`, porque cambiarlo cambia todas las posterioris obtenidas hasta ahora.
@@ -409,9 +455,9 @@ Para tutoriales interactivos completos con visualización y diagnósticos:
 
 ## Suite de replicación: familia `dsge_estimation`
 
-El módulo `puremacro.replication` proporciona verificación automatizada de los principales resultados empíricos publicados en la literatura académica. La familia `dsge_estimation` verifica:
+El módulo `puremacro.replication` contrasta resultados principales publicados con los cálculos del propio puremacro. La familia `dsge_estimation` ejecuta el modelo de Smets y Wouters (2007) programado a mano (`puremacro.dsge.smets_wouters`) sobre los datos trimestrales de EE.UU. 1966T1–2004T4 incluidos en el paquete (`_sw07_data.csv`, reconstruidos desde FRED con las definiciones del apéndice de datos de SW07). Su fixture, `puremacro/replication/data/sw07_parity_seed0_200draws.npz`, se distribuye como datos del paquete y contiene una moda posterior optimizada (L-BFGS-B desde dos puntos de partida, refinada con pasos de Newton), la inversa del hessiano en ella y 200 extracciones submuestreadas de Metropolis de paseo aleatorio. Tiene cuatro casos, y solo el primero se compara con una cifra publicada:
 
-- **`dsge_estimation.sw07_log_posterior_at_mode`**: Evalúa el log-posteriori exacto de Kalman en la moda posterior sobre el conjunto de datos de EE.UU. 1966–2004 (`_sw07_data.csv`) bajo la inicialización de covarianza estacionaria de Lyapunov (`_stationary_init`). Objetivo: `-1673.72` (`Tol.TIGHT`).
-- **`dsge_estimation.sw07_laplace_marginal_data_density`**: Evalúa la aproximación de Laplace a la densidad marginal de los datos a partir del hessiano inverso en la moda. Objetivo: `-1686.09` (`Tol.TIGHT`).
-- **`dsge_estimation.sw07_harmonic_mean_mdd_consistency`**: Evalúa la media armónica modificada de Geweke (1999) a través de los parámetros de truncamiento `[0.1, 0.3, 0.5, 0.7, 0.9]` y comprueba la consistencia entre niveles de truncamiento (dispersión $< 2.5$ puntos logarítmicos).
-- **`dsge_estimation.sw07_structural_parameters_mode`**: Verifica los parámetros estructurales clave de la moda en la Tabla 1 de Smets y Wouters (2007) (`csadjcost`, `csigma`, `chabb`, `csigl`, `cprobp`, `cfc`, `crr`, `crdy`, `ctrend`).
+- **`dsge_estimation.sw07_structural_parameters_mode`** (objetivo publicado): la moda optimizada frente a la columna **Mode** (moda posterior) de las Tablas 1a y 1b de SW07 (ECB WP 722, pp. 35–36 del PDF), no frente a la columna Mean (media). Comprueba 13 parámetros: `csadjcost`, `csigma`, `chabb`, `csigl`, `cprobp`, `cfc`, `crr`, `crdy`, `ctrend` y los parámetros de los procesos de margen `crhopinf`, `cmap`, `crhow`, `cmaw`. Los 13 quedan a menos del 6.2 % de las modas publicadas (por ejemplo, $\varphi$ 5.694 frente a 5.48, $\sigma_c$ 1.405 frente a 1.39, $\mu_p$ 0.703 frente a 0.74); el caso usa `Tol.COARSE` (25 %) porque los datos son la versión actual de FRED, no los ficheros de SW de 2006.
+- **`dsge_estimation.sw07_log_posterior_at_mode`**, **`dsge_estimation.sw07_laplace_marginal_data_density`**, **`dsge_estimation.sw07_harmonic_mean_mdd_consistency`** (valores de regresión de puremacro, **no son cifras publicadas**): el log-posteriori en la moda, `-822.04`, recalculado en vivo; la log densidad marginal de Laplace, `-902.83`, a partir de ese valor y de la inversa del hessiano almacenada; y la media armónica modificada de Geweke (1999) sobre las 200 extracciones almacenadas, `-908.03`, con una dispersión de `2.66` puntos logarítmicos entre los niveles de truncamiento 0.1–0.9. Con solo 200 extracciones esa dispersión supera el umbral de convergencia de un punto logarítmico de `harmonic_mean_mdd`, así que este caso fija la salida del estimador, no una estimación convergida. Los tres casos usan `Tol.TIGHT` (2 % relativo, unos ±16 a ±18 puntos logarítmicos con estos valores), de modo que detectan cambios grandes en el modelo, los datos, las distribuciones a priori o los estimadores; la suite de tests fija el log-posteriori de la moda almacenada con una tolerancia de $10^{-6}$. SW07 no publican el log-posteriori en la moda, y su verosimilitud marginal (Tabla 2: −905.8) se calcula sobre 1966–2004 con 1956:1–1965:4 como muestra de entrenamiento. Desde 4.6.0 `sw07_laplace_mdd` reproduce ese cálculo sobre los datos de los autores (`presample=40`, `lik_init="diffuse"`): −932.3, y −921.4 con las opciones del `.mod` de replicación de los autores; en la moda de los propios autores puremacro coincide con Dynare 8 hasta 0.65 puntos logarítmicos (−840.81 frente a −841.46), y el propio Dynare 8 da −923.1 y no −905.8 sobre los archivos públicos. La cifra publicada no es, pues, reproducible a partir de esos archivos y no es un objetivo comparable; véase la [Galería de replicación](replication.md).
+
+Hasta la 4.3.0 inclusive, esta página daba `-1673.72` y `-1686.09` como objetivos del log-posteriori y de Laplace, y describía el caso de la moda como una comprobación de la Tabla 1 en la moda posterior. Eran salidas de puremacro, no resultados de SW07, y el caso de la moda comparaba la mejor de 200 extracciones MCMC con valores de la columna Mean. La tabla de comparación completa está en la [Galería de Replicación](replication.md).

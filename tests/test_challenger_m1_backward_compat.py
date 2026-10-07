@@ -4,7 +4,8 @@ Verifies:
 1. Backward compatibility of HJBSolution (dict subscripting, methods, iteration edge cases).
 2. Backward compatibility of VFISolution (positional args, endo_shape, optional grids, unravelling).
 3. Presentation quintet parity across Trade results, VAR results, DSGE results, and VFI solutions.
-4. Deprecation warnings retirement to 4.0.0 for puremacro.lp.garch_utils and puremacro.sigma.sigma_numpy.
+4. Deprecation warning targets: puremacro.lp.garch_utils and puremacro.sigma.sigma_numpy name 5.0.0
+   (both retargeted after 4.0.0 shipped keeping the shims).
 5. Pyodide four-package contract compliance via static AST inspection.
 6. Execution of continuous-time HJB showcase notebook.
 """
@@ -262,11 +263,15 @@ def test_vfi_solution_plot_headless_and_axes():
 
 
 # ===========================================================================
-# 3. Deprecation Warning Behavior (Target: 4.0.0)
+# 3. Deprecation Warning Behavior (garch_utils and SigmaObject target: 5.0.0)
 # ===========================================================================
 
-def test_garch_utils_future_warning_4_0_0():
-    """Ensure puremacro.lp.garch_utils emits FutureWarning with target 4.0.0."""
+def test_garch_utils_future_warning_names_a_future_release():
+    """Ensure puremacro.lp.garch_utils emits FutureWarning naming a release that has not shipped.
+
+    The target was 4.0.0 until that release shipped (2026-09-16) keeping the shim; it is
+    5.0.0 since 2026-09-22 (see tests/test_docs_hygiene_audit_fixes.py for the drift guard).
+    """
     with warnings.catch_warnings(record=True) as recorded:
         warnings.simplefilter("always")
         if "puremacro.lp.garch_utils" in sys.modules:
@@ -280,12 +285,17 @@ def test_garch_utils_future_warning_4_0_0():
     ]
     assert len(garch_warnings) >= 1, "Expected FutureWarning on importing garch_utils"
     msg = str(garch_warnings[0].message)
-    assert "4.0.0" in msg, f"Expected target '4.0.0' in warning message, got: {msg}"
+    assert "5.0.0" in msg, f"Expected target '5.0.0' in warning message, got: {msg}"
     assert "2.0.0" not in msg, f"Stale '2.0.0' target found in warning: {msg}"
+    assert "4.0.0" not in msg, f"Stale '4.0.0' target found in warning: {msg}"
 
 
-def test_sigma_numpy_future_warning_4_0_0():
-    """Ensure puremacro.sigma.sigma_numpy.SigmaObject emits FutureWarning with target 4.0.0."""
+def test_sigma_numpy_future_warning_names_a_future_release():
+    """Ensure puremacro.sigma.sigma_numpy.SigmaObject emits FutureWarning naming 5.0.0.
+
+    The target was 4.0.0 until that release shipped (2026-09-16) keeping the shim; it is
+    5.0.0 since 2026-09-23, like garch_utils.
+    """
     with warnings.catch_warnings(record=True) as recorded:
         warnings.simplefilter("always")
         from puremacro.sigma.sigma_numpy import SigmaObject
@@ -297,8 +307,9 @@ def test_sigma_numpy_future_warning_4_0_0():
     ]
     assert len(sigma_warnings) >= 1, "Expected FutureWarning on SigmaObject init"
     msg = str(sigma_warnings[0].message)
-    assert "4.0.0" in msg, f"Expected target '4.0.0' in warning message, got: {msg}"
+    assert "5.0.0" in msg, f"Expected target '5.0.0' in warning message, got: {msg}"
     assert "2.0.0" not in msg, f"Stale '2.0.0' target found in warning: {msg}"
+    assert "4.0.0" not in msg, f"Stale '4.0.0' target found in warning: {msg}"
 
 
 # ===========================================================================

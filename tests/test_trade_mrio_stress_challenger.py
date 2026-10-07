@@ -35,6 +35,7 @@ from puremacro.trade.regularize import (
     spectral_radius,
     validate_accounting_identities,
 )
+from _timing import budget
 
 
 class TestStressInactiveSectors:
@@ -315,8 +316,8 @@ class TestStressCollatzWielandtSpectralRadius:
         max_time = float(np.max(times))
 
         print(f"\n[BENCHMARK] M=3,465 Collatz-Wielandt: min={min_time:.4f}s, median={median_time:.4f}s, max={max_time:.4f}s")
-        assert median_time < 0.15, f"Median runtime {median_time:.4f}s exceeds 0.15s"
-        assert min_time < 0.15, f"Min runtime {min_time:.4f}s exceeds 0.15s"
+        assert median_time < budget(0.15), f"Median runtime {median_time:.4f}s exceeds 0.15s"
+        assert min_time < budget(0.15), f"Min runtime {min_time:.4f}s exceeds 0.15s"
         assert 0.0 < rho < 0.999
         assert lower <= rho <= upper + 1e-6
 

@@ -1,0 +1,14 @@
+........................................................................ [ 42%]
+........................................................................ [ 84%]
+...........................                                              [100%]
+=============================== warnings summary ===============================
+tests/test_structural_empirical_sw07.py::test_nonstationary_economic_solution_not_silently_repaired
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/smets_wouters.py:725: RuntimeWarning: klein_solve: 1 generalised eigenvalue(s) lie in [1, div=1.00000001) and were admitted to the stable block, so the returned state transition G has a root on or outside the unit circle. The solution is a valid non-explosive rational-expectations path, but the model is NOT stationary: unconditional moments, the unconditional variance decomposition and the Lyapunov variance do not exist for it. Pass div=1.0 to refuse such models instead.
+    sol_klein = klein_solve(G0, G1, n_pre=_N_PRE, C=Psi, strict=False)
+
+tests/test_pyodide_compat.py::test_no_forbidden_runtime_imports_after_full_sweep
+  /Users/jalonso/.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/importlib/__init__.py:88: FutureWarning: puremacro.lp.garch_utils is private and deprecated, will be removed in a future major release (5.0.0); use puremacro.lp._garch_utils or high-level LP functions instead.
+    return _bootstrap._gcd_import(name[level:], package, level)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+171 passed, 2 warnings in 26.22s

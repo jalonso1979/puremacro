@@ -50,7 +50,8 @@ def aiyagari_baseline_ss():
         n_a=40,
         n_z=3,
         N_k=60,
-        tol=1e-4,
+        # ``tol=1e-4`` used to be passed here; solve_aiyagari_continuous never
+        # read it (its clearing tolerance is ``tol_ge``, default 1e-4).
         backend="numpy",
     )
 

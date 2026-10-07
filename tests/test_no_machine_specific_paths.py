@@ -67,3 +67,38 @@ def test_the_patterns_would_actually_fire():
     }
     for label, pattern in _FORBIDDEN.items():
         assert pattern.search(samples[label]), label
+
+
+#: Notebook sources ship to readers too (GitHub, Colab, the browser
+#: playground). Five notebooks under notebooks/macro_history_and_climate/
+#: hardcoded /Users/... and /Volumes/... paths and a private helper package,
+#: so they could not run for anyone else; they were retired on 2026-09-30.
+_NOTEBOOK_SOURCES = sorted(
+    p for base in (_ROOT / "notebooks", _ROOT / "curso")
+    for p in base.rglob("*.py")
+    if "__pycache__" not in p.parts and ".ipynb_checkpoints" not in p.parts
+)
+_NOTEBOOK_FORBIDDEN = dict(_FORBIDDEN, **{
+    "mounted volume": re.compile(r"[\"']/Volumes/[A-Za-z0-9._-]+"),
+})
+
+
+def test_the_notebook_scan_has_something_to_scan():
+    assert len(_NOTEBOOK_SOURCES) > 100, len(_NOTEBOOK_SOURCES)
+
+
+@pytest.mark.parametrize("label, pattern", sorted(_NOTEBOOK_FORBIDDEN.items()))
+def test_no_notebook_source_hardcodes_a_machine_specific_path(label, pattern):
+    hits = []
+    for path in _NOTEBOOK_SOURCES:
+        for lineno, line in enumerate(
+                path.read_text(encoding="utf-8").splitlines(), start=1):
+            if line.lstrip().startswith("#"):
+                continue
+            if pattern.search(line):
+                hits.append(f"{path.relative_to(_ROOT)}:{lineno}: {line.strip()}")
+    assert not hits, (
+        f"{label} hardcoded in a notebook source:\n  " + "\n  ".join(hits) +
+        "\n\nResolve paths relative to the repository (Path.cwd()) or read "
+        "them from an environment variable."
+    )

@@ -203,7 +203,8 @@ plt.show()
 # %% [markdown] slideshow={"slide_type": "subslide"}
 # ### LP-HAC: respuesta de la inversión a un choque de q
 # Estimamos con **proyecciones locales** de Jordà (2005), con errores estándar HAC
-# (Newey–West, ancho de banda $h+1$ según Plagborg-Møller–Wolf 2021), la respuesta
+# (Newey–West, rezago de truncamiento $h+1$: una regla práctica, porque el residuo a $h$
+# pasos está correlacionado serialmente hasta el orden $h$), la respuesta
 # acumulada del (log) de la inversión ante un choque de $\Delta\log q$:
 # $$ \text{inv}_{t+h} - \text{inv}_{t-1} = \alpha_h + \beta_h\,\Delta\log q_t + \sum_l \gamma_l z_{t-l} + \varepsilon_{t,h}. $$
 #

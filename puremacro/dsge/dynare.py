@@ -23,6 +23,7 @@ Schmitt-Grohé, S. and Uribe, M. (2004). Solving dynamic general equilibrium
 from __future__ import annotations
 
 import dataclasses
+import keyword
 import re
 import warnings
 from pathlib import Path
@@ -85,12 +86,12 @@ class DynareFeatureError(NotImplementedError):
     """A .mod construct puremacro recognises but does not implement yet.
 
     Deliberately **not** a ``ValueError``: callers wrap parse failures in
-    ``except ValueError`` and this must not be swallowed by them. Every other
-    unsupported construct fails loudly on its own (a model-local ``#``
-    variable over an endogenous variable, ``STEADY_STATE()`` and ``normcdf``
-    all raise ``NameError`` when the compiled equations run); the macro
-    processor did not, and silently solving a different model from the one the
-    file describes is the failure this class exists to prevent.
+    ``except ValueError`` and this must not be swallowed by them. Other
+    unsupported constructs in the legacy regex reader fail loudly on their own
+    (``STEADY_STATE()`` and ``normcdf`` raise ``NameError`` when the compiled
+    equations run); the macro processor and malformed model-local ``#``
+    definitions did not, and silently solving a different model from the one
+    the file describes is the failure this class exists to prevent.
     """
 
 
@@ -261,6 +262,7 @@ def build_dynare(
     check_steady_state: bool = True,
     strict: bool = True,
     qz_criterium: float = 1.0 + 1e-8,
+    allow_singular: bool | None = None,
 ) -> LinearModel | PrunedDSGESolution:
     """Solve a DSGE model written in Dynare canonical lead-lag form.
 
@@ -315,13 +317,30 @@ def build_dynare(
         model has no unique stable solution. With ``strict=False`` the
         model is returned with ``solution.eu`` flagged and zero matrices;
         its decision-rule methods then refuse to run.
+    qz_criterium : float, default 1.0 + 1e-8
+        Eigenvalue modulus above which a root counts as explosive.
+    allow_singular : bool or None, default None
+        Forwarded to :func:`~puremacro.dsge.steady.steady` when the steady
+        state is solved for (``guess=`` without ``steady_state=``): what to do
+        when the static system is structurally singular. ``None`` uses the
+        ambient :func:`~puremacro.dsge.steady.allow_structural_singularity`
+        setting (by default, a unit-root law of motion is accepted with a
+        :class:`~puremacro.dsge.steady.StructuralSingularityWarning` and any
+        other structure raises
+        :class:`~puremacro.dsge.steady.StructuralSingularityError`); ``True``
+        accepts any structure the full-system solve can satisfy, with the
+        warning; ``False`` raises for every structurally singular model.
 
     Returns
     -------
     LinearModel | PrunedDSGESolution
         Solved model equipped with `.decision_rules()`, `.theoretical_moments()`,
         `.fevd()`, `.irf()`, and `.simulate()` (order 1), or the pruned
-        second-order solution (order 2).
+        second-order solution (order 2) or third-order solution (order 3),
+        which carry the first-order model as ``.first_order``. The
+        ``info`` dict of the steady-state solve is kept as
+        ``LinearModel.steady_state_info`` (``None`` when ``steady_state=``
+        was supplied).
     """
     if isinstance(equations, (str, Path)):
         return load_mod(
@@ -340,6 +359,7 @@ def build_dynare(
             verify_derivatives=verify_derivatives,
             strict=strict,
             qz_criterium=qz_criterium,
+            allow_singular=allow_singular,
         )
 
     if variables is None:
@@ -368,6 +388,7 @@ def build_dynare(
             verify_derivatives=verify_derivatives,
             check_steady_state=check_steady_state,
             strict=strict,
+            allow_singular=allow_singular,
         )
     elif order == 3:
         return solve_dynare_3rd_order(
@@ -387,6 +408,7 @@ def build_dynare(
             verify_derivatives=verify_derivatives,
             check_steady_state=check_steady_state,
             strict=strict,
+            allow_singular=allow_singular,
         )
     elif order != 1:
         raise ValueError(f"unsupported perturbation order {order}; must be 1, 2, or 3")
@@ -409,6 +431,7 @@ def build_dynare(
         out = equations(y_v, y_v, y_v, e_0, par_vec)
         return np.asarray(out, dtype=float)
 
+    ss_info: dict | None = None
     if steady_state is not None:
         if isinstance(steady_state, Mapping):
             missing = [v for v in variables if v not in steady_state]
@@ -446,7 +469,7 @@ def build_dynare(
                 f"equation per variable"
             )
         from .steady import steady
-        ss_arr, _ = steady(
+        ss_arr, ss_info = steady(
             equations,
             variables=variables,
             guess=guess,
@@ -456,6 +479,7 @@ def build_dynare(
             homotopy=homotopy,
             homotopy_steps=homotopy_steps,
             tol=tol,
+            allow_singular=allow_singular,
         )
 
     ss_series = pd.Series(ss_arr, index=variables, name="steady_state")
@@ -573,6 +597,11 @@ def build_dynare(
         object.__setattr__(model, "_compiled", compiled)
     object.__setattr__(model, "_is_linear", is_linear)
     object.__setattr__(model, "_qz_criterium", qz_criterium)
+    object.__setattr__(model, "_steady_state_info", ss_info)
+    # Kept so that every re-solve at other parameter values
+    # (_resolve_dynare_model: osr, widgets, estimation, SMC, gradients)
+    # honours the caller's structural-singularity opt-in.
+    object.__setattr__(model, "_allow_singular", allow_singular)
     return model
 
 
@@ -646,6 +675,7 @@ def solve_dynare_2nd_order(
     verify_derivatives: bool = True,
     check_steady_state: bool = True,
     strict: bool = True,
+    allow_singular: bool | None = None,
 ) -> PrunedDSGESolution:
     """Solve second-order DSGE perturbation with pruning (Schmitt-Grohé & Uribe 2004, Kim et al. 2008).
 
@@ -700,12 +730,19 @@ def solve_dynare_2nd_order(
     strict : bool, default True
         Raise :class:`~puremacro.dsge.klein.BlanchardKahnError` when the
         first-order model has no unique stable solution.
+    allow_singular : bool or None, default None
+        Forwarded to the steady-state solve (see :func:`build_dynare`).
 
     Returns
     -------
     PrunedDSGESolution
-        Second-order pruned DSGE solution equipped with `.simulate()`, `.girf()`,
-        and `.stochastic_steady_state()`.
+        Second-order pruned DSGE solution equipped with `.simulate()` and
+        `.girf()`. Its steady-state summaries are ``.ergodic_mean()`` (alias
+        ``.stochastic_steady_state()``), the unconditional mean of the pruned
+        solution; ``.risky_steady_state()``, the zero-shock fixed point where
+        only the risk term ``0.5 ghs2 sigma^2`` acts; and
+        ``.risk_decomposition()``, which splits the ergodic mean into that
+        risk term and the state and shock curvature terms.
     """
     if method not in ("complex", "central"):
         raise ValueError(f"unknown method {method!r}; expected 'complex' or 'central'")
@@ -728,6 +765,7 @@ def solve_dynare_2nd_order(
         verify_derivatives=verify_derivatives,
         check_steady_state=check_steady_state,
         strict=True,
+        allow_singular=allow_singular,
     )
 
     assert isinstance(m, LinearModel), "Order 2 perturbation requires a solved LinearModel"
@@ -897,6 +935,7 @@ def solve_dynare_2nd_order(
                 verify_derivatives=verify_derivatives,
                 check_steady_state=check_steady_state,
                 strict=True,
+                allow_singular=allow_singular,
             )
             assert isinstance(m, LinearModel)
             (states_list, controls_list, n_x, n_y,
@@ -1067,6 +1106,7 @@ def solve_dynare_3rd_order(
     verify_derivatives: bool = True,
     check_steady_state: bool = True,
     strict: bool = True,
+    allow_singular: bool | None = None,
 ) -> Order3PrunedSolution:
     """Solve third-order DSGE perturbation with pruning (Andreasen et al. 2018).
 
@@ -1111,12 +1151,20 @@ def solve_dynare_3rd_order(
         Verify that a supplied steady state solves the equations.
     strict : bool, default True
         Raise BlanchardKahnError when the model has no unique stable solution.
+    allow_singular : bool or None, default None
+        Forwarded to the steady-state solve (see :func:`build_dynare`).
 
     Returns
     -------
     Order3PrunedSolution
-        Third-order pruned DSGE solution equipped with .simulate(), .girf(),
-        and .stochastic_steady_state().
+        Third-order pruned DSGE solution equipped with `.simulate()` and
+        `.girf()`. Its steady-state summaries are ``.ergodic_mean()`` (alias
+        ``.stochastic_steady_state()``), the unconditional mean of the pruned
+        solution; ``.risky_steady_state()``, the zero-shock fixed point where
+        only the risk term ``0.5 ghs2 sigma^2`` acts (the third-order
+        component is zero without shocks); and ``.risk_decomposition()``,
+        which splits the ergodic mean into that risk term and the state and
+        shock curvature terms.
     """
     if method not in ("complex", "central"):
         raise ValueError(f"unknown method {method!r}; expected 'complex' or 'central'")
@@ -1139,6 +1187,7 @@ def solve_dynare_3rd_order(
         verify_derivatives=verify_derivatives,
         check_steady_state=check_steady_state,
         strict=True,
+        allow_singular=allow_singular,
     )
 
     assert isinstance(m, LinearModel), "Order 3 perturbation requires a solved LinearModel"
@@ -1313,6 +1362,7 @@ def solve_dynare_3rd_order(
                 verify_derivatives=verify_derivatives,
                 check_steady_state=check_steady_state,
                 strict=True,
+                allow_singular=allow_singular,
             )
             assert isinstance(m, LinearModel)
             (states_list, controls_list, n_x, n_y,
@@ -1626,6 +1676,612 @@ def _extract_ids(raw_str: str) -> list[str]:
     return [t for t in tokens if t and re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", t)]
 
 
+# ---------------------------------------------------------------------------
+# Helpers of the legacy regex .mod reader (used only when the AST parser fails)
+# ---------------------------------------------------------------------------
+
+# An identifier with an optional Dynare time index: ``x``, ``x(+1)``, ``x(-2)``.
+_MOD_IDENT_WITH_LEAD = re.compile(
+    r"\b([A-Za-z_][A-Za-z0-9_]*)\b(\s*\(\s*([+-]?)\s*(\d+)\s*\))?"
+)
+_KW_ALIAS_PREFIX = "__puremacro_kw_"
+
+
+def _kw_alias(name: str) -> str:
+    """Name under which ``eval`` sees a Dynare name that is a Python keyword."""
+    return f"{_KW_ALIAS_PREFIX}{name}" if keyword.iskeyword(name) else name
+
+
+def _py_safe_expr(expr: str) -> str:
+    """Rename Python-keyword identifiers (``lambda``) so ``eval`` can read them.
+
+    Dynare names only need to start with a letter; ``lambda`` or ``yield``
+    are legal parameter or variable names there and a ``SyntaxError`` in a
+    Python expression. Each such identifier becomes :func:`_kw_alias` of it,
+    which the evaluation scopes below also define.
+    """
+    return re.sub(
+        r"\b[A-Za-z_][A-Za-z0-9_]*\b", lambda m: _kw_alias(m.group(0)), expr
+    )
+
+
+def _format_mod_lead(name: str, lead: int) -> str:
+    """Dynare spelling of ``name`` at time offset ``lead``: ``x``, ``x(+1)``, ``x(-2)``."""
+    if lead == 0:
+        return name
+    return f"{name}({lead:+d})"
+
+
+def _shift_mod_expr(
+    expr: str, offset: int, variables: Sequence[str], shocks: Sequence[str]
+) -> str:
+    """Shift every endogenous variable in the .mod expression ``expr`` by ``offset``.
+
+    This is how Dynare treats a model-local variable used with a lead or lag
+    (Reference Manual 4.5: "if the model-local variable appears with a lead
+    or a lag ... shifting the expression accordingly"). Parameters and
+    numbers are left alone; ``|lead| >= 2`` results are expanded into
+    auxiliary variables later, like any other long lead or lag.
+
+    Raises
+    ------
+    DynareFeatureError
+        ``expr`` contains an exogenous variable and ``offset != 0``: the
+        regex reader only handles shocks dated ``t``.
+    """
+    if offset == 0:
+        return expr
+    vset, sset = set(variables), set(shocks)
+
+    def repl(m: re.Match) -> str:
+        name = m.group(1)
+        if name in vset:
+            lead = int(m.group(3) + m.group(4)) if m.group(2) else 0
+            return _format_mod_lead(name, lead + offset)
+        if name in sset:
+            raise DynareFeatureError(
+                f"the model-local expression {expr!r} contains the exogenous "
+                f"variable {name!r} and is used with a lead or lag of {offset:+d}; "
+                "the legacy .mod reader cannot date exogenous variables away from t"
+            )
+        return m.group(0)
+
+    return _MOD_IDENT_WITH_LEAD.sub(repl, expr)
+
+
+def _inline_mod_locals_text(
+    equations: Sequence[str],
+    local_defs: Mapping[str, str],
+    variables: Sequence[str],
+    shocks: Sequence[str],
+) -> list[str]:
+    """Substitute model-local ``#`` variables into .mod equation text.
+
+    Each reference ``name`` / ``name(k)`` is replaced by the parenthesised
+    defining expression (itself with earlier locals inlined), shifted by
+    ``k`` periods. Nothing is evaluated: the equations keep the parameters,
+    so the compiled callable reads their current values on every call, as
+    Dynare's substitution semantics require.
+
+    Raises
+    ------
+    ModelError
+        The locals reference each other circularly.
+    """
+    resolved: dict[str, str] = {}
+
+    def resolve(name: str, stack: list[str]) -> str:
+        if name in resolved:
+            return resolved[name]
+        if name in stack:
+            cycle = stack[stack.index(name):] + [name]
+            raise ModelError(
+                f"circular dependency in model-local variables: {' -> '.join(cycle)}"
+            )
+        body = subst(local_defs[name], stack + [name])
+        resolved[name] = body
+        return body
+
+    def subst(text: str, stack: list[str]) -> str:
+        def repl(m: re.Match) -> str:
+            name = m.group(1)
+            if name not in local_defs:
+                return m.group(0)
+            lead = int(m.group(3) + m.group(4)) if m.group(2) else 0
+            body = resolve(name, stack)
+            return "(" + _shift_mod_expr(body, lead, variables, shocks) + ")"
+
+        return _MOD_IDENT_WITH_LEAD.sub(repl, text)
+
+    for name in local_defs:
+        resolve(name, [])
+    return [subst(eq, []) for eq in equations]
+
+
+def _mod_steady_state_at(model: Any, params: Mapping[str, float]) -> dict[str, float] | None:
+    """Steady state from a ``.mod`` model's own ``steady_state_model`` at ``params``.
+
+    For re-solving a loaded model at new parameter values: Dynare re-runs
+    ``steady_state_model`` at every parameter vector, so the steady state of
+    a model like SW07 (``robs`` depends on ``csigma``, ``constebeta``, ...)
+    must be recomputed rather than carried over. ``model`` is a solved model
+    returned by :func:`load_mod` / :func:`build_dynare` (or its
+    ``_dynare_equations`` callable).
+
+    Returns
+    -------
+    dict[str, float] or None
+        The re-evaluated steady state, or ``None`` when the model did not
+        come from a ``.mod`` file with a ``steady_state_model`` block (the
+        caller then solves for the steady state numerically).
+    """
+    eqs = model if callable(model) else getattr(model, "_dynare_equations", None)
+    ss_at = getattr(eqs, "_steady_state_at", None)
+    if ss_at is None:
+        dag = getattr(model, "_dag", None)
+        ss_at = getattr(dag, "evaluate_steady_state", None)
+    if ss_at is None:
+        return None
+    return ss_at(params)
+
+
+# ---------------------------------------------------------------------------
+# Re-solving a build_dynare / load_mod model at other parameter values
+# ---------------------------------------------------------------------------
+
+# A column of A_- (df/dy_{t-1}) above this norm makes its variable a state;
+# the same threshold build_dynare uses for automatic detection.
+_LAG_COLUMN_TOL = 1e-10
+
+
+def _live_lag_columns(a_minus: np.ndarray, variables: Sequence[str]) -> set[str]:
+    """Variables whose column of ``A_-`` is finite and above the state threshold."""
+    a_minus = np.asarray(a_minus, dtype=float)
+    if a_minus.ndim != 2 or a_minus.shape[1] != len(variables):
+        return set()
+    with np.errstate(all="ignore"):
+        col = np.linalg.norm(a_minus, axis=0)
+    return {v for j, v in enumerate(variables) if np.isfinite(col[j]) and col[j] > _LAG_COLUMN_TOL}
+
+
+def _generic_lag_incidence(model: Any) -> set[str]:
+    """Lag incidence of a callable model, read at a generic parameter point.
+
+    A callable carries no symbolic incidence, so ``A_-`` is evaluated at the
+    model's steady state with every parameter moved by a small deterministic
+    amount (``p + 0.01 * u * max(1, |p|)`` with ``u`` in ``[0.5, 1]``). A lag
+    whose coefficient is 0 only at the calibration (``rho = 0`` in
+    ``x = rho*x(-1) + e``) is non-zero there. If the residual is not finite
+    at the moved point the opposite direction is tried; if neither works the
+    set is empty and the post-solve check of :func:`_resolve_dynare_model`
+    remains the safeguard.
+    """
+    eqs = getattr(model, "_dynare_equations", None)
+    params = dict(getattr(model, "_params", None) or {})
+    if eqs is None:
+        return set()
+    variables = list(model.variables)
+    shocks = list(model.shocks)
+    ss_arr = np.asarray(model.steady_state.reindex(variables), dtype=float)
+    if not np.all(np.isfinite(ss_arr)):
+        return set()
+    names = list(params)
+    u = 0.5 + 0.5 * np.random.default_rng(20260930).random(len(names))
+    e_zero = np.zeros(len(shocks))
+    for sign in (1.0, -1.0):
+        moved = [
+            float(params[k]) + sign * 0.01 * u[i] * max(1.0, abs(float(params[k])))
+            for i, k in enumerate(names)
+        ]
+        par_vec = _Vec(names, moved, what="parameter")
+
+        def f_lag(v, par_vec=par_vec):
+            d = np.asarray(v).dtype
+            return eqs(_Vec(variables, ss_arr.astype(d)), _Vec(variables, ss_arr.astype(d)),
+                       _Vec(variables, v), _Vec(shocks, e_zero.astype(d)), par_vec)
+
+        try:
+            with np.errstate(all="ignore"), warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                a_minus = _jacobian(f_lag, ss_arr, len(variables), model.method)
+        except Exception:
+            continue
+        if np.all(np.isfinite(a_minus)):
+            return _live_lag_columns(a_minus, variables)
+    return set()
+
+
+def _resolve_states(model: Any) -> tuple[str, ...]:
+    """Predetermined set for re-solving a ``build_dynare`` / ``load_mod`` model.
+
+    ``build_dynare`` detects states numerically, as the variables whose
+    column of ``A_-`` is non-zero at the parameter vector it is solved at, so
+    ``model.states`` is the set at the model's own calibration. Re-solving at
+    another vector with ``states=model.states`` silently drops every lag whose
+    coefficient is 0 at the calibration: SW07 calibrates ``crhoms``,
+    ``crhopinf``, ``crhow``, ``cmap`` and ``cmaw`` to 0 and estimates all
+    five, so ``ms(-1)``, ``spinf(-1)``, ``sw(-1)``, ``epinfma(-1)`` and
+    ``ewma(-1)`` were missing from every estimation draw. Detecting the states
+    afresh at each vector would be correct for that vector but would change
+    the dimension of the state vector from one solve to the next, which the
+    finite-difference and Kalman consumers cannot absorb.
+
+    The set returned is fixed for the model: ``model.states`` together with
+    every variable that enters some equation with a lag,
+
+    - for a ``.mod`` model, from the symbolic lead-lag incidence of its
+      compiled derivatives (Dynare's ``M_.state_var``: a variable is a state
+      when it appears at ``t-1``, whatever its coefficient's value);
+    - for a callable, from the columns of ``A_-`` that are non-zero at a
+      generic perturbation of the parameters (:func:`_generic_lag_incidence`).
+
+    It is ``model.states`` itself, in the same order, when nothing is added,
+    and is ordered as ``model.variables`` otherwise, as automatic detection
+    orders it. A state whose lag coefficient is 0 at some parameter vector
+    only adds a zero column to the transition there (a zero eigenvalue), so
+    decision rules, moments, IRFs and the likelihood at that vector are those
+    of the smaller set.
+    """
+    cached = getattr(model, "_resolve_states_cache", None)
+    if cached is not None:
+        return tuple(cached)
+    base = tuple(getattr(model, "states", ()) or ())
+    variables = list(model.variables)
+    active = set(base)
+    eqs = getattr(model, "_dynare_equations", None)
+    compiled = getattr(model, "_compiled", None) or getattr(eqs, "_compiled", None)
+    pattern = getattr(compiled, "sparsity_pattern", None) if compiled is not None else None
+    if (
+        isinstance(pattern, Mapping)
+        and "A_minus" in pattern
+        and list(getattr(compiled, "variables", ()) or ()) == variables
+    ):
+        cols = np.asarray(pattern["A_minus"], dtype=int).reshape(-1, 2)[:, 1]
+        active.update(variables[j] for j in sorted(set(cols.tolist())))
+    else:
+        a_minus = getattr(model, "_A_minus", None)
+        if a_minus is not None:
+            active.update(_live_lag_columns(a_minus, variables))
+        active.update(_generic_lag_incidence(model))
+    result = base if active == set(base) else tuple(v for v in variables if v in active)
+    try:
+        object.__setattr__(model, "_resolve_states_cache", result)
+    except Exception:
+        pass
+    return result
+
+
+def _residual_at(model: Any, params: Mapping[str, float], values: Mapping[str, float]) -> float:
+    """``max |f(ss, ss, ss, 0; params)|`` of a ``build_dynare`` model (inf if not finite)."""
+    variables = list(model.variables)
+    shocks = list(model.shocks)
+    try:
+        y = np.array([float(values[v]) for v in variables])
+        par_vec = _Vec(list(params), [float(p) for p in params.values()], what="parameter")
+        y_v = _Vec(variables, y, what="variable")
+        with np.errstate(all="ignore"):
+            res = np.asarray(
+                model._dynare_equations(y_v, y_v, y_v, _Vec(shocks, np.zeros(len(shocks)), what="shock"),
+                                        par_vec),
+                dtype=float,
+            )
+    except Exception:
+        return float("inf")
+    if res.shape != (len(variables),) or not np.all(np.isfinite(res)):
+        return float("inf")
+    return float(np.max(np.abs(res))) if res.size else 0.0
+
+
+def _resolve_steady_state(
+    model: Any,
+    params: Mapping[str, float],
+    *,
+    previous: Mapping[str, float] | None = None,
+    tol: float = 1e-8,
+) -> tuple[dict[str, float], bool]:
+    """Steady state for re-solving ``model`` at the full parameter vector ``params``.
+
+    Returns ``(values, exact)``. The candidate is the ``steady_state_model``
+    block re-evaluated at ``params`` when the model came from a ``.mod`` file
+    that has one (Dynare re-runs it at every parameter vector), else
+    ``previous`` (default: the model's own steady state). ``exact`` is True
+    when the candidate solves the static model at ``params`` to ``tol``; the
+    caller then passes it as ``steady_state=``. Otherwise the caller passes
+    it as ``guess=`` and the steady state is solved for, so the Jacobians are
+    never taken at the calibration's steady state when the parameters moved
+    it (SW07's ``robs`` depends on ``csigma`` and ``constebeta``).
+    """
+    variables = list(model.variables)
+    cand = dict(previous) if previous is not None else {
+        str(k): float(v) for k, v in model.steady_state.items()
+    }
+    try:
+        block = _mod_steady_state_at(model, params)
+    except Exception:
+        # A block that cannot be evaluated at these parameters leaves the
+        # numerical solve from the previous steady state.
+        block = None
+    if block:
+        cand.update({k: float(v) for k, v in block.items() if k in variables})
+    cand = {v: float(cand.get(v, 0.0)) for v in variables}
+    # A block that does not solve the model at these parameters (top-level
+    # assignments are not re-run) is still the best starting point: it becomes
+    # the guess.
+    return cand, _residual_at(model, params, cand) <= tol
+
+
+def _resolve_dynare_model(
+    model: Any,
+    params: Mapping[str, float],
+    *,
+    strict: bool = True,
+    qz_criterium: float | None = None,
+    shock_cov: np.ndarray | None = None,
+    previous_ss: Mapping[str, float] | None = None,
+    tol: float = 1e-8,
+    states: Sequence[str] | None = None,
+    allow_singular: bool | None = None,
+) -> LinearModel:
+    """Re-solve a ``build_dynare`` / ``load_mod`` model (first order) at new parameters.
+
+    The one re-solve every consumer (``osr``, widgets, prior/posterior IRFs,
+    SMC, analytic gradients, OccBin estimation) goes through, so that each of
+    them sees the same model a fresh load at those parameters would give:
+
+    - ``params`` override the model's calibration (``model._params``);
+      model-local ``#`` variables of a ``.mod`` follow them because they are
+      symbolic in the compiled equations;
+    - the steady state is recomputed when the parameters move it
+      (:func:`_resolve_steady_state`), instead of carrying the calibration's;
+    - the declared shock covariance (``model._shock_cov``) is kept unless
+      ``shock_cov`` is given;
+    - the predetermined set is :func:`_resolve_states` (plus any variable
+      whose lag is live at this vector although no earlier check caught it,
+      which then joins the set for later re-solves), never the calibration's
+      frozen ``model.states``;
+    - the differentiation method and QZ criterium are the model's own unless
+      ``qz_criterium`` is given. Derivatives are not re-verified: the
+      equations are the ones the model was built and verified with;
+    - the structural-singularity opt-in the model was built with
+      (``build_dynare(..., allow_singular=)`` / ``load_mod``) is forwarded to
+      the steady-state solve unless ``allow_singular`` is given.
+
+    ``previous_ss`` replaces the model's own steady state as the starting
+    point (the candidate when the file has no ``steady_state_model`` block,
+    the solver's guess otherwise).
+    """
+    if getattr(model, "_dynare_equations", None) is None:
+        raise ModelError(
+            "_resolve_dynare_model needs a model built with build_dynare or load_mod."
+        )
+    merged = dict(getattr(model, "_params", None) or {})
+    merged.update({k: float(v) for k, v in dict(params).items()})
+    st = _resolve_states(model) if states is None else tuple(states)
+    ss, exact = _resolve_steady_state(model, merged, previous=previous_ss, tol=tol)
+    cov = getattr(model, "_shock_cov", None) if shock_cov is None else shock_cov
+    qz = qz_criterium
+    if qz is None:
+        qz = getattr(model, "_qz_criterium", None) or 1.0 + 1e-8
+    singular = getattr(model, "_allow_singular", None) if allow_singular is None else allow_singular
+
+    def _solve(state_set):
+        kw: dict[str, Any] = {"steady_state": ss} if exact else {"guess": ss}
+        return build_dynare(
+            model._dynare_equations,
+            variables=list(model.variables),
+            shocks=list(model.shocks),
+            params=merged,
+            states=list(state_set),
+            order=1,
+            shock_cov=cov,
+            tol=tol,
+            method=getattr(model, "method", "complex"),
+            verify_derivatives=False,
+            check_steady_state=False,
+            strict=strict,
+            qz_criterium=qz,
+            allow_singular=singular,
+            **kw,
+        )
+
+    solved = _solve(st)
+    a_minus = getattr(solved, "_A_minus", None)
+    if a_minus is not None:
+        missed = _live_lag_columns(a_minus, list(model.variables)) - set(st)
+        if missed:
+            grown = set(st) | missed
+            st = tuple(v for v in model.variables if v in grown)
+            if states is None:
+                try:
+                    object.__setattr__(model, "_resolve_states_cache", st)
+                except Exception:
+                    pass
+            solved = _solve(st)
+    try:
+        object.__setattr__(solved, "_resolve_states_cache", tuple(st))
+    except Exception:
+        pass
+    return solved
+
+
+def _dag_equations(dag: Any) -> Callable:
+    """The compiled ``eqs(lead, curr, lag, shocks, params)`` of a parsed DAG.
+
+    Carries the ``_dag`` and ``_steady_state_at`` attributes :func:`parse_mod`
+    attaches, so :func:`_resolve_steady_state` re-evaluates the file's
+    ``steady_state_model`` block through it. Nothing is cached on the DAG
+    (a compiled function stored there would make it unpicklable); compiling
+    is one ``exec`` of the rendered equations.
+    """
+    eq_fn = dag.compile_equations()
+    for attr, val in (("_dag", dag),
+                      ("_steady_state_at", getattr(dag, "evaluate_steady_state", None))):
+        if val is not None:
+            try:
+                object.__setattr__(eq_fn, attr, val)
+            except Exception:
+                pass
+    return eq_fn
+
+
+def _resolve_parsed_dag_model(
+    dag: Any,
+    params: Mapping[str, float],
+    *,
+    strict: bool = True,
+    qz_criterium: float | None = None,
+    shock_cov: np.ndarray | None = None,
+    tol: float = 1e-8,
+    allow_singular: bool | None = None,
+) -> LinearModel:
+    """Solve a :class:`~puremacro.dsge._parser.ParsedModelDAG` (first order) at ``params``.
+
+    The DAG counterpart of :func:`_resolve_dynare_model`, for consumers that
+    take a parsed model rather than a solved one (``bayesian_irf``,
+    ``prior_predictive``, widgets):
+
+    - ``params`` override the file's calibration (``dag.parameter_values``);
+      they are merged with it, never used alone;
+    - the steady state is the ``steady_state_model`` block re-evaluated at the
+      merged values when it solves the model there; otherwise it is solved for,
+      starting from that block, the ``initval`` block at the merged values, or
+      the calibration's steady state (``dag.steady_state`` holds the block at
+      the calibration and is never reused as exact at other values);
+    - the shock covariance is the file's ``shocks;`` block
+      (``dag.shock_cov``) unless ``shock_cov`` is given;
+    - the predetermined set is the file's ``predetermined_variables`` when it
+      declares some and is otherwise detected at ``params``, as
+      :func:`load_mod` does.
+    """
+    from types import SimpleNamespace
+
+    variables = list(dag.variables)
+    shocks = list(dag.shocks)
+    merged = {str(k): float(v) for k, v in dict(getattr(dag, "parameter_values", None) or {}).items()}
+    merged.update({str(k): float(v) for k, v in dict(params).items()})
+    eq_fn = _dag_equations(dag)
+
+    start: dict[str, float] = {}
+    for source in (getattr(dag, "steady_state", None), getattr(dag, "guess", None)):
+        if source:
+            start = {str(k): float(v) for k, v in dict(source).items()}
+            break
+    try:
+        initval = dag.evaluate_initval(merged) if hasattr(dag, "evaluate_initval") else None
+    except Exception:
+        initval = None
+    if initval:
+        start.update({str(k): float(v) for k, v in initval.items()})
+    start = {v: float(start.get(v, 0.0)) for v in variables}
+
+    proxy = SimpleNamespace(
+        variables=variables,
+        shocks=shocks,
+        _dynare_equations=eq_fn,
+        _dag=dag,
+        steady_state=pd.Series(start, dtype=float),
+    )
+    ss, exact = _resolve_steady_state(proxy, merged, previous=start, tol=tol)
+    cov = shock_cov if shock_cov is not None else getattr(dag, "shock_cov", None)
+    kw: dict[str, Any] = {"steady_state": ss} if exact else {"guess": ss}
+    model = build_dynare(
+        eq_fn,
+        variables=variables,
+        shocks=shocks,
+        params=merged,
+        states=list(dag.predetermined_variables) if getattr(dag, "predetermined_variables", None) else None,
+        order=1,
+        shock_cov=None if cov is None else np.asarray(cov, dtype=float),
+        tol=tol,
+        verify_derivatives=False,
+        check_steady_state=False,
+        strict=strict,
+        qz_criterium=qz_criterium if qz_criterium is not None else 1.0 + 1e-8,
+        allow_singular=allow_singular,
+        **kw,
+    )
+    return model
+
+
+def _shock_scale_overrides(
+    model: Any, params: Mapping[str, float]
+) -> tuple[dict[str, float], np.ndarray | None]:
+    """Split ``params`` into model parameters and a shock covariance.
+
+    The ``stderr`` and ``corr`` entries of an ``estimated_params`` block
+    (reported as ``SE_<shock>`` and ``CORR_<s1>_<s2>``) are not parameters of
+    the equations, which never read them: handed to the solver as parameters
+    they change nothing (a prior predictive over ``SE_e`` gave the same
+    moments at every draw). They are recognised from the model's own
+    ``estimated_params`` specs, or else by those names when the name is not a
+    model parameter and names declared shocks, and written into the declared
+    shock covariance (identity when there is none) the way Dynare's
+    ``set_all_parameters`` does: variances on the diagonal, the declared
+    correlations kept, ``Sigma = D C D`` with ``D`` the standard deviations.
+    Measurement-error entries (``kind == 'stderr_obs'``) have no model object
+    to change and are dropped.
+
+    Returns
+    -------
+    (dict, ndarray or None)
+        The remaining (structural) parameters, and the covariance, or
+        ``None`` when ``params`` held no shock-scale entry (the caller then
+        keeps the declared covariance).
+    """
+    shocks = list(getattr(model, "shocks", ()) or ())
+    known = set(getattr(model, "_params", None) or getattr(model, "parameter_values", None) or {})
+    kinds: dict[str, tuple[str, tuple]] = {}
+    ep = getattr(model, "_estimated_params", None)
+    if ep is None:
+        ep = getattr(model, "estimated_params", None)
+    for spec in getattr(ep, "specs", ()) or ():
+        kinds[str(spec.name)] = (str(spec.kind), tuple(spec.target))
+
+    structural: dict[str, float] = {}
+    se: dict[str, float] = {}
+    corr: dict[tuple[str, str], float] = {}
+    for name, val in dict(params).items():
+        kind, target = kinds.get(str(name), (None, ()))
+        if kind is None and name not in known:
+            if name.startswith("SE_") and name[3:] in shocks:
+                kind, target = "stderr_shock", (name[3:],)
+            elif name.startswith("CORR_"):
+                rest = name[5:]
+                for s1 in shocks:
+                    s2 = rest[len(s1) + 1:]
+                    if rest.startswith(s1 + "_") and s2 in shocks:
+                        kind, target = "corr_shock", (s1, s2)
+                        break
+        if kind == "stderr_shock" and target and target[0] in shocks:
+            se[target[0]] = float(val)
+        elif kind == "corr_shock" and len(target) == 2 and all(t in shocks for t in target):
+            corr[(target[0], target[1])] = float(val)
+        elif kind == "stderr_obs":
+            continue
+        else:
+            structural[name] = val
+    if not se and not corr:
+        return structural, None
+
+    n_e = len(shocks)
+    base = getattr(model, "_shock_cov", None)
+    if base is None:
+        base = getattr(model, "shock_cov", None)
+    base = np.eye(n_e) if base is None else np.array(base, dtype=float, copy=True)
+    base = 0.5 * (base + base.T)
+    sd = np.sqrt(np.clip(np.diag(base), 0.0, None))
+    with np.errstate(all="ignore"):
+        outer = np.outer(sd, sd)
+        cmat = np.where(outer > 0.0, base / np.where(outer > 0.0, outer, 1.0), 0.0)
+    np.fill_diagonal(cmat, 1.0)
+    for sh, s in se.items():
+        sd[shocks.index(sh)] = abs(s)
+    for (s1, s2), c in corr.items():
+        i, j = shocks.index(s1), shocks.index(s2)
+        cmat[i, j] = cmat[j, i] = c
+    return structural, np.diag(sd) @ cmat @ np.diag(sd)
+
+
 def _expand_multiperiod_leads_lags(
     raw_eqs: list[str],
     variables: list[str],
@@ -1756,10 +2412,15 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
         res["_dag"] = dag
         res["_compiled"] = compiled
         res["is_linear"] = dag.is_linear or compiled.is_linear
+        # steady_state_model / initval are functions of the parameters:
+        # load_mod(params=) and re-solves re-run them at the new values.
+        res["_steady_state_at"] = dag.evaluate_steady_state
+        res["_guess_at"] = dag.evaluate_initval
         eq_callable = res["equations"]
         try:
             object.__setattr__(eq_callable, "_dag", dag)
             object.__setattr__(eq_callable, "_compiled", compiled)
+            object.__setattr__(eq_callable, "_steady_state_at", dag.evaluate_steady_state)
         except Exception:
             pass
         return res
@@ -1821,9 +2482,10 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
             if pname in declared_params:
                 rhs_expr = parts[1].strip().replace("^", "**")
                 try:
-                    val = float(eval(rhs_expr, eval_scope, params))
+                    val = float(eval(_py_safe_expr(rhs_expr), eval_scope, params))
                     params[pname] = val
                     eval_scope[pname] = val
+                    eval_scope[_kw_alias(pname)] = val
                 except Exception:
                     pass
 
@@ -1834,6 +2496,11 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
 
     raw_lines = model_match.group(1).split(";")
     clean_eqs = []
+    # Model-local '#' variables are substituted symbolically into the equation
+    # text below. They are never evaluated to numbers and never stored in
+    # `params`: a folded local keeps its load-time value when the model is
+    # re-solved at other parameter values (estimation, load_mod(params=)).
+    local_defs: dict[str, str] = {}
     for line in raw_lines:
         line = line.strip()
         if not line:
@@ -1843,28 +2510,47 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
         if not line:
             continue
         if line.startswith("#"):
-            m_local = re.match(r"#\s*([A-Za-z0-9_]+)\s*=\s*(.*)", line)
-            if m_local:
-                loc_name = m_local.group(1).strip()
-                loc_expr = m_local.group(2).strip().replace("^", "**")
-                try:
-                    val = float(eval(loc_expr, eval_scope, params))
-                    params[loc_name] = val
-                    eval_scope[loc_name] = val
-                except Exception:
-                    pass
+            m_local = re.match(r"#\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$", line, re.DOTALL)
+            if not m_local:
+                raise DynareFeatureError(
+                    f"could not read the model-local variable definition {line!r}; "
+                    "expected '#name = expression;'"
+                )
+            loc_name = m_local.group(1)
+            if loc_name in variables or loc_name in shocks:
+                raise ModelError(
+                    f"Model-local variable '{loc_name}' collides with a declared "
+                    "endogenous or exogenous variable"
+                )
+            local_defs[loc_name] = m_local.group(2).strip()
         else:
             clean_eqs.append(line)
+    if local_defs:
+        clean_eqs = _inline_mod_locals_text(clean_eqs, local_defs, variables, shocks)
 
-    def _eval_assignment_block(body: str, block_name: str) -> dict[str, float]:
+    def _eval_assignment_block(
+        body: str,
+        block_name: str,
+        overrides: Mapping[str, float] | None = None,
+        globals_scope: dict[str, Any] | None = None,
+    ) -> dict[str, float]:
         """Evaluate ``name = expr;`` lines in order, keeping temporaries in scope.
 
         Dynare lets ``steady_state_model`` / ``initval`` blocks define helper
         quantities (``rk = 1/beta - 1 + delta;``) that later lines use;
         those must be evaluated, not discarded. An assignment that cannot
         be evaluated is a hard error naming the line, not a silent zero.
+        ``overrides`` replaces parameter values (re-evaluation at new
+        parameters, as Dynare does for ``steady_state_model``).
         """
-        local_scope: dict[str, float] = dict(params)
+        param_values = dict(params)
+        if overrides:
+            param_values.update({k: float(v) for k, v in overrides.items()})
+        # Evaluated under keyword-safe aliases (a parameter called `lambda`),
+        # returned under the real names.
+        local_scope: dict[str, float] = {
+            _kw_alias(k): v for k, v in param_values.items()
+        }
         for raw in body.split(";"):
             stmt = raw.strip()
             if not stmt or "=" not in stmt:
@@ -1875,13 +2561,22 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
             if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", name):
                 continue
             try:
-                local_scope[name] = float(eval(expr, eval_scope, local_scope))
+                local_scope[_kw_alias(name)] = float(
+                    eval(
+                        _py_safe_expr(expr),
+                        eval_scope if globals_scope is None else globals_scope,
+                        local_scope,
+                    )
+                )
             except Exception as exc:
                 raise ValueError(
                     f"could not evaluate '{name} = {expr};' in the {block_name} block: "
                     f"{type(exc).__name__}: {exc}"
                 ) from None
-        return local_scope
+        return {
+            (k[len(_KW_ALIAS_PREFIX):] if k.startswith(_KW_ALIAS_PREFIX) else k): v
+            for k, v in local_scope.items()
+        }
 
     # 7. Parse initval block
     guess_init: dict[str, float] = {}
@@ -1893,6 +2588,9 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
     # 8. Parse steady_state_model block (if present)
     steady_state: dict[str, float] | None = None
     ss_match = re.search(r"\bsteady_state_model\s*;\s*(.*?)\bend\s*;", clean_text, re.DOTALL)
+    # The scope the block is evaluated in, kept for re-evaluation at new
+    # parameter values (below, `_steady_state_at`).
+    ss_globals = dict(eval_scope)
     if ss_match:
         ss_scope = _eval_assignment_block(ss_match.group(1), "steady_state_model")
         steady_state = {v: ss_scope.get(v, 0.0) for v in variables}
@@ -1937,7 +2635,7 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
             if corr_m:
                 s1, s2, val_str = corr_m.group(1), corr_m.group(2), corr_m.group(3).replace("^", "**")
                 try:
-                    c_val = float(eval(val_str, eval_scope, params))
+                    c_val = float(eval(_py_safe_expr(val_str), eval_scope, params))
                     i1, i2 = shocks.index(s1), shocks.index(s2)
                     std1 = np.sqrt(max(0.0, shock_cov[i1, i1]))
                     std2 = np.sqrt(max(0.0, shock_cov[i2, i2]))
@@ -1953,7 +2651,7 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
             if cov_m:
                 s1, s2, val_str = cov_m.group(1), cov_m.group(2), cov_m.group(3).replace("^", "**")
                 try:
-                    c_val = float(eval(val_str, eval_scope, params))
+                    c_val = float(eval(_py_safe_expr(val_str), eval_scope, params))
                     i1, i2 = shocks.index(s1), shocks.index(s2)
                     shock_cov[i1, i2] = c_val
                     shock_cov[i2, i1] = c_val
@@ -1967,7 +2665,7 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
                 sname, val_str = var_single.group(1), var_single.group(2).replace("^", "**")
                 if sname in shocks:
                     try:
-                        s_val = float(eval(val_str, eval_scope, params))
+                        s_val = float(eval(_py_safe_expr(val_str), eval_scope, params))
                         s_idx = shocks.index(sname)
                         shock_cov[s_idx, s_idx] = s_val
                         variance_declared.add(sname)
@@ -1982,7 +2680,7 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
                 val_str = stderr_inline.group(2).strip().replace("^", "**")
                 if sname in shocks:
                     try:
-                        s_val = float(eval(val_str, eval_scope, params))
+                        s_val = float(eval(_py_safe_expr(val_str), eval_scope, params))
                         s_idx = shocks.index(sname)
                         shock_cov[s_idx, s_idx] = s_val**2
                         variance_declared.add(sname)
@@ -2002,7 +2700,7 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
                 val_str = stderr_stmt.group(1).replace("^", "**")
                 if current_shock in shocks:
                     try:
-                        s_val = float(eval(val_str, eval_scope, params))
+                        s_val = float(eval(_py_safe_expr(val_str), eval_scope, params))
                         s_idx = shocks.index(current_shock)
                         shock_cov[s_idx, s_idx] = s_val**2
                         variance_declared.add(current_shock)
@@ -2063,11 +2761,37 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
     ) if _has("estimated_params_bounds") else None
 
     # 11. Multi-period lead and lag expansion
+    base_eqs, base_variables = list(clean_eqs), list(variables)
     clean_eqs, variables, steady_state, guess = _expand_multiperiod_leads_lags(
         clean_eqs, variables, steady_state=steady_state, guess=guess_init if guess_init else None
     )
 
+    # 11b. steady_state_model / initval as functions of the parameters, for
+    # load_mod(params=) and re-solves (Dynare re-runs steady_state_model at
+    # every parameter vector).
+    def _steady_state_at(new_params: Mapping[str, float] | None = None) -> dict[str, float] | None:
+        if not ss_match:
+            return None
+        scope = _eval_assignment_block(
+            ss_match.group(1), "steady_state_model", new_params, dict(ss_globals)
+        )
+        ss_new = {v: scope.get(v, 0.0) for v in base_variables}
+        return _expand_multiperiod_leads_lags(base_eqs, base_variables, steady_state=ss_new)[2]
+
+    def _guess_at(new_params: Mapping[str, float] | None = None) -> dict[str, float] | None:
+        if not initval_match:
+            return None
+        scope = _eval_assignment_block(
+            initval_match.group(1), "initval", new_params, dict(ss_globals)
+        )
+        g_new = {v: scope[v] for v in base_variables if v in scope}
+        if not g_new:
+            return None
+        return _expand_multiperiod_leads_lags(base_eqs, base_variables, guess=g_new)[3]
+
     # 12. Compile equations to Python callable
+    kw_names = [n for n in (*variables, *shocks, *params) if keyword.iskeyword(n)]
+
     def transform_expr(expr: str) -> str:
         s = expr.replace("^", "**")
         s = re.sub(r"\blog\(", "np.log(", s)
@@ -2088,6 +2812,14 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
             s = re.sub(rf"\b{sh}\b", f"shocks.{sh}", s)
         for p in params:
             s = re.sub(rf"\b{p}\b", f"params.{p}", s)
+        # Python-keyword names (a parameter `lambda`) cannot be attributes in
+        # source code: read them with getattr instead.
+        for name in kw_names:
+            s = re.sub(
+                rf"\b(lead|lag|curr|shocks|params)\.{name}\b",
+                rf"getattr(\1, '{name}')",
+                s,
+            )
         return s
 
     py_exprs = []
@@ -2108,6 +2840,7 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
     scope = {"np": np}
     exec(code_body, scope)
     eq_callable = scope["_generated_equations"]
+    eq_callable._steady_state_at = _steady_state_at
 
     return {
         "variables": variables,
@@ -2127,6 +2860,8 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
         "det_shocks": [],
         "histval": histval,
         "endval": endval,
+        "_steady_state_at": _steady_state_at,
+        "_guess_at": _guess_at,
     }
 
 
@@ -2148,6 +2883,7 @@ def load_mod(
     verify_derivatives: bool = True,
     strict: bool = True,
     qz_criterium: float = 1.0 + 1e-8,
+    allow_singular: bool | None = None,
 ) -> LinearModel | PrunedDSGESolution:
     """Load and solve a Dynare .mod file directly in puremacro.
 
@@ -2159,7 +2895,16 @@ def load_mod(
         ``;`` / newline (which cannot be .mod source), is treated as a path
         and must exist.
     params : Mapping[str, float], optional
-        Optional parameter overrides.
+        Optional parameter overrides. They reach everything that is a
+        function of the parameters in Dynare: the model equations, the
+        model-local ``#`` variables built from them (substituted
+        symbolically, never frozen at the file's calibration), and the
+        ``steady_state_model`` and ``initval`` blocks, which are re-evaluated
+        at the merged values. Top-level parameter assignments that depend on
+        other parameters (``beta = 1/(1+r);``) are not re-run, as in Dynare,
+        so override the dependent parameter explicitly or use a ``#`` local.
+        The ``shocks;`` block keeps the values it had at the file's
+        calibration; pass ``shock_cov=`` to change it.
     steady_state : Mapping[str, float] | Sequence[float], optional
         Optional exact steady state override.
     guess : Mapping[str, float] | Sequence[float], optional
@@ -2167,11 +2912,13 @@ def load_mod(
     states : Sequence[str], optional
         Optional explicit states override. If None, automatically detected
         or taken from ``predetermined_variables`` if declared.
-    order : {1, 2}, optional
+    order : {1, 2, 3}, optional
         Approximation order:
         - 1: First-order linear approximation (returns LinearModel).
         - 2: Second-order SGU (2004) perturbation with Kim et al. (2008) pruning
              (returns PrunedDSGESolution).
+        - 3: Third-order perturbation with Andreasen et al. (2018) pruning
+             (returns Order3PrunedSolution).
         If None, uses order specified in stoch_simul block if present, else 1.
     shock_cov : np.ndarray, optional
         Covariance matrix of innovations. Defaults to the ``shocks;`` block
@@ -2190,13 +2937,27 @@ def load_mod(
         Raise :class:`~puremacro.dsge.klein.BlanchardKahnError` when the
         Blanchard-Kahn condition fails instead of returning zero decision
         rules.
+    qz_criterium : float, default 1.0 + 1e-8
+        Eigenvalue modulus above which a root counts as explosive.
+    allow_singular : bool or None, default None
+        Forwarded to the steady-state solve when the file gives no
+        ``steady_state_model`` (see :func:`build_dynare`). ``None`` uses the
+        ambient :func:`~puremacro.dsge.steady.allow_structural_singularity`
+        setting.
 
     Returns
     -------
-    LinearModel | PrunedDSGESolution
+    LinearModel | PrunedDSGESolution | Order3PrunedSolution
         Solved model equipped with `.decision_rules()`, `.theoretical_moments()`,
-        and `.irf()` (if order=1), or `.simulate()`, `.girf()`,
-        `.stochastic_steady_state()`, and `.decision_rules()` (if order=2).
+        and `.irf()` (if order=1), or the pruned solution with `.simulate()`,
+        `.girf()` and `.decision_rules()` (if order=2 or 3). The pruned
+        solution's steady-state summaries are `.ergodic_mean()` (alias
+        `.stochastic_steady_state()`), the unconditional mean;
+        `.risky_steady_state()`, the zero-shock fixed point where only the
+        risk term acts; and `.risk_decomposition()`, which splits the mean
+        into the risk and curvature terms. The steady-state solver's ``info``
+        is kept as ``LinearModel.steady_state_info`` (on ``.first_order`` of a
+        pruned solution).
 
     Raises
     ------
@@ -2229,11 +2990,26 @@ def load_mod(
     if params:
         merged_params.update(params)
 
+    # The file's steady_state_model / initval blocks are functions of the
+    # parameters. With overrides they are re-run at the merged values, as
+    # Dynare does at every parameter vector; the parse-time values belong to
+    # the file's calibration and would fail the residual check (or mislead the
+    # solver) at the new one.
+    file_ss = parsed.get("steady_state")
+    file_guess = parsed.get("guess")
+    if params:
+        ss_at = parsed.get("_steady_state_at")
+        if steady_state is None and file_ss is not None and ss_at is not None:
+            file_ss = ss_at(merged_params)
+        guess_at = parsed.get("_guess_at")
+        if not guess and file_guess is not None and guess_at is not None:
+            file_guess = guess_at(merged_params) or file_guess
+
     # Merge steady state
-    final_ss = steady_state if steady_state is not None else parsed.get("steady_state")
+    final_ss = steady_state if steady_state is not None else file_ss
 
     # Merge guess
-    final_guess = guess or parsed.get("guess")
+    final_guess = guess or file_guess
     if final_ss is None and final_guess is None:
         final_guess = {v: 0.0 for v in parsed["variables"]}
 
@@ -2267,6 +3043,7 @@ def load_mod(
         verify_derivatives=verify_derivatives,
         strict=strict,
         qz_criterium=qz_criterium,
+        allow_singular=allow_singular,
     )
 
     # Carry the file's own declarations onto the solved model so
@@ -2277,12 +3054,18 @@ def load_mod(
     is_linear = parsed.get("is_linear", False)
 
     if isinstance(model, LinearModel):
+        solved = model
         model = dataclasses.replace(
             model,
             _varobs=tuple(parsed["varobs"]) if parsed["varobs"] else None,
             _estimated_params=parsed["estimated_params"],
             _mod_options=dict(parsed["options"]) if parsed["options"] else None,
         )
+        # `replace` builds a new instance from the dataclass fields only; the
+        # attributes build_dynare attached are carried over by hand.
+        for attr in ("_qz_criterium", "_steady_state_info", "_allow_singular"):
+            if hasattr(solved, attr):
+                object.__setattr__(model, attr, getattr(solved, attr))
         if dag is not None:
             object.__setattr__(model, "_dag", dag)
         if compiled is not None:
@@ -2367,7 +3150,27 @@ def _linear_model_solve(
     *,
     shock_cov: np.ndarray | None = None,
     qz_criterium: float | None = None,
+    pruning: bool = True,
 ):
+    """Return the perturbation solution at ``order`` 1, 2 or 3.
+
+    ``order=1`` returns the solved first-order model itself (re-solved when
+    ``qz_criterium`` is given); ``order=2`` returns the pruned second-order
+    solution (:class:`~puremacro.dsge.pruning.PrunedDSGESolution`) and
+    ``order=3`` the pruned third-order solution
+    (:class:`~puremacro.dsge.pruning.Order3PrunedSolution`). ``shock_cov``
+    overrides the declared innovation covariance used in the risk terms.
+
+    ``pruning`` mirrors Dynare's option: higher-order solutions are always
+    simulated with pruning (Kim, Kim, Schaumburg and Sims 2008; Andreasen,
+    Fernandez-Villaverde and Rubio-Ramirez 2018), so ``pruning=False`` raises
+    ``NotImplementedError`` at orders 2 and 3 and has no effect at order 1.
+    """
+    if order >= 2 and not pruning:
+        raise NotImplementedError(
+            f"order={order} solutions are simulated with pruning; unpruned higher-order "
+            "simulation is not implemented. Use pruning=True (the default)."
+        )
     if order == 3:
         return self.solve_third_order(shock_cov=shock_cov)
     return _orig_solve(self, order=order, shock_cov=shock_cov, qz_criterium=qz_criterium)
@@ -2381,6 +3184,11 @@ _orig_stoch_simul = LinearModel.stoch_simul
 
 def _linear_model_stoch_simul(self, order: int = 1, **kwargs):
     if order == 3:
+        if not kwargs.get("pruning", True):
+            raise NotImplementedError(
+                "order=3 solutions are simulated with pruning, and Dynare reports no theoretical "
+                "moments at order 3 without it. Use pruning=True (the default at order 3)."
+            )
         sol3 = self.solve_third_order(shock_cov=self._shock_covariance(kwargs.get("sigma", None)))
         irf = kwargs.get("irf", 40)
         periods = kwargs.get("periods", 0)

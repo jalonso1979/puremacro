@@ -2,7 +2,8 @@
 
 Covers:
 - _univariate_sigma (short-path T <= p+1)
-- _build_minnesota_dummies (structure and shape)
+- _build_minnesota_dummies (structure and shape; the BGR eq. (5) values are
+  pinned in tests/test_fix_VAR_minnesota_niw.py)
 - minnesota_gibbs (posterior draws, shapes, priors)
 - _inv_wishart (statistical moments)
 - _minnesota_log_marginal_likelihood (finite value, monotonicity in lambda1)
@@ -213,7 +214,7 @@ class TestLogMarginalLikelihood:
         """Should return a finite float for reasonable hyperparameters."""
         df = _make_var1_data(80, 2)
         Y_arr = np.asarray(df)
-        val = _minnesota_log_marginal_likelihood(Y_arr, 1, 0.2, 0.5, 1.0, 1e3)
+        val = _minnesota_log_marginal_likelihood(Y_arr, 1, 0.2, 1.0, 1.0, 1e3)
         assert np.isfinite(val)
         assert isinstance(val, float)
 
@@ -221,14 +222,14 @@ class TestLogMarginalLikelihood:
         """Should work for p=2 as well."""
         df = _make_var1_data(100, 3)
         Y_arr = np.asarray(df)
-        val = _minnesota_log_marginal_likelihood(Y_arr, 2, 0.2, 0.5, 1.0, 1e3)
+        val = _minnesota_log_marginal_likelihood(Y_arr, 2, 0.2, 1.0, 1.0, 1e3)
         assert np.isfinite(val)
 
     def test_very_tight_prior_gives_finite_value(self):
         """Very tight prior (lambda1 near 0) should still return a finite value."""
         df = _make_var1_data(60, 2)
         Y_arr = np.asarray(df)
-        val = _minnesota_log_marginal_likelihood(Y_arr, 1, 1e-6, 0.5, 1.0, 1e3)
+        val = _minnesota_log_marginal_likelihood(Y_arr, 1, 1e-6, 1.0, 1.0, 1e3)
         # Could be -inf if prior is degenerate, but should not raise
         assert isinstance(val, float)
 
@@ -239,7 +240,7 @@ class TestLogMarginalLikelihood:
         df = _make_var1_data(120, 2, seed=99)
         Y_arr = np.asarray(df)
         vals = [
-            _minnesota_log_marginal_likelihood(Y_arr, 1, l1, 0.5, 1.0, 1e3)
+            _minnesota_log_marginal_likelihood(Y_arr, 1, l1, 1.0, 1.0, 1e3)
             for l1 in [0.05, 0.1, 0.2, 0.5, 1.0, 2.0]
         ]
         finite_vals = [v for v in vals if np.isfinite(v)]
@@ -257,8 +258,8 @@ class TestLogMarginalLikelihood:
             Y_small[t] = A @ Y_small[t - 1] + rng.standard_normal(2) * 0.5
         for t in range(1, 200):
             Y_large[t] = A @ Y_large[t - 1] + rng.standard_normal(2) * 0.5
-        val_small = _minnesota_log_marginal_likelihood(Y_small, 1, 0.2, 0.5, 1.0, 1e3)
-        val_large = _minnesota_log_marginal_likelihood(Y_large, 1, 0.2, 0.5, 1.0, 1e3)
+        val_small = _minnesota_log_marginal_likelihood(Y_small, 1, 0.2, 1.0, 1.0, 1e3)
+        val_large = _minnesota_log_marginal_likelihood(Y_large, 1, 0.2, 1.0, 1.0, 1e3)
         # Log-ML is not normalized by T, so larger data gives higher absolute value;
         # this just ensures the function runs on both sizes
         assert np.isfinite(val_small)
@@ -284,7 +285,7 @@ class TestMinnesotaOptimalLambda:
         result = minnesota_optimal_lambda(
             df, p=1,
             lambda1_grid=(0.1, 0.2, 0.5),
-            lambda2_grid=(0.5,),
+            lambda2_grid=(1.0,),
             lambda3_grid=(1.0,),
         )
         grid_ml = [row["log_ml"] for row in result["grid"]]
@@ -294,22 +295,26 @@ class TestMinnesotaOptimalLambda:
         assert abs(result["log_ml"] - best_grid["log_ml"]) < 1e-10
 
     def test_grid_has_correct_size(self):
-        """Grid should have len(l1_grid) * len(l2_grid) * len(l3_grid) entries."""
+        """Grid has len(l1_grid) * len(l3_grid) entries: the NIW prior fixes
+        lambda2 = 1 (BGR 2010, theta = 1), so non-unit lambda2 values are
+        dropped with a warning instead of evaluated."""
         df = _make_var1_data(80, 2)
         l1 = (0.1, 0.2, 0.5)
         l2 = (0.5, 1.0)
         l3 = (1.0, 2.0)
-        result = minnesota_optimal_lambda(df, p=1,
-                                          lambda1_grid=l1,
-                                          lambda2_grid=l2,
-                                          lambda3_grid=l3)
-        assert len(result["grid"]) == len(l1) * len(l2) * len(l3)
+        with pytest.warns(UserWarning, match="lambda2_grid"):
+            result = minnesota_optimal_lambda(df, p=1,
+                                              lambda1_grid=l1,
+                                              lambda2_grid=l2,
+                                              lambda3_grid=l3)
+        assert len(result["grid"]) == len(l1) * len(l3)
+        assert result["lambda2"] == 1.0
 
     def test_selected_lambda_within_grids(self):
         """Selected hyperparameters should be from the specified grids."""
         df = _make_var1_data(100, 2)
         l1 = (0.1, 0.3, 0.6)
-        l2 = (0.5,)
+        l2 = (1.0,)
         l3 = (1.0,)
         result = minnesota_optimal_lambda(df, p=1,
                                           lambda1_grid=l1,
@@ -330,7 +335,7 @@ class TestMinnesotaOptimalLambda:
         df = _make_var1_data(120, 3)
         result = minnesota_optimal_lambda(df, p=1,
                                           lambda1_grid=(0.1, 0.3),
-                                          lambda2_grid=(0.5,),
+                                          lambda2_grid=(1.0,),
                                           lambda3_grid=(1.0,))
         assert np.isfinite(result["log_ml"])
 
@@ -397,14 +402,17 @@ class TestMinnesotaGibbs:
 
     @pytest.mark.slow
     def test_hyperparameters_passed_through(self):
-        """Specified hyperparameters appear in output dict."""
+        """The hyperparameters actually used appear in the output dict. The
+        NIW prior can only encode lambda2 = 1 (BGR 2010, theta = 1): another
+        value warns and the reported lambda2 is the 1.0 that was used."""
         rng = np.random.default_rng(22)
         df = _make_var1_data(60, 2)
-        result = minnesota_gibbs(df, p=1, n_draws=30, burn=10,
-                                 lambda1=0.3, lambda2=0.8, lambda3=2.0,
-                                 rng=rng)
+        with pytest.warns(UserWarning, match="lambda2"):
+            result = minnesota_gibbs(df, p=1, n_draws=30, burn=10,
+                                     lambda1=0.3, lambda2=0.8, lambda3=2.0,
+                                     rng=rng)
         assert abs(result["lambda1"] - 0.3) < 1e-12
-        assert abs(result["lambda2"] - 0.8) < 1e-12
+        assert result["lambda2"] == 1.0
         assert abs(result["lambda3"] - 2.0) < 1e-12
 
     @pytest.mark.slow
@@ -432,17 +440,19 @@ class TestMinnesotaGibbs:
         autoregressive DGP: diagonal coefficients positive and < 1 (stationarity),
         positive-definiteness of Sigma draws already verified separately.
 
-        Note: _build_minnesota_dummies (used by Gibbs) uses a different joint
-        dummy construction from the per-equation loop in minnesota_posterior, so
-        the two posterior means differ numerically. We test the CONTRACT (output
-        in a stationary range) rather than pinning to exact values.
+        At lambda2 = 1 (the only value the NIW prior can encode) the Gibbs
+        posterior mean is the same augmented OLS that minnesota_posterior
+        solves equation by equation, so the two must agree exactly; the draws
+        must agree up to Monte Carlo error. (Before the dummy-block fix the
+        two differed by up to 0.06 at the old default lambda2 = 0.5, and this
+        test only checked the stationary range.)
         """
         rng = np.random.default_rng(24)
         T, n, p = 200, 2, 1
         A_true = np.array([[0.6, 0.05], [0.0, 0.55]])
         df = _make_var1_data(T, n, A=A_true, seed=24)
         gibbs = minnesota_gibbs(df, p=p, n_draws=1000, burn=300,
-                                lambda1=0.5, lambda2=0.5, lambda3=1.0,
+                                lambda1=0.5, lambda3=1.0,
                                 rng=rng)
         A_gibbs_mean = gibbs["A_draws"][:, 0].mean(0)
         # Diagonal should be positive for a positively autoregressive system
@@ -451,6 +461,11 @@ class TestMinnesotaGibbs:
         # Spectral radius should be < 1 (stationarity)
         eigs = np.linalg.eigvals(A_gibbs_mean)
         assert np.max(np.abs(eigs)) < 1.0
+        # Exact agreement of the posterior means at lambda2 = 1
+        post = minnesota_posterior(df, p=p, lambda1=0.5, lambda2=1.0, lambda3=1.0)
+        np.testing.assert_allclose(gibbs["A_mean"][0], post["A_list"][0], atol=1e-10)
+        mc_se = gibbs["A_draws"][:, 0].std(0) / np.sqrt(1000)
+        assert np.all(np.abs(A_gibbs_mean - post["A_list"][0]) < 5 * mc_se)
 
 
 # ---------------------------------------------------------------------------
@@ -466,7 +481,7 @@ class TestEndToEnd:
         df = _make_var1_data(100, 2)
         opt = minnesota_optimal_lambda(df, p=1,
                                        lambda1_grid=(0.1, 0.2, 0.5),
-                                       lambda2_grid=(0.5,),
+                                       lambda2_grid=(1.0,),
                                        lambda3_grid=(1.0,))
         result = minnesota_posterior(df, p=1,
                                      lambda1=opt["lambda1"],
@@ -484,7 +499,7 @@ class TestEndToEnd:
         df = _make_var1_data(80, 2)
         opt = minnesota_optimal_lambda(df, p=1,
                                        lambda1_grid=(0.1, 0.3),
-                                       lambda2_grid=(0.5,),
+                                       lambda2_grid=(1.0,),
                                        lambda3_grid=(1.0,))
         gibbs = minnesota_gibbs(df, p=1, n_draws=100, burn=50,
                                 lambda1=opt["lambda1"], rng=rng)
@@ -503,7 +518,7 @@ class TestAdditionalContract:
         # dummy system is non-degenerate. The result may be finite or -inf,
         # but must be a float.
         Y_arr = np.zeros((30, 2))
-        val = _minnesota_log_marginal_likelihood(Y_arr, 1, 0.2, 0.5, 1.0, 1e3)
+        val = _minnesota_log_marginal_likelihood(Y_arr, 1, 0.2, 1.0, 1.0, 1e3)
         assert isinstance(val, float)
 
     def test_optimal_lambda_with_single_grid_point(self):
@@ -511,10 +526,10 @@ class TestAdditionalContract:
         df = _make_var1_data(80, 2)
         result = minnesota_optimal_lambda(df, p=1,
                                           lambda1_grid=(0.3,),
-                                          lambda2_grid=(0.5,),
+                                          lambda2_grid=(1.0,),
                                           lambda3_grid=(1.0,))
         assert result["lambda1"] == 0.3
-        assert result["lambda2"] == 0.5
+        assert result["lambda2"] == 1.0
         assert result["lambda3"] == 1.0
 
     def test_log_ml_callable_over_lag_decay_range(self):
@@ -522,5 +537,5 @@ class TestAdditionalContract:
         df = _make_var1_data(80, 2)
         Y_arr = np.asarray(df)
         for l3 in (0.5, 1.0, 1.5, 2.0):
-            val = _minnesota_log_marginal_likelihood(Y_arr, 1, 0.2, 0.5, l3, 1e3)
+            val = _minnesota_log_marginal_likelihood(Y_arr, 1, 0.2, 1.0, l3, 1e3)
             assert isinstance(val, float)

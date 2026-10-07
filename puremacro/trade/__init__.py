@@ -23,6 +23,19 @@ Main Components
    Tariff shock specification (baseline, 10%, 25%, 54%, 75%, 125%, 145%).
 7. LaTeX Tables & Reports (:mod:`puremacro.trade.tables`):
    Replication of publication impact tables.
+8. Consistent accounting, Hicksian welfare and audited tariff policy
+   (:mod:`puremacro.trade.welfare`, :mod:`puremacro.trade.policy_solver`).
+9. Native MRIO tables with provenance (:mod:`puremacro.trade.mrio`):
+   OECD ICIO, FIGARO and EXIOBASE readers, regularization, concordances and
+   coarse tariff rules.
+10. Condensed one-factor Leontief tariff model (:mod:`puremacro.trade.condensed`):
+    exact 2N elimination, independent raw-flow certificate, numeraire-free measures.
+11. Exact nested-CES block Newton (:mod:`puremacro.trade.ces_newton`) and
+    audited parameter continuation (:mod:`puremacro.trade.continuation`).
+12. Household demand systems and money-metric welfare (:mod:`puremacro.trade.household`).
+13. Reduced local-stability diagnostic (:mod:`puremacro.trade.stability`, experimental).
+14. Perfect-foresight dynamic MRIO with sector capital (:mod:`puremacro.trade.dynamic`,
+    experimental).
 """
 from __future__ import annotations
 
@@ -216,8 +229,104 @@ from .policy_analytics import (
 )
 from .welfare import HicksianWelfareResult, compute_hicksian_welfare
 from .policy_solver import PolicyEquilibriumError, solve_policy_equilibrium
+from .solver import ViabilityResult
+
+# MRIO engines: module attributes plus the package-level names below.
+from . import ces_newton, condensed, continuation, dynamic, household, mrio, stability
+from .ces_newton import (
+    CESBlockJacobian,
+    CESBlockNewtonResult,
+    CESNewtonError,
+    NestedCESTechnology,
+    certify_ces_equilibrium,
+    continue_tariff_homotopy,
+    solve_ces_block_newton,
+)
+from .household import (
+    HouseholdCalibrationResult,
+    HouseholdDemandResult,
+    HouseholdDomainError,
+    HouseholdPreferences,
+    HouseholdWelfareResult,
+    SupernumeraryFitResult,
+    calibrate_household,
+    compute_household_welfare,
+    compute_household_welfare_from_results,
+    fit_supernumerary_share,
+    household_expenditure_from_calibration,
+    household_prices_from_result,
+)
+from .distributional import (
+    DistributionalWelfareResult,
+    HouseholdGroups,
+    compute_distributional_welfare,
+    distributional_welfare_from_results,
+    prepare_household_groups,
+)
+from .continuation import (
+    DirectTargetResult,
+    ParameterContinuationFailure,
+    ParameterContinuationResult,
+    continue_parameter,
+    sigma_path,
+    try_starts,
+)
+from .stability import StabilityError, StabilityResult, reduced_stability
+from .mrio import (
+    CoarseTariffResult,
+    Concordance,
+    MRIOAccountingReport,
+    MRIOBuildReport,
+    MRIOIntegrityError,
+    MRIOTable,
+    SourceRecord,
+    aggregate_mrio,
+    check_oecd_source,
+    coarse_tariff_rates,
+    identify_source,
+    read_exiobase_native,
+    read_figaro_native,
+    read_oecd_native,
+    regularize_table,
+    to_calibration_matrix,
+)
+from .condensed import (
+    BalancedIOTable,
+    CondensedEquilibriumResult,
+    CondensedMeasuresResult,
+    CondensedSolveError,
+    RawFlowCertificate,
+    TariffWedges,
+    build_tariff_wedges,
+    calibrate_condensed,
+    certify_raw_flows,
+    compute_measures,
+    solve_condensed,
+)
+from .dynamic import (
+    ConsumptionEquivalentResult,
+    DynamicAccounts,
+    DynamicCalibration,
+    DynamicDeterminacyError,
+    DynamicEconomy,
+    DynamicSolveError,
+    DynamicStabilityResult,
+    DynamicSteadyStateResult,
+    DynamicTariff,
+    DynamicTransitionResult,
+    calibrate_dynamic,
+    run_horizon_ladder,
+    solve_dynamic_steady_state,
+    solve_dynamic_transition,
+    tariff_path,
+)
 
 __all__ = [
+    "DistributionalWelfareResult",
+    "HouseholdGroups",
+    "compute_distributional_welfare",
+    "distributional_welfare_from_results",
+    "prepare_household_groups",
     # Result dataclasses
     "TradeCalibrationResult",
     "TradeEquilibriumResult",
@@ -259,6 +368,7 @@ __all__ = [
     # Solver routines
     "solve_trade_equilibrium",
     "build_initial_guess",
+    "ViabilityResult",
     # GPU & Apple MLX acceleration engine
     "solve_trade_equilibrium_gpu",
     "solve_trade_equilibrium_mlx",
@@ -319,6 +429,14 @@ __all__ = [
     # Game-theoretic Nash engine
     "optimal_tariffs",
     "game",
+    # MRIO engine subpackages and modules
+    "mrio",
+    "condensed",
+    "ces_newton",
+    "household",
+    "continuation",
+    "stability",
+    "dynamic",
     "resolve_country_indices",
     "get_country_code",
     "evaluate_national_welfare",
@@ -360,4 +478,81 @@ __all__ = [
     "compute_variety_price_scaling",
     "smooth_subsistence_scaling",
     "solve_flexible_trade_equilibrium",
+    # Exact nested-CES block Newton
+    "NestedCESTechnology",
+    "CESBlockJacobian",
+    "CESBlockNewtonResult",
+    "CESNewtonError",
+    "solve_ces_block_newton",
+    "continue_tariff_homotopy",
+    "certify_ces_equilibrium",
+    # Household demand systems and welfare
+    "HouseholdDomainError",
+    "HouseholdCalibrationResult",
+    "HouseholdPreferences",
+    "HouseholdDemandResult",
+    "HouseholdWelfareResult",
+    "SupernumeraryFitResult",
+    "calibrate_household",
+    "fit_supernumerary_share",
+    "compute_household_welfare",
+    "compute_household_welfare_from_results",
+    "household_expenditure_from_calibration",
+    "household_prices_from_result",
+    # Audited parameter continuation
+    "DirectTargetResult",
+    "ParameterContinuationFailure",
+    "ParameterContinuationResult",
+    "continue_parameter",
+    "sigma_path",
+    "try_starts",
+    # Reduced local stability (experimental)
+    "StabilityError",
+    "StabilityResult",
+    "reduced_stability",
+    # Native MRIO tables with provenance
+    "MRIOTable",
+    "SourceRecord",
+    "MRIOAccountingReport",
+    "MRIOBuildReport",
+    "MRIOIntegrityError",
+    "Concordance",
+    "CoarseTariffResult",
+    "identify_source",
+    "check_oecd_source",
+    "read_oecd_native",
+    "read_figaro_native",
+    "read_exiobase_native",
+    "regularize_table",
+    "aggregate_mrio",
+    "coarse_tariff_rates",
+    "to_calibration_matrix",
+    # Condensed one-factor Leontief tariff model
+    "BalancedIOTable",
+    "calibrate_condensed",
+    "build_tariff_wedges",
+    "TariffWedges",
+    "solve_condensed",
+    "CondensedEquilibriumResult",
+    "compute_measures",
+    "CondensedMeasuresResult",
+    "certify_raw_flows",
+    "RawFlowCertificate",
+    "CondensedSolveError",
+    # Dynamic MRIO with sector capital (experimental)
+    "DynamicAccounts",
+    "DynamicCalibration",
+    "calibrate_dynamic",
+    "DynamicTariff",
+    "tariff_path",
+    "DynamicEconomy",
+    "DynamicSolveError",
+    "DynamicDeterminacyError",
+    "solve_dynamic_steady_state",
+    "solve_dynamic_transition",
+    "run_horizon_ladder",
+    "DynamicSteadyStateResult",
+    "DynamicTransitionResult",
+    "DynamicStabilityResult",
+    "ConsumptionEquivalentResult",
 ]

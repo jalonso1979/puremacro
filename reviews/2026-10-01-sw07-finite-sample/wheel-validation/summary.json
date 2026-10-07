@@ -1,0 +1,30 @@
+{
+  "validation_passed": true,
+  "wheel_sha256": "503fccbb91af039ae9a3379811eadcee180944d25b55e80855113234c0728ef4",
+  "strict_docs_passed": true,
+  "installed_smoke_passed": true,
+  "docs_validation": {
+    "passed": true,
+    "validated_at_utc": "2026-10-01T21:27:23.003681+00:00",
+    "source_snapshot": "/tmp/puremacro-sw07-sampling-wheel/docs-source-x_wazjp4",
+    "note": "Fresh documentation copy after completed-simulation results were added to both language guides; existing wheel and installed smoke preserved"
+  },
+  "installed_cli_passed": true,
+  "installed_cli_exit": 0,
+  "all_copied_sources_match_final_checkout": true,
+  "source_file_count": 973,
+  "docs_file_count": 377,
+  "network_blocked_with_positive_control": true,
+  "statsmodels_blocked_with_positive_control": true,
+  "scenario": "published_fixed",
+  "replications": 2,
+  "usable_fits": 2,
+  "unresolved_draws": 0,
+  "completed_checkpoint_resumed_draws": {
+    "published_fixed": 2
+  },
+  "full_npz_and_csv_evidence": true,
+  "api_cli_draws_and_arrays_identical": true,
+  "artifacts": "/tmp/puremacro-sw07-sampling-wheel",
+  "scope": "Offline installation and two-draw workflow verification; not Monte Carlo scientific evidence; no package published"
+}

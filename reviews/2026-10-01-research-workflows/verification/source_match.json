@@ -1,0 +1,7 @@
+{
+  "puremacro/structural/bridge.py": true,
+  "puremacro/structural/lp.py": true,
+  "puremacro/trade/distributional.py": true,
+  "puremacro/validation/research.py": true,
+  "puremacro/datasets/enigh.py": true
+}

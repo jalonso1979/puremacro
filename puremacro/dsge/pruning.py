@@ -25,6 +25,23 @@ Because the quadratic forcing term is evaluated strictly on the stationary
 first-order state x_t^{(1)}, the pruned simulation is unconditionally stable
 and ergodic whenever the first-order transition matrix G is stable (|λ(G)| < 1).
 
+Two different "steady states under risk" follow from the same solution, and
+they can have opposite signs:
+
+* the **ergodic mean** E[x_t], E[y_t] (:meth:`~PrunedDSGESolution.ergodic_mean`),
+  the average of the pruned process over its stationary distribution;
+* the **risky steady state** (:meth:`~PrunedDSGESolution.risky_steady_state`),
+  the point the pruned system settles at when agents expect shocks with
+  covariance σ² Σ_u but every realized shock is zero.
+
+Only the risk term 0.5 g_σσ σ² (Dynare's ``ghs2``) moves the risky steady
+state; it is the precautionary effect of anticipated risk. The ergodic mean adds
+the curvature of the policy times the dispersion of states and innovations,
+0.5 g_xx vec(Ω) and 0.5 g_uu vec(σ² Σ_u), a Jensen effect that is present even
+when the risk term is exactly zero (e.g. Brock and Mirman's model written in
+levels). :meth:`~PrunedDSGESolution.risk_decomposition` reports the three parts.
+``stochastic_steady_state`` is kept as an alias of ``ergodic_mean``.
+
 References
 ----------
 Kim, J., Kim, S., Schaumburg, E. and Sims, C.A. (2008). Calculating and using
@@ -36,6 +53,8 @@ Andreasen, M.M., Fernández-Villaverde, J. and Rubio-Ramírez, J.F. (2018).
 Schmitt-Grohé, S. and Uribe, M. (2004). Solving dynamic general equilibrium
     models using a second-order approximation to the policy function.
     Journal of Economic Dynamics and Control, 28(4), 755-775.
+Coeurdacier, N., Rey, H. and Winant, P. (2011). The Risky Steady State.
+    American Economic Review, 101(3), 398-401.
 """
 from __future__ import annotations
 
@@ -47,7 +66,186 @@ import pandas as pd
 import scipy.linalg
 
 from ._results import TheoreticalMomentsResult
-from ._moments import conditional_fevd, first_order_moments
+from ._moments import compute_autocorr_matrices, conditional_fevd, first_order_moments
+from ._pruned_moments import (
+    MAX_PRUNED_STATE_DIM,
+    pruned_order2_moments,
+    pruned_order3_moments,
+    pruned_state_dim,
+)
+
+
+def _stack_rows(top: Any, bottom: Any, n_top: int, n_bottom: int, cols: int) -> np.ndarray:
+    """Stack state rows over control rows as a ``(n_top + n_bottom, cols)`` array."""
+    return np.vstack([np.asarray(top, dtype=float).reshape(n_top, cols),
+                      np.asarray(bottom, dtype=float).reshape(n_bottom, cols)])
+
+
+# -- ergodic mean, risky steady state and their decomposition ----------------
+#
+# Shared by PrunedDSGESolution (order 2) and Order3PrunedSolution (order 3).
+# Both expose G, N, F, H_xx, H_uu, H_sigmasigma, G_xx, G_uu, G_sigmasigma and
+# ``_sigma_u``. Under Gaussian (symmetric) innovations the third-order pruned
+# component has mean zero -- every third-order forcing term is an odd moment of
+# x^{(1)} and u, or the product of a zero-mean factor with an independent one --
+# so the second-order formulas below are also the exact order-3 pruned means.
+
+_MEAN_PARTS = ("risk", "state_curvature", "shock_curvature")
+
+
+def _ergodic_mean_parts(
+    sol: Any, sigma: float, shock_cov: np.ndarray | None
+) -> dict[str, tuple[np.ndarray, np.ndarray]]:
+    """Closed-form pieces of the pruned ergodic mean (deviations from the deterministic steady state).
+
+    With Ω the first-order state covariance, Ω = G Ω G' + N σ²Σ_u N', and Dynare
+    timing (x_t responds to u_t, so E[x_{t-1}^{(1)} ⊗ u_t] = 0)::
+
+        E[x] = (I - G)^{-1} [0.5 H_σσ σ² + 0.5 H_xx vec(Ω) + 0.5 H_uu vec(σ²Σ_u)]
+        E[y] = F E[x]       + 0.5 G_σσ σ² + 0.5 G_xx vec(Ω) + 0.5 G_uu vec(σ²Σ_u)
+
+    Returns ``{name: (states, controls)}`` for the three parts of ``_MEAN_PARTS``
+    (each already propagated through ``(I - G)^{-1}`` and ``F``) and for
+    ``"total"``. ``"total"`` is evaluated exactly as releases up to 4.3.0
+    evaluated ``stochastic_steady_state`` (one linear solve of the summed
+    forcing), so it is bit-for-bit unchanged; the parts sum to it up to
+    floating-point rounding.
+    """
+    n_x, n_y = sol.n_states, sol.n_controls
+    sigma_e = sol._sigma_u(sigma, shock_cov)
+    sig2 = float(sigma) ** 2
+    vec_se = sigma_e.flatten()
+    if n_x > 0:
+        q_mat = sol.N @ sigma_e @ sol.N.T
+        omega = scipy.linalg.solve_discrete_lyapunov(sol.G, q_mat)
+        # E[x_{t-1}^{(1)} ⊗ x_{t-1}^{(1)}] = vec(omega) (row-major, matching the
+        # kron(x, x) column order of H_xx), E[u ⊗ u] = vec(sigma_e).
+        vec_omega = omega.flatten()
+    else:
+        vec_omega = np.zeros(0)
+
+    forcing_x = {
+        "state_curvature": 0.5 * (sol.H_xx @ vec_omega),
+        "shock_curvature": 0.5 * (sol.H_uu @ vec_se),
+        "risk": 0.5 * sol.H_sigmasigma * sig2,
+    }
+    forcing_y = {
+        "state_curvature": 0.5 * (sol.G_xx @ vec_omega),
+        "shock_curvature": 0.5 * (sol.G_uu @ vec_se),
+        "risk": 0.5 * sol.G_sigmasigma * sig2,
+    }
+
+    parts: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+    if n_x > 0:
+        i_minus_g = np.eye(n_x) - sol.G
+        rhs_x = forcing_x["state_curvature"] + forcing_x["shock_curvature"] + forcing_x["risk"]
+        mu_x = scipy.linalg.solve(i_minus_g, rhs_x)
+        stacked = scipy.linalg.solve(
+            i_minus_g, np.column_stack([forcing_x[name] for name in _MEAN_PARTS])
+        )
+        x_parts = {name: stacked[:, k] for k, name in enumerate(_MEAN_PARTS)}
+    else:
+        mu_x = np.zeros(0)
+        x_parts = {name: np.zeros(0) for name in _MEAN_PARTS}
+
+    mu_y = sol.F @ mu_x + forcing_y["state_curvature"] + forcing_y["shock_curvature"] + forcing_y["risk"]
+    for name in _MEAN_PARTS:
+        parts[name] = (x_parts[name], (sol.F @ x_parts[name] + forcing_y[name]).reshape(n_y))
+    parts["total"] = (mu_x, np.asarray(mu_y, dtype=float).reshape(n_y))
+    return parts
+
+
+def _mean_dict(sol: Any, xs: np.ndarray, ys: np.ndarray, label: str) -> dict[str, pd.Series]:
+    return {
+        "states": pd.Series(xs, index=list(sol.state_names), name=f"{label}_states", dtype=float),
+        "controls": pd.Series(ys, index=list(sol.control_names), name=f"{label}_controls", dtype=float),
+    }
+
+
+def _kron_jacobian(x: np.ndarray, power: int) -> np.ndarray:
+    """Jacobian of ``x ⊗ x`` (power 2) or ``x ⊗ x ⊗ x`` (power 3) with respect to ``x``."""
+    n = x.size
+    eye = np.eye(n)
+    col = x.reshape(n, 1)
+    if power == 2:
+        return np.kron(eye, col) + np.kron(col, eye)
+    xx = np.kron(x, x).reshape(n * n, 1)
+    return np.kron(eye, xx) + np.kron(col, np.kron(eye, col)) + np.kron(xx, eye)
+
+
+def _unpruned_zero_shock_map(sol: Any, x: np.ndarray, sig2: float, order: int):
+    """``h(x, u=0, σ)`` of the unpruned approximated policy for states and controls, and ``dh/dx``."""
+    kxx = np.kron(x, x)
+    hx = sol.G @ x + 0.5 * (sol.H_xx @ kxx) + 0.5 * sol.H_sigmasigma * sig2
+    gy = sol.F @ x + 0.5 * (sol.G_xx @ kxx) + 0.5 * sol.G_sigmasigma * sig2
+    jac = sol.G + 0.5 * (sol.H_xx @ _kron_jacobian(x, 2))
+    if order >= 3:
+        kxxx = np.kron(kxx, x)
+        hx = hx + (1.0 / 6.0) * (sol.H_xxx @ kxxx) + 0.5 * (sol.H_x_sigmasigma @ x) * sig2
+        gy = gy + (1.0 / 6.0) * (sol.G_xxx @ kxxx) + 0.5 * (sol.G_x_sigmasigma @ x) * sig2
+        jac = jac + (1.0 / 6.0) * (sol.H_xxx @ _kron_jacobian(x, 3)) + 0.5 * sol.H_x_sigmasigma * sig2
+    return hx, gy, jac
+
+
+def _risky_steady_state(
+    sol: Any, sigma: float, pruned: bool, order: int, tol: float, maxiter: int
+) -> dict[str, pd.Series]:
+    """Zero-shock fixed point of the pruned (default) or unpruned approximated policy."""
+    if isinstance(sigma, Mapping):
+        sol._sigma_u(sigma, None)  # raises the class's explanatory TypeError
+    n_x = sol.n_states
+    sig2 = float(sigma) ** 2
+    if n_x > 0 and not sol.is_stable:
+        raise ValueError(
+            "risky_steady_state: the first-order transition G has an eigenvalue on or "
+            "outside the unit circle, so the zero-shock pruned path has no fixed point."
+        )
+    # Pruned: x^{(1)} stays at 0 without shocks, x^{(3)} has no forcing that
+    # survives x^{(1)} = u = 0, and x^{(2)} converges to (I - G)^{-1} 0.5 H_σσ σ².
+    if n_x > 0:
+        x = scipy.linalg.solve(np.eye(n_x) - sol.G, 0.5 * sol.H_sigmasigma * sig2)
+    else:
+        x = np.zeros(0)
+    if pruned:
+        y = sol.F @ x + 0.5 * sol.G_sigmasigma * sig2
+        return _mean_dict(sol, x, np.asarray(y, dtype=float).reshape(sol.n_controls), "risky_steady_state")
+
+    # Unpruned: Newton on x = h(x, 0, σ), started from the pruned point, which
+    # is within O(σ⁴) of the root of interest.
+    if n_x > 0:
+        resid = np.full(n_x, np.inf)
+        for _ in range(int(maxiter)):
+            hx, _, jac = _unpruned_zero_shock_map(sol, x, sig2, order)
+            resid = hx - x
+            if np.max(np.abs(resid)) <= tol:
+                break
+            x = x - scipy.linalg.solve(jac - np.eye(n_x), resid)
+        else:
+            hx, _, _ = _unpruned_zero_shock_map(sol, x, sig2, order)
+            resid = hx - x
+        if not np.max(np.abs(resid)) <= tol:
+            raise RuntimeError(
+                f"risky_steady_state(pruned=False): Newton did not reach max|h(x) - x| <= {tol:g} "
+                f"in {maxiter} iterations (last residual {np.max(np.abs(resid)):.3e}). The "
+                "unpruned approximated policy may have no fixed point near the deterministic "
+                "steady state at this sigma; use pruned=True."
+            )
+    _, y, _ = _unpruned_zero_shock_map(sol, x, sig2, order)
+    return _mean_dict(sol, x, np.asarray(y, dtype=float).reshape(sol.n_controls), "risky_steady_state")
+
+
+def _risk_decomposition_frame(sol: Any, sigma: float, shock_cov: np.ndarray | None) -> pd.DataFrame:
+    parts = _ergodic_mean_parts(sol, sigma, shock_cov)
+    names = list(sol.state_names) + list(sol.control_names)
+    data = {
+        name: np.concatenate([parts[name][0], parts[name][1]])
+        for name in (*_MEAN_PARTS, "total")
+    }
+    frame = pd.DataFrame(data, index=names).rename(columns={"total": "ergodic_mean"})
+    order = [v for v in (sol.variable_names or names) if v in frame.index]
+    frame = frame.loc[order]
+    frame.index.name = "variable"
+    return frame
 
 
 @dataclass(frozen=True)
@@ -715,57 +913,157 @@ class PrunedDSGESolution:
         ax.legend(loc="best", frameon=False)
         return fig
 
-    def stochastic_steady_state(
+    def ergodic_mean(
         self, sigma: float = 1.0, shock_cov: np.ndarray | None = None
     ) -> dict[str, pd.Series]:
-        """Compute the analytical pruned ergodic mean (second-order risk-adjusted steady state).
+        """Unconditional (ergodic) mean of the pruned second-order solution.
+
+        This is E[x_t] and E[y_t] under the stationary distribution of the
+        pruned process that :meth:`simulate` draws from -- the long-run average
+        of a simulation -- not the risky steady state (see
+        :meth:`risky_steady_state`). With Ω the first-order state covariance,
+        ``Ω = G Ω G' + N σ²Σ_u N'``, and Dynare timing (``E[x_{t-1} ⊗ u_t] = 0``)::
+
+            E[x] = (I - G)^{-1} [0.5 H_σσ σ² + 0.5 H_xx vec(Ω) + 0.5 H_uu vec(σ²Σ_u)]
+            E[y] = F E[x]       + 0.5 G_σσ σ² + 0.5 G_xx vec(Ω) + 0.5 G_uu vec(σ²Σ_u)
+
+        (Kim, Kim, Schaumburg and Sims 2008; Andreasen, Fernández-Villaverde
+        and Rubio-Ramírez 2018). Only the first term, the risk term ``ghs2``, is
+        the precautionary effect of anticipated risk; the other two are the
+        curvature of the policy times the dispersion of states and innovations
+        (a Jensen effect), so the ergodic mean can move in the opposite direction
+        to the risky steady state. :meth:`risk_decomposition` reports the three
+        parts. The mean equals the ``Mean`` column of
+        ``theoretical_moments()`` minus ``steady_state`` (both conventions), and
+        Dynare 8's ``oo_.mean`` for ``stoch_simul(order=2, pruning)``.
 
         Parameters
         ----------
         sigma : float, default 1.0
-            Perturbation parameter scale σ.
+            Perturbation scale σ: innovations are ``N(0, σ² Σ_u)`` and ``ghs2``
+            enters as ``0.5 ghs2 σ²``, so every term is proportional to σ².
         shock_cov : np.ndarray, optional
-            Covariance matrix of innovations Σ_u (defaults to ``self.shock_cov``).
+            Innovation covariance Σ_u used for Ω and E[u ⊗ u]; defaults to
+            ``self.shock_cov``, the covariance the solution was computed with.
+            ``ghs2`` is not recomputed: it belongs to ``self.shock_cov``, so a
+            ``shock_cov`` that is not a multiple of it mixes two models. Re-solve
+            the model with the new covariance instead.
 
         Returns
         -------
         dict[str, pd.Series]
-            Ergodic mean deviations from the deterministic steady state for
-            states and controls.
+            ``{"states": ..., "controls": ...}``: ergodic-mean deviations from
+            the deterministic steady state, in the units of the model's
+            variables (levels for a model written in levels, log deviations
+            for a model in logs). Add ``steady_state`` for levels.
         """
-        n_x = self.n_states
-        sigma_e = self._sigma_u(sigma, shock_cov)
+        xs, ys = _ergodic_mean_parts(self, sigma, shock_cov)["total"]
+        return _mean_dict(self, xs, ys, "ergodic_mean")
 
-        # Solve discrete Lyapunov equation for 1st-order state variance:
-        # Omega = G @ Omega @ G.T + N @ sigma_e @ N.T
-        q_mat = self.N @ sigma_e @ self.N.T
-        omega = scipy.linalg.solve_discrete_lyapunov(self.G, q_mat)
+    def stochastic_steady_state(
+        self, sigma: float = 1.0, shock_cov: np.ndarray | None = None
+    ) -> dict[str, pd.Series]:
+        """Alias of :meth:`ergodic_mean`: returns the **ergodic mean**, not the risky steady state.
 
-        # E[x_{t-1}^{(1)} ⊗ x_{t-1}^{(1)}] = vec(omega), E[u ⊗ u] = vec(sigma_e);
-        # the cross term E[x_{t-1} ⊗ u_t] vanishes (Dynare timing).
-        vec_omega = omega.flatten()
-        vec_se = sigma_e.flatten()
-        sig2 = float(sigma) ** 2
-        # E[x_t^{(2)}] = (I - G)^(-1) [ 0.5 H_xx vec(omega) + 0.5 H_uu vec(sigma_e) + 0.5 H_ss σ² ]
-        i_minus_g = np.eye(n_x) - self.G
-        rhs_x = (
-            0.5 * (self.H_xx @ vec_omega)
-            + 0.5 * (self.H_uu @ vec_se)
-            + 0.5 * self.H_sigmasigma * sig2
-        )
-        mu_x2 = scipy.linalg.solve(i_minus_g, rhs_x)
+        Kept for backward compatibility; it returns exactly what
+        :meth:`ergodic_mean` returns. Despite the name,
+        this is the unconditional mean E[x], E[y] of the pruned solution, which
+        adds the curvature of the policy times the dispersion of states and
+        shocks to the risk term. The zero-shock fixed point that the literature
+        calls the stochastic or risky steady state (Coeurdacier, Rey and
+        Winant 2011) is :meth:`risky_steady_state`; in the RBC model of
+        ``tests/fixtures/dynare_live/rbc.mod`` the two put capital on opposite
+        sides of its deterministic steady state (+0.0785% against -0.0045%).
+        See :meth:`ergodic_mean` for parameters and return value.
+        """
+        return self.ergodic_mean(sigma=sigma, shock_cov=shock_cov)
 
-        # E[y_t] = F E[x2] + 0.5 G_xx vec(omega) + 0.5 G_uu vec(sigma_e) + 0.5 G_ss σ²
-        mu_y = (
-            self.F @ mu_x2
-            + 0.5 * (self.G_xx @ vec_omega)
-            + 0.5 * (self.G_uu @ vec_se)
-            + 0.5 * self.G_sigmasigma * sig2
-        )
+    def risky_steady_state(
+        self,
+        sigma: float = 1.0,
+        *,
+        pruned: bool = True,
+        tol: float = 1e-13,
+        maxiter: int = 50,
+    ) -> dict[str, pd.Series]:
+        """Risky (stochastic) steady state: the zero-shock fixed point of the policy under risk.
+
+        The point where the economy settles when agents expect innovations
+        ``N(0, σ² Σ_u)`` but every realized innovation is zero (the "risky
+        steady state" of Coeurdacier, Rey and Winant 2011). With ``pruned=True``
+        (default) it is the fixed point of the pruned recursion that
+        :meth:`simulate` iterates, in closed form::
+
+            x_rss = (I - G)^{-1} 0.5 H_σσ σ²,     y_rss = F x_rss + 0.5 G_σσ σ²
+
+        i.e. the limit of ``simulate(shocks=np.zeros(...), burn=0)``. Only the
+        risk term ``ghs2`` enters, so this is the precautionary effect of
+        anticipated risk; it is the ``risk`` column of
+        :meth:`risk_decomposition`. It is not the ergodic mean
+        (:meth:`ergodic_mean`, alias ``stochastic_steady_state``), which also
+        contains curvature times dispersion and can have the opposite sign.
+
+        With ``pruned=False`` it is the fixed point ``x = h(x, 0, σ)`` of the
+        unpruned second-order policy ``h(x, 0, σ) = G x + 0.5 H_xx (x ⊗ x) +
+        0.5 H_σσ σ²`` (the limit of :meth:`simulate_raw` with zero shocks),
+        found by Newton's method from the pruned value. The two differ by terms
+        of order σ⁴, below the accuracy of a second-order approximation.
+
+        Parameters
+        ----------
+        sigma : float, default 1.0
+            Perturbation scale σ; the risk term enters as ``0.5 ghs2 σ²``.
+        pruned : bool, default True
+            Fixed point of the pruned recursion (closed form) or of the
+            unpruned approximated policy (Newton).
+        tol, maxiter : float, int
+            Newton tolerance on ``max|h(x) - x|`` and iteration cap
+            (``pruned=False`` only); a failure raises ``RuntimeError``.
+
+        Returns
+        -------
+        dict[str, pd.Series]
+            ``{"states": ..., "controls": ...}``: deviations from the
+            deterministic steady state, in the units of the model's variables.
+            Add ``steady_state`` for levels.
+        """
+        return _risky_steady_state(self, sigma, pruned, 2, tol, maxiter)
+
+    def risk_decomposition(
+        self, sigma: float = 1.0, shock_cov: np.ndarray | None = None
+    ) -> pd.DataFrame:
+        """Split the pruned ergodic mean into the risk term and two curvature terms.
+
+        Columns (deviations from the deterministic steady state, one row per
+        variable in ``variable_names`` order)::
+
+            risk             (I - G)^{-1} 0.5 H_σσ σ²           and F(.) + 0.5 G_σσ σ²
+            state_curvature  (I - G)^{-1} 0.5 H_xx vec(Ω)       and F(.) + 0.5 G_xx vec(Ω)
+            shock_curvature  (I - G)^{-1} 0.5 H_uu vec(σ²Σ_u)   and F(.) + 0.5 G_uu vec(σ²Σ_u)
+            ergodic_mean     their sum, equal to :meth:`ergodic_mean`
+
+        ``risk`` is the precautionary (anticipated-risk) effect and equals
+        :meth:`risky_steady_state`; ``state_curvature`` and ``shock_curvature``
+        are Jensen effects of realized dispersion, present even when the risk
+        term is zero. The three columns sum to ``ergodic_mean`` up to
+        floating-point rounding. Parameters as in :meth:`ergodic_mean`.
+        """
+        return _risk_decomposition_frame(self, sigma, shock_cov)
+
+    def _pruned_coefficients(self, sig2: float) -> dict[str, np.ndarray]:
+        """Dynare-convention coefficients stacked [states; controls], ``gss`` times sigma^2."""
+        n_x, n_y, n_e = self.n_states, self.n_controls, self.n_shocks
+
+        def stack(top: Any, bottom: Any, cols: int) -> np.ndarray:
+            return _stack_rows(top, bottom, n_x, n_y, cols)
 
         return {
-            "states": pd.Series(mu_x2, index=self.state_names, name="ergodic_mean_states"),
-            "controls": pd.Series(mu_y, index=self.control_names, name="ergodic_mean_controls"),
+            "gx": stack(self.G, self.F, n_x),
+            "gu": stack(self.N, self.L, n_e),
+            "gxx": stack(self.H_xx, self.G_xx, n_x**2),
+            "gxu": stack(self.H_xu, self.G_xu, n_x * n_e),
+            "guu": stack(self.H_uu, self.G_uu, n_e**2),
+            "gss": sig2 * stack(self.H_sigmasigma, self.G_sigmasigma, 1).ravel(),
         }
 
     def theoretical_moments(
@@ -774,16 +1072,23 @@ class PrunedDSGESolution:
         shock_cov: np.ndarray | None = None,
         lags: int = 4,
         fevd_horizons: Sequence[int | None] = (1, 4, 8, 16, 32, None),
+        *,
+        pruning: bool = False,
+        max_state_dim: int | None = MAX_PRUNED_STATE_DIM,
     ) -> TheoreticalMomentsResult:
-        """Compute analytical theoretical moments matching Dynare's stoch_simul.
+        """Theoretical moments of the second-order solution, in either of Dynare's conventions.
 
-        Under the pruned second-order approximation the second moments are
-        those of the first-order component (cross-order expectations vanish
-        or enter at fourth order), so covariances, correlations,
-        autocorrelations and the variance decomposition coincide with
-        :meth:`LinearModel.theoretical_moments` for the same first-order
-        rules and shock covariance. The means carry the second-order
-        risk adjustment from :meth:`stochastic_steady_state`.
+        With ``pruning=False`` (the default) the moments follow Dynare's
+        ``stoch_simul(order=2)`` without the ``pruning`` option: the means are
+        the second-order ergodic means of :meth:`ergodic_mean`,
+        while covariances, correlations and autocorrelations are those of the
+        first-order solution (they coincide with
+        :meth:`LinearModel.theoretical_moments` for the same rules and shock
+        covariance). With ``pruning=True`` they are the exact moments of the
+        pruned solution that :meth:`simulate` draws from, the moments Dynare
+        reports for ``stoch_simul(order=2, pruning)``: the means are the same and
+        the second moments add the terms of order sigma^4. The variance
+        decomposition is the first-order one in both conventions, as in Dynare.
 
         Parameters
         ----------
@@ -795,37 +1100,50 @@ class PrunedDSGESolution:
             Number of autocorrelation lags to report.
         fevd_horizons : Sequence[int | None], default (1, 4, 8, 16, 32, None)
             Horizons for the conditional variance decomposition (None = asymptotic).
+        pruning : bool, default False
+            Report the exact moments of the pruned second-order solution instead
+            of first-order second moments.
+        max_state_dim : int or None, default 3000
+            With ``pruning=True``, the largest augmented pruned state
+            (2n + n^2 for n states) to solve; larger models raise ``ValueError``.
 
         Returns
         -------
         TheoreticalMomentsResult
             Analytical moments [Mean, Std.Dev., Variance], correlation matrix,
-            autocorrelation matrix, and variance decomposition (percent).
+            autocorrelation coefficients and matrices, and variance
+            decomposition (percent).
         """
         sigma_e = self._sigma_u(sigma, shock_cov)
-        M_x = np.vstack([self.G, self.F])
-        M_u = np.vstack([self.N, self.L])
-        _, gamma_0, gammas = first_order_moments(self.G, self.N, M_x, M_u, sigma_e, lags)
-
         order = self._var_order()
         all_names = list(self.variable_names or ())
-        cov_mat = gamma_0[np.ix_(order, order)]
-
-        sss = self.stochastic_steady_state(sigma=sigma, shock_cov=shock_cov)
         ss_base = (
             self.steady_state
             if isinstance(self.steady_state, pd.Series)
             else pd.Series(0.0, index=all_names)
         )
-        mean_vec = np.zeros(len(all_names))
-        for i, v in enumerate(all_names):
-            base_val = float(ss_base.get(v, 0.0))
-            if v in self.state_names:
-                mean_vec[i] = base_val + float(sss["states"][v])
-            elif v in self.control_names:
-                mean_vec[i] = base_val + float(sss["controls"][v])
-            else:
-                mean_vec[i] = base_val
+        if pruning:
+            mean_dev, gamma_0, gammas = pruned_order2_moments(
+                self._pruned_coefficients(float(sigma) ** 2), self.n_states, sigma_e, lags,
+                max_state_dim=max_state_dim,
+            )
+            mean_vec = np.array([float(ss_base.get(v, 0.0)) for v in all_names]) + mean_dev[order]
+        else:
+            M_x = np.vstack([self.G, self.F])
+            M_u = np.vstack([self.N, self.L])
+            _, gamma_0, gammas = first_order_moments(self.G, self.N, M_x, M_u, sigma_e, lags)
+            sss = self.ergodic_mean(sigma=sigma, shock_cov=shock_cov)
+            mean_vec = np.zeros(len(all_names))
+            for i, v in enumerate(all_names):
+                base_val = float(ss_base.get(v, 0.0))
+                if v in self.state_names:
+                    mean_vec[i] = base_val + float(sss["states"][v])
+                elif v in self.control_names:
+                    mean_vec[i] = base_val + float(sss["controls"][v])
+                else:
+                    mean_vec[i] = base_val
+        cov_mat = gamma_0[np.ix_(order, order)]
+        gammas = [gamma_k[np.ix_(order, order)] for gamma_k in gammas]
 
         variances = np.diag(cov_mat)
         stds = np.sqrt(np.maximum(variances, 0.0))
@@ -846,9 +1164,9 @@ class PrunedDSGESolution:
         autocorr_cols = [f"Lag {k}" for k in range(1, lags + 1)]
         df_autocorr = pd.DataFrame(index=all_names, columns=autocorr_cols, dtype=float)
         for k, gamma_k in enumerate(gammas, start=1):
-            diag_k = np.diag(gamma_k[np.ix_(order, order)])
             with np.errstate(divide="ignore", invalid="ignore"):
-                df_autocorr[f"Lag {k}"] = np.where(variances > 1e-14, diag_k / variances, np.nan)
+                df_autocorr[f"Lag {k}"] = np.where(variances > 1e-14, np.diag(gamma_k) / variances, np.nan)
+        _, autocorr_mats = compute_autocorr_matrices(cov_mat, gammas, all_names)
 
         sd = np.sqrt(np.clip(np.diag(sigma_e), 0.0, None))
         C = np.asarray(self.ghx, dtype=float)
@@ -863,6 +1181,7 @@ class PrunedDSGESolution:
             correlation=df_corr,
             autocorr=df_autocorr,
             fevd=df_fevd,
+            autocorr_matrices=autocorr_mats,
         )
 
     def stoch_simul(
@@ -875,12 +1194,17 @@ class PrunedDSGESolution:
         seed: int = 0,
         burn: int = 100,
         lags: int = 5,
+        pruning: bool = False,
     ):
         """Execute Dynare-compatible 2nd-order stoch_simul routine.
 
         Computes:
         1. Second-order decision rules (oo_.dr)
-        2. Theoretical unconditional moments under pruning (with volatility risk correction)
+        2. Theoretical unconditional moments in the convention ``pruning`` selects
+           (see :meth:`theoretical_moments`): by default Dynare's
+           ``stoch_simul(order=2)``, first-order second moments with the
+           second-order mean; with ``pruning=True`` the exact moments of the
+           pruned solution, as Dynare's ``stoch_simul(order=2, pruning)``
         3. Impulse response functions to a one-standard-deviation innovation in each shock
         4. Simulated sample moments (if periods > 0), with the ``Mean`` column
            in levels so that it is directly comparable with the theoretical
@@ -906,6 +1230,9 @@ class PrunedDSGESolution:
             Burn-in periods dropped before calculating simulated moments.
         lags : int, default 5
             Number of autocorrelation lags.
+        pruning : bool, default False
+            Moment convention of the theoretical moments (see above). Simulations
+            and impulse responses always use the pruned solution.
 
         Returns
         -------
@@ -920,7 +1247,7 @@ class PrunedDSGESolution:
             self._sigma_u(sigma, None)  # raises the explanatory TypeError
 
         dr = self.decision_rules()
-        theo = self.theoretical_moments(sigma=sigma, lags=lags)
+        theo = self.theoretical_moments(sigma=sigma, lags=lags, pruning=pruning)
 
         vars_tuple = self.variable_names if self.variable_names is not None else (self.state_names + self.control_names)
         sd = self._shock_sd(sigma)
@@ -1870,41 +2197,169 @@ class Order3PrunedSolution:
         ax.legend(loc="best", frameon=False)
         return fig
 
+    def ergodic_mean(
+        self, sigma: float = 1.0, shock_cov: np.ndarray | None = None
+    ) -> dict[str, pd.Series]:
+        """Unconditional (ergodic) mean of the pruned third-order solution.
+
+        This is E[x_t] and E[y_t] under the stationary distribution of the
+        pruned process that :meth:`simulate` draws from -- the long-run average
+        of a simulation -- not the risky steady state (see
+        :meth:`risky_steady_state`). Under Gaussian innovations the third-order
+        component has mean zero (every third-order forcing term of Andreasen,
+        Fernández-Villaverde and Rubio-Ramírez 2018 is an odd moment of
+        ``x^{(1)}`` and ``u``), so the mean is the second-order formula::
+
+            E[x] = (I - G)^{-1} [0.5 H_σσ σ² + 0.5 H_xx vec(Ω) + 0.5 H_uu vec(σ²Σ_u)]
+            E[y] = F E[x]       + 0.5 G_σσ σ² + 0.5 G_xx vec(Ω) + 0.5 G_uu vec(σ²Σ_u)
+
+        with ``Ω = G Ω G' + N σ²Σ_u N'``. Only the first term, the risk term
+        ``ghs2``, is the precautionary effect of anticipated risk; the other two
+        are the curvature of the policy times the dispersion of states and
+        innovations (a Jensen effect), so the ergodic mean can move in the
+        opposite direction to the risky steady state. :meth:`risk_decomposition`
+        reports the three parts. The mean equals the ``Mean`` column of
+        :meth:`theoretical_moments` minus ``steady_state`` and Dynare 8's
+        ``oo_.mean`` for ``stoch_simul(order=3, pruning)``.
+
+        Parameters
+        ----------
+        sigma : float, default 1.0
+            Perturbation scale σ: innovations are ``N(0, σ² Σ_u)`` and ``ghs2``
+            enters as ``0.5 ghs2 σ²``, so every term is proportional to σ².
+        shock_cov : np.ndarray, optional
+            Innovation covariance Σ_u used for Ω and E[u ⊗ u]; defaults to
+            ``self.shock_cov``, the covariance the solution was computed with.
+            ``ghs2`` is not recomputed: it belongs to ``self.shock_cov``, so a
+            ``shock_cov`` that is not a multiple of it mixes two models. Re-solve
+            the model with the new covariance instead.
+
+        Returns
+        -------
+        dict[str, pd.Series]
+            ``{"states": ..., "controls": ...}``: ergodic-mean deviations from
+            the deterministic steady state, in the units of the model's
+            variables (levels for a model written in levels, log deviations
+            for a model in logs). Add ``steady_state`` for levels.
+        """
+        xs, ys = _ergodic_mean_parts(self, sigma, shock_cov)["total"]
+        return _mean_dict(self, xs, ys, "ergodic_mean")
+
     def stochastic_steady_state(
         self, sigma: float = 1.0, shock_cov: np.ndarray | None = None
     ) -> dict[str, pd.Series]:
-        """Compute the analytical pruned ergodic mean (second/third-order risk-adjusted steady state)."""
-        n_x = self.n_states
-        sigma_e = self._sigma_u(sigma, shock_cov)
+        """Alias of :meth:`ergodic_mean`: returns the **ergodic mean**, not the risky steady state.
 
-        if n_x > 0:
-            q_mat = self.N @ sigma_e @ self.N.T
-            omega = scipy.linalg.solve_discrete_lyapunov(self.G, q_mat)
-            vec_omega = omega.flatten()
-            vec_se = sigma_e.flatten()
-            sig2 = float(sigma) ** 2
-            i_minus_g = np.eye(n_x) - self.G
-            rhs_x = (
-                0.5 * (self.H_xx @ vec_omega)
-                + 0.5 * (self.H_uu @ vec_se)
-                + 0.5 * self.H_sigmasigma * sig2
-            )
-            mu_x2 = scipy.linalg.solve(i_minus_g, rhs_x)
-            mu_y = (
-                self.F @ mu_x2
-                + 0.5 * (self.G_xx @ vec_omega)
-                + 0.5 * (self.G_uu @ vec_se)
-                + 0.5 * self.G_sigmasigma * sig2
-            )
-        else:
-            mu_x2 = np.zeros(0)
-            vec_se = sigma_e.flatten()
-            sig2 = float(sigma) ** 2
-            mu_y = 0.5 * (self.G_uu @ vec_se) + 0.5 * self.G_sigmasigma * sig2
+        Kept for backward compatibility; it returns exactly what
+        :meth:`ergodic_mean` returns. Despite the name, this is the
+        unconditional mean E[x], E[y] of the pruned solution, which adds the
+        curvature of the policy times the dispersion of states and shocks to
+        the risk term. The zero-shock fixed point that the literature calls the
+        stochastic or risky steady state (Coeurdacier, Rey and Winant 2011) is
+        :meth:`risky_steady_state`; in the RBC model of
+        ``tests/fixtures/dynare_live/rbc.mod`` the two put capital on opposite
+        sides of its deterministic steady state (+0.0785% against -0.0045%).
+        See :meth:`ergodic_mean` for parameters and return value.
+        """
+        return self.ergodic_mean(sigma=sigma, shock_cov=shock_cov)
+
+    def risky_steady_state(
+        self,
+        sigma: float = 1.0,
+        *,
+        pruned: bool = True,
+        tol: float = 1e-13,
+        maxiter: int = 50,
+    ) -> dict[str, pd.Series]:
+        """Risky (stochastic) steady state: the zero-shock fixed point of the policy under risk.
+
+        The point where the economy settles when agents expect innovations
+        ``N(0, σ² Σ_u)`` but every realized innovation is zero (the "risky
+        steady state" of Coeurdacier, Rey and Winant 2011). With ``pruned=True``
+        (default) it is the fixed point of the pruned recursion that
+        :meth:`simulate` iterates. Without shocks ``x^{(1)}`` stays at zero, so
+        every third-order forcing term vanishes and ``x^{(3)} = 0``; the fixed
+        point is the second-order closed form::
+
+            x_rss = (I - G)^{-1} 0.5 H_σσ σ²,     y_rss = F x_rss + 0.5 G_σσ σ²
+
+        i.e. the limit of ``simulate(shocks=np.zeros(...), burn=0)``. Only the
+        risk term ``ghs2`` enters, so this is the precautionary effect of
+        anticipated risk; it is the ``risk`` column of
+        :meth:`risk_decomposition`. It is not the ergodic mean
+        (:meth:`ergodic_mean`, alias ``stochastic_steady_state``), which also
+        contains curvature times dispersion and can have the opposite sign.
+
+        With ``pruned=False`` it is the fixed point ``x = h(x, 0, σ)`` of the
+        unpruned third-order policy ``h(x, 0, σ) = G x + 0.5 H_xx (x ⊗ x) +
+        (1/6) H_xxx (x ⊗ x ⊗ x) + 0.5 H_σσ σ² + 0.5 H_xσσ x σ²`` (Gaussian
+        innovations, so ``g_σσσ = 0``), found by Newton's method from the pruned
+        value. The two differ by terms of order σ⁴.
+
+        Parameters
+        ----------
+        sigma : float, default 1.0
+            Perturbation scale σ; the risk terms enter as ``0.5 ghs2 σ²`` and
+            ``0.5 ghxss x σ²``.
+        pruned : bool, default True
+            Fixed point of the pruned recursion (closed form) or of the
+            unpruned approximated policy (Newton).
+        tol, maxiter : float, int
+            Newton tolerance on ``max|h(x) - x|`` and iteration cap
+            (``pruned=False`` only); a failure raises ``RuntimeError``.
+
+        Returns
+        -------
+        dict[str, pd.Series]
+            ``{"states": ..., "controls": ...}``: deviations from the
+            deterministic steady state, in the units of the model's variables.
+            Add ``steady_state`` for levels.
+        """
+        return _risky_steady_state(self, sigma, pruned, 3, tol, maxiter)
+
+    def risk_decomposition(
+        self, sigma: float = 1.0, shock_cov: np.ndarray | None = None
+    ) -> pd.DataFrame:
+        """Split the pruned ergodic mean into the risk term and two curvature terms.
+
+        Columns (deviations from the deterministic steady state, one row per
+        variable in ``variable_names`` order)::
+
+            risk             (I - G)^{-1} 0.5 H_σσ σ²           and F(.) + 0.5 G_σσ σ²
+            state_curvature  (I - G)^{-1} 0.5 H_xx vec(Ω)       and F(.) + 0.5 G_xx vec(Ω)
+            shock_curvature  (I - G)^{-1} 0.5 H_uu vec(σ²Σ_u)   and F(.) + 0.5 G_uu vec(σ²Σ_u)
+            ergodic_mean     their sum, equal to :meth:`ergodic_mean`
+
+        The third-order terms add nothing to the mean under Gaussian
+        innovations. ``risk`` is the precautionary (anticipated-risk) effect and
+        equals :meth:`risky_steady_state`; ``state_curvature`` and
+        ``shock_curvature`` are Jensen effects of realized dispersion, present
+        even when the risk term is zero. The three columns sum to
+        ``ergodic_mean`` up to floating-point rounding. Parameters as in
+        :meth:`ergodic_mean`.
+        """
+        return _risk_decomposition_frame(self, sigma, shock_cov)
+
+    def _pruned_coefficients(self, sig2: float) -> dict[str, np.ndarray]:
+        """Dynare-convention coefficients stacked [states; controls], risk terms times sigma^2."""
+        n_x, n_y, n_e = self.n_states, self.n_controls, self.n_shocks
+
+        def stack(top: Any, bottom: Any, cols: int) -> np.ndarray:
+            return _stack_rows(top, bottom, n_x, n_y, cols)
 
         return {
-            "states": pd.Series(mu_x2, index=self.state_names, name="ergodic_mean_states"),
-            "controls": pd.Series(mu_y, index=self.control_names, name="ergodic_mean_controls"),
+            "gx": stack(self.G, self.F, n_x),
+            "gu": stack(self.N, self.L, n_e),
+            "gxx": stack(self.H_xx, self.G_xx, n_x**2),
+            "gxu": stack(self.H_xu, self.G_xu, n_x * n_e),
+            "guu": stack(self.H_uu, self.G_uu, n_e**2),
+            "gss": sig2 * stack(self.H_sigmasigma, self.G_sigmasigma, 1).ravel(),
+            "gxxx": stack(self.H_xxx, self.G_xxx, n_x**3),
+            "gxxu": stack(self.H_xxu, self.G_xxu, n_x**2 * n_e),
+            "gxuu": stack(self.H_xuu, self.G_xuu, n_x * n_e**2),
+            "guuu": stack(self.H_uuu, self.G_uuu, n_e**3),
+            "gxss": sig2 * stack(self.H_x_sigmasigma, self.G_x_sigmasigma, n_x),
+            "guss": sig2 * stack(self.H_u_sigmasigma, self.G_u_sigmasigma, n_e),
         }
 
     def theoretical_moments(
@@ -1913,38 +2368,64 @@ class Order3PrunedSolution:
         shock_cov: np.ndarray | None = None,
         lags: int = 4,
         fevd_horizons: Sequence[int | None] = (1, 4, 8, 16, 32, None),
+        *,
+        max_state_dim: int | None = MAX_PRUNED_STATE_DIM,
     ) -> TheoreticalMomentsResult:
-        """Compute analytical theoretical moments matching Dynare's stoch_simul at order 3."""
+        """Exact unconditional moments of the pruned third-order solution.
+
+        Mean, covariance, correlations and autocorrelations are the closed forms of
+        the pruned state space of Andreasen, Fernandez-Villaverde and Rubio-Ramirez
+        (2018). They assume Gaussian shocks and keep every third-order term, so they
+        differ from first-order moments by terms of order sigma^4. The mean and
+        covariance equal Dynare's "theoretical moments based on pruned state space"
+        for ``stoch_simul(order=3, pruning)``; Dynare's autocorrelations at order 3
+        omit the correlation of its innovation x (x) u (x) u with past shocks, and
+        long simulations agree with the values here.
+
+        Skewness and kurtosis have no closed form here and are NaN; use
+        :meth:`ergodic_moments` for simulated estimates. ``fevd`` is the
+        first-order decomposition (Dynare reports none at order 3).
+
+        Parameters
+        ----------
+        sigma : float, default 1.0
+            Perturbation scale: the innovation covariance is ``sigma**2`` times
+            ``shock_cov`` and the risk terms ``ghs2``, ``ghxss`` and ``ghuss`` are
+            scaled by ``sigma**2``.
+        shock_cov : np.ndarray, optional
+            Innovation covariance; defaults to the covariance the solution was
+            computed with.
+        lags : int, default 4
+            Number of autocorrelation lags.
+        fevd_horizons : sequence, default (1, 4, 8, 16, 32, None)
+            Horizons of the first-order variance decomposition.
+        max_state_dim : int or None, default 3000
+            Largest augmented pruned state (3n + 2n^2 + n^3 for n states) to solve;
+            larger models raise ``ValueError``. ``None`` removes the limit.
+        """
         sigma_e = self._sigma_u(sigma, shock_cov)
-        M_x = np.vstack([self.G, self.F])
-        M_u = np.vstack([self.N, self.L])
-        _, gamma_0, gammas = first_order_moments(self.G, self.N, M_x, M_u, sigma_e, lags)
+        sig2 = float(sigma) ** 2
+        mean_dev, gamma_0, gammas = pruned_order3_moments(
+            self._pruned_coefficients(sig2), self.n_states, sigma_e, lags,
+            max_state_dim=max_state_dim,
+        )
 
         order = self._var_order()
         all_names = list(self.variable_names or ())
         cov_mat = gamma_0[np.ix_(order, order)]
+        gammas = [gamma_k[np.ix_(order, order)] for gamma_k in gammas]
 
-        sss = self.stochastic_steady_state(sigma=sigma, shock_cov=shock_cov)
         ss_base = (
             self.steady_state
             if isinstance(self.steady_state, pd.Series)
             else pd.Series(0.0, index=all_names)
         )
-        mean_vec = np.zeros(len(all_names))
-        for i, v in enumerate(all_names):
-            base_val = float(ss_base.get(v, 0.0))
-            if v in self.state_names:
-                mean_vec[i] = base_val + float(sss["states"][v])
-            elif v in self.control_names:
-                mean_vec[i] = base_val + float(sss["controls"][v])
-            else:
-                mean_vec[i] = base_val
+        mean_vec = np.array([float(ss_base.get(v, 0.0)) for v in all_names]) + mean_dev[order]
 
         variances = np.diag(cov_mat)
         stds = np.sqrt(np.maximum(variances, 0.0))
-
-        skewness = np.zeros(len(all_names))
-        kurtosis = np.full(len(all_names), 3.0)
+        skewness = np.full(len(all_names), np.nan)
+        kurtosis = np.full(len(all_names), np.nan)
 
         df_moments = pd.DataFrame(
             {
@@ -1956,21 +2437,14 @@ class Order3PrunedSolution:
             },
             index=all_names,
         )
-
-        std_outer = np.outer(stds, stds)
-        std_outer[std_outer == 0.0] = np.nan
-        corr_mat = cov_mat / std_outer
-        np.fill_diagonal(corr_mat, 1.0)
-
         df_cov = pd.DataFrame(cov_mat, index=all_names, columns=all_names)
-        df_corr = pd.DataFrame(corr_mat, index=all_names, columns=all_names)
+        df_corr, autocorr_mats = compute_autocorr_matrices(cov_mat, gammas, all_names)
 
         autocorr_cols = [f"Lag {k}" for k in range(1, lags + 1)]
         df_autocorr = pd.DataFrame(index=all_names, columns=autocorr_cols, dtype=float)
         for k, gamma_k in enumerate(gammas, start=1):
-            diag_k = np.diag(gamma_k[np.ix_(order, order)])
             with np.errstate(divide="ignore", invalid="ignore"):
-                df_autocorr[f"Lag {k}"] = np.where(variances > 1e-14, diag_k / variances, np.nan)
+                df_autocorr[f"Lag {k}"] = np.where(variances > 1e-14, np.diag(gamma_k) / variances, np.nan)
 
         sd = np.sqrt(np.clip(np.diag(sigma_e), 0.0, None))
         C = np.asarray(self.ghx, dtype=float)
@@ -1985,28 +2459,43 @@ class Order3PrunedSolution:
             correlation=df_corr,
             autocorr=df_autocorr,
             fevd=df_fevd,
+            autocorr_matrices=autocorr_mats,
             skewness=pd.Series(skewness, index=all_names, name="Skewness"),
             kurtosis=pd.Series(kurtosis, index=all_names, name="Kurtosis"),
         )
 
-    def ergodic_moments(self, sigma: float = 1.0) -> pd.DataFrame:
-        """Compute analytical unconditional ergodic moments (mean, variance, skewness, kurtosis)."""
+    def ergodic_moments(
+        self,
+        sigma: float = 1.0,
+        *,
+        periods: int = 100_000,
+        seed: int = 0,
+        burn: int = 1_000,
+    ) -> pd.DataFrame:
+        """Unconditional moments of the pruned solution: exact mean and variance, simulated shape.
+
+        ``Mean``, ``StdDev`` and ``Variance`` are the exact pruned-state-space values
+        of :meth:`theoretical_moments`. Skewness and kurtosis have no closed form
+        here, so ``Skewness`` and ``Kurtosis`` (Pearson, 3 for a normal
+        distribution) are estimated from one pruned simulation of ``periods``
+        draws after ``burn``; their Monte Carlo error shrinks like
+        ``1/sqrt(periods)``.
+        """
         theo = self.theoretical_moments(sigma=sigma, lags=1)
         all_names = list(self.variable_names or ())
-        mean = theo.moments["Mean"].to_numpy()
-        var = theo.moments["Variance"].to_numpy()
-        std = theo.moments["Std.Dev"].to_numpy()
-
-        # Under Gaussian innovations, the 1st-order driving component has zero skewness
-        # and kurtosis = 3.0 (excess kurtosis = 0.0). Higher-order corrections are strictly finite.
-        skewness = np.zeros(len(all_names))
-        kurtosis = np.full(len(all_names), 3.0)
+        sim = self.simulate(periods=periods, sigma=sigma, seed=seed, burn=burn)
+        draws = pd.concat([sim.states, sim.controls], axis=1)[all_names].to_numpy()
+        dev = draws - draws.mean(axis=0)
+        m2 = np.mean(dev**2, axis=0)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            skewness = np.where(m2 > 0.0, np.mean(dev**3, axis=0) / m2**1.5, np.nan)
+            kurtosis = np.where(m2 > 0.0, np.mean(dev**4, axis=0) / m2**2, np.nan)
 
         return pd.DataFrame(
             {
-                "Mean": mean,
-                "StdDev": std,
-                "Variance": var,
+                "Mean": theo.moments["Mean"].to_numpy(),
+                "StdDev": theo.moments["Std.Dev."].to_numpy(),
+                "Variance": theo.moments["Variance"].to_numpy(),
                 "Skewness": skewness,
                 "Kurtosis": kurtosis,
             },
@@ -2031,7 +2520,20 @@ class Order3PrunedSolution:
             raise ValueError(f"Order3PrunedSolution only supports order=3, got order={order}")
 
         dr = self.decision_rules()
-        theo = self.theoretical_moments(sigma=sigma, lags=lags)
+        if pruned_state_dim(self.n_states) <= MAX_PRUNED_STATE_DIM:
+            theo = self.theoretical_moments(sigma=sigma, lags=lags)
+        else:
+            import warnings
+
+            warnings.warn(
+                f"stoch_simul(order=3): {self.n_states} predetermined states give a pruned state "
+                f"of size {pruned_state_dim(self.n_states)}; exact theoretical moments skipped. "
+                "Pass periods > 0 for simulated moments, or call "
+                "theoretical_moments(max_state_dim=None).",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            theo = None
 
         vars_tuple = self.variable_names if self.variable_names is not None else (self.state_names + self.control_names)
         sd = self._shock_sd(sigma)

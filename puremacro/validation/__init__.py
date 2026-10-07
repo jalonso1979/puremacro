@@ -11,8 +11,20 @@ from __future__ import annotations
 
 from ._model import CaseResult, Mechanism, Tol, ValidationCase, run
 from .runner import run_all, scorecard
+from .research import (
+    BenchmarkResult,
+    ResearchBenchmark,
+    ResearchBenchmarkReport,
+    research_benchmarks,
+    run_research_benchmarks,
+)
 
 __all__ = [
+    "BenchmarkResult",
+    "ResearchBenchmark",
+    "ResearchBenchmarkReport",
+    "research_benchmarks",
+    "run_research_benchmarks",
     "run",
     "run_all",
     "scorecard",

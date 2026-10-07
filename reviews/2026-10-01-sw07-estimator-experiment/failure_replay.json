@@ -1,0 +1,490 @@
+{
+  "status": "passed",
+  "original_outputs_changed": false,
+  "selection_rule": "earliest saved unresolved calibration draw per variant and observed cause, plus earliest usable finite_oracle control",
+  "calibration_manifest_sha256": "ebd1296ce70b7a579486b7c230f141058ac06dc9d1e0439bb375a76a0f85261a",
+  "environment": {
+    "python": "3.14.6",
+    "numpy": "2.5.2",
+    "scipy": "1.18.1",
+    "pandas": "3.0.5"
+  },
+  "source_hashes_verified": 11,
+  "artifact_hashes_verified": 7,
+  "failure_inventory": [
+    {
+      "variant": "population_hac",
+      "unresolved": 7,
+      "first_order_stationarity": 7,
+      "start_failure": 0,
+      "start_disagreement": 0
+    },
+    {
+      "variant": "finite_hac",
+      "unresolved": 9,
+      "first_order_stationarity": 9,
+      "start_failure": 0,
+      "start_disagreement": 0
+    },
+    {
+      "variant": "population_oracle",
+      "unresolved": 0,
+      "first_order_stationarity": 0,
+      "start_failure": 0,
+      "start_disagreement": 0
+    },
+    {
+      "variant": "finite_oracle",
+      "unresolved": 0,
+      "first_order_stationarity": 0,
+      "start_failure": 0,
+      "start_disagreement": 0
+    }
+  ],
+  "replays": [
+    {
+      "variant": "population_hac",
+      "replication": 1,
+      "array_row": 1,
+      "selection_causes": [
+        "first_order_stationarity"
+      ],
+      "original_status": "optimization_unresolved",
+      "replay_status": "optimization_unresolved",
+      "original_unresolved": true,
+      "replay_unresolved": true,
+      "original_objective": 39.346234049271885,
+      "replay_objective": 39.346234049271885,
+      "objective_difference": 0.0,
+      "parameter_difference": [
+        0.0,
+        5.551115123125783e-17
+      ],
+      "all_four_original_start_records_exactly_reproduced": true,
+      "start_replays": [
+        {
+          "start": [
+            0.5,
+            0.1
+          ],
+          "theta": [
+            0.8397739742914712,
+            0.20802847112694545
+          ],
+          "objective": 39.3462340496445,
+          "success": true,
+          "evaluations": 26,
+          "message": "`ftol` termination condition is satisfied.",
+          "boundary": [
+            false,
+            false
+          ],
+          "identification_rank": 2,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 0.0002092376668640705,
+          "independently_reconstructed_projection": 0.00020923766686435522,
+          "stationarity_tolerance": 0.0001983588517047941,
+          "projection_to_tolerance": 1.0548441124056889,
+          "weighted_first_order_gradient": [
+            0.012885487093458868,
+            0.002115071812335469
+          ],
+          "optimizer_optimality": 0.00824379928843754
+        },
+        {
+          "start": [
+            0.75,
+            0.4
+          ],
+          "theta": [
+            0.839769323582411,
+            0.20803079453435083
+          ],
+          "objective": 39.34623405777526,
+          "success": true,
+          "evaluations": 22,
+          "message": "`ftol` termination condition is satisfied.",
+          "boundary": [
+            false,
+            false
+          ],
+          "identification_rank": 2,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 0.00024024472546821252,
+          "independently_reconstructed_projection": 0.00024024472546600403,
+          "stationarity_tolerance": 0.00019835885172528922,
+          "projection_to_tolerance": 1.2111621103691572,
+          "weighted_first_order_gradient": [
+            -0.014793955610900621,
+            -0.002427230678231393
+          ],
+          "optimizer_optimality": 0.0020745664022227377
+        },
+        {
+          "start": [
+            0.95,
+            0.7
+          ],
+          "theta": [
+            0.8397694047796822,
+            0.20803075393851306
+          ],
+          "objective": 39.3462340556036,
+          "success": true,
+          "evaluations": 29,
+          "message": "`ftol` termination condition is satisfied.",
+          "boundary": [
+            false,
+            false
+          ],
+          "identification_rank": 2,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 0.00023239022499431795,
+          "independently_reconstructed_projection": 0.0002323902249962884,
+          "stationarity_tolerance": 0.00019835885171981513,
+          "projection_to_tolerance": 1.1715646817947056,
+          "weighted_first_order_gradient": [
+            -0.014310375743288115,
+            -0.0023480419227116683
+          ],
+          "optimizer_optimality": 0.0020067525083080733
+        },
+        {
+          "start": [
+            0.8762,
+            0.2397
+          ],
+          "theta": [
+            0.8397696592764338,
+            0.20803062682123705
+          ],
+          "objective": 39.346234049271885,
+          "success": true,
+          "evaluations": 20,
+          "message": "`ftol` termination condition is satisfied.",
+          "boundary": [
+            false,
+            false
+          ],
+          "identification_rank": 2,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 0.0002078249981712896,
+          "independently_reconstructed_projection": 0.00020782499816920867,
+          "stationarity_tolerance": 0.00019835885170385486,
+          "projection_to_tolerance": 1.0477223294248876,
+          "weighted_first_order_gradient": [
+            -0.012797493260940882,
+            -0.0020994425260800207
+          ],
+          "optimizer_optimality": 0.0017945968404097408
+        }
+      ]
+    },
+    {
+      "variant": "finite_hac",
+      "replication": 62,
+      "array_row": 62,
+      "selection_causes": [
+        "first_order_stationarity"
+      ],
+      "original_status": "optimization_unresolved",
+      "replay_status": "optimization_unresolved",
+      "original_unresolved": true,
+      "replay_unresolved": true,
+      "original_objective": 20.367226403444775,
+      "replay_objective": 20.367226403444775,
+      "objective_difference": 0.0,
+      "parameter_difference": [
+        0.0,
+        8.326672684688674e-17
+      ],
+      "all_four_original_start_records_exactly_reproduced": true,
+      "start_replays": [
+        {
+          "start": [
+            0.5,
+            0.1
+          ],
+          "theta": [
+            0.8453014384095526,
+            0.23806788038415877
+          ],
+          "objective": 20.367226403444775,
+          "success": true,
+          "evaluations": 25,
+          "message": "`ftol` termination condition is satisfied.",
+          "boundary": [
+            false,
+            false
+          ],
+          "identification_rank": 2,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 0.00014699329831897919,
+          "independently_reconstructed_projection": 0.00014699329831693048,
+          "stationarity_tolerance": 0.00014271379191740642,
+          "projection_to_tolerance": 1.029986635082899,
+          "weighted_first_order_gradient": [
+            -0.008185876279931212,
+            -0.0012600507628808114
+          ],
+          "optimizer_optimality": 0.0011026257602462894
+        },
+        {
+          "start": [
+            0.75,
+            0.4
+          ],
+          "theta": [
+            0.8453049964371726,
+            0.23806586146626607
+          ],
+          "objective": 20.36722640677128,
+          "success": true,
+          "evaluations": 24,
+          "message": "`ftol` termination condition is satisfied.",
+          "boundary": [
+            false,
+            false
+          ],
+          "identification_rank": 2,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 0.00016540021936174883,
+          "independently_reconstructed_projection": 0.00016540021936510766,
+          "stationarity_tolerance": 0.00014271379192906086,
+          "projection_to_tolerance": 1.1589645060186167,
+          "weighted_first_order_gradient": [
+            0.009211347623741135,
+            0.0014183295404567816
+          ],
+          "optimizer_optimality": 0.005944128645625846
+        },
+        {
+          "start": [
+            0.95,
+            0.7
+          ],
+          "theta": [
+            0.8453010888785412,
+            0.23806807873978708
+          ],
+          "objective": 20.36722640921878,
+          "success": true,
+          "evaluations": 31,
+          "message": "`ftol` termination condition is satisfied.",
+          "boundary": [
+            false,
+            false
+          ],
+          "identification_rank": 2,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 0.00017767362728905064,
+          "independently_reconstructed_projection": 0.0001776736272844104,
+          "stationarity_tolerance": 0.00014271379193763574,
+          "projection_to_tolerance": 1.2449646587910137,
+          "weighted_first_order_gradient": [
+            -0.009894410188566,
+            -0.0015230443426518113
+          ],
+          "optimizer_optimality": 0.0013327662785668983
+        },
+        {
+          "start": [
+            0.8762,
+            0.2397
+          ],
+          "theta": [
+            0.8453009785184706,
+            0.23806814136914167
+          ],
+          "objective": 20.367226411265232,
+          "success": true,
+          "evaluations": 26,
+          "message": "`ftol` termination condition is satisfied.",
+          "boundary": [
+            false,
+            false
+          ],
+          "identification_rank": 2,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 0.000187370091227052,
+          "independently_reconstructed_projection": 0.00018737009122434523,
+          "stationarity_tolerance": 0.0001427137919448055,
+          "projection_to_tolerance": 1.3129080845725865,
+          "weighted_first_order_gradient": [
+            -0.010434289865229025,
+            -0.0016059894949394492
+          ],
+          "optimizer_optimality": 0.0014054886346823762
+        }
+      ]
+    },
+    {
+      "variant": "finite_oracle",
+      "replication": 0,
+      "array_row": 0,
+      "selection_causes": [
+        "usable_oracle_control"
+      ],
+      "original_status": "regular",
+      "replay_status": "regular",
+      "original_unresolved": false,
+      "replay_unresolved": false,
+      "original_objective": 13.801135665373558,
+      "replay_objective": 13.801135665373558,
+      "objective_difference": 0.0,
+      "parameter_difference": [
+        0.0,
+        0.0
+      ],
+      "all_four_original_start_records_exactly_reproduced": true,
+      "start_replays": [
+        {
+          "start": [
+            0.5,
+            0.1
+          ],
+          "theta": [
+            0.824375662277807,
+            0.2402733045894402
+          ],
+          "objective": 13.801135665373558,
+          "success": true,
+          "evaluations": 9,
+          "message": "`ftol` termination condition is satisfied.",
+          "boundary": [
+            false,
+            false
+          ],
+          "identification_rank": 2,
+          "inference_unavailable_reasons": [],
+          "projected_residual_norm": 2.8254260271897203e-06,
+          "independently_reconstructed_projection": 2.8254260366706456e-06,
+          "stationarity_tolerance": 0.00011747823485809429,
+          "projection_to_tolerance": 0.024050634060714036,
+          "weighted_first_order_gradient": [
+            9.848205475934027e-05,
+            4.887607663418262e-05
+          ],
+          "optimizer_optimality": 6.148979768718235e-05
+        },
+        {
+          "start": [
+            0.75,
+            0.4
+          ],
+          "theta": [
+            0.8243758540611761,
+            0.24027340178943649
+          ],
+          "objective": 13.801135665503654,
+          "success": true,
+          "evaluations": 8,
+          "message": "`ftol` termination condition is satisfied.",
+          "boundary": [
+            false,
+            false
+          ],
+          "identification_rank": 2,
+          "inference_unavailable_reasons": [],
+          "projected_residual_norm": 1.280446725621009e-05,
+          "independently_reconstructed_projection": 1.2804467264324626e-05,
+          "stationarity_tolerance": 0.000117478234858648,
+          "projection_to_tolerance": 0.10899437908418695,
+          "weighted_first_order_gradient": [
+            0.00044862981563122866,
+            0.00021690401995738627
+          ],
+          "optimizer_optimality": 0.0002801136238564603
+        },
+        {
+          "start": [
+            0.95,
+            0.7
+          ],
+          "theta": [
+            0.8243757065540865,
+            0.24027332051829642
+          ],
+          "objective": 13.801135665387726,
+          "success": true,
+          "evaluations": 13,
+          "message": "`ftol` termination condition is satisfied.",
+          "boundary": [
+            false,
+            false
+          ],
+          "identification_rank": 2,
+          "inference_unavailable_reasons": [],
+          "projected_residual_norm": 5.006620692356906e-06,
+          "independently_reconstructed_projection": 5.006620702048991e-06,
+          "stationarity_tolerance": 0.00011747823485815459,
+          "projection_to_tolerance": 0.04261743214046481,
+          "weighted_first_order_gradient": [
+            0.00017914147884873883,
+            7.695924263885602e-05
+          ],
+          "optimizer_optimality": 0.00011185158698708911
+        },
+        {
+          "start": [
+            0.8762,
+            0.2397
+          ],
+          "theta": [
+            0.824375832680214,
+            0.24027337720480152
+          ],
+          "objective": 13.801135665477263,
+          "success": true,
+          "evaluations": 8,
+          "message": "`ftol` termination condition is satisfied.",
+          "boundary": [
+            false,
+            false
+          ],
+          "identification_rank": 2,
+          "inference_unavailable_reasons": [],
+          "projected_residual_norm": 1.1429237267841855e-05,
+          "independently_reconstructed_projection": 1.1429237279245035e-05,
+          "stationarity_tolerance": 0.00011747823485853567,
+          "projection_to_tolerance": 0.09728812569415803,
+          "weighted_first_order_gradient": [
+            0.0004089919544610221,
+            0.00017558976138659242
+          ],
+          "optimizer_optimality": 0.00025536469159045266
+        }
+      ]
+    }
+  ],
+  "sample_regeneration": {
+    "replication": 1,
+    "simulation_seed": "18399765841211511075",
+    "sample_sha256": "2759eca8c35e34c9890d9989e8016dcac67da53a1d3310f7f3ec4826367d0eaf",
+    "sample_hash_matched": true,
+    "all_15_moments_and_full_hac_matched_exactly": true
+  },
+  "limitations": [
+    "Replay uses the same frozen model and optimizer; it is not an independent estimator implementation",
+    "First-order derivatives and projected residuals were recomputed, since the original records retain reasons but not those numerical diagnostics",
+    "Only observed failure causes can be selected; calibration contained no failed starts or disagreements",
+    "Successful replay does not turn unresolved fits into usable fits or prove global optimality",
+    "No original failure, Monte Carlo draw, rate denominator or source file was replaced"
+  ]
+}

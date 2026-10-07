@@ -81,13 +81,17 @@ Distances use `haversine_km` for `metric="haversine"` (lat/lon in degrees) and E
 
 ### Shift-share inference
 
-`bartik.shift_share_iv(df, y, x, shares, shocks, controls=(), weights=None, se="akm")` estimates the just-identified 2SLS with instrument `z_i = Σ_k s_ik g_k` after partialling out the controls. Standard errors: `"robust"` (HC1) and `"akm"` (Adão-Kolesár-Morales 2019, eq. 24): with `x̃_i` the residualised regressor and `ε̂_i` the 2SLS residuals,
+`bartik.shift_share_iv(df, y, x, shares, shocks, controls=(), weights=None, se="akm")` estimates the just-identified 2SLS with instrument `z_i = Σ_k s_ik g_k` after partialling out the controls. Standard errors: `"robust"` (HC1) and `"akm"`, the IV standard error of Adão-Kolesár-Morales (2019), built as in their Remark 5 (equation numbers of arXiv:1806.07928v5: eq. 28 for the projection, eq. 39 for the IV error, eq. 40 with sector clusters). With `z̈_i` and `ẍ_i` the instrument and the regressor residualised on the controls, `w_i` the unit weights, `S` the share matrix and `ε̂_i` the 2SLS residuals,
 
 ```
-SE_AKM = sqrt( Σ_k ĝ_k² ( Σ_i s_ik x̃_i ε̂_i )² ) / | Σ_i z_i x̃_i |
+X̂      = (S' diag(w) S)^{-1} S' diag(w) z̈              (eq. 28)
+R̂_k    = Σ_i w_i s_ik ε̂_i
+SE_AKM = sqrt( Σ_c ( Σ_{k∈c} X̂_k R̂_k )² ) / | Σ_i w_i z̈_i ẍ_i |     (eqs. 39, 40)
 ```
 
-where `ĝ_k` are the shocks residualised on the share-weighted constant (and on sector-level controls when given). The result carries both standard errors, the first-stage F, and the Rotemberg weights.
+where `X̂` projects the partialled instrument on the shares and `c` runs over sector clusters (`sector_clusters=`; each sector is its own cluster by default, which is eq. 39). The result carries both standard errors, the first-stage F, and the Rotemberg weights.
+
+> **Correction (2026-09-30).** This section first cited "eq. 24", which is AKM's model for the controls, not the standard error, and wrote the numerator as `Σ_k ĝ_k² (Σ_i s_ik x̃_i ε̂_i)²`, with `x̃_i` inside `R̂_k` and `ĝ_k` the shocks residualised on a share-weighted constant. Neither is AKM's estimator. Through 4.3.0 `shift_share_iv` used `R̂_k = Σ_i w_i s_ik ε̂_i` with those residualised shocks, which equals the formula above only when the intercept is the sole control and every unit's shares sum to one. It now implements the formula above and reproduces `ShiftShareSE::ivreg_ss` 1.1.0 on the package's ADH data (estimate −0.7742267, AKM s.e. 0.2403730 with 3-digit SIC clusters). The residualised shocks remain available as `akm_shocks="residualized"` (ShiftShareSE vignette, Section 3.2).
 
 ### Result objects
 

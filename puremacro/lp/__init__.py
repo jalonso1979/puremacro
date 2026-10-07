@@ -1,6 +1,7 @@
 """Local projections for puremacro: single-country, panel, IV, state-dep,
 smooth, asymmetric, mean-group, CCE, GARCH-state, GARCH-in-mean,
-quantile (ABG), lag-augmented (PMW 2021), and LP-DiD (DGJT 2023)."""
+quantile (ABG), lag-augmented (Montiel Olea & Plagborg-Møller 2021), and
+LP-DiD (DGJT 2023)."""
 from .jorda import lp_hac
 from ._results import LPResult
 from .panel import panel_lp

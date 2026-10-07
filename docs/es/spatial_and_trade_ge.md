@@ -377,15 +377,23 @@ AllenArkolakisModel.simulate_climate_shock(
 
 ## 7. Datos de calibración incluidos y atribución
 
-Desde la versión 4.0.0 la matriz insumo-producto interpaís (ICIO) de la OCDE
-viaja dentro del paquete, de modo que `load_icio_data()` no necesita argumento
-ni ningún archivo externo a su instalación:
+Dos tablas insumo-producto interpaís (ICIO) de la OCDE de 77 países y 11
+sectores viajan dentro del paquete, de modo que `load_icio_data` no necesita
+ningún archivo externo a su instalación. Desde 4.6.0, `source="oecd2020"` es la
+tabla limpia de 2020 de la edición 2023 de las ICIO (agregada por
+`tools/build_icio_77c_11s.py`, procedencia en `OECD2020_ICIO_PROVENANCE`, valor
+agregado mundial 7.97e7 millones de USD); úsela para cualquier trabajo empírico.
+`source="legacy"` es el fixture de regresión para la paridad con MATLAB,
+construido a partir de una exportación corrupta (véanse los avisos del
+2026-09-22 y 2026-10-03); es lo que una llamada sin `source=` sigue devolviendo,
+con un `FutureWarning`, hasta que el valor por defecto pase a `"oecd2020"` en 5.0.
 
 ```python
 from puremacro.trade.data import load_icio_data, bundled_icio_path
 
-matrix = load_icio_data()          # (850, 1078) float64, 77 países x 11 sectores
-print(bundled_icio_path().name)    # icio_77c_11s.npz
+clean = load_icio_data(source="oecd2020")   # (850, 1078) float64, 77 países x 11 sectores
+legacy = load_icio_data(source="legacy")    # el fixture de paridad con MATLAB, misma forma
+print(bundled_icio_path("oecd2020").name)   # icio_77c_11s_oecd2020.npz
 ```
 
 La matriz se redistribuye conforme a las condiciones de uso de la OCDE, que
@@ -400,6 +408,17 @@ paridad se incluyen junto a ella y se obtienen con
 `load_reference_workbook_sheet(sheet)`. Son copias literales, así que esas
 comparaciones siguen siendo una verificación externa y no puremacro
 calificando su propia salida.
+
+En la tabla limpia, las referencias de MATLAB cubren solo el escenario base. Los
+escenarios arancelarios de EE. UU. del modelo heredado no tienen ahí un
+equilibrio conectado con la base: la senda tiene un pliegue en un arancel de
+alrededor del 0.89% (véase "Presupuestos, ahorro externo y numerario" en
+[Contabilidad del comercio](trade_accounting.md) y
+`reviews/2026-10-04-clean-table-tariff-scenarios/REPORT.md`). Para resolver
+tablas de tamaño completo use
+`solve_trade_equilibrium(calib, method="equilibrated_newton")`. Aplica Newton
+al jacobiano equilibrado por filas y columnas y, si falla, su `metadata` indica
+el país cuya dirección de nivel de precios se ha vuelto singular.
 
 El aviso completo, con la procedencia y el SHA-256 de cada archivo, está en
 `puremacro/trade/_datafiles/SOURCES.md`, que se instala con el paquete.

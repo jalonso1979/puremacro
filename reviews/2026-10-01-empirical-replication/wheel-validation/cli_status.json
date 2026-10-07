@@ -1,0 +1,5 @@
+{
+  "rr2010_exit_code": 1,
+  "expected_exit_code": 1,
+  "reason": "unchanged published t-statistic rounding benchmark fails; dossier must still be produced"
+}

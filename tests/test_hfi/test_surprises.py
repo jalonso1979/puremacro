@@ -7,14 +7,21 @@ from puremacro.hfi.surprises import gk2015_surprise
 
 
 def test_gk2015_surprise_no_scaling_at_month_start():
-    """When announcement is on day 0 of the month, scaling factor is 1
-    (M / (M - 0) = 1)."""
-    pre = np.array([95.0])     # 100 - rate, so rate=5.0
-    post = np.array([95.05])   # rate=4.95 → -5bp surprise (rate down)
+    """A meeting on the first day of the month (t = 0 days elapsed, all 30
+    days remaining) has scaling factor T / (T - t) = 1."""
+    # Default quote="rate": the inputs are futures-implied rates, in percent.
+    pre = np.array([5.00])
+    post = np.array([4.95])    # implied rate down 5 bp -> surprise -0.05 (easing)
     days_remaining = np.array([30])  # full month remaining
     s = gk2015_surprise(pre, post, days_remaining_in_month=days_remaining,
                         days_in_month=30)
     np.testing.assert_allclose(s, post - pre)
+    # The same move quoted as CME prices (100 - rate), 95.00 -> 95.05, with
+    # quote="price" is the same rate surprise.
+    s_price = gk2015_surprise(100.0 - pre, 100.0 - post,
+                              days_remaining_in_month=days_remaining,
+                              days_in_month=30, quote="price")
+    np.testing.assert_allclose(s_price, s)
 
 
 def test_gk2015_surprise_scaling_at_month_end():

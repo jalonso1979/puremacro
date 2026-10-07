@@ -339,6 +339,46 @@
     "size_bytes": 102,
     "url": "https://api.worldbank.org/v2/country/ZZZ/indicator/EG.USE.PCAP.KG.OE?format=json&date=1990:2025&per_page=15000"
   },
+  "api.worldbank.org/v2_country_all_indicator_GC.REV.SOCL.ZS_format_json_date_2000_2026_per_page_15000": {
+    "fetched_at": "2026-09-24T22:34:35.934980+00:00",
+    "size_bytes": 1535276,
+    "url": "https://api.worldbank.org/v2/country/all/indicator/GC.REV.SOCL.ZS?format=json&date=2000:2026&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_all_indicator_IC.TAX.LABR.CP.ZS_format_json_date_2000_2026_per_page_15000": {
+    "fetched_at": "2026-09-24T22:34:34.796126+00:00",
+    "size_bytes": 128,
+    "url": "https://api.worldbank.org/v2/country/all/indicator/IC.TAX.LABR.CP.ZS?format=json&date=2000:2026&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_all_indicator_NY.GDP.PCAP.PP.KD_format_json_date_2000_2026_per_page_15000": {
+    "fetched_at": "2026-09-24T22:34:12.385317+00:00",
+    "size_bytes": 1711448,
+    "url": "https://api.worldbank.org/v2/country/all/indicator/NY.GDP.PCAP.PP.KD?format=json&date=2000:2026&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_all_indicator_SL.AGR.EMPL.ZS_format_json_date_2000_2026_per_page_15000": {
+    "fetched_at": "2026-09-24T22:34:20.653161+00:00",
+    "size_bytes": 1832877,
+    "url": "https://api.worldbank.org/v2/country/all/indicator/SL.AGR.EMPL.ZS?format=json&date=2000:2026&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_all_indicator_SL.EMP.SELF.ZS_format_json_date_2000_2026_per_page_15000": {
+    "fetched_at": "2026-09-24T22:34:15.796710+00:00",
+    "size_bytes": 1798255,
+    "url": "https://api.worldbank.org/v2/country/all/indicator/SL.EMP.SELF.ZS?format=json&date=2000:2026&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_all_indicator_SL.EMP.WORK.ZS_format_json_date_2000_2026_per_page_15000": {
+    "fetched_at": "2026-09-24T22:34:34.413324+00:00",
+    "size_bytes": 1880965,
+    "url": "https://api.worldbank.org/v2/country/all/indicator/SL.EMP.WORK.ZS?format=json&date=2000:2026&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_all_indicator_SL.GDP.PCAP.EM.KD_format_json_date_2000_2026_per_page_15000": {
+    "fetched_at": "2026-09-24T22:34:13.999333+00:00",
+    "size_bytes": 1664006,
+    "url": "https://api.worldbank.org/v2/country/all/indicator/SL.GDP.PCAP.EM.KD?format=json&date=2000:2026&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_all_indicator_SL.TLF.CACT.FE.ZS_format_json_date_2000_2026_per_page_15000": {
+    "fetched_at": "2026-09-24T22:34:26.697500+00:00",
+    "size_bytes": 1963313,
+    "url": "https://api.worldbank.org/v2/country/all/indicator/SL.TLF.CACT.FE.ZS?format=json&date=2000:2026&per_page=15000"
+  },
   "files.ember-energy.org/public-downloads_generation_outputs_release_generation_yearly_lower.csv": {
     "fetched_at": "2026-09-11T17:36:33.390653+00:00",
     "size_bytes": 4084307,

@@ -243,11 +243,24 @@ def test_parity_aligns_state_and_shock_columns():
     assert verify_dynare_parity(dr, shuffled, order=2).passed
 
 
-def test_labeled_mrio_file_units_provenance_and_accounting():
-    import hashlib
+def _figaro_fixture_with_codes(tmp_path, codes=("P3_S14", "P3_S15", "P3_S13", "P51G", "P5M")):
+    """The hand-authored FIGARO fixture with its neutral F1..F5 suffixes replaced by FIGARO codes."""
     from pathlib import Path
+    import pandas as pd
+    frame = pd.read_csv(Path(__file__).parent / "fixtures/trade/figaro_harmonized_small.csv", index_col=0)
+    frame.columns = [c if not c.split("_", 1)[1].startswith("F") else f"{c.split('_', 1)[0]}_{codes[int(c[-1]) - 1]}"
+                     for c in frame.columns]
+    path = tmp_path / "figaro_labelled.csv"
+    frame.to_csv(path)
+    return path
+
+
+def test_labeled_mrio_file_units_provenance_and_accounting(tmp_path):
+    import hashlib
     from puremacro.trade.data import load_figaro
-    path = Path(__file__).parent / "fixtures/trade/figaro_harmonized_small.csv"
+    # Since the post-4.3.0 audit load_figaro reads final uses by COUNTRY_CODE label, so the fixture's
+    # neutral F1..F5 suffixes are relabelled with FIGARO codes first.
+    path = _figaro_fixture_with_codes(tmp_path)
     result = load_figaro(file_path=path, eur_to_usd=2., regularize=False)
     assert tuple(result.country_codes) == ("AAA", "BBB")
     np.testing.assert_allclose(result.ytot, 14.)
@@ -255,6 +268,14 @@ def test_labeled_mrio_file_units_provenance_and_accounting():
     assert result.metadata["sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
     assert result.metadata["exchange_rate_usd_per_eur"] == 2.
     assert all(v["changed_entries"] == 0 for v in result.metadata["adjustments"].values())
+
+
+def test_labeled_mrio_file_rejects_unlabelled_final_uses():
+    from pathlib import Path
+    from puremacro.trade.data import load_figaro
+    path = Path(__file__).parent / "fixtures/trade/figaro_harmonized_small.csv"
+    with pytest.raises(ValueError, match="Unknown FIGARO final-use code"):
+        load_figaro(file_path=path, regularize=False)
 
 
 def test_labeled_mrio_file_rejects_reordered_rows(tmp_path):

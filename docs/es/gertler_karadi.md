@@ -121,19 +121,25 @@ res_occbin = solve_gertler_karadi(
     threshold=0.0025,  # Intervención si el diferencial excede 100 pbs anuales
 )
 
-# 4. Comparación de resultados entre regímenes
+# 4. Comparación de resultados entre regímenes. to_frame() contiene desviaciones en
+#    niveles x_t - x_ss (el modelo se linealiza en niveles); to_frame(units="pct")
+#    da 100 * (x_t - x_ss) / x_ss.
 df_klein = res_klein.to_frame()
 df_occbin = res_occbin.to_frame()
+pct_klein = res_klein.to_frame(units="pct")
+pct_occbin = res_occbin.to_frame(units="pct")
 
-print("Caída máxima del patrimonio bancario (Klein) :", df_klein["N"].min())
-print("Caída máxima del patrimonio bancario (OccBin):", df_occbin["N"].min())
-print("Pico del diferencial de crédito (Klein, pbs) :", df_klein["prem"].max() * 40000)
-print("Pico del diferencial de crédito (OccBin, pbs):", df_occbin["prem"].max() * 40000)
+print("Caída máxima del patrimonio bancario (Klein, %) :", pct_klein["N"].min())
+print("Caída máxima del patrimonio bancario (OccBin, %):", pct_occbin["N"].min())
+print("Pico del diferencial de crédito (Klein, pbs)    :", df_klein["prem"].max() * 40000)
+print("Pico del diferencial de crédito (OccBin, pbs)   :", df_occbin["prem"].max() * 40000)
 
 # 5. Informe estructurado y visualización gráfica
 print(res_occbin.summary())
-fig = res_occbin.plot()
+fig = res_occbin.plot(units="pct")
 ```
+
+El patrimonio bancario cae un 61,7% en el impacto con Klein y un 49,2% con OccBin, donde la política de crédito absorbe parte de la pérdida; el diferencial anualizado sube hasta unos 604 pbs y 256 pbs por encima de su valor de estado estacionario de 100 pbs. Los porcentajes se leen en `to_frame(units="pct")`: en niveles el patrimonio cae 0,852 y 0,679 frente a $N_{ss} = 1{,}381$, y multiplicar una desviación en niveles por 100 da un porcentaje solo para las variables cuyo estado estacionario vale 1.
 
 ---
 
@@ -171,13 +177,19 @@ solve_gertler_karadi(
 La clase `GertlerKaradiResult` almacena las trayectorias dinámicas y ofrece herramientas formales de reporte:
 
 - **Atributos**:
-  - `irf`: Diccionario con las trayectorias temporales $(T,)$ de todas las variables endógenas.
-  - `variables`: Lista de identificadores de variables (`['y', 'c', 'i', 'q', 'k', 'n', 'phi', 'prem', ...]`).
-  - `steady_state`: Diccionario con los valores del estado estacionario determinista.
+  - `irf`: `DataFrame` de pandas con las funciones impulso-respuesta, una columna por variable del modelo y una fila por trimestre (la fila 0 es el trimestre del impacto). Los valores son **desviaciones en niveles respecto al estado estacionario**, $x_t - x_{ss}$, en unidades del modelo: las condiciones de equilibrio se linealizan en niveles, así que no son desviaciones porcentuales ni logarítmicas. `res["N"]` devuelve una columna.
+  - `variables`: Lista de los nombres de las variables del modelo, las columnas de `irf`: `['Y', 'C', 'I', 'K', 'L', 'w', 'rho_c', 'Q', 'R', 'Rk', 'prem', 'N', 'Ne', 'Nn', 'phi', 'nu', 'eta', 'Omega', 'Pm', 'Z', 'U', 'Pi', 'Rn', 'xi', 'a', 'psi']`.
+  - `steady_state`: Diccionario con los valores del estado estacionario determinista, con las mismas claves (más objetivos de calibración como `spread_ann`).
   - `regimes`: para OccBin, el indicador de régimen por trimestre (`0` = referencia, `1` = restringido); `binding_periods` cuenta los trimestres restringidos.
-  - `converged`: Estado de convergencia del solucionador numérico.
+  - `converged`: `False` cuando la iteración de regímenes de OccBin alcanzó `max_iter` (se emite un `RuntimeWarning` y `summary()` lo señala).
+- **Unidades de una desviación en niveles**:
+  - `Y`, `C`, `I`, `K`, `N`, `Ne`, `Nn`, `L`, `w`: unidades del modelo ($L_{ss} = 1/3$).
+  - `R`, `Rk`, `Rn`: rendimientos brutos *trimestrales*, de modo que la desviación es la variación del tipo neto trimestral en fracción (0,0025 = 25 pbs por trimestre, 100 pbs anualizados). `Pi` es la inflación bruta trimestral.
+  - `prem`: el diferencial trimestral esperado $\mathbb{E}_t[R_{k,t+1} - R_{t+1}]$ en fracción; `40000 * prem` son puntos básicos anualizados.
+  - `phi`: apalancamiento de la banca privada $(1 - \psi_t) Q_t K_t / N_t$, un cociente; `psi`: la fracción pública de los activos intermediados, cuyo estado estacionario es 0.
+  - `100 * (x_t - x_ss)` es un porcentaje solo para las variables cuyo estado estacionario vale 1 (`Q`, `U`, `xi`, `a`, `Pi`). En la solución por defecto el capital cae 0,2866 en niveles en el impacto frente a $K_{ss} = 5{,}6601$: es un −5,06%, no un −28,66%.
 - **Métodos disponibles**:
-  - `to_frame()`: Devuelve un `DataFrame` de pandas indexado por trimestres de simulación $t = 0, \dots, T-1$.
-  - `.plot()`: Gráfico multipanel en Matplotlib que ilustra las trayectorias de Producto, Inversión, Patrimonio Bancario, Precio del Capital $Q$, Apalancamiento $\phi$ y Diferencial de Crédito.
-  - `.summary()`: Informe técnico que desglosa los valores de estado estacionario, especificación del choque y picos de respuesta.
-  - `.to_markdown()`, `.to_latex()`, `.to_typst()`: Tablas estructuradas listas para su inclusión en publicaciones académicas.
+  - `to_frame(units="level")`: Devuelve un `DataFrame` de pandas indexado por trimestres de simulación $t = 0, \dots, T-1$. `units="level"` (por defecto) devuelve `irf` sin cambios; `units="pct"` devuelve desviaciones porcentuales $100\,(x_t - x_{ss})/x_{ss}$. `psi`, cuyo estado estacionario es 0, no tiene desviación porcentual: vale NaN y figura en `df.attrs["pct_undefined"]`. `df.attrs["units"]` registra la elección.
+  - `.plot(variables=None, style="publication", figsize=None, units="level")`: Gráfico multipanel en Matplotlib; por defecto Producto, Inversión, Patrimonio Bancario, Diferencial de Crédito, Tipo de Política `Rn` y Apalancamiento $\phi$, con los trimestres restringidos de OccBin sombreados. `units` se pasa a `to_frame` y la etiqueta del eje y lo indica.
+  - `.summary()`: Informe en texto con el estado estacionario, el choque y los valores de impacto, mínimo, máximo, media y final de las variables clave, en desviaciones en niveles (la cabecera lo indica y remite a `units="pct"`).
+  - `.to_markdown(units="level")`, `.to_latex(units="level")`, `.to_typst(units="level")`: Tablas listas para su inclusión en publicaciones académicas; `units` se pasa a `to_frame`.

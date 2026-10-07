@@ -6,8 +6,10 @@ Replicates canonical published econometric findings:
 2. Long & Ervin (2000): Monotonic standard error hierarchy under heteroskedasticity and leverage
    (SE_OLS < SE_HC0 < SE_HC1 < SE_HC2 < SE_HC3).
 3. Mroz (1987): Female labor force participation binary Logit model with Newton-Raphson scoring.
-4. Romer & Romer (2010): Macroeconomic effects of tax changes; narrative tax multiplier OLS with
-   HAC standard errors on vendored quarterly US fiscal data.
+4. Romer & Romer (2010)-based modified local projection with HAC standard
+   errors on vendored quarterly US fiscal data. This is a coarse headline
+   comparison, not the original distributed-lag specification; the exact
+   original-data baseline is in replication.romer_romer_2010.
 """
 from __future__ import annotations
 
@@ -215,7 +217,7 @@ def _eval_mroz1987_logit() -> dict[str, float]:
 
 
 def _eval_romer_romer_tax_multiplier() -> dict[str, float]:
-    """Replicate Romer & Romer (2010) narrative tax multiplier OLS at 2-year horizon."""
+    """Modified h=8 local projection; not the paper's original Figure 4 estimator."""
     from puremacro.regress.ols import add_constant, ols
     from ._data import load_csv
 
@@ -293,13 +295,13 @@ CASES: list[ReplicationCase] = [
         id="regression.romer_romer_tax_multiplier_ols",
         family="regression",
         paper="Romer & Romer (2010), 'The Macroeconomic Effects of Tax Changes', AER 100(3):763-801",
-        title="Romer & Romer (2010): narrative tax multiplier OLS at 2-year horizon",
-        title_es="Romer & Romer (2010): multiplicador tributario narrativo MCO a horizonte de 2 años",
+        title="Romer-Romer-based modified local projection at h=8",
+        title_es="Proyección local modificada basada en Romer-Romer, h=8",
         source="snapshot:tax14_narrative_tax_shocks.csv",
         estimate=_eval_romer_romer_tax_multiplier,
         target={"multiplier_h8": -3.0},
         target_kind=TargetKind.POINT,
         tol=Tol.MEDIUM,
-        citation="Romer & Romer (2010), Figure 4 / Table 1: cumulative multiplier near -3.0 at 8-10 quarters.",
+        citation="Modified puremacro LP, sample 1950-2006 and revised outcome data. The -3 target is only the approximate published headline magnitude, not a published h=8 LP coefficient. This is not an exact Figure 4 replication; see replication.romer_romer_2010 for the original-data distributed-lag baseline.",
     ),
 ]

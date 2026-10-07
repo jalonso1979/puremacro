@@ -1,0 +1,1223 @@
+{
+  "review": "Independent aggregation and joint-covariance interpretation audit",
+  "scope": "Saved artifacts only; no production imports, estimation, simulation or data changes",
+  "exact_reference_scope": "Reads saved exact covariance and expectations; does not independently derive the DSGE oracle",
+  "environment": {
+    "python": "3.14.6",
+    "numpy": "2.5.2",
+    "pandas": "3.0.5",
+    "scipy": "1.18.1"
+  },
+  "script_sha256": "b6044de0ed9d99a293fab0a2f5ab6f460c739ae7b5dfb96e1b307c471e6a779c",
+  "protocol_sha256": "bd9938a9c7eb53a92d972d6a5ac79e17f96b6d3cd320a65a84415bbe52276987",
+  "generalized_eigenvalue_definition": "eigvalsh(mean estimated covariance, exact demeaned covariance) on all nine fitted moments; values below/above one indicate underestimated/overestimated variance in some linear combination; not inverse-weight expectation",
+  "mean_mc_se_definition": "sqrt(exact sampling variance / 399); this is a descriptive mean check, not a simultaneous normal test",
+  "max_absolute_mean_error_across_60_moments_in_mc_standard_errors": 2.122939414746133,
+  "all_recomputations_passed": true,
+  "scenarios": [
+    {
+      "scenario": "baseline_fixed",
+      "is_plugin": false,
+      "input_sha256": {
+        "summary.csv": "ab23ee23fe2e542b908de92545494fcb360d7423f9188774126a38550db27049",
+        "draws.csv": "ba6d73334993d3e71ab5fbba703421164b2f1ce6dec5b9853ffcf27f1d887f75",
+        "moment_audit.csv": "798d5109134078e9c20ec54e5fb6375f6c47b5cf62cc7acdd88fa8164da67cea",
+        "covariance_audit.csv": "65f1c02db896342c1209211620d4b7ca7153706a5633bee653f5fec51b49ddd1",
+        "observed_fits.csv": "57b6c844137fdd8a955e6c0fcb979d1a91dc4fb158ffcd2080f1dac1e436fb2d",
+        "draw_evidence.npz": "844dc6fbcd98c2d924222e4e432c0b94927a42f4b1e1ce6db5201882a2a5a54a",
+        "criterion_distribution.png": "7cd170174a4effd1c2ed8be35fce6910f58e8900c8cf6a79c32e582f77f44a4e",
+        "manifest.json": "6a7f8f64e3f739a238b590491134cc8cffafc28d8e8530a7c43afa5e34cae68b"
+      },
+      "all_recomputations_passed": true,
+      "counts": {
+        "replications": 399,
+        "usable_fits": 395,
+        "unresolved_draws": 4,
+        "boundary_fits": 91,
+        "numerically_regular_fits": 304,
+        "tail_exceedances": 0,
+        "naive_chi2_rejections": 133,
+        "regular_j_rejections": 73
+      },
+      "rates": {
+        "tail_fraction_lower": 0.0,
+        "tail_fraction_upper": 0.010025062656641603,
+        "tail_mc_95_lower": 0.0,
+        "tail_mc_95_upper": 0.025467973145502646,
+        "naive_chi2_rate_lower": 0.3333333333333333,
+        "naive_chi2_rate_upper": 0.3433583959899749,
+        "naive_chi2_mc_95_lower": 0.2872125180930859,
+        "naive_chi2_mc_95_upper": 0.39223227679799316,
+        "regular_j_rate_conditional": 0.24013157894736842,
+        "regular_j_mc_95_lower_conditional": 0.19320930836861028,
+        "regular_j_mc_95_upper_conditional": 0.2921977161889614
+      },
+      "observed_criterion": 396736.0957893792,
+      "criterion_median_usable": 8.955062644658678,
+      "criterion_q95_usable": 43.68749570683623,
+      "fit_moment_labels": [
+        "cov(gdp_growth,gdp_growth;lag=0)",
+        "cov(gdp_growth,infl;lag=0)",
+        "cov(gdp_growth,ffr;lag=0)",
+        "cov(infl,infl;lag=0)",
+        "cov(infl,ffr;lag=0)",
+        "cov(ffr,ffr;lag=0)",
+        "cov(gdp_growth,gdp_growth;lag=1)",
+        "cov(infl,infl;lag=1)",
+        "cov(ffr,ffr;lag=1)"
+      ],
+      "joint_covariance_audit": {
+        "empirical_mc": {
+          "generalized_eigenvalues": [
+            0.7386737644504617,
+            0.7666675569738074,
+            0.8440278222301667,
+            0.8626277934097033,
+            0.9519983143375729,
+            0.9981991010030897,
+            1.037636119903528,
+            1.0952472873789125,
+            1.1368016819726348
+          ],
+          "minimum": 0.7386737644504617,
+          "median": 0.9519983143375729,
+          "maximum": 1.1368016819726348
+        },
+        "hac4": {
+          "generalized_eigenvalues": [
+            0.3417400497181574,
+            0.6736511774516396,
+            0.71476759334955,
+            0.939017029244112,
+            1.0823720528927825,
+            1.1510244486367585,
+            1.3413270817423337,
+            9.660891751725476,
+            21.30233196038795
+          ],
+          "minimum": 0.3417400497181574,
+          "median": 1.0823720528927825,
+          "maximum": 21.30233196038795
+        },
+        "hac8": {
+          "generalized_eigenvalues": [
+            0.4747485776272754,
+            0.7716245650517146,
+            0.7898398385878665,
+            0.909487719500353,
+            0.9961954586294385,
+            1.045031599786479,
+            1.20683969286609,
+            6.322826427816333,
+            14.091799334859724
+          ],
+          "minimum": 0.4747485776272754,
+          "median": 0.9961954586294385,
+          "maximum": 14.091799334859724
+        },
+        "hac12": {
+          "generalized_eigenvalues": [
+            0.5438373406900857,
+            0.7843839585969938,
+            0.8195590651909321,
+            0.8803180989879668,
+            0.9395609217388243,
+            0.9767949984445851,
+            1.1426441097170277,
+            4.632608909072656,
+            10.127048297318748
+          ],
+          "minimum": 0.5438373406900857,
+          "median": 0.9395609217388243,
+          "maximum": 10.127048297318748
+        }
+      },
+      "moment_mean_audit": [
+        {
+          "label": "cov(gdp_growth,gdp_growth;lag=0)",
+          "observed": 0.716889515300346,
+          "population": 48.25906847967508,
+          "exact_sample_mean": 48.23908793617082,
+          "monte_carlo_mean": 47.71847925572783,
+          "mc_mean_standard_error": 0.32263823654870116,
+          "mean_error_in_mc_standard_errors": -1.6135988282480591,
+          "demeaning_bias_in_exact_sampling_sd": -0.003100309238733865,
+          "empirical_variance_ratio": 0.8582158146198664,
+          "hac8_variance_ratio": 0.8591009791491944
+        },
+        {
+          "label": "cov(gdp_growth,infl;lag=0)",
+          "observed": -0.1524555607240841,
+          "population": 0.703291222379633,
+          "exact_sample_mean": 0.7009316414104029,
+          "monte_carlo_mean": 0.6890543037158665,
+          "mc_mean_standard_error": 0.01693889445730141,
+          "mean_error_in_mc_standard_errors": -0.7011873014780576,
+          "demeaning_bias_in_exact_sampling_sd": -0.006973701835180357,
+          "empirical_variance_ratio": 0.9460828416590404,
+          "hac8_variance_ratio": 6.330005370146085
+        },
+        {
+          "label": "cov(gdp_growth,ffr;lag=0)",
+          "observed": -0.1573984496467278,
+          "population": 7.092404352926025,
+          "exact_sample_mean": 7.082621265052407,
+          "monte_carlo_mean": 6.983584858437419,
+          "mc_mean_standard_error": 0.058221198773891536,
+          "mean_error_in_mc_standard_errors": -1.7010368852006557,
+          "demeaning_bias_in_exact_sampling_sd": -0.008412176249141248,
+          "empirical_variance_ratio": 0.8433040361908803,
+          "hac8_variance_ratio": 3.10873796273305
+        },
+        {
+          "label": "cov(infl,infl;lag=0)",
+          "observed": 0.3703951099567668,
+          "population": 2.9089662870204465,
+          "exact_sample_mean": 2.6946282490403193,
+          "monte_carlo_mean": 2.7335061433164305,
+          "mc_mean_standard_error": 0.04463949824176782,
+          "mean_error_in_mc_standard_errors": 0.8709303600490472,
+          "demeaning_bias_in_exact_sampling_sd": -0.24037732544498566,
+          "empirical_variance_ratio": 0.9226437042073447,
+          "hac8_variance_ratio": 0.5833981292219172
+        },
+        {
+          "label": "cov(infl,ffr;lag=0)",
+          "observed": 0.3213728312791903,
+          "population": 6.637446035093038,
+          "exact_sample_mean": 6.195475184711267,
+          "monte_carlo_mean": 6.269475683758939,
+          "mc_mean_standard_error": 0.09708034444547647,
+          "mean_error_in_mc_standard_errors": 0.7622603676405159,
+          "demeaning_bias_in_exact_sampling_sd": -0.22791655432643104,
+          "empirical_variance_ratio": 0.9115229101544132,
+          "hac8_variance_ratio": 0.6337383258487357
+        },
+        {
+          "label": "cov(ffr,ffr;lag=0)",
+          "observed": 0.6987548107261019,
+          "population": 17.085808279740057,
+          "exact_sample_mean": 16.139773828899234,
+          "monte_carlo_mean": 16.259117423854175,
+          "mc_mean_standard_error": 0.22460276970285573,
+          "mean_error_in_mc_standard_errors": 0.5313540661712196,
+          "demeaning_bias_in_exact_sampling_sd": -0.210865435242674,
+          "empirical_variance_ratio": 0.8971236072819047,
+          "hac8_variance_ratio": 0.6825139537600744
+        },
+        {
+          "label": "cov(gdp_growth,gdp_growth;lag=1)",
+          "observed": 0.1833960406877929,
+          "population": 16.2941317647108,
+          "exact_sample_mean": 16.273545647356862,
+          "monte_carlo_mean": 15.971285135041827,
+          "mc_mean_standard_error": 0.24681662170068544,
+          "mean_error_in_mc_standard_errors": -1.2246359675142713,
+          "demeaning_bias_in_exact_sampling_sd": -0.0041755490793239924,
+          "empirical_variance_ratio": 0.9597154507193745,
+          "hac8_variance_ratio": 0.8460784272727258
+        },
+        {
+          "label": "cov(infl,infl;lag=1)",
+          "observed": 0.3330125201061801,
+          "population": 2.747827099913673,
+          "exact_sample_mean": 2.53317709786212,
+          "monte_carlo_mean": 2.5721662031489223,
+          "mc_mean_standard_error": 0.04421172952846342,
+          "mean_error_in_mc_standard_errors": 0.8818724284853237,
+          "demeaning_bias_in_exact_sampling_sd": -0.24305633480374136,
+          "empirical_variance_ratio": 0.9242118440876045,
+          "hac8_variance_ratio": 0.5789091387260871
+        },
+        {
+          "label": "cov(ffr,ffr;lag=1)",
+          "observed": 0.6581521599351288,
+          "population": 15.536734242609407,
+          "exact_sample_mean": 14.58905087811778,
+          "monte_carlo_mean": 14.721252588556913,
+          "mc_mean_standard_error": 0.22066094236573486,
+          "mean_error_in_mc_standard_errors": 0.5991169484810916,
+          "demeaning_bias_in_exact_sampling_sd": -0.21500637681836024,
+          "empirical_variance_ratio": 0.9038800618413528,
+          "hac8_variance_ratio": 0.6749993417847223
+        },
+        {
+          "label": "cov(gdp_growth,gdp_growth;lag=2)",
+          "observed": 0.1558021886067744,
+          "population": 1.948303030689736,
+          "exact_sample_mean": 1.9276347191879069,
+          "monte_carlo_mean": 1.8131692993991868,
+          "mc_mean_standard_error": 0.20089559574369553,
+          "mean_error_in_mc_standard_errors": -0.5697756556831555,
+          "demeaning_bias_in_exact_sampling_sd": -0.005150485095776879,
+          "empirical_variance_ratio": 0.9176456723300968,
+          "hac8_variance_ratio": 0.8636867720634386
+        },
+        {
+          "label": "cov(infl,infl;lag=2)",
+          "observed": 0.3124596799908127,
+          "population": 2.4793558801315214,
+          "exact_sample_mean": 2.2646014076539123,
+          "monte_carlo_mean": 2.3048307318137926,
+          "mc_mean_standard_error": 0.04306404538342668,
+          "mean_error_in_mc_standard_errors": 0.9341742932345144,
+          "demeaning_bias_in_exact_sampling_sd": -0.2496553888927701,
+          "empirical_variance_ratio": 0.9290906333228879,
+          "hac8_variance_ratio": 0.5687768316371972
+        },
+        {
+          "label": "cov(ffr,ffr;lag=2)",
+          "observed": 0.6010167505315445,
+          "population": 13.03878622917929,
+          "exact_sample_mean": 12.090552842475455,
+          "monte_carlo_mean": 12.251910350507451,
+          "mc_mean_standard_error": 0.21107728587219984,
+          "mean_error_in_mc_standard_errors": 0.7644475215096914,
+          "demeaning_bias_in_exact_sampling_sd": -0.2248988804210446,
+          "empirical_variance_ratio": 0.9166125715846306,
+          "hac8_variance_ratio": 0.6591743826631216
+        },
+        {
+          "label": "cov(gdp_growth,gdp_growth;lag=4)",
+          "observed": 0.0619062739365927,
+          "population": -5.672674936696211,
+          "exact_sample_mean": -5.692655480200473,
+          "monte_carlo_mean": -5.386219894842636,
+          "mc_mean_standard_error": 0.2124655626088916,
+          "mean_error_in_mc_standard_errors": 1.4422835474844682,
+          "demeaning_bias_in_exact_sampling_sd": -0.004707954989308791,
+          "empirical_variance_ratio": 0.9656591693553821,
+          "hac8_variance_ratio": 0.9135977997215512
+        },
+        {
+          "label": "cov(infl,infl;lag=4)",
+          "observed": 0.2890318477933885,
+          "population": 1.8769000584443611,
+          "exact_sample_mean": 1.6625620204642346,
+          "monte_carlo_mean": 1.7063286373414088,
+          "mc_mean_standard_error": 0.039618025106031594,
+          "mean_error_in_mc_standard_errors": 1.104714754459337,
+          "demeaning_bias_in_exact_sampling_sd": -0.27084447465122724,
+          "empirical_variance_ratio": 0.9450757863878314,
+          "hac8_variance_ratio": 0.5474248411719181
+        },
+        {
+          "label": "cov(ffr,ffr;lag=4)",
+          "observed": 0.5040926340504379,
+          "population": 8.307879097919892,
+          "exact_sample_mean": 7.36184464707907,
+          "monte_carlo_mean": 7.588642779868917,
+          "mc_mean_standard_error": 0.18827297912632832,
+          "mean_error_in_mc_standard_errors": 1.2046239128008969,
+          "demeaning_bias_in_exact_sampling_sd": -0.2515547425333096,
+          "empirical_variance_ratio": 0.9587139944026875,
+          "hac8_variance_ratio": 0.6331986963543222
+        }
+      ],
+      "maximum_absolute_mean_error_in_mc_standard_errors": 1.7010368852006557
+    },
+    {
+      "scenario": "published_fixed",
+      "is_plugin": false,
+      "input_sha256": {
+        "summary.csv": "bfd3d60430d8d5382e150eb775161505396f45a0be79e0f55f7ea7f939abb9dd",
+        "draws.csv": "541d753c167ab4df6c9461e04a21b16d7e5feca8cf28720de97c8637a3c06c42",
+        "moment_audit.csv": "4032e2a3185495df4a4f8a79710476bde67c49accd0c36472bb5dbb26074e043",
+        "covariance_audit.csv": "aef358a6f842d441068783edd7e4ff62faa522336e44dddc465db93d15441d9c",
+        "observed_fits.csv": "cfe5c7a06c281d78a178f04a6f69ddf47a4e32de745e46ef60835dbe67ee101e",
+        "draw_evidence.npz": "2c6a799b2c8b62f9b66f7ef4cc66d5699c0ef12536893fa23e736b217a76ebdb",
+        "criterion_distribution.png": "3dfc979b9f9574e952f4bf8f4fd14d50a8e192a2293c1f236e6e0a8d580cb0e2",
+        "manifest.json": "e9b4dcb7eb5266bb98d60c62b15d8df61e0a752d6ed85634160237042502b50c"
+      },
+      "all_recomputations_passed": true,
+      "counts": {
+        "replications": 399,
+        "usable_fits": 390,
+        "unresolved_draws": 9,
+        "boundary_fits": 7,
+        "numerically_regular_fits": 383,
+        "tail_exceedances": 166,
+        "naive_chi2_rejections": 248,
+        "regular_j_rejections": 241
+      },
+      "rates": {
+        "tail_fraction_lower": 0.41604010025062654,
+        "tail_fraction_upper": 0.43859649122807015,
+        "tail_mc_95_lower": 0.3672037208601615,
+        "tail_mc_95_upper": 0.4888422009774748,
+        "naive_chi2_rate_lower": 0.6215538847117794,
+        "naive_chi2_rate_upper": 0.6441102756892231,
+        "naive_chi2_mc_95_lower": 0.5719516652132219,
+        "naive_chi2_mc_95_upper": 0.6911196739613545,
+        "regular_j_rate_conditional": 0.6292428198433421,
+        "regular_j_mc_95_lower_conditional": 0.5787136461979865,
+        "regular_j_mc_95_upper_conditional": 0.6777574199951707
+      },
+      "observed_criterion": 25.2554104021646,
+      "criterion_median_usable": 20.679716523807578,
+      "criterion_q95_usable": 115.08561459938197,
+      "fit_moment_labels": [
+        "cov(gdp_growth,gdp_growth;lag=0)",
+        "cov(gdp_growth,infl;lag=0)",
+        "cov(gdp_growth,ffr;lag=0)",
+        "cov(infl,infl;lag=0)",
+        "cov(infl,ffr;lag=0)",
+        "cov(ffr,ffr;lag=0)",
+        "cov(gdp_growth,gdp_growth;lag=1)",
+        "cov(infl,infl;lag=1)",
+        "cov(ffr,ffr;lag=1)"
+      ],
+      "joint_covariance_audit": {
+        "empirical_mc": {
+          "generalized_eigenvalues": [
+            0.7423451770819615,
+            0.8281468329970798,
+            0.8746486877317302,
+            0.9187146412018251,
+            0.9550922948363413,
+            1.0202567751805969,
+            1.127820052007807,
+            1.1973642554194113,
+            1.3323580370926342
+          ],
+          "minimum": 0.7423451770819615,
+          "median": 0.9550922948363413,
+          "maximum": 1.3323580370926342
+        },
+        "hac4": {
+          "generalized_eigenvalues": [
+            0.31129855508339205,
+            0.5779615406081708,
+            0.6644413964271174,
+            0.7824941049442065,
+            0.8899879034735891,
+            0.9946153763492678,
+            1.0938247422238065,
+            2.75868371183271,
+            5.531367115704225
+          ],
+          "minimum": 0.31129855508339205,
+          "median": 0.8899879034735891,
+          "maximum": 5.531367115704225
+        },
+        "hac8": {
+          "generalized_eigenvalues": [
+            0.4083690800469615,
+            0.6732110443237451,
+            0.7576209612940255,
+            0.8304329550107942,
+            0.9253097199506061,
+            0.9917838723151078,
+            1.0413417535573806,
+            2.025391913895971,
+            3.937984749393843
+          ],
+          "minimum": 0.4083690800469615,
+          "median": 0.9253097199506061,
+          "maximum": 3.937984749393843
+        },
+        "hac12": {
+          "generalized_eigenvalues": [
+            0.4549711127734634,
+            0.6954377577366418,
+            0.7825755292720915,
+            0.8337570327944344,
+            0.922526900468898,
+            0.961569496107198,
+            1.0179514539404158,
+            1.6838262248740936,
+            3.044807446105344
+          ],
+          "minimum": 0.4549711127734634,
+          "median": 0.922526900468898,
+          "maximum": 3.044807446105344
+        }
+      },
+      "moment_mean_audit": [
+        {
+          "label": "cov(gdp_growth,gdp_growth;lag=0)",
+          "observed": 0.716889515300346,
+          "population": 0.8718721387162844,
+          "exact_sample_mean": 0.8696477269178309,
+          "monte_carlo_mean": 0.8746795608396393,
+          "mc_mean_standard_error": 0.005612071479148469,
+          "mean_error_in_mc_standard_errors": 0.8966090222663093,
+          "demeaning_bias_in_exact_sampling_sd": -0.019842918482302158,
+          "empirical_variance_ratio": 0.8923657859679238,
+          "hac8_variance_ratio": 0.9008880543719932
+        },
+        {
+          "label": "cov(gdp_growth,infl;lag=0)",
+          "observed": -0.1524555607240841,
+          "population": -0.1188288254447833,
+          "exact_sample_mean": -0.1176542992738979,
+          "monte_carlo_mean": -0.119475382023577,
+          "mc_mean_standard_error": 0.002637096040484608,
+          "mean_error_in_mc_standard_errors": -0.6905636813077649,
+          "demeaning_bias_in_exact_sampling_sd": 0.02229719868158775,
+          "empirical_variance_ratio": 0.8470535720502477,
+          "hac8_variance_ratio": 0.8978195962105993
+        },
+        {
+          "label": "cov(gdp_growth,ffr;lag=0)",
+          "observed": -0.1573984496467278,
+          "population": -0.1228505761291578,
+          "exact_sample_mean": -0.1225467207575976,
+          "monte_carlo_mean": -0.12127671112278947,
+          "mc_mean_standard_error": 0.002974354388816324,
+          "mean_error_in_mc_standard_errors": 0.4269866561911171,
+          "demeaning_bias_in_exact_sampling_sd": 0.005114318346975345,
+          "empirical_variance_ratio": 0.8720170107438913,
+          "hac8_variance_ratio": 0.8744004032196764
+        },
+        {
+          "label": "cov(infl,infl;lag=0)",
+          "observed": 0.3703951099567668,
+          "population": 0.2901294649193718,
+          "exact_sample_mean": 0.2434460646786813,
+          "monte_carlo_mean": 0.24382612761984207,
+          "mc_mean_standard_error": 0.0034681172259698302,
+          "mean_error_in_mc_standard_errors": 0.1095876858817808,
+          "demeaning_bias_in_exact_sampling_sd": -0.6738795301330294,
+          "empirical_variance_ratio": 1.1310114868771843,
+          "hac8_variance_ratio": 0.555566354026672
+        },
+        {
+          "label": "cov(infl,ffr;lag=0)",
+          "observed": 0.3213728312791903,
+          "population": 0.2148595110623263,
+          "exact_sample_mean": 0.1644516562988197,
+          "monte_carlo_mean": 0.1641064233814764,
+          "mc_mean_standard_error": 0.003507337891311989,
+          "mean_error_in_mc_standard_errors": -0.09843161053816449,
+          "demeaning_bias_in_exact_sampling_sd": -0.719505569980349,
+          "empirical_variance_ratio": 1.0722286892060966,
+          "hac8_variance_ratio": 0.5038304080999824
+        },
+        {
+          "label": "cov(ffr,ffr;lag=0)",
+          "observed": 0.6987548107261019,
+          "population": 0.3643790722362016,
+          "exact_sample_mean": 0.3001629898848874,
+          "monte_carlo_mean": 0.29874985491384315,
+          "mc_mean_standard_error": 0.004615154856160935,
+          "mean_error_in_mc_standard_errors": -0.30619448644455316,
+          "demeaning_bias_in_exact_sampling_sd": -0.6965801287155842,
+          "empirical_variance_ratio": 1.0438438366670162,
+          "hac8_variance_ratio": 0.5250821609017207
+        },
+        {
+          "label": "cov(gdp_growth,gdp_growth;lag=1)",
+          "observed": 0.1833960406877929,
+          "population": 0.2350815137572781,
+          "exact_sample_mean": 0.2328381290816119,
+          "monte_carlo_mean": 0.2357155207028861,
+          "mc_mean_standard_error": 0.004674011411544142,
+          "mean_error_in_mc_standard_errors": 0.6156150184330929,
+          "demeaning_bias_in_exact_sampling_sd": -0.024028548260213632,
+          "empirical_variance_ratio": 0.9789856578653475,
+          "hac8_variance_ratio": 0.8743759635949468
+        },
+        {
+          "label": "cov(infl,infl;lag=1)",
+          "observed": 0.3330125201061801,
+          "population": 0.2422084689298923,
+          "exact_sample_mean": 0.1954985859876951,
+          "monte_carlo_mean": 0.19614692750331333,
+          "mc_mean_standard_error": 0.0034232571369631542,
+          "mean_error_in_mc_standard_errors": 0.1893931684586551,
+          "demeaning_bias_in_exact_sampling_sd": -0.683097677585326,
+          "empirical_variance_ratio": 1.1519555655899267,
+          "hac8_variance_ratio": 0.5437936076068803
+        },
+        {
+          "label": "cov(ffr,ffr;lag=1)",
+          "observed": 0.6581521599351288,
+          "population": 0.3289338238202547,
+          "exact_sample_mean": 0.2646814996547805,
+          "monte_carlo_mean": 0.263110645632188,
+          "mc_mean_standard_error": 0.004563880754627513,
+          "mean_error_in_mc_standard_errors": -0.3441926086696587,
+          "demeaning_bias_in_exact_sampling_sd": -0.7048035864133366,
+          "empirical_variance_ratio": 1.0463805976316074,
+          "hac8_variance_ratio": 0.5181001101255621
+        },
+        {
+          "label": "cov(gdp_growth,gdp_growth;lag=2)",
+          "observed": 0.1558021886067744,
+          "population": 0.134763534379703,
+          "exact_sample_mean": 0.1325144582357291,
+          "monte_carlo_mean": 0.1416015239408041,
+          "mc_mean_standard_error": 0.004280416879518737,
+          "mean_error_in_mc_standard_errors": 2.122939414746133,
+          "demeaning_bias_in_exact_sampling_sd": -0.02630459643086396,
+          "empirical_variance_ratio": 0.9172354054330952,
+          "hac8_variance_ratio": 0.871375987755966
+        },
+        {
+          "label": "cov(infl,infl;lag=2)",
+          "observed": 0.3124596799908127,
+          "population": 0.209159390888794,
+          "exact_sample_mean": 0.1624407668634855,
+          "monte_carlo_mean": 0.16297746574628963,
+          "mc_mean_standard_error": 0.0033329793317437594,
+          "mean_error_in_mc_standard_errors": 0.16102676596058377,
+          "demeaning_bias_in_exact_sampling_sd": -0.7017315046814312,
+          "empirical_variance_ratio": 1.176959693179397,
+          "hac8_variance_ratio": 0.5250942128633185
+        },
+        {
+          "label": "cov(ffr,ffr;lag=2)",
+          "observed": 0.6010167505315445,
+          "population": 0.2883427676758292,
+          "exact_sample_mean": 0.2240784161505821,
+          "monte_carlo_mean": 0.222567603552776,
+          "mc_mean_standard_error": 0.004443801518866499,
+          "mean_error_in_mc_standard_errors": -0.33998201571154313,
+          "demeaning_bias_in_exact_sampling_sd": -0.7239841003870814,
+          "empirical_variance_ratio": 1.0541423681778594,
+          "hac8_variance_ratio": 0.5024374863715595
+        },
+        {
+          "label": "cov(gdp_growth,gdp_growth;lag=4)",
+          "observed": 0.0619062739365927,
+          "population": 0.04183964677445,
+          "exact_sample_mean": 0.0396152349759963,
+          "monte_carlo_mean": 0.044762046690435854,
+          "mc_mean_standard_error": 0.0038339285908012694,
+          "mean_error_in_mc_standard_errors": 1.342438074300159,
+          "demeaning_bias_in_exact_sampling_sd": -0.029045892285211344,
+          "empirical_variance_ratio": 1.1292004386896122,
+          "hac8_variance_ratio": 0.914521336620318
+        },
+        {
+          "label": "cov(infl,infl;lag=4)",
+          "observed": 0.2890318477933885,
+          "population": 0.1594460261928892,
+          "exact_sample_mean": 0.1127626259521987,
+          "monte_carlo_mean": 0.11316136534946418,
+          "mc_mean_standard_error": 0.0031183724678135057,
+          "mean_error_in_mc_standard_errors": 0.1278677904519722,
+          "demeaning_bias_in_exact_sampling_sd": -0.7494592871138047,
+          "empirical_variance_ratio": 1.2165942881238228,
+          "hac8_variance_ratio": 0.4841103534412013
+        },
+        {
+          "label": "cov(ffr,ffr;lag=4)",
+          "observed": 0.5040926340504379,
+          "population": 0.2195714166501709,
+          "exact_sample_mean": 0.1553553342988566,
+          "monte_carlo_mean": 0.15516048510962352,
+          "mc_mean_standard_error": 0.004141072957000729,
+          "mean_error_in_mc_standard_errors": -0.0470528269499642,
+          "demeaning_bias_in_exact_sampling_sd": -0.7763266180355706,
+          "empirical_variance_ratio": 1.023520323189047,
+          "hac8_variance_ratio": 0.4697117429022336
+        }
+      ],
+      "maximum_absolute_mean_error_in_mc_standard_errors": 2.122939414746133
+    },
+    {
+      "scenario": "baseline_fitted",
+      "is_plugin": true,
+      "input_sha256": {
+        "summary.csv": "9fdc59c7d6d157982929ff3281ff31f584dc37725c969b3f9a0c913e1f95ba60",
+        "draws.csv": "005dd2eccce919c14fb19fc1a8930954e4ab218dc19dddd62200c95844fd525e",
+        "moment_audit.csv": "c898fd73eb1d5de3c21ab09f77b8b612f89fe65927c474f346a9f9250785f966",
+        "covariance_audit.csv": "6150cf8bf5ae59cabfae1ea28f6bb39599067235dccd3a7e57f5cc150f0dab69",
+        "observed_fits.csv": "57b6c844137fdd8a955e6c0fcb979d1a91dc4fb158ffcd2080f1dac1e436fb2d",
+        "draw_evidence.npz": "391a4b6261fc1756551dd9a6bd5e47d796ffec1471e5e0537d246a0e94c0cbc2",
+        "criterion_distribution.png": "5db3e25bed6350cbd0f3182556dc539ed1f28ddce5596ccc6857c1f0abe27de6",
+        "manifest.json": "8d83f027ff71e325e75e941345c90be15e6d351a1cd003fd7e0904758d06b5f1"
+      },
+      "all_recomputations_passed": true,
+      "counts": {
+        "replications": 399,
+        "usable_fits": 397,
+        "unresolved_draws": 2,
+        "boundary_fits": 346,
+        "numerically_regular_fits": 51,
+        "tail_exceedances": 0,
+        "naive_chi2_rejections": 225,
+        "regular_j_rejections": 10
+      },
+      "rates": {
+        "tail_fraction_lower": 0.0,
+        "tail_fraction_upper": 0.005012531328320802,
+        "tail_mc_95_lower": 0.0,
+        "tail_mc_95_upper": 0.01798882295225225,
+        "naive_chi2_rate_lower": 0.5639097744360902,
+        "naive_chi2_rate_upper": 0.568922305764411,
+        "naive_chi2_mc_95_lower": 0.5136761975633315,
+        "naive_chi2_mc_95_upper": 0.6180979797764181,
+        "regular_j_rate_conditional": 0.19607843137254902,
+        "regular_j_mc_95_lower_conditional": 0.09824341651159875,
+        "regular_j_mc_95_upper_conditional": 0.3311573512529288
+      },
+      "observed_criterion": 396736.0957893792,
+      "criterion_median_usable": 16.612470633098816,
+      "criterion_q95_usable": 99.91608126264153,
+      "fit_moment_labels": [
+        "cov(gdp_growth,gdp_growth;lag=0)",
+        "cov(gdp_growth,infl;lag=0)",
+        "cov(gdp_growth,ffr;lag=0)",
+        "cov(infl,infl;lag=0)",
+        "cov(infl,ffr;lag=0)",
+        "cov(ffr,ffr;lag=0)",
+        "cov(gdp_growth,gdp_growth;lag=1)",
+        "cov(infl,infl;lag=1)",
+        "cov(ffr,ffr;lag=1)"
+      ],
+      "joint_covariance_audit": {
+        "empirical_mc": {
+          "generalized_eigenvalues": [
+            0.7949683864468559,
+            0.8376606740876141,
+            0.8685030883226803,
+            0.9385019935548371,
+            0.9963762073592395,
+            1.0808431488058952,
+            1.1283255299370405,
+            1.1994624587899763,
+            1.397915173069626
+          ],
+          "minimum": 0.7949683864468559,
+          "median": 0.9963762073592395,
+          "maximum": 1.397915173069626
+        },
+        "hac4": {
+          "generalized_eigenvalues": [
+            0.29454823794323604,
+            0.6783624014661235,
+            0.9019988224277217,
+            1.003106116902882,
+            1.0560318406230091,
+            1.2042133840286389,
+            1.3420385981428846,
+            8.77218042017438,
+            23.241599352392356
+          ],
+          "minimum": 0.29454823794323604,
+          "median": 1.0560318406230091,
+          "maximum": 23.241599352392356
+        },
+        "hac8": {
+          "generalized_eigenvalues": [
+            0.4047174456857334,
+            0.765768882776062,
+            0.9187813489121934,
+            0.9984309092452504,
+            1.042278216472232,
+            1.0920379106941174,
+            1.159933123440131,
+            5.78936861065235,
+            14.542412575667147
+          ],
+          "minimum": 0.4047174456857334,
+          "median": 1.042278216472232,
+          "maximum": 14.542412575667147
+        },
+        "hac12": {
+          "generalized_eigenvalues": [
+            0.47016498067180457,
+            0.7771185811887521,
+            0.9036616726038705,
+            0.9657771611783872,
+            0.9915030967936515,
+            1.04483208770382,
+            1.0832524878881933,
+            4.230687458566442,
+            10.433180604960942
+          ],
+          "minimum": 0.47016498067180457,
+          "median": 0.9915030967936515,
+          "maximum": 10.433180604960942
+        }
+      },
+      "moment_mean_audit": [
+        {
+          "label": "cov(gdp_growth,gdp_growth;lag=0)",
+          "observed": 0.716889515300346,
+          "population": 47.21538369477042,
+          "exact_sample_mean": 47.197840044460705,
+          "monte_carlo_mean": 47.402867601522495,
+          "mc_mean_standard_error": 0.31569299423763725,
+          "mean_error_in_mc_standard_errors": 0.6494523502396038,
+          "demeaning_bias_in_exact_sampling_sd": -0.002782073311256955,
+          "empirical_variance_ratio": 1.0473280737030322,
+          "hac8_variance_ratio": 0.8637043290162381
+        },
+        {
+          "label": "cov(gdp_growth,infl;lag=0)",
+          "observed": -0.1524555607240841,
+          "population": 0.5019827068540579,
+          "exact_sample_mean": 0.5028510440782218,
+          "monte_carlo_mean": 0.5274379092528133,
+          "mc_mean_standard_error": 0.015869190660846317,
+          "mean_error_in_mc_standard_errors": 1.5493458803323996,
+          "demeaning_bias_in_exact_sampling_sd": 0.002739347909070778,
+          "empirical_variance_ratio": 1.050887415200165,
+          "hac8_variance_ratio": 5.433385196811063
+        },
+        {
+          "label": "cov(gdp_growth,ffr;lag=0)",
+          "observed": -0.1573984496467278,
+          "population": 5.695575127279675,
+          "exact_sample_mean": 5.689904649340034,
+          "monte_carlo_mean": 5.751774146487169,
+          "mc_mean_standard_error": 0.046310546446753455,
+          "mean_error_in_mc_standard_errors": 1.3359699224941746,
+          "demeaning_bias_in_exact_sampling_sd": -0.006129898900593546,
+          "empirical_variance_ratio": 1.0989784367805269,
+          "hac8_variance_ratio": 3.968413137964658
+        },
+        {
+          "label": "cov(infl,infl;lag=0)",
+          "observed": 0.3703951099567668,
+          "population": 2.4270514691206104,
+          "exact_sample_mean": 2.1966246020576308,
+          "monte_carlo_mean": 2.176778253373085,
+          "mc_mean_standard_error": 0.03598830782589838,
+          "mean_error_in_mc_standard_errors": -0.5514665702136817,
+          "demeaning_bias_in_exact_sampling_sd": -0.3205422202031759,
+          "empirical_variance_ratio": 0.9432736607375204,
+          "hac8_variance_ratio": 0.5304725213330117
+        },
+        {
+          "label": "cov(infl,ffr;lag=0)",
+          "observed": 0.3213728312791903,
+          "population": 5.884385526970913,
+          "exact_sample_mean": 5.405196052574928,
+          "monte_carlo_mean": 5.365814222142796,
+          "mc_mean_standard_error": 0.08401391448863814,
+          "mean_error_in_mc_standard_errors": -0.468753666244885,
+          "demeaning_bias_in_exact_sampling_sd": -0.2855417400823044,
+          "empirical_variance_ratio": 0.9325338920273905,
+          "hac8_variance_ratio": 0.5751883573484726
+        },
+        {
+          "label": "cov(ffr,ffr;lag=0)",
+          "observed": 0.6987548107261019,
+          "population": 15.63871561828795,
+          "exact_sample_mean": 14.628914925450506,
+          "monte_carlo_mean": 14.549921631069878,
+          "mc_mean_standard_error": 0.20643775684673646,
+          "mean_error_in_mc_standard_errors": -0.3826494512787512,
+          "demeaning_bias_in_exact_sampling_sd": -0.2448838165093942,
+          "empirical_variance_ratio": 0.9215502993677095,
+          "hac8_variance_ratio": 0.6155060848390989
+        },
+        {
+          "label": "cov(gdp_growth,gdp_growth;lag=1)",
+          "observed": 0.1833960406877929,
+          "population": 15.668891822154048,
+          "exact_sample_mean": 15.650804605264478,
+          "monte_carlo_mean": 15.77755430375014,
+          "mc_mean_standard_error": 0.23989241894950236,
+          "mean_error_in_mc_standard_errors": 0.52836058363454,
+          "demeaning_bias_in_exact_sampling_sd": -0.003774581220701167,
+          "empirical_variance_ratio": 0.9505086292720121,
+          "hac8_variance_ratio": 0.8365679389956155
+        },
+        {
+          "label": "cov(infl,infl;lag=1)",
+          "observed": 0.3330125201061801,
+          "population": 2.2867273794819867,
+          "exact_sample_mean": 2.0560419193957298,
+          "monte_carlo_mean": 2.0350395606039635,
+          "mc_mean_standard_error": 0.0356371051521358,
+          "mean_error_in_mc_standard_errors": -0.5893396419856696,
+          "demeaning_bias_in_exact_sampling_sd": -0.3240644234755309,
+          "empirical_variance_ratio": 0.940309607340092,
+          "hac8_variance_ratio": 0.5263132160514782
+        },
+        {
+          "label": "cov(ffr,ffr;lag=1)",
+          "observed": 0.6581521599351288,
+          "population": 14.322778833235216,
+          "exact_sample_mean": 13.311446217239956,
+          "monte_carlo_mean": 13.21649245364389,
+          "mc_mean_standard_error": 0.2029583527180279,
+          "mean_error_in_mc_standard_errors": -0.46784851337451705,
+          "demeaning_bias_in_exact_sampling_sd": -0.24945983830285143,
+          "empirical_variance_ratio": 0.9155222239652031,
+          "hac8_variance_ratio": 0.608802402030644
+        },
+        {
+          "label": "cov(gdp_growth,gdp_growth;lag=2)",
+          "observed": 0.1558021886067744,
+          "population": 1.477234793909524,
+          "exact_sample_mean": 1.4590852468965765,
+          "monte_carlo_mean": 1.4551477835276263,
+          "mc_mean_standard_error": 0.1943373021323992,
+          "mean_error_in_mc_standard_errors": -0.020260975766077965,
+          "demeaning_bias_in_exact_sampling_sd": -0.004675447372720375,
+          "empirical_variance_ratio": 0.8237041684213474,
+          "hac8_variance_ratio": 0.8725267452599892
+        },
+        {
+          "label": "cov(infl,infl;lag=2)",
+          "observed": 0.3124596799908127,
+          "population": 2.058811731028373,
+          "exact_sample_mean": 1.8280397118063596,
+          "monte_carlo_mean": 1.8071489961943907,
+          "mc_mean_standard_error": 0.03470606783565634,
+          "mean_error_in_mc_standard_errors": -0.6019326565859707,
+          "demeaning_bias_in_exact_sampling_sd": -0.3328827502749537,
+          "empirical_variance_ratio": 0.9448726274405577,
+          "hac8_variance_ratio": 0.5168887970787769
+        },
+        {
+          "label": "cov(ffr,ffr;lag=2)",
+          "observed": 0.6010167505315445,
+          "population": 12.137455205333335,
+          "exact_sample_mean": 11.125610979458212,
+          "monte_carlo_mean": 11.015841032701053,
+          "mc_mean_standard_error": 0.19438337639434702,
+          "mean_error_in_mc_standard_errors": -0.5647085095099228,
+          "demeaning_bias_in_exact_sampling_sd": -0.26059620591308796,
+          "empirical_variance_ratio": 0.9131691600579176,
+          "hac8_variance_ratio": 0.5945957170030491
+        },
+        {
+          "label": "cov(gdp_growth,gdp_growth;lag=4)",
+          "observed": 0.0619062739365927,
+          "population": -5.946914110671845,
+          "exact_sample_mean": -5.964457760981557,
+          "monte_carlo_mean": -6.272324267659862,
+          "mc_mean_standard_error": 0.20854856943132896,
+          "mean_error_in_mc_standard_errors": -1.476234085507256,
+          "demeaning_bias_in_exact_sampling_sd": -0.0042113981228157835,
+          "empirical_variance_ratio": 0.9830238772170783,
+          "hac8_variance_ratio": 0.8838061661277992
+        },
+        {
+          "label": "cov(infl,infl;lag=4)",
+          "observed": 0.2890318477933885,
+          "population": 1.557295411649061,
+          "exact_sample_mean": 1.3268685445860844,
+          "monte_carlo_mean": 1.3083391335211654,
+          "mc_mean_standard_error": 0.03198621832161205,
+          "mean_error_in_mc_standard_errors": -0.5792935844622584,
+          "demeaning_bias_in_exact_sampling_sd": -0.36064820091827776,
+          "empirical_variance_ratio": 0.9741359881627453,
+          "hac8_variance_ratio": 0.4987337033564465
+        },
+        {
+          "label": "cov(ffr,ffr;lag=4)",
+          "observed": 0.5040926340504379,
+          "population": 7.880094129821927,
+          "exact_sample_mean": 6.87029343698448,
+          "monte_carlo_mean": 6.758127456720353,
+          "mc_mean_standard_error": 0.1735669844811588,
+          "mean_error_in_mc_standard_errors": -0.6462403008234969,
+          "demeaning_bias_in_exact_sampling_sd": -0.29126084041492917,
+          "empirical_variance_ratio": 0.9404145670352431,
+          "hac8_variance_ratio": 0.5711556835785973
+        }
+      ],
+      "maximum_absolute_mean_error_in_mc_standard_errors": 1.5493458803323996
+    },
+    {
+      "scenario": "published_fitted",
+      "is_plugin": true,
+      "input_sha256": {
+        "summary.csv": "4285a3a5ad442608c8d5e63de56e61b65e0ec83639662c03a29907515ec6e4d8",
+        "draws.csv": "74eea4decdd1e64ade86b8d14e69f7e718516296bc672084b1b1d2eb45506b64",
+        "moment_audit.csv": "c7e5bd5bf53e342b7d0965593fcd4304c2f79d1ef12a430230ab8689bd2820d0",
+        "covariance_audit.csv": "63d592785fc4aa9ff8391755fca40df2414cd279261755d5ff854ffca3a66503",
+        "observed_fits.csv": "cfe5c7a06c281d78a178f04a6f69ddf47a4e32de745e46ef60835dbe67ee101e",
+        "draw_evidence.npz": "31e1b6d0fe3e1db98ecbd598c001b5a3126f99d5b7c5919e6a5ff4b2ec700439",
+        "criterion_distribution.png": "45d2801e222753d30e7cd8d27b44f89d4f8b3279baead452c58e8846ab031a51",
+        "manifest.json": "aadecd0fa016e278a42fe5464322178c1e42399a4a1313f7d2366683173f416c"
+      },
+      "all_recomputations_passed": true,
+      "counts": {
+        "replications": 399,
+        "usable_fits": 392,
+        "unresolved_draws": 7,
+        "boundary_fits": 1,
+        "numerically_regular_fits": 391,
+        "tail_exceedances": 157,
+        "naive_chi2_rejections": 225,
+        "regular_j_rejections": 224
+      },
+      "rates": {
+        "tail_fraction_lower": 0.39348370927318294,
+        "tail_fraction_upper": 0.41102756892230574,
+        "tail_mc_95_lower": 0.34524294499711344,
+        "tail_mc_95_upper": 0.46107039116628495,
+        "naive_chi2_rate_lower": 0.5639097744360902,
+        "naive_chi2_rate_upper": 0.581453634085213,
+        "naive_chi2_mc_95_lower": 0.5136761975633315,
+        "naive_chi2_mc_95_upper": 0.6303497441386346,
+        "regular_j_rate_conditional": 0.5728900255754475,
+        "regular_j_mc_95_lower_conditional": 0.5221841432819023,
+        "regular_j_mc_95_upper_conditional": 0.6224841430325563
+      },
+      "observed_criterion": 25.2554104021646,
+      "criterion_median_usable": 18.201319352690383,
+      "criterion_q95_usable": 110.8986745838889,
+      "fit_moment_labels": [
+        "cov(gdp_growth,gdp_growth;lag=0)",
+        "cov(gdp_growth,infl;lag=0)",
+        "cov(gdp_growth,ffr;lag=0)",
+        "cov(infl,infl;lag=0)",
+        "cov(infl,ffr;lag=0)",
+        "cov(ffr,ffr;lag=0)",
+        "cov(gdp_growth,gdp_growth;lag=1)",
+        "cov(infl,infl;lag=1)",
+        "cov(ffr,ffr;lag=1)"
+      ],
+      "joint_covariance_audit": {
+        "empirical_mc": {
+          "generalized_eigenvalues": [
+            0.7169053011868871,
+            0.7428309821384222,
+            0.8489716521461284,
+            0.8695996832654513,
+            0.9384255787780368,
+            1.0152358020043664,
+            1.0622880516458066,
+            1.08995452672619,
+            1.2107804368591666
+          ],
+          "minimum": 0.7169053011868871,
+          "median": 0.9384255787780368,
+          "maximum": 1.2107804368591666
+        },
+        "hac4": {
+          "generalized_eigenvalues": [
+            0.33615409791194806,
+            0.5748831739299992,
+            0.6294486873288687,
+            0.7719960349939692,
+            0.8373728875851096,
+            0.9707075769849776,
+            1.0919688065787534,
+            2.9263254388097493,
+            5.4260773004209275
+          ],
+          "minimum": 0.33615409791194806,
+          "median": 0.8373728875851096,
+          "maximum": 5.4260773004209275
+        },
+        "hac8": {
+          "generalized_eigenvalues": [
+            0.4409698651403212,
+            0.6771842885896469,
+            0.7135519492059108,
+            0.8046652638978972,
+            0.8577513680624592,
+            0.9640952516670875,
+            1.0289522083544873,
+            2.1409363979858638,
+            3.792141726150507
+          ],
+          "minimum": 0.4409698651403212,
+          "median": 0.8577513680624592,
+          "maximum": 3.792141726150507
+        },
+        "hac12": {
+          "generalized_eigenvalues": [
+            0.4905378299401666,
+            0.700769017904992,
+            0.7342090195392943,
+            0.804852360440837,
+            0.8438633994794233,
+            0.9389382191442966,
+            0.99564623431268,
+            1.753564507048209,
+            2.918132787836999
+          ],
+          "minimum": 0.4905378299401666,
+          "median": 0.8438633994794233,
+          "maximum": 2.918132787836999
+        }
+      },
+      "moment_mean_audit": [
+        {
+          "label": "cov(gdp_growth,gdp_growth;lag=0)",
+          "observed": 0.716889515300346,
+          "population": 0.8860397850824739,
+          "exact_sample_mean": 0.8838320799538569,
+          "monte_carlo_mean": 0.8849840418938909,
+          "mc_mean_standard_error": 0.005714330263296024,
+          "mean_error_in_mc_standard_errors": 0.20159176788096228,
+          "demeaning_bias_in_exact_sampling_sd": -0.019341461232458664,
+          "empirical_variance_ratio": 1.064355920029627,
+          "hac8_variance_ratio": 0.8915076380260254
+        },
+        {
+          "label": "cov(gdp_growth,infl;lag=0)",
+          "observed": -0.1524555607240841,
+          "population": -0.1104705000387127,
+          "exact_sample_mean": -0.1091373707933064,
+          "monte_carlo_mean": -0.10893185025751156,
+          "mc_mean_standard_error": 0.0027534636438822746,
+          "mean_error_in_mc_standard_errors": 0.07464072977739392,
+          "demeaning_bias_in_exact_sampling_sd": 0.024238540264987604,
+          "empirical_variance_ratio": 0.9541792318907066,
+          "hac8_variance_ratio": 0.8660262528952679
+        },
+        {
+          "label": "cov(gdp_growth,ffr;lag=0)",
+          "observed": -0.1573984496467278,
+          "population": -0.1323984475437067,
+          "exact_sample_mean": -0.1320094065807906,
+          "monte_carlo_mean": -0.13249415753034177,
+          "mc_mean_standard_error": 0.0029565769290146086,
+          "mean_error_in_mc_standard_errors": -0.1639568193859297,
+          "demeaning_bias_in_exact_sampling_sd": 0.006587485920214253,
+          "empirical_variance_ratio": 0.9594490559755593,
+          "hac8_variance_ratio": 0.8556690014474952
+        },
+        {
+          "label": "cov(infl,infl;lag=0)",
+          "observed": 0.3703951099567668,
+          "population": 0.3069501330173361,
+          "exact_sample_mean": 0.262478873472307,
+          "monte_carlo_mean": 0.2636319480921193,
+          "mc_mean_standard_error": 0.0036928808150899816,
+          "mean_error_in_mc_standard_errors": 0.31224257633785785,
+          "demeaning_bias_in_exact_sampling_sd": -0.6028755773087506,
+          "empirical_variance_ratio": 0.9743493466866343,
+          "hac8_variance_ratio": 0.5691754288844139
+        },
+        {
+          "label": "cov(infl,ffr;lag=0)",
+          "observed": 0.3213728312791903,
+          "population": 0.19681238542466,
+          "exact_sample_mean": 0.1513815240778832,
+          "monte_carlo_mean": 0.15338805946537637,
+          "mc_mean_standard_error": 0.0033871193346076077,
+          "mean_error_in_mc_standard_errors": 0.59240174002483,
+          "demeaning_bias_in_exact_sampling_sd": -0.6714814585891674,
+          "empirical_variance_ratio": 0.9320357357123943,
+          "hac8_variance_ratio": 0.536033456248301
+        },
+        {
+          "label": "cov(ffr,ffr;lag=0)",
+          "observed": 0.6987548107261019,
+          "population": 0.3438742612580643,
+          "exact_sample_mean": 0.2861803778469496,
+          "monte_carlo_mean": 0.288968041598692,
+          "mc_mean_standard_error": 0.004287429988966697,
+          "mean_error_in_mc_standard_errors": 0.6501945825159081,
+          "demeaning_bias_in_exact_sampling_sd": -0.673668566208655,
+          "empirical_variance_ratio": 0.9084610885557275,
+          "hac8_variance_ratio": 0.5559381016737271
+        },
+        {
+          "label": "cov(gdp_growth,gdp_growth;lag=1)",
+          "observed": 0.1833960406877929,
+          "population": 0.2422353596665186,
+          "exact_sample_mean": 0.2400082499673652,
+          "monte_carlo_mean": 0.23681696172003386,
+          "mc_mean_standard_error": 0.004761478090641724,
+          "mean_error_in_mc_standard_errors": -0.6702305852469624,
+          "demeaning_bias_in_exact_sampling_sd": -0.023416035677521797,
+          "empirical_variance_ratio": 0.8537816813393262,
+          "hac8_variance_ratio": 0.8418092327368394
+        },
+        {
+          "label": "cov(infl,infl;lag=1)",
+          "observed": 0.3330125201061801,
+          "population": 0.2575405537713082,
+          "exact_sample_mean": 0.2130411479638705,
+          "monte_carlo_mean": 0.21440370157213418,
+          "mc_mean_standard_error": 0.003643061065747824,
+          "mean_error_in_mc_standard_errors": 0.37401338700426356,
+          "demeaning_bias_in_exact_sampling_sd": -0.6115068313958082,
+          "empirical_variance_ratio": 0.9780883566350577,
+          "hac8_variance_ratio": 0.5630392807696402
+        },
+        {
+          "label": "cov(ffr,ffr;lag=1)",
+          "observed": 0.6581521599351288,
+          "population": 0.3085114163233539,
+          "exact_sample_mean": 0.250783749529727,
+          "monte_carlo_mean": 0.25378796887387806,
+          "mc_mean_standard_error": 0.004235409369874008,
+          "mean_error_in_mc_standard_errors": 0.7093102653829697,
+          "demeaning_bias_in_exact_sampling_sd": -0.6823420938947937,
+          "empirical_variance_ratio": 0.9172887784910255,
+          "hac8_variance_ratio": 0.5494460183389824
+        },
+        {
+          "label": "cov(gdp_growth,gdp_growth;lag=2)",
+          "observed": 0.1558021886067744,
+          "population": 0.1375930621800442,
+          "exact_sample_mean": 0.1353601418364314,
+          "monte_carlo_mean": 0.13609734165100149,
+          "mc_mean_standard_error": 0.004349844291931018,
+          "mean_error_in_mc_standard_errors": 0.16947728817273683,
+          "demeaning_bias_in_exact_sampling_sd": -0.02569881343251028,
+          "empirical_variance_ratio": 1.0316661787526467,
+          "hac8_variance_ratio": 0.846860208482242
+        },
+        {
+          "label": "cov(infl,infl;lag=2)",
+          "observed": 0.3124596799908127,
+          "population": 0.2222077732580943,
+          "exact_sample_mean": 0.1776990689822692,
+          "monte_carlo_mean": 0.1789356422437875,
+          "mc_mean_standard_error": 0.0035389785715427267,
+          "mean_error_in_mc_standard_errors": 0.3494153006355293,
+          "demeaning_bias_in_exact_sampling_sd": -0.6296229800541401,
+          "empirical_variance_ratio": 0.9774992441580521,
+          "hac8_variance_ratio": 0.5481061125156341
+        },
+        {
+          "label": "cov(ffr,ffr;lag=2)",
+          "observed": 0.6010167505315445,
+          "population": 0.2685569298992423,
+          "exact_sample_mean": 0.210818059026203,
+          "monte_carlo_mean": 0.21384677627089405,
+          "mc_mean_standard_error": 0.0041145250423901165,
+          "mean_error_in_mc_standard_errors": 0.7361037333562352,
+          "demeaning_bias_in_exact_sampling_sd": -0.702525558528049,
+          "empirical_variance_ratio": 0.9395972776706814,
+          "hac8_variance_ratio": 0.5340254509219525
+        },
+        {
+          "label": "cov(gdp_growth,gdp_growth;lag=4)",
+          "observed": 0.0619062739365927,
+          "population": 0.0406680199987303,
+          "exact_sample_mean": 0.0384603148701126,
+          "monte_carlo_mean": 0.035850249219073184,
+          "mc_mean_standard_error": 0.003892028362255632,
+          "mean_error_in_mc_standard_errors": -0.6706183532349038,
+          "demeaning_bias_in_exact_sampling_sd": -0.028397402837266536,
+          "empirical_variance_ratio": 1.0287872167627858,
+          "hac8_variance_ratio": 0.9010359515027832
+        },
+        {
+          "label": "cov(infl,infl;lag=4)",
+          "observed": 0.2890318477933885,
+          "population": 0.1675187665824214,
+          "exact_sample_mean": 0.1230475070373923,
+          "monte_carlo_mean": 0.12386740908660485,
+          "mc_mean_standard_error": 0.0032829652141807414,
+          "mean_error_in_mc_standard_errors": 0.249744360881734,
+          "demeaning_bias_in_exact_sampling_sd": -0.6781514600621037,
+          "empirical_variance_ratio": 1.019430593617986,
+          "hac8_variance_ratio": 0.5198238897192352
+        },
+        {
+          "label": "cov(ffr,ffr;lag=4)",
+          "observed": 0.5040926340504379,
+          "population": 0.2016847858196901,
+          "exact_sample_mean": 0.1439909024085755,
+          "monte_carlo_mean": 0.14670128106598695,
+          "mc_mean_standard_error": 0.003812952751521495,
+          "mean_error_in_mc_standard_errors": 0.7108345773049426,
+          "demeaning_bias_in_exact_sampling_sd": -0.7574987159845239,
+          "empirical_variance_ratio": 0.9915914503448146,
+          "hac8_variance_ratio": 0.5021848059304964
+        }
+      ],
+      "maximum_absolute_mean_error_in_mc_standard_errors": 0.7361037333562352
+    }
+  ]
+}

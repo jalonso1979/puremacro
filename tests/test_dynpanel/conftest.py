@@ -1,6 +1,9 @@
 """Shared simulation helpers for puremacro.dynpanel tests."""
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -68,6 +71,94 @@ def simulate_dynamic_panel(
         "N": N,
         "T": T,
     }
+
+
+# ---------------------------------------------------------------------
+# Stata's abdata (Arellano-Bond 1991 employment panel), for the
+# [XT] xtabond replication tests. The data are NOT bundled: point
+# PUREMACRO_ABDATA at a copy of https://www.stata-press.com/data/r19/abdata.dta
+# (or a CSV with columns id, year, n, w, k, ys), or drop abdata.dta /
+# abdata.csv into tests/fixtures/. Tests skip when no copy is found.
+# ---------------------------------------------------------------------
+_FIXTURES = Path(__file__).resolve().parent.parent / "fixtures"
+
+
+def _find_abdata() -> Path | None:
+    env = os.environ.get("PUREMACRO_ABDATA")
+    candidates = [Path(env)] if env else []
+    candidates += [_FIXTURES / "abdata.dta", _FIXTURES / "abdata.csv"]
+    for p in candidates:
+        if p.is_file():
+            return p
+    return None
+
+
+def load_abdata_xtabond_design() -> dict | None:
+    """Return the design of Stata's xtabond Examples 1-5 on abdata.
+
+    ``xtabond n l(0/1).w l(0/2).(k ys) yr1980-yr1984 year, lags(2)``:
+    ``X_exog`` holds, in Stata's coefficient order, w, L.w, k, L.k, L2.k,
+    ys, L.ys, L2.ys, yr1980..yr1984, year (lags taken within firm and only
+    across consecutive years). Values are converted to float64 exactly as
+    Stata does when it computes with float-stored data.
+    Returns None when no copy of abdata is available.
+    """
+    import pandas as pd
+
+    path = _find_abdata()
+    if path is None:
+        return None
+    if path.suffix.lower() == ".dta":
+        df = pd.read_stata(path)
+    else:
+        df = pd.read_csv(path)
+    needed = {"id", "year", "n", "w", "k", "ys"}
+    if needed - set(df.columns):
+        return None
+    df = df.sort_values(["id", "year"]).reset_index(drop=True)
+    for c in ("id", "year", "n", "w", "k", "ys"):
+        df[c] = df[c].astype(np.float64)
+    g = df.groupby("id")
+
+    def lag(col: str, L: int):
+        s = g[col].shift(L)
+        consecutive = (df["year"] - g["year"].shift(L)) == L
+        return s.where(consecutive)
+
+    year = df["year"]
+    X = np.column_stack(
+        [
+            df["w"], lag("w", 1),
+            df["k"], lag("k", 1), lag("k", 2),
+            df["ys"], lag("ys", 1), lag("ys", 2),
+            *[(year == yr).astype(float) for yr in range(1980, 1985)],
+            year,
+        ]
+    ).astype(float)
+    names = [
+        "L1.n", "L2.n", "w", "L1.w", "k", "L1.k", "L2.k",
+        "ys", "L1.ys", "L2.ys",
+        "yr1980", "yr1981", "yr1982", "yr1983", "yr1984", "year",
+    ]
+    return {
+        "y": df["n"].to_numpy(),
+        "panel_id": df["id"].to_numpy().astype(np.int64),
+        "time_id": year.to_numpy().astype(np.int64),
+        "X_exog": X,
+        "names": names,
+        "path": str(path),
+    }
+
+
+@pytest.fixture(scope="session")
+def abdata_xtabond():
+    design = load_abdata_xtabond_design()
+    if design is None:
+        pytest.skip(
+            "abdata not available: set PUREMACRO_ABDATA to a copy of "
+            "https://www.stata-press.com/data/r19/abdata.dta (not bundled)."
+        )
+    return design
 
 
 @pytest.fixture

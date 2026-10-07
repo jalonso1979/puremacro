@@ -11,50 +11,39 @@
 # ---
 
 # %% [markdown]
-# # Simuladores de Política Macroeconómica Cuantitativa: Equilibrio General de Política Comercial Ricardiana y Transmisión Monetaria HANK en el Espacio de Secuencias
+# # Simuladores de política cuantitativa: desviación de comercio y transmisión monetaria
 #
-# **¿Cómo se propagan las disputas comerciales bilaterales y las escaladas arancelarias a través de los encadenamientos insumo-producto globales para alterar los términos de intercambio, la asignación sectorial y los salarios reales en equilibrio general, y cómo gobierna la heterogeneidad de riqueza e ingresos de los hogares la transmisión de la política monetaria entre consumidores precarios y tenedores de activos sin restricciones?**
+# **¿Cómo redirigen el gasto los aranceles y cómo cambian las respuestas del ingreso de los hogares la transmisión monetaria?**
 #
-# El análisis de la política macroeconómica moderna requiere de manera creciente simuladores cuantitativos capaces de incorporar retroalimentaciones complejas de equilibrio general (GE) y heterogeneidad microeconómica. En macroeconomía internacional, los debates sobre política comercial suelen concentrarse en los aranceles estatutarios directos, ignorando la desviación de comercio hacia terceros países, las cascadas de costos a través de los encadenamientos de insumo-producto intermedios y los ajustes salariales endógenos. Cuando economías de gran escala intensifican sus aranceles bilaterales, el efecto neto sobre el bienestar nacional depende del equilibrio entre las variaciones en los términos de intercambio, las pérdidas de eficiencia insumo-producto y la recaudación arancelaria. Bajo el marco del álgebra de cambios exactos de Caliendo y Parro (2015), los experimentos contrafácticos comerciales pueden evaluarse directamente sobre tablas de insumo-producto internacionales —como las matrices ICIO de la OCDE— sin necesidad de estimar parámetros estructurales de tecnología no observables.
-#
-# De forma paralela, la macroeconomía monetaria contemporánea ha transitado desde los modelos de agente representativo nuevo-keynesianos (RANK) hacia los modelos con agentes heterogéneos (HANK). En los modelos RANK tradicionales, la transmisión de la política monetaria opera casi exclusivamente a través del canal directo de sustitución intertemporal: tasas de interés reales más altas incentivan a hogares homogéneos y sin restricciones a posponer su consumo presente. En la economía real, sin embargo, la riqueza líquida se encuentra fuertemente concentrada y una fracción sustancial de los hogares vive al día («hand-to-mouth») exhibiendo propensiones marginales a consumir (PMC) elevadas. En economías HANK, el endurecimiento monetario detona canales indirectos de equilibrio general de gran magnitud: la contracción de la demanda agregada deprime el ingreso laboral, obligando a los hogares con restricciones de liquidez a reducir drásticamente su gasto corriente. Siguiendo a Kaplan, Moll y Violante (2018) y Auclert et al. (2021), el marco del jacobiano en el espacio de secuencias permite descomponer con precisión de máquina la respuesta del consumo en efectos de sustitución directa e ingresos indirectos. Este cuaderno expone ambos simuladores de política en acción: la simulación de disputas comerciales internacionales sobre matrices ICIO de la OCDE y la disección de la transmisión monetaria a lo largo de los deciles de riqueza.
+# Inspeccionamos la tabla ICIO de la OCDE incluida y ejecutamos dos modelos didácticos separados. El preset `nafta_china` usa participaciones especificadas manualmente para México, Estados Unidos y China; este código no lo calibra con la tabla ICIO cargada. El ejemplo monetario es un cálculo del modelo, no efectos de política estimados ni PMC de encuestas.
 
 # %% [markdown]
-# ## El método en matemáticas — Equilibrio General de Política Comercial Cuantitativa y Transmisión Monetaria en el Espacio de Secuencias
+# ## El método en matemáticas
 #
-# **1. Equilibrio General de Política Comercial Ricardiana (Caliendo y Parro 2015).** Sea $\hat{x} = x' / x$ la variación proporcional entre el equilibrio contrafáctico y el de línea de base. En una economía con $N$ países y $J$ sectores, las participaciones comerciales bilaterales $\pi_{ni}^j$ evolucionan según las elasticidades comerciales sectoriales $\theta_j$, las variaciones arancelarias brutas $\hat{\kappa}_{ni}^j = (1 + \tau_{ni}'^j) / (1 + \tau_{ni}^j)$ y los costos unitarios de producción $\hat{c}_i^j$:
-# $$ \hat{\pi}_{ni}^j = \left( \frac{\hat{\kappa}_{ni}^j \hat{c}_i^j}{\hat{P}_n^j} \right)^{-\theta_j}, \quad \hat{P}_n^j = \left[ \sum_{i=1}^N \pi_{ni}^j \left( \hat{\kappa}_{ni}^j \hat{c}_i^j \right)^{-\theta_j} \right]^{-1/\theta_j}. $$
-# La producción combina mano de obra e insumos intermedios mediante valor agregado Cobb-Douglas ($\gamma_i^j$) y encadenamientos insumo-producto Leontief ($\gamma_i^{j, k}$):
-# $$ \hat{c}_i^j = \hat{w}_i^{\gamma_i^j} \prod_{k=1}^J (\hat{P}_i^k)^{\gamma_i^{j, k}}, \quad \text{donde } \gamma_i^j + \sum_{k=1}^J \gamma_i^{j, k} = 1. $$
-# Los salarios de equilibrio general $\{\hat{w}_i\}_{i=1}^N$ resuelven el sistema de condiciones de vaciado de mercados de bienes y factores:
-# $$ X_i^j = \sum_{n=1}^N \frac{\pi_{ni}^j}{1 + \tau_{ni}^j} \left[ \sum_{k=1}^J \gamma_n^{k, j} Y_n^k + \alpha_n^j I_n \right], \quad \sum_{j=1}^J \gamma_i^j Y_i^j = w_i L_i. $$
-# La variación del bienestar nacional $\hat{\mathcal{W}}_n = \hat{I}_n / \hat{P}_n$ se descompone exactamente en Términos de Intercambio, Eficiencia Insumo-Producto y Recaudación Arancelaria:
-# $$ \ln \hat{\mathcal{W}}_n = \underbrace{\Delta \ln \text{ToT}_n}_{\text{Términos de Intercambio}} + \underbrace{\Delta \ln \text{IO}_n}_{\text{Encadenamientos I-P}} + \underbrace{\Delta \ln \text{Rev}_n}_{\text{Recaudación Arancelaria}}. $$
+# Con $\hat x=x'/x$, las participaciones bilaterales del gasto y los precios sectoriales satisfacen
+# $$\pi_{ni}^{j\prime}=\pi_{ni}^j\left(\frac{\hat\kappa_{ni}^j\hat c_i^j}{\hat P_n^j}\right)^{-\theta_j},\qquad \hat P_n^j=\left[\sum_i\pi_{ni}^j(\hat\kappa_{ni}^j\hat c_i^j)^{-\theta_j}\right]^{-1/\theta_j}.$$
+# Los costos combinan salarios y precios de insumos: $\hat c_i^j=\hat w_i^{\gamma_i^j}\prod_k(\hat P_i^k)^{\gamma_i^{j,k}}$. El salario real es $\hat w_n/\hat P_n$; el ingreso real del modelo es $\hat I_n/\hat P_n$ e incluye el efecto de la recaudación arancelaria.
 #
-# **2. Transmisión Monetaria en el Espacio de Secuencias y Descomposición KMV (Kaplan et al. 2018; Auclert et al. 2021).** Considérese una economía linealizada en torno a su distribución estacionaria. En el espacio de secuencias, la respuesta al impulso del consumo agregado $d\mathbf{C} \in \mathbb{R}^T$ se descompone en:
-# $$ d\mathbf{C} = \mathbf{J}^{C, r} d\mathbf{r} + \mathbf{J}^{C, Y} d\mathbf{Y}, $$
-# donde $\mathbf{J}^{C, r} = \frac{\partial \mathbf{C}}{\partial \mathbf{r}}$ representa el jacobiano directo de sustitución intertemporal y $\mathbf{J}^{C, Y} = \frac{\partial \mathbf{C}}{\partial \mathbf{Y}}$ el jacobiano indirecto de ingreso laboral de equilibrio general.
-# - En **RANK**: el comportamiento de la ecuación de Euler representativa implica $\mathbf{J}^{C, Y} = \mathbf{0}$, de modo que el $100\%$ de la transmisión opera directamente ($\mathbf{J}^{C, r} d\mathbf{r}$).
-# - En **HANK**: las restricciones de liquidez generan una pronunciada escala de PMC entre deciles de riqueza ($D_1 > 0.40$ frente a $D_{10} < 0.06$). El canal indirecto $\mathbf{J}^{C, Y} d\mathbf{Y}$ proporciona una amplificación sustancial:
-# $$ \text{Fracción Indirecta} = \frac{(\mathbf{J}^{C, Y} d\mathbf{Y})_0}{dC_0} \times 100\%. $$
+# El experimento monetario lineal descompone el consumo en
+# $$d\mathbf C=\mathbf J^{C,r}d\mathbf r+\mathbf J^{C,Y}d\mathbf Y,\qquad s_{\mathrm{indirecto}}=100\frac{(\mathbf J^{C,Y}d\mathbf Y)_0}{dC_0}.$$
+# La participación indirecta se expresa en porcentaje. El comparador RANK utilizado aquí fija el canal de ingreso en cero por construcción; es una convención de esta comparación.
 
 # %% [markdown]
 # ## Intuición
 #
-# **Intuición.** Los aranceles no se limitan a gravar a los productores extranjeros; detonan una reacción en cadena a lo largo de las redes mundiales de suministro. Cuando Estados Unidos impone un arancel del 25% a las manufacturas chinas, el efecto directo inmediato encarece las importaciones chinas para los consumidores y empresas estadounidenses. En equilibrio general, sobrevienen dos ajustes fundamentales. En primer lugar, la **desviación de comercio** reorienta la demanda hacia terceros países cuyos aranceles permanecen invariables (como México). Las fábricas mexicanas expanden su producción, pujan al alza los salarios domésticos y experimentan ganancias en sus términos de intercambio. En segundo lugar, las manufacturas modernas dependen intensamente de insumos intermedios importados, tal como documentan las matrices ICIO de 77 países de la OCDE. Puesto que los fabricantes estadounidenses y chinos utilizan componentes recíprocos, los aranceles incrementan los costos de producción, deterioran la competitividad exportadora y generan pérdidas de eficiencia que pueden superar la recaudación tributaria.
+# **Intuición.** Un arancel bilateral modifica los costos relativos de abastecimiento, por lo que el gasto puede desplazarse hacia productores nacionales y de terceros países. La recaudación puede hacer que el ingreso real y el salario real cambien de forma distinta. En el modelo monetario, el consumo responde tanto a la tasa de interés como al ingreso laboral. Que el ingreso contribuya a la contracción no implica una caída total mayor que en RANK: también difieren el canal directo y la trayectoria de tasas de equilibrio.
 #
-# En el frente monetario, la teoría macroeconómica estándar postula que las tasas de interés operan induciendo a los consumidores a suavizar su consumo en el tiempo: ante un incremento de 25 puntos básicos en la tasa de política, los hogares ahorran más y consumen menos. No obstante, en la evidencia empírica los deciles inferiores de riqueza carecen prácticamente de activos líquidos y exhiben propensiones marginales a consumir trimestrales superiores al 40%. Para estos hogares precarios («hand-to-mouth»), la sustitución intertemporal resulta irrelevante; su consumo depende casi estrictamente de su ingreso laboral corriente. Cuando tasas más altas llevan a las empresas a recortar contrataciones y producción, el ingreso laboral agregado se contrae. Esta caída de ingresos fuerza a los trabajadores sin liquidez a recortar su consumo de inmediato, generando un potente efecto multiplicador. La descomposición de Kaplan-Moll-Violante aísla esta retroalimentación de equilibrio general: mientras que RANK atribuye la totalidad de la contracción a la sustitución intertemporal, HANK revela que la contracción indirecta de ingresos explica una proporción decisiva del mecanismo de transmisión.
+# ## Código resuelto
+#
+# La figura comercial incluye las compras nacionales en el gasto manufacturero total. Sus barras son participaciones de abastecimiento, no participaciones condicionadas a las importaciones.
 
 # %%
 # Preamble: import numerical libraries, plotting style, ICIO data loader, and policy simulators
 import sys
 from pathlib import Path
-import time
-import warnings
 
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
 
 _cwd = Path.cwd()
 sys.path.insert(0, str(_cwd if (_cwd / "_nbstyle.py").exists() else _cwd / "notebooks"))
@@ -64,13 +53,8 @@ _nbstyle.apply_style()
 from puremacro.trade.data import load_icio_data
 from puremacro.models import (
     TradePolicySimulator,
-    TradePolicySimulationResult,
     MonetaryTransmissionSimulator,
-    MonetaryTransmissionResult,
 )
-
-# Set deterministic random seed for reproducibility
-rng = np.random.default_rng(42)
 
 print("Quantitative Macro Policy Simulators: Trade Policy GE & Monetary Transmission")
 
@@ -79,7 +63,7 @@ print("Quantitative Macro Policy Simulators: Trade Policy GE & Monetary Transmis
 # Inspect the empirical inter-country input-output (ICIO) transaction foundation.
 # The table contains 77 canonical economies, 11 aggregated industries, and 3 final demand
 # categories, forming an 850 x 1078 structural transaction system.
-icio = load_icio_data(return_structured=True)
+icio = load_icio_data(source="legacy", return_structured=True)
 
 print(f"Bundled OECD ICIO Structural Container:")
 print(f"  Matrix Dimensions         : {icio.matrix.shape[0]} rows x {icio.matrix.shape[1]} columns")
@@ -101,7 +85,7 @@ assert "MANU" in icio.sector_codes and "AGRI" in icio.sector_codes and "FIN" in 
 # %%
 # --- Experiment 2: Quantitative Trade Policy Simulator (NAFTA-China GE) ---
 # Caliendo & Parro (2015) exact hat algebra Ricardian general equilibrium model with I-O linkages.
-# Model is pre-calibrated from ICIO for 3 economies (MEX, USA, CHN) across 2 sectors
+# The teaching preset specifies shares for 3 economies (MEX, USA, CHN) across 2 sectors
 # (Manufactures, Services) with trade elasticities theta = [5.0, 4.0].
 sim_trade = TradePolicySimulator.from_preset("nafta_china")
 
@@ -113,7 +97,7 @@ print(f"  Trade Elasticities (theta): {sim_trade.model.theta}")
 # Simulate a unilateral 25% tariff escalation by USA on Chinese manufactured imports
 res_trade = sim_trade.simulate_bilateral_tariff("USA", "CHN", tariff_rate=0.25, tol=1e-10)
 
-idx_mex, idx_usa, idx_chn = 0, 1, 2
+idx_mex, idx_usa, idx_chn = [sim_trade.model.country_codes.index(c) for c in ("MEX", "USA", "CHN")]
 base_mfg_mex = sim_trade.model.trade_shares[0, idx_usa, idx_mex]
 prime_mfg_mex = res_trade.pi_prime[0, idx_usa, idx_mex]
 base_mfg_chn = sim_trade.model.trade_shares[0, idx_usa, idx_chn]
@@ -140,12 +124,10 @@ assert res_trade.terms_of_trade_hat[idx_mex] > res_trade.terms_of_trade_hat[idx_
 assert res_trade.welfare_pct[idx_mex] > 0.0, "Mexico must experience positive welfare spillover"
 assert res_trade.tariff_revenue_prime[idx_usa] > 0.0, "US must collect positive tariff revenue"
 
-# Exact Caliendo-Parro (2015) 3-way welfare decomposition identity check
-tot = res_trade.welfare_decomposition["terms_of_trade"]
-io = res_trade.welfare_decomposition["input_output"]
-rev = res_trade.welfare_decomposition["tariff_revenue"]
-total = res_trade.welfare_decomposition["total"]
-np.testing.assert_allclose(tot + io + rev, total, atol=1e-12)
+# Verify observable model identities; do not infer a causal welfare decomposition.
+np.testing.assert_allclose(res_trade.pi_prime.sum(axis=2), 1.0, atol=1e-12)
+np.testing.assert_allclose(res_trade.real_wage_hat, res_trade.w_hat / res_trade.P_index_hat)
+np.testing.assert_allclose(res_trade.welfare_hat, res_trade.income_hat / res_trade.P_index_hat)
 
 # %%
 # --- Experiment 3: Monetary Transmission Simulator (HANK vs RANK) ---
@@ -187,10 +169,10 @@ assert np.isclose(mpc_r.iloc[0], 1.0 - sim_mon.beta), "RANK MPC must equal 1 - b
 assert res_mon.aggregate_mpc_hank > res_mon.aggregate_mpc_rank, "HANK aggregate MPC must exceed RANK"
 assert res_mon.irf_output_hank[0] < 0.0 and res_mon.irf_output_rank[0] < 0.0, "Rate hike must contract output"
 
-# Exact KMV (2018) Sequence-Space decomposition identity check
+# Check the linear consumption decomposition in this simulator
 kmv_diff = np.abs(res_mon.irf_consumption_hank - (res_mon.direct_channel_hank + res_mon.indirect_channel_hank))
 assert np.max(kmv_diff) < 1e-12, "KMV consumption identity must hold to machine precision"
-assert res_mon.indirect_share_hank > 0.30, "Indirect GE channel share must exceed 0.30%"
+assert 0.0 < res_mon.indirect_share_hank < 100.0, "Default indirect share is a percentage"
 assert np.allclose(res_mon.indirect_channel_rank, 0.0, atol=1e-14), "RANK indirect channel must be identically 0.0"
 assert res_mon.indirect_share_rank == 0.0, "RANK indirect share must be 0.0%"
 
@@ -211,29 +193,24 @@ ax1.bar(x + width/2, counter_shares, width, label="Counterfactual (+25% US Tarif
 ax1.set_xticks(x)
 ax1.set_xticklabels(countries)
 ax1.set_ylabel("Market Share in US Mfg (%)")
-ax1.set_title("Trade Diversion: US Manufacturing Import Market Shares")
+ax1.set_title("Trade Diversion: US Manufacturing Sourcing Shares")
 ax1.legend(frameon=False)
 
-# Subplot 2: Caliendo-Parro (2015) 3-Way Welfare Decomposition
+# Subplot 2: Real income includes fiscal receipts; real wages do not.
 ax2 = axes[0, 1]
-tot = res_trade.welfare_decomposition["terms_of_trade"] * 100
-io = res_trade.welfare_decomposition["input_output"] * 100
-rev = res_trade.welfare_decomposition["tariff_revenue"] * 100
-total = res_trade.welfare_decomposition["total"] * 100
 x2 = np.arange(len(countries))
-w2 = 0.18
-ax2.bar(x2 - 1.5*w2, tot, w2, label="Terms of Trade", color=_nbstyle.S1["color"])
-ax2.bar(x2 - 0.5*w2, io, w2, label="I-O Efficiency", color=_nbstyle.S2["color"])
-ax2.bar(x2 + 0.5*w2, rev, w2, label="Tariff Revenue", color=_nbstyle.S3["color"], edgecolor=_nbstyle.FONDO)
-ax2.bar(x2 + 1.5*w2, total, w2, label="Total Log Welfare", color=_nbstyle.S4["color"])
+ax2.bar(x2 - width/2, 100 * (res_trade.real_wage_hat - 1), width,
+        label="Real wage", color=_nbstyle.S1["color"])
+ax2.bar(x2 + width/2, res_trade.welfare_pct, width,
+        label="Model real income", color=_nbstyle.S2["color"])
 ax2.axhline(0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
 ax2.set_xticks(x2)
 ax2.set_xticklabels(countries)
-ax2.set_ylabel("Log Welfare Change (x100)")
-ax2.set_title("Caliendo-Parro (2015) General Equilibrium Welfare Decomposition")
+ax2.set_ylabel("Change from baseline (%)")
+ax2.set_title("Real Wages and Model Real Income")
 ax2.legend(frameon=False, fontsize=9)
 
-# Subplot 3: Empirical MPC Distribution Across 10 Wealth Deciles
+# Subplot 3: Model MPC Distribution Across 10 Wealth Deciles
 ax3 = axes[1, 0]
 deciles = np.arange(1, 11)
 ax3.plot(deciles, res_mon.mpc_deciles_hank.values, "o-", color=_nbstyle.S1["color"], linewidth=1.8, label="HANK (Heterogeneous Liquid Wealth)")
@@ -241,7 +218,7 @@ ax3.plot(deciles, res_mon.mpc_deciles_rank.values, "--", color=_nbstyle.S2["colo
 ax3.set_xticks(deciles)
 ax3.set_xlabel("Wealth Decile (1 = Poorest / Hand-to-Mouth, 10 = Wealthiest)")
 ax3.set_ylabel("Quarterly Marginal Propensity to Consume")
-ax3.set_title("Empirical MPC Ladder Across Wealth Deciles")
+ax3.set_title("Model MPC Ladder Across Wealth Deciles")
 ax3.legend(frameon=False)
 
 # Subplot 4: Kaplan-Moll-Violante (2018) Direct vs Indirect Transmission
@@ -262,12 +239,13 @@ fig.suptitle("Quantitative Policy Simulators: Trade Disputes & Monetary Transmis
 # %% [markdown]
 # ## Lectura de los resultados
 #
-# **Lectura de los resultados.** Los hallazgos cuantitativos derivados de los dos simuladores ponen de manifiesto cómo las retroalimentaciones de equilibrio general y la heterogeneidad microeconómica reconfiguran los efectos de las políticas económicas:
+# El panel superior izquierdo muestra cómo este preset desplaza gasto manufacturero de China hacia México y proveedores estadounidenses. El superior derecho compara el ingreso real del modelo con el salario real; la recaudación estadounidense ayuda a explicar sus signos diferentes. Son resultados condicionales del modelo, no pronósticos para los países nombrados.
 #
-# 1. **Desviación de Comercio y Términos de Intercambio (Experimento 2 y Figura 1):** En el panel superior izquierdo, un arancel unilateral estadounidense del 25% sobre las manufacturas chinas provoca el colapso de la cuota de mercado china en las importaciones manufactureras de EE. UU. del $14.00\%$ al $7.34\%$. Al mismo tiempo, la demanda se desvía hacia terceros países: los productores manufactureros mexicanos incrementan su participación del $14.00\%$ al $16.36\%$, mientras que la industria nacional estadounidense también expande su cuota interna. Los términos de intercambio de China se deterioran a $\hat{P}^X / \hat{P}^M = 0.9289$ (una pérdida del $7.11\%$), mientras que los términos de intercambio de México mejoran, generando una ganancia positiva de bienestar del $+0.138\%$ y una expansión en sus salarios reales ($\hat{w}_{\text{MEX}} / \hat{P}_{\text{MEX}} = 1.0014$). El residuo de vaciado de mercados walrasiano se sitúa estrictamente en $6.08 \times 10^{-7} < 10^{-6}$, acreditando convergencia de equilibrio general con precisión de máquina.
-# 2. **Descomposición del Bienestar de Caliendo y Parro (Experimento 2 y Figura 2):** En el panel superior derecho, la variación del bienestar logarítmico nacional se descompone en Términos de Intercambio, Eficiencia Insumo-Producto y Recaudación Arancelaria. Para China, el deterioro de los términos de intercambio y la disrupción en los encadenamientos insumo-producto inducen una caída total del bienestar de $-0.885\%$. Para Estados Unidos, los ingresos por aranceles amortiguan parcialmente el encarecimiento de insumos importados utilizados en la producción local, resultando en un impacto neto de bienestar positivo de $+0.237\%$. En los tres países, la suma de los tres componentes coincide con el cambio total de bienestar con tolerancia de $10^{-12}$.
-# 3. **La Escala Empírica de PMC (Experimento 3 y Figura 3):** El panel inferior izquierdo contrasta la propensión marginal a consumir a lo largo de 10 deciles de riqueza líquida. En RANK, donde un único agente representativo concentra los activos, la PMC es plana e idéntica en todos los deciles en $1 - \beta = 0.015$ ($1.5\%$ trimestral). En HANK, los mercados incompletos y los límites al endeudamiento generan un marcado gradiente empírico: el Decil 1 (hogares al día o «hand-to-mouth») exhibe una PMC de $0.6742$ ($67.4\%$), mientras que el Decil 10 (los más acaudalados sin restricciones) muestra una PMC de apenas $0.0573$ ($5.7\%$). La PMC agregada trimestral en HANK ($0.1652$) supera en más de diez veces a la de RANK.
-# 4. **Descomposición de Transmisión de Kaplan-Moll-Violante (Experimento 3 y Figura 4):** El panel inferior derecho presenta las respuestas al impulso ante un endurecimiento de 25 puntos básicos en la tasa de política (+100 pb anualizados). En RANK, el canal indirecto de equilibrio general es idénticamente cero ($\mathbf{J}^{C, Y} = \mathbf{0}$), de modo que el $100\%$ de la transmisión opera mediante sustitución intertemporal directa. En HANK, la caída inicial del consumo se descompone en un canal directo de $-0.329\%$ y un canal indirecto de ingreso de $-0.058\%$, explicando el $15.01\%$ de la contracción inicial del gasto. De manera crucial, la identidad analítica $|d\mathbf{C} - (\mathbf{J}^{C, r} d\mathbf{r} + \mathbf{J}^{C, Y} d\mathbf{Y})| < 10^{-12}$ se satisface rigurosamente en los 40 trimestres.
+# Las PMC del panel inferior izquierdo se calculan con el modelo de hogares. Consulte los valores impresos de esta ejecución sin interpretar una calibración como estimación empírica. El panel inferior derecho suma los canales directo y de ingreso para obtener la respuesta HANK del consumo. Con los parámetros iniciales, la contracción de impacto HANK es ligeramente menor que la de RANK pese al canal indirecto positivo. La identidad comprueba la suma numérica, no la adecuación empírica del modelo.
+#
+# No usamos `welfare_decomposition`: su componente `tariff_revenue` se calcula como residuo, por lo que una suma exacta no demuestra una descomposición causal en términos de intercambio, eficiencia y recaudación.
+#
+# ## Tu turno
 
 # %%
 # Your turn: counterfactual trade dispute tariffs and monetary policy transmission
@@ -282,6 +260,11 @@ shock_magnitude_custom = 0.0025
 
 # ← change this: persistence of monetary rate shock rho (e.g. 0.5 to 0.85)
 shock_rho_custom = 0.70
+
+# Validate inputs before invoking the solvers.
+assert 0.0 < tariff_rate_custom <= 1.0
+assert 0.0 < shock_magnitude_custom <= 0.02
+assert 0.0 <= shock_rho_custom < 1.0
 
 # Execute custom trade policy counterfactual
 custom_trade_res = sim_trade.simulate_bilateral_tariff("USA", "CHN", tariff_rate=tariff_rate_custom)
@@ -316,16 +299,11 @@ assert custom_mon_res.irf_output_rank[0] < 0.0, "RANK output must contract under
 assert np.all(np.abs(custom_mon_res.irf_consumption_hank - (custom_mon_res.direct_channel_hank + custom_mon_res.indirect_channel_hank)) < 1e-12), "KMV identity must hold"
 
 # %% [markdown]
-# **Ejercicios propuestos.**
-# 1. *Básico:* Modifique `tariff_rate_custom` a $0.10$ ($10\%$) y luego a $0.45$ ($45\%$). Observe cómo la pérdida de bienestar en China se profundiza de forma no lineal mientras que la recaudación arancelaria de EE. UU. alcanza un máximo y luego se aplana debido a la sustitución de importaciones.
-# 2. *Intermedio:* Ajuste `shock_magnitude_custom` a $0.0050$ (+50 pb trimestrales / +200 pb anualizados) e incremente la persistencia `shock_rho_custom` a $0.85$. Compare cómo se prolonga la duración de la contracción del consumo en HANK frente a RANK, y observe cómo la contracción máxima se amplifica por la retroalimentación de ingresos de los hogares precarios.
-# 3. *Avanzado:* Utilice `sim_trade.simulate_trade_war(["USA"], ["CHN"], tariff_rate_a=0.25, tariff_rate_b=0.25)` para simular una guerra comercial recíproca con represalias. Observe cómo las represalias arancelarias tornan negativas las ganancias netas de bienestar de EE. UU. mientras que México experimenta un dividendo aún mayor por desviación de comercio.
+# **Ejercicios.**
+# 1. *Básico:* Compare aranceles de 10% y 45%. Reporte participaciones manufactureras, recaudación, salarios reales e ingreso real del modelo. Compruebe si un arancel mayor también eleva la recaudación.
+# 2. *Intermedio:* Duplique `shock_magnitude_custom` manteniendo la persistencia fija. ¿Se duplica la respuesta lineal? Después varíe la persistencia y compare las respuestas totales HANK y RANK.
+# 3. *Avanzado:* Ejecute `sim_trade.simulate_trade_war(["USA"], ["CHN"], tariff_rate_a=0.25, tariff_rate_b=0.25)`. Compruebe si la represalia invierte el orden del experimento unilateral, sin presuponer el resultado.
 #
 # ## ¿Qué tan exhaustivo es esto?
 #
-# `puremacro` ofrece una suite completa de equilibrio general cuantitativo y simulación de transmisión de políticas:
-# - `puremacro.models.trade_policy`: Simulador de política comercial Ricardiana multisectorial mediante álgebra de cambios exactos de Caliendo y Parro (2015) (`TradePolicySimulator`, `TradePolicySimulationResult`).
-# - `puremacro.trade.data`: Matrices de transacciones insumo-producto internacionales ICIO de la OCDE (`load_icio_data`, `ICIOData`, tablas de 77 países y 11 sectores).
-# - `puremacro.models.monetary_transmission`: Simulador comparativo HANK vs. RANK en el espacio de secuencias con descomposición exacta de Kaplan-Moll-Violante (2018) directa e indirecta (`MonetaryTransmissionSimulator`, `MonetaryTransmissionResult`).
-# - `puremacro.models.hank_sequence_space`: Solucionadores no lineales en el espacio de secuencias y algoritmo de noticias simuladas (Auclert et al. 2021).
-# - `puremacro.trade.scenarios`: Ejecutor por lotes de escenarios comerciales multisectoriales y análisis de escalada arancelaria.
+# `TradePolicySimulator` ilustra un modelo comercial pequeño de cambios exactos; `load_icio_data` expone por separado la tabla empírica incluida. `MonetaryTransmissionSimulator` compara respuestas locales HANK/RANK y `puremacro.models.hank_sequence_space` proporciona los jacobianos de hogares. El cuaderno 63 demuestra bienestar Hicksiano del consumo con sus preferencias y cierre contable explícitamente admitidos.

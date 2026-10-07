@@ -1,0 +1,5 @@
+scenario,replications,original_unresolved,selected_stationarity_failures,multistart_disagreements,unsuccessful_starts,other_unresolved
+baseline_fixed,399,4,2,2,0,0
+published_fixed,399,9,7,0,2,0
+baseline_fitted,399,2,0,2,0,0
+published_fitted,399,7,7,0,0,0

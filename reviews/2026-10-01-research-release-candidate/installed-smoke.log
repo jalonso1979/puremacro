@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "package_path": "/tmp/puremacro-research-candidate-20261001T214014Z/installed/puremacro/__init__.py",
+  "package_version": "4.3.0",
+  "environment": {
+    "python": "3.12.13",
+    "numpy": "2.5.3",
+    "scipy": "1.18.1",
+    "pandas": "3.0.6"
+  },
+  "network_blocked_with_positive_control": true,
+  "statsmodels_blocked_with_positive_control": true,
+  "all_loaded_package_modules_from_installed_wheel": true,
+  "exact_mean_full_covariance_parity": true,
+  "sw07_calibration_samples": 2,
+  "sw07_validation_samples": 2,
+  "sw07_variant_fits": 16,
+  "sw07_checkpoint_replay_exact": true,
+  "trade_ge_scenarios": 6,
+  "trade_zero_tariff_control": true,
+  "trade_api_cli_incidence_identical": true,
+  "fiscal_max_residual_mxn": 3.814697265625e-06,
+  "income_max_residual_mxn": 0.01229095458984375,
+  "research_benchmarks_passed": 7,
+  "research_benchmarks_total": 8,
+  "documented_rr2010_discrepancy_preserved": true,
+  "scope": "Installed workflow and dependency checks; tiny simulation counts are not scientific validation."
+}

@@ -1,14 +1,21 @@
 """OECD ICIO Data Ingestion and Regional/Sectoral Indexing.
 
 This module provides data loading, canonical identifier registries, and slice
-abstractions for the 77-country 11-sector empirical Input-Output dataset
-originating from the OECD Inter-Country Input-Output (ICIO) tables.
+abstractions for the 77-country 11-sector Input-Output table bundled with
+puremacro, the native MRIO readers and a synthetic MRIO generator.
+
+The bundled 77x11 table descends from a corrupted export of the OECD
+Inter-Country Input-Output (ICIO) tables. It is a MATLAB-parity regression
+fixture, not empirical OECD data: see :func:`load_icio_data` and the 2026-09-22
+entry of ``docs/ADVISORY.md``. For empirical work read a clean OECD release with
+:func:`load_oecd_icio_granular` or ``puremacro.trade.mrio.read_oecd_native``.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
 import hashlib
 import os
+import warnings
 from pathlib import Path
 from typing import Any, List, Optional, Sequence, Tuple, Union
 
@@ -150,6 +157,48 @@ FIGARO_64_SECTORS: tuple[str, ...] = (
 FIGARO_FD_CATEGORIES: tuple[str, ...] = (
     "P3_S14", "P3_S15", "P3_S13", "P51G", "P5M",
 )
+# Harmonized semantic order (households, NPISH, government, GFCF, inventories and
+# valuables), aligned with the other rosters and the synthetic generator's
+# positional weights. It is NOT the Eurostat file order (P3_S13, P3_S14, P3_S15,
+# P51G, P5M): ``load_figaro`` reads final-use columns by their COUNTRY_CODE
+# labels and accepts either order.
+
+# Mapping of each provider roster onto the calibration's (C, I, Cx) closure.
+# Index 1 (I) receives the foreign-balance closure in ``calibrate_trade_model``,
+# so it holds gross fixed capital formation; final consumption of households,
+# NPISH and government goes to C, and the remaining uses (changes in
+# inventories and valuables, EXIOBASE's export column) go to Cx.
+#
+# Cx therefore does NOT mean what it means in the OECD mapping
+# (``_oecd_icio.FD_GROUPS``: I = GFCF + INVNT, Cx = DPABR, residents' direct
+# purchases abroad), which only OECD publishes. The OECD-like alternative
+# (inventories and valuables in I, Cx identically zero) cannot be calibrated
+# for both solvers: the legacy solver's demand ``theta * Y / ppfd`` is 0/0 for
+# an all-zero category, and ``accounting="consistent"`` requires an inactive
+# category to keep all-zero basket weights, so no placeholder composition
+# serves both. The meaning of each slot is recorded in
+# ``metadata["final_use_semantics"]``; bridges that read ``("C", "I", "Cx")``
+# as (C, G, X) must consult ``metadata["final_use_mapping"]`` first.
+_PROVIDER_FINAL_USE_MAPPINGS: dict[str, dict[str, tuple[str, ...]]] = {
+    "figaro": {"C": ("P3_S14", "P3_S15", "P3_S13"), "I": ("P51G",), "Cx": ("P5M",)},
+    "exiobase": {"C": ("HFCE", "NPISH", "GGFC"), "I": ("GFCF",), "Cx": ("INVNT", "VALUABLES", "EXPORT")},
+    "wiod": {"C": ("CONS_h", "CONS_np", "CONS_g"), "I": ("GFCF",), "Cx": ("INVT",)},
+    "eora": {"C": ("HFCE", "NPISH", "GGFC"), "I": ("GFCF",), "Cx": ("INVNT", "ACQ_VAL")},
+}
+
+_PROVIDER_FINAL_USE_SEMANTICS: dict[str, dict[str, str]] = {
+    provider: {
+        "C": "final consumption expenditure (households, NPISH, government)",
+        "I": "gross fixed capital formation; receives the foreign-balance closure",
+        "Cx": ("signed changes in inventories and valuables"
+               + (" plus unallocated exports ('Exports: Total (fob)')" if provider == "exiobase" else "")
+               + "; NOT residents' direct purchases abroad (the OECD meaning of Cx)"),
+    }
+    for provider in _PROVIDER_FINAL_USE_MAPPINGS
+}
+
+_INVESTMENT_CODES = frozenset({"I", "G", "GFCF", "P51G", "P5", "GCF"})
+"""Final-use codes accepted at index 1, where ``calibrate_trade_model`` adds the foreign balance."""
 
 EXIOBASE_COUNTRIES: tuple[str, ...] = (
     "AUT", "BEL", "BGR", "CYP", "CZE", "DEU", "DNK", "ESP", "EST", "FIN",
@@ -329,12 +378,18 @@ class ICIOData:
         Canonical 11 ISIC Rev.4 or 45 unaggregated sector codes.
     fd_codes : tuple[str, ...]
         Canonical 3 final demand codes ('C', 'I', 'Cx').
+    metadata : dict
+        Provenance and processing record (source path and MD5 digest,
+        regularization counts). For the bundled 77x11 table it is
+        :data:`BUNDLED_ICIO_PROVENANCE` (``is_regression_fixture=True``; empty
+        before 2026-09-30). Excluded from equality comparisons.
     """
 
     matrix: np.ndarray
     country_codes: tuple[str, ...] = CANONICAL_COUNTRY_CODES
     sector_codes: tuple[str, ...] = CANONICAL_SECTOR_CODES
     fd_codes: tuple[str, ...] = CANONICAL_FINAL_DEMAND_CODES
+    metadata: dict = field(default_factory=dict, compare=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.matrix, np.ndarray):
@@ -420,16 +475,100 @@ def _load_raw_table(file_path: Path) -> np.ndarray:
     return np.loadtxt(file_path, delimiter=delim, dtype=np.float64)
 
 
-def bundled_icio_path() -> Path:
-    """Absolute path to the ICIO matrix bundled inside the installed package.
+BUNDLED_ICIO_PROVENANCE: dict[str, Any] = {
+    "source": "puremacro/trade/_datafiles/icio_77c_11s.npz (bundled with puremacro)",
+    "derived_from": ("bit-exact copy of MATLAB data_77c_11s.mat, aggregated to 77 countries x 11 "
+                     "sectors from a data_2020_SML.csv export of the OECD ICIO tables"),
+    "source_export_md5": "d1b887aaafa54ab3f28fde78fcd21cdf",
+    "source_export_status": ("corrupted: tokens with three or four decimals lost their decimal "
+                             "point and tokens below 0.001 became zero"),
+    "is_regression_fixture": True,
+    "use": ("MATLAB-parity regression fixture; do not report outputs computed from it as "
+            "OECD-based estimates"),
+    "advisory": "docs/ADVISORY.md, 2026-09-22 entry: provenance of the bundled 77x11 OECD table",
+    "empirical_alternatives": ("puremacro.trade.data.load_oecd_icio_granular",
+                               "puremacro.trade.mrio.read_oecd_native"),
+}
+"""Provenance of the bundled 77x11 table (``ICIOData.metadata`` of :func:`load_icio_data`)."""
 
-    puremacro ships the 77-country, 11-sector OECD ICIO transaction matrix as a
-    compressed ``.npz`` so the trade model reproduces without MATLAB and without
-    any file outside the distribution. Before 4.0.0 this matrix was read from
-    ``data_77c_11s.mat`` somewhere above the checkout, so every trade parity test
-    silently skipped for anyone but the author.
+
+OECD2020_ICIO_PROVENANCE: dict[str, Any] = {
+    "source": "puremacro/trade/_datafiles/icio_77c_11s_oecd2020.npz (bundled with puremacro)",
+    "derived_from": ("OECD ICIO 2023 edition, 2020 table (2020_SML.csv, MD5 "
+                     "d3e0f4979d85d6c0bb7cf4c43e324287), aggregated to 77 countries x 11 sectors by "
+                     "tools/build_icio_77c_11s.py, a verified Python port of the legacy MATLAB "
+                     "Agregar_11s.m with its two indexing defects corrected"),
+    "source_export_md5": "d3e0f4979d85d6c0bb7cf4c43e324287",
+    "source_export_status": "clean OECD release (registered in puremacro.trade.mrio.OECD_ICIO_MD5)",
+    "is_regression_fixture": False,
+    "use": ("OECD-based 77x11 table for empirical work and for the clean-table parity suites; "
+            "cite the OECD ICIO tables as the source"),
+    "manifest": "puremacro/trade/_datafiles/MANIFEST_OECD2020.json (array SHA-256, recipe, totals)",
+    "advisory": "docs/ADVISORY.md, 2026-10-03 entry: the legacy 77x11 aggregation misplaced ROW final demand",
+    "legacy_alternative": "load_icio_data(source='legacy') keeps the MATLAB-parity regression fixture",
+}
+"""Provenance of the clean OECD 2020 table (``load_icio_data(source="oecd2020")``)."""
+
+_BUNDLED_ICIO_FILES: dict[str, str] = {
+    "legacy": "icio_77c_11s.npz",
+    "oecd2020": "icio_77c_11s_oecd2020.npz",
+}
+"""Bundled 77x11 tables by ``source`` name."""
+
+_BUNDLED_ICIO_PROVENANCE: dict[str, dict[str, Any]] = {
+    "legacy": BUNDLED_ICIO_PROVENANCE,
+    "oecd2020": OECD2020_ICIO_PROVENANCE,
+}
+
+_DEFAULT_SOURCE_WARNED = False
+
+
+def _resolve_bundled_source(source: str | None) -> str:
+    """Validate ``source``; the implicit default is the legacy table, with a FutureWarning once."""
+    global _DEFAULT_SOURCE_WARNED
+    if source is None:
+        if not _DEFAULT_SOURCE_WARNED:
+            _DEFAULT_SOURCE_WARNED = True
+            warnings.warn(
+                "load_icio_data() without `source=` returns the legacy MATLAB-parity fixture, "
+                "which was built from a corrupted OECD export (see BUNDLED_ICIO_PROVENANCE). "
+                "Pass source='oecd2020' for the clean OECD 2020 table, or source='legacy' to keep "
+                "this table explicitly. The default becomes 'oecd2020' in puremacro 5.0.",
+                FutureWarning,
+                stacklevel=3,
+            )
+        return "legacy"
+    if source not in _BUNDLED_ICIO_FILES:
+        raise ValueError(
+            f"unknown bundled ICIO source {source!r}; expected one of "
+            f"{sorted(_BUNDLED_ICIO_FILES)}"
+        )
+    return source
+
+
+def bundled_icio_path(source: str = "legacy") -> Path:
+    """Absolute path to a 77x11 ICIO matrix bundled inside the installed package.
+
+    ``source="legacy"`` (default) is the MATLAB-parity regression fixture
+    described below; ``source="oecd2020"`` is the clean OECD 2020 table
+    (:data:`OECD2020_ICIO_PROVENANCE`, built by ``tools/build_icio_77c_11s.py``).
+
+    puremacro ships the 77-country, 11-sector transaction matrix of the MATLAB
+    reference model as a compressed ``.npz`` so the trade model reproduces
+    without MATLAB and without any file outside the distribution. Before 4.0.0
+    this matrix was read from ``data_77c_11s.mat`` somewhere above the checkout,
+    so every trade parity test silently skipped for anyone but the author.
+
+    The matrix is a bit-exact copy of ``data_77c_11s.mat``, which was built from
+    a corrupted ``data_2020_SML.csv`` export of the OECD ICIO tables; it is a
+    regression fixture, not OECD data (:data:`BUNDLED_ICIO_PROVENANCE`,
+    ``docs/ADVISORY.md`` 2026-09-22).
     """
-    return Path(__file__).resolve().parent / "_datafiles" / "icio_77c_11s.npz"
+    if source not in _BUNDLED_ICIO_FILES:
+        raise ValueError(
+            f"unknown bundled ICIO source {source!r}; expected one of {sorted(_BUNDLED_ICIO_FILES)}"
+        )
+    return Path(__file__).resolve().parent / "_datafiles" / _BUNDLED_ICIO_FILES[source]
 
 
 def bundled_workbook_path() -> Path:
@@ -462,21 +601,30 @@ def load_reference_workbook_sheet(sheet: str) -> np.ndarray:
         return np.asarray(bundle[key])
 
 
-def bundled_reference_path() -> Path:
-    """Absolute path to the bundled MATLAB-derived reference solutions."""
-    return Path(__file__).resolve().parent / "_datafiles" / "trade_reference_solutions.npz"
+def bundled_reference_path(source: str = "legacy") -> Path:
+    """Absolute path to the bundled MATLAB reference solutions.
+
+    ``source="legacy"`` is the file solved on the legacy table (``icio_77c_11s.npz``);
+    ``source="oecd2020"`` the file solved on the clean OECD 2020 table
+    (``REFERENCE_MANIFEST_OECD2020.json`` records each scenario's convergence).
+    """
+    files = {"legacy": "trade_reference_solutions.npz",
+             "oecd2020": "trade_reference_solutions_oecd2020.npz"}
+    if source not in files:
+        raise ValueError(f"unknown reference source {source!r}; expected one of {sorted(files)}")
+    return Path(__file__).resolve().parent / "_datafiles" / files[source]
 
 
-def available_reference_scenarios() -> list[str]:
-    """Tariff scenarios whose reference solution ships with puremacro."""
-    path = bundled_reference_path()
+def available_reference_scenarios(source: str = "legacy") -> list[str]:
+    """Scenario names with a bundled reference solution (``'base'``, ``'t10'``, ...)."""
+    path = bundled_reference_path(source)
     if not path.is_file():
         return []
     with np.load(path) as bundle:
-        return sorted({name.split("__", 1)[0] for name in bundle.files})
+        return sorted({name.split("__", 1)[0] for name in bundle.files if "__" in name})
 
 
-def load_reference_solution(scenario: str = "base") -> dict[str, np.ndarray]:
+def load_reference_solution(scenario: str = "base", source: str = "legacy") -> dict[str, np.ndarray]:
     """Return the reference equilibrium arrays for one tariff scenario.
 
     These are verbatim copies of the MATLAB ``results_77c_11s_*.mat`` outputs of
@@ -489,6 +637,10 @@ def load_reference_solution(scenario: str = "base") -> dict[str, np.ndarray]:
     ----------
     scenario : str, default 'base'
         One of :func:`available_reference_scenarios`, e.g. ``'base'`` or ``'t10'``.
+    source : {"legacy", "oecd2020"}, default "legacy"
+        Which table the MATLAB model was solved on: the legacy fixture, or the
+        clean OECD 2020 table (new in 4.6.0; see
+        ``_datafiles/REFERENCE_MANIFEST_OECD2020.json`` for convergence records).
 
     Raises
     ------
@@ -496,7 +648,7 @@ def load_reference_solution(scenario: str = "base") -> dict[str, np.ndarray]:
         If the scenario has no bundled reference. ``t10_54`` is the known gap:
         its source file is a dataless placeholder in the author's storage.
     """
-    path = bundled_reference_path()
+    path = bundled_reference_path(source)
     if not path.is_file():
         raise FileNotFoundError(
             f"Bundled trade reference solutions missing at {path}; reinstall puremacro."
@@ -510,21 +662,22 @@ def load_reference_solution(scenario: str = "base") -> dict[str, np.ndarray]:
         }
     if not arrays:
         raise KeyError(
-            f"No bundled reference for scenario {scenario!r}; "
-            f"available: {available_reference_scenarios()}"
+            f"No bundled reference for scenario {scenario!r} (source={source!r}); "
+            f"available: {available_reference_scenarios(source)}"
         )
     return arrays
 
 
-def _load_icio_array(custom_path: str | Path | None = None) -> np.ndarray:
+def _load_icio_array(custom_path: str | Path | None = None, source: str = "legacy") -> np.ndarray:
     """Return the (850, 1078) ICIO matrix as float64.
 
-    With no argument the bundled dataset is used. ``custom_path`` accepts a
-    ``.npz`` written by numpy (key ``data``, or the single stored array) or a
+    With no ``custom_path`` the bundled table named by ``source`` is used
+    (``"legacy"`` or ``"oecd2020"``). ``custom_path`` accepts a ``.npz``
+    written by numpy (key ``data``, or the single stored array) or a
     delimited text table; MATLAB ``.mat`` input was removed in 4.0.0.
     """
     if custom_path is None:
-        target = bundled_icio_path()
+        target = bundled_icio_path(source)
         if not target.is_file():
             raise FileNotFoundError(
                 f"Bundled ICIO dataset missing at {target}. A source checkout or "
@@ -533,7 +686,7 @@ def _load_icio_array(custom_path: str | Path | None = None) -> np.ndarray:
     else:
         target = Path(custom_path)
         if target.is_dir():
-            for name in ("icio_77c_11s.npz", "data_77c_11s.npz"):
+            for name in ("icio_77c_11s_oecd2020.npz", "icio_77c_11s.npz", "data_77c_11s.npz"):
                 if (target / name).is_file():
                     target = target / name
                     break
@@ -557,12 +710,91 @@ def _load_icio_array(custom_path: str | Path | None = None) -> np.ndarray:
     return _load_raw_table(target)
 
 
+_RAW45_DIRECTORY_NAMES: tuple[str, ...] = ("2020_SML.csv", "2020.SML.csv", "2019_SML.csv", "data_2020_SML.csv")
+"""File names searched inside a directory, clean OECD 2023-edition releases first."""
+
+# Fallback copies of the registries in ``puremacro.trade.mrio`` (the source of
+# truth, read lazily so both loaders refuse the same files).
+_FALLBACK_OECD_KNOWN_CORRUPTED_MD5: dict[str, str] = {
+    "d1b887aaafa54ab3f28fde78fcd21cdf": (
+        "data_2020_SML.csv with lost decimal points: tokens with 3-4 decimals lost their "
+        "decimal point and tokens below 0.001 became 0"
+    ),
+}
+_FALLBACK_OECD_ICIO_MD5: dict[int, str] = {
+    2019: "28cba31491177955445051d459053744",
+    2020: "d3e0f4979d85d6c0bb7cf4c43e324287",
+}
+
+
+def _oecd_md5_registries() -> tuple[dict[str, str], dict[int, str], type]:
+    """Corrupted and whitelisted OECD MD5 registries and the integrity error type."""
+    try:
+        from puremacro.trade.mrio import (
+            MRIOIntegrityError,
+            OECD_ICIO_MD5,
+            OECD_KNOWN_CORRUPTED_MD5,
+        )
+    except ImportError:  # pragma: no cover - mrio ships with the package
+        return dict(_FALLBACK_OECD_KNOWN_CORRUPTED_MD5), dict(_FALLBACK_OECD_ICIO_MD5), ValueError
+    return dict(OECD_KNOWN_CORRUPTED_MD5), dict(OECD_ICIO_MD5), MRIOIntegrityError
+
+
+def _file_md5(path: Path) -> str:
+    digest = hashlib.md5(usedforsecurity=False)
+    with open(path, "rb") as handle:
+        for block in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _check_raw_45_integrity(path: Path) -> dict[str, Any]:
+    """MD5-check an unaggregated OECD CSV before it is parsed.
+
+    Refuses the registered corrupted export (``puremacro.trade.mrio.
+    OECD_KNOWN_CORRUPTED_MD5``) with :class:`puremacro.trade.mrio.MRIOIntegrityError`
+    (a ``ValueError``) and warns (``RuntimeWarning``) on a digest that is not a
+    whitelisted clean release (``OECD_ICIO_MD5``).
+    """
+
+    corrupted, whitelist, error_type = _oecd_md5_registries()
+    md5 = _file_md5(path)
+    clean = ", ".join(f"{year} {digest}" for year, digest in sorted(whitelist.items()))
+    if md5 in corrupted:
+        corruption = "tokens with 3-4 decimals lost their decimal point and tokens below 0.001 became 0"
+        detail = corrupted[md5] if corruption in corrupted[md5] else f"{corrupted[md5]}; {corruption}"
+        raise error_type(
+            f"Refusing {path}: MD5 {md5} is the registered corrupted OECD export ({detail}). "
+            f"Use a clean OECD ICIO 2023-edition release instead (MD5 {clean}), "
+            "e.g. ICIOextended/2019_SML.csv or 2020_SML.csv."
+        )
+    years = sorted(int(year) for year, digest in whitelist.items() if str(digest).lower() == md5)
+    if not years:
+        warnings.warn(
+            f"{path}: MD5 {md5} is not a whitelisted OECD ICIO 2023-edition table "
+            f"(accepted: {clean}); the file is read as given.",
+            RuntimeWarning, stacklevel=3,
+        )
+    return {"file_path": str(path.resolve()), "md5": md5,
+            "md5_status": "whitelisted" if years else "unknown",
+            "whitelisted_year": years[0] if years else None}
+
+
 def _resolve_raw_45_path(custom_path: str | Path | None = None) -> Path:
-    """Resolve absolute path to unaggregated OECD ICIO dataset (data_2020_SML.csv)."""
+    """Resolve the unaggregated OECD ICIO CSV (clean 2020/2019 releases first).
+
+    Search order without a path: the environment variables ``IO_RAW45_PATH``,
+    ``IO_DATA_PATH`` and ``IO_COMPUTATION_DIR``; then ``IO/ICIOextended/2020_SML.csv``
+    and ``IO/ICIOextended/2019_SML.csv`` next to the checkout or the working
+    directory; the legacy ``computation/7_TIO_77c_vf/data_2020_SML.csv`` last.
+    That legacy file is the corrupted export registered in
+    ``puremacro.trade.mrio.OECD_KNOWN_CORRUPTED_MD5``, which
+    :func:`load_raw_45sector_icio` refuses after resolution.
+    """
     if custom_path is not None:
         p = Path(custom_path)
         if p.is_dir():
-            for name in ("data_2020_SML.csv", "2020_SML.csv", "2020.SML.csv"):
+            for name in _RAW45_DIRECTORY_NAMES:
                 candidate = p / name
                 if candidate.exists():
                     return candidate
@@ -578,35 +810,28 @@ def _resolve_raw_45_path(custom_path: str | Path | None = None) -> Path:
         if val:
             p = Path(val)
             if p.is_dir():
-                for name in ("data_2020_SML.csv", "2020_SML.csv", "2020.SML.csv"):
+                for name in _RAW45_DIRECTORY_NAMES:
                     candidate = p / name
                     if candidate.exists():
                         return candidate
             elif p.exists():
                 return p
 
-    # Canonical search candidates
+    # Canonical search candidates: clean ICIOextended releases before the legacy export.
     here = Path(__file__).resolve()
-    candidates = [
-        here.parents[3] / "IO" / "computation" / "7_TIO_77c_vf" / "data_2020_SML.csv",
-        here.parents[2] / "IO" / "computation" / "7_TIO_77c_vf" / "data_2020_SML.csv",
-        here.parents[4] / "IO" / "computation" / "7_TIO_77c_vf" / "data_2020_SML.csv",
-        Path.cwd() / "computation" / "7_TIO_77c_vf" / "data_2020_SML.csv",
-        Path.cwd() / "IO" / "computation" / "7_TIO_77c_vf" / "data_2020_SML.csv",
-        here.parents[3] / "IO" / "ICIOextended" / "2020_SML.csv",
-        here.parents[2] / "IO" / "ICIOextended" / "2020_SML.csv",
-        here.parents[4] / "IO" / "ICIOextended" / "2020_SML.csv",
-        Path.cwd() / "ICIOextended" / "2020_SML.csv",
-        Path.cwd() / "IO" / "ICIOextended" / "2020_SML.csv",
-    ]
+    roots = [here.parents[3] / "IO", here.parents[2] / "IO", here.parents[4] / "IO",
+             Path.cwd(), Path.cwd() / "IO"]
+    candidates = [root / "ICIOextended" / name for name in ("2020_SML.csv", "2019_SML.csv") for root in roots]
+    candidates += [root / "computation" / "7_TIO_77c_vf" / "data_2020_SML.csv" for root in roots]
 
     for c in candidates:
         if c.exists():
             return c
 
     raise FileNotFoundError(
-        "Could not automatically locate 'data_2020_SML.csv'. Please specify the file "
-        "path via `load_raw_45sector_icio(path=...)` or set the IO_RAW45_PATH environment variable."
+        "Could not automatically locate an OECD ICIO CSV (ICIOextended/2020_SML.csv or "
+        "2019_SML.csv). Please specify the file path via `load_raw_45sector_icio(path=...)` "
+        "or set the IO_RAW45_PATH environment variable."
     )
 
 
@@ -619,25 +844,53 @@ def load_raw_45sector_icio(
     ns: int = 45,
     nfd0: int = 6,
     nfd: int = 3,
+    floor_va_ratio: float = 0.05,
+    floor_va_abs: float = 1.0,
 ) -> np.ndarray | ICIOData:
     """Load and process the unaggregated 45-sector OECD ICIO dataset.
 
-    Loads the raw 2020 OECD ICIO table (3,468 x 3,928) from ``data_2020_SML.csv``,
-    condenses the 6 final demand categories to 3 (C, I, Cx), applies economic
-    regularization (flooring inactive sector output y >= 1e-6 and negative VA
-    VA >= max(1e-4*y, 1.0) with residual TLS absorption), splits value added into
-    labor (2/3) and capital (1/3), and returns the calibrated (3,468, 3,696) matrix.
+    Loads an unaggregated OECD ICIO 2023-edition table (3,468 x 3,928), for
+    example ``ICIOextended/2020_SML.csv``, condenses the 6 final demand
+    categories to 3 (C, I, Cx), applies the legacy regularization, splits
+    value added into labor (2/3) and capital (1/3), and returns the calibrated
+    (3,468, 3,696) matrix.
+
+    Legacy regularization (``regularize=True``): a node with zero row sales gets
+    sales and value added of 1e-6; every other node's value added is raised to
+    ``VA >= max(floor_va_ratio * sales, floor_va_abs)``, i.e. with the defaults
+    ``VA >= max(0.05 * sales, 1.0)`` (up to 4.3.0 this docstring wrongly said
+    ``1e-4 * y``; 0.05 has always been the code's value and the 45-sector GPU
+    checkpoints were built with it). TLS absorbs the change as the residual
+    ``sales - purchases - VA``. Nodes with sales below 1 M USD can end with
+    value added above sales under the absolute floor. This floor is much
+    stronger than :func:`puremacro.trade.regularize.regularize_mrio_table`'s
+    (``max(1e-3 * Y, min(1, 0.5 * Y))``); on the clean 2019 table it changes 63
+    nodes by +3,817 M USD. The counts and totals are recorded in
+    ``ICIOData.metadata["regularization"]`` when ``return_structured=True``.
+
+    File integrity: the MD5 of the resolved file is checked before parsing. The
+    corrupted export ``data_2020_SML.csv`` with MD5
+    ``d1b887aaafa54ab3f28fde78fcd21cdf`` (tokens with 3-4 decimals lost their
+    decimal point and tokens below 0.001 became 0) is refused with
+    :class:`puremacro.trade.mrio.MRIOIntegrityError` (a ``ValueError``); the
+    clean releases are 2019 ``28cba31491177955445051d459053744`` and 2020
+    ``d3e0f4979d85d6c0bb7cf4c43e324287``, and any other digest emits a
+    ``RuntimeWarning``. The digest is recorded in ``ICIOData.metadata``.
 
     Parameters
     ----------
     path : str or Path, optional
-        Path to ``data_2020_SML.csv`` or ``2020_SML.csv``. If omitted, searches default locations.
+        Path to an OECD ``2020_SML.csv``/``2019_SML.csv`` (or a directory holding
+        one). If omitted, searches ``IO_RAW45_PATH``/``IO_DATA_PATH``/
+        ``IO_COMPUTATION_DIR`` and then the default locations, clean
+        ``ICIOextended`` releases first.
     regularize : bool, default True
-        If True, applies economic regularizations ensuring non-negative output and VA,
-        with exact Walrasian accounting (Sales == Outlays via residual net production tax TLS).
+        If True, applies the legacy floors above with exact Walrasian accounting
+        (Sales == Outlays via residual net production tax TLS).
         If False, returns unregularized factor split without floors.
     return_structured : bool, default False
-        If True, returns an :class:`ICIOData` container exposing slicing properties.
+        If True, returns an :class:`ICIOData` container exposing slicing
+        properties and ``metadata`` (source MD5, regularization counts).
         If False, returns the raw float64 array of shape (3468, 3696).
     nc : int, default 77
         Number of countries.
@@ -647,13 +900,22 @@ def load_raw_45sector_icio(
         Number of raw final demand categories.
     nfd : int, default 3
         Number of condensed final demand categories.
+    floor_va_ratio : float, default 0.05
+        Legacy value-added floor as a share of sales (keyword-only).
+    floor_va_abs : float, default 1.0
+        Legacy absolute value-added floor in M USD (keyword-only).
 
     Returns
     -------
     np.ndarray or ICIOData
         Processed ICIO transaction matrix of shape (3468, 3696).
     """
+    if not (np.isfinite(floor_va_ratio) and 0.0 <= floor_va_ratio <= 1.0):
+        raise ValueError(f"floor_va_ratio must lie in [0, 1], got {floor_va_ratio!r}")
+    if not (np.isfinite(floor_va_abs) and floor_va_abs >= 0.0):
+        raise ValueError(f"floor_va_abs must be a finite nonnegative number, got {floor_va_abs!r}")
     csv_file = _resolve_raw_45_path(path)
+    provenance = _check_raw_45_integrity(csv_file)
     raw = _load_raw_table(csv_file)
     n_ind = nc * ns
 
@@ -680,9 +942,13 @@ def load_raw_45sector_icio(
 
     data_condensed = np.hstack([data[:, :n_ind], fd])
 
+    regularization: dict[str, Any] = {"applied": bool(regularize)}
     if regularize:
         # 2. Regularization of zero sales and negative VA
+        va_before = data_condensed[n_ind + 1, :n_ind].copy()
         sales = np.sum(data_condensed[:n_ind, :], axis=1)
+        zero_sales_nodes = 0
+        floored_nodes = 0
         for ik in range(nc):
             for isec in range(ns):
                 idx = isec + ns * ik
@@ -692,13 +958,25 @@ def load_raw_45sector_icio(
                     s_val = 1e-6
                     va_val = 1e-6
                     data_condensed[n_ind + 1, idx] = va_val
+                    zero_sales_nodes += 1
                 else:
-                    min_va = max(0.05 * s_val, 1.0)
+                    min_va = max(floor_va_ratio * s_val, floor_va_abs)
                     if va_val < min_va:
                         va_val = min_va
                         data_condensed[n_ind + 1, idx] = va_val
+                        floored_nodes += 1
                 purch = np.sum(data_condensed[:n_ind, idx])
                 data_condensed[n_ind, idx] = s_val - purch - va_val
+        va_after = data_condensed[n_ind + 1, :n_ind]
+        regularization.update({
+            "rule": (f"zero sales -> sales = VA = 1e-6; otherwise VA >= max({floor_va_ratio:g} * sales, "
+                     f"{floor_va_abs:g}); TLS = sales - purchases - VA"),
+            "floor_va_ratio": float(floor_va_ratio), "floor_va_abs": float(floor_va_abs),
+            "zero_sales_nodes": int(zero_sales_nodes), "va_floored_nodes": int(floored_nodes),
+            "va_changed_nodes": int(np.count_nonzero(va_after != va_before)),
+            "va_net_change": float(np.sum(va_after - va_before)),
+            "va_exceeds_sales_nodes": int(np.count_nonzero((va_after > sales) & (sales > 0))),
+        })
 
     # 3. Factor split: Labor (2/3 VA) and Capital (1/3 VA)
     va_row = data_condensed[n_ind + 1, :]
@@ -712,6 +990,8 @@ def load_raw_45sector_icio(
             country_codes=CANONICAL_COUNTRY_CODES if nc == 77 else tuple(f"C{i:02d}" for i in range(nc)),
             sector_codes=RAW_45_SECTOR_CODES if ns == 45 else tuple(f"S{i:02d}" for i in range(ns)),
             fd_codes=CANONICAL_FINAL_DEMAND_CODES if nfd == 3 else tuple(f"FD{i:02d}" for i in range(nfd)),
+            metadata={**provenance, "regularization": regularization,
+                      "loader": "load_raw_45sector_icio (legacy positional reader)"},
         )
 
     return clean_matrix
@@ -720,19 +1000,28 @@ def load_raw_45sector_icio(
 def load_icio_data(
     path: str | Path | None = None,
     *,
+    source: str | None = None,
     return_structured: bool = False,
     sectors: int = 11,
     aggregate_sectors: bool = True,
     regularize: bool = True,
 ) -> np.ndarray | ICIOData:
-    """Load the canonical 77-country ICIO dataset (11-sector or raw 45-sector).
+    """Load the 77-country ICIO table: a bundled 11-sector table, or a raw 45-sector file.
 
     Parameters
     ----------
     path : str or Path, optional
-        Path to a ``.npz`` or delimited text table. If omitted, the dataset
-        bundled with puremacro is used, so no file outside the installation is
-        needed. MATLAB ``.mat`` input was removed in 4.0.0.
+        Path to a ``.npz`` or delimited text table. If omitted, a table
+        bundled with puremacro is used (see ``source``), so no file outside
+        the installation is needed. MATLAB ``.mat`` input was removed in 4.0.0.
+    source : {"oecd2020", "legacy"}, optional
+        Which bundled 77x11 table to load when ``path`` is omitted.
+        ``"oecd2020"`` is the clean OECD ICIO 2023-edition 2020 table
+        aggregated by ``tools/build_icio_77c_11s.py``
+        (:data:`OECD2020_ICIO_PROVENANCE`); ``"legacy"`` is the MATLAB-parity
+        regression fixture described in the Notes. Omitting ``source`` still
+        returns the legacy table, with a ``FutureWarning`` (once per process):
+        the default becomes ``"oecd2020"`` in puremacro 5.0. New in 4.6.0.
     return_structured : bool, default False
         If True, returns an :class:`ICIOData` container exposing slicing properties.
         If False, returns the raw float64 array of shape (850, 1078) or (3468, 3696).
@@ -746,12 +1035,36 @@ def load_icio_data(
     Returns
     -------
     np.ndarray or ICIOData
-        The loaded ICIO transaction matrix.
+        The loaded ICIO transaction matrix. For the bundled 77x11 table the
+        structured container carries :data:`BUNDLED_ICIO_PROVENANCE` in
+        ``metadata`` (``is_regression_fixture=True``).
+
+    Notes
+    -----
+    Provenance of the bundled table (``path=None``, 11 sectors). The array is a
+    bit-exact copy of the MATLAB ``data_77c_11s.mat`` of the original
+    sectoral-misallocation pipeline, which was built from a
+    ``data_2020_SML.csv`` export of the OECD ICIO tables that is corrupted:
+    tokens with three or four decimals lost their decimal point and tokens
+    below 0.001 became zero (export MD5 ``d1b887aaafa54ab3f28fde78fcd21cdf``).
+    Against the clean OECD 2020 release, world value added of the 77x11
+    aggregation is 7.05e11 instead of 7.97e7 USD million. The table is kept
+    unchanged as a MATLAB-parity regression fixture: parity suites compare
+    puremacro with MATLAB solutions of the same table. Do not report
+    magnitudes, shares or elasticities computed from it as OECD-based
+    estimates; see the 2026-09-22 entry of ``docs/ADVISORY.md``. For empirical
+    work pass a clean OECD release to :func:`load_oecd_icio_granular` or
+    ``puremacro.trade.mrio.read_oecd_native``.
+
+    A user-supplied 11-sector ``path`` is returned as given, with empty
+    ``metadata``.
     """
     is_45 = (sectors == 45) or (not aggregate_sectors)
     if path is not None:
+        if source is not None:
+            raise ValueError("pass either `path` (a file of your own) or `source` (a bundled table), not both")
         p_str = str(path)
-        if p_str.endswith(".csv") or "2020" in p_str or "45s" in p_str:
+        if p_str.endswith(".csv") or ("2020" in p_str and "oecd2020" not in p_str) or "45s" in p_str:
             is_45 = True
 
     if is_45:
@@ -761,7 +1074,8 @@ def load_icio_data(
             return_structured=return_structured,
         )
 
-    raw_data = _load_icio_array(path)
+    resolved = _resolve_bundled_source(source) if path is None else "legacy"
+    raw_data = _load_icio_array(path, source=resolved)
 
     if return_structured:
         return ICIOData(
@@ -769,13 +1083,14 @@ def load_icio_data(
             country_codes=CANONICAL_COUNTRY_CODES,
             sector_codes=CANONICAL_SECTOR_CODES,
             fd_codes=CANONICAL_FINAL_DEMAND_CODES,
+            metadata=dict(_BUNDLED_ICIO_PROVENANCE[resolved]) if path is None else {},
         )
 
     return raw_data
 
 
 # ---------------------------------------------------------------------------
-# High-Fidelity Deterministic Synthetic MRIO Generator
+# Deterministic Synthetic MRIO Generator (generic numbers, provider layouts)
 # ---------------------------------------------------------------------------
 
 
@@ -790,12 +1105,30 @@ def generate_synthetic_mrio(
     model: str = "ixi",
     unit: str = "M_USD",
 ) -> RawIOData:
-    """Generate a high-fidelity deterministic synthetic Multi-Regional Input-Output table.
+    """Generate a deterministic synthetic Multi-Regional Input-Output table in a provider's layout.
+
+    The numbers are generic random draws, not a model of any database:
+    lognormal country sizes (``lognormal(8, 1)``), uniform sector weights,
+    gravity trade shares with home bias, uniform intermediate and value-added
+    cost shares, and taxes less subsidies as the residual ``Y - column
+    purchases - VA`` (roughly 7-22% of gross output at ``custom_c=custom_s=3``).
+    Every distribution parameter and the seed are the same for all providers.
+
+    ``dataset`` sets only the layout: the country, sector and final-use label
+    lists (hence the dimensions when ``custom_c``/``custom_s`` are not given),
+    the number of final-use categories, and x8/x4/x2.5 size multipliers for
+    named large economies (USA, CHN; DEU, JPN, GBR, FRA; ITA, CAN, KOR, IND,
+    BRA, RUS) when they are in the roster. It does not change the coefficient
+    matrix: for a given ``seed`` and dimensions, two providers whose truncated
+    rosters contain none of those named economies give a bit-identical ``Z``
+    and the same ``Y``, ``VA/Y`` and ``TLS/Y`` up to rounding (for example the
+    first three countries and sectors of 'oecd', 'figaro', 'exiobase', 'wiod'
+    and 'eora').
 
     Parameters
     ----------
     dataset : str
-        Target database: 'figaro', 'exiobase', 'wiod', 'eora', or 'oecd' / 'oecd_icio'.
+        Provider layout: 'figaro', 'exiobase', 'wiod', 'eora', or 'oecd' / 'oecd_icio'.
     year : int, default=2019
         Reference year.
     seed : int, default=42
@@ -811,12 +1144,14 @@ def generate_synthetic_mrio(
     model : str, default='ixi'
         EXIOBASE model formulation ('ixi' or 'pxp').
     unit : str, default='M_USD'
-        Unit of accounts ('M_USD', 'M_EUR', or '000_USD').
+        Unit label of the accounts ('M_USD', 'M_EUR', or '000_USD'); '000_USD'
+        also multiplies every flow by 1000.
 
     Returns
     -------
     RawIOData
-        Container encapsulating synthetic MRIO transaction matrices.
+        Container encapsulating synthetic MRIO transaction matrices
+        (``metadata["is_synthetic"] = True``).
     """
     ds = dataset.lower().strip()
     if ds in ("figaro", "eurostat_figaro"):
@@ -970,12 +1305,31 @@ def package_mrio_to_calibration_result(
     raw: RawIOData,
     regularize: bool = True,
     validate: bool = True,
+    *,
+    regularize_options: dict[str, Any] | None = None,
 ) -> TradeCalibrationResult:
     """Package RawIOData flows into a canonical TradeCalibrationResult.
 
     Optionally regularizes flows via ``regularize_mrio_table``, decomposes value added
     into labor (2/3) and capital (1/3), constructs the calibrated transaction table,
     and runs ``calibrate_trade_model`` with invariant validation.
+
+    The final-use categories are passed through in the order of
+    ``raw.fd_categories``; ``calibrate_trade_model`` adds the foreign balance
+    to index 1, so that index must be investment (the provider loaders
+    condense their rosters to ``("C", "I", "Cx")`` first). When index 1 is not
+    an investment code (``I``, ``G``, ``GFCF``, ``P51G``, ``P5``, ``GCF``), for
+    example a native six-category OECD roster whose index 1 is NPISH, a
+    ``RuntimeWarning`` names the category that receives the closure.
+
+    Metadata recorded on the result: ``adjustments`` (per array: changed
+    entries, maximum absolute change, net change), ``regularization`` (the
+    value-added floor rule, every floored node with its label, value added
+    before and after and gross output, phantom-output node labels, and the
+    certified spectral bounds), ``negative_final_demand_cells`` (count per
+    final-use category after regularization; the ``accounting="consistent"``
+    path rejects any negative cell), ``closure_category`` (the category at
+    index 1) and ``fd_categories``.
 
     Parameters
     ----------
@@ -986,6 +1340,10 @@ def package_mrio_to_calibration_result(
         and residual TLS reconciliation.
     validate : bool, default=True
         Whether to enforce budget balance and table reconstruction checks.
+    regularize_options : dict, optional
+        Keyword-only overrides forwarded to ``regularize_mrio_table``; allowed
+        keys ``floor_output``, ``floor_va_ratio``, ``floor_va_abs``,
+        ``floor_va_max_share``.
 
     Returns
     -------
@@ -993,6 +1351,12 @@ def package_mrio_to_calibration_result(
         Calibrated trade model result container.
     """
     from puremacro.trade.calibration import calibrate_trade_model
+
+    options = dict(regularize_options or {})
+    allowed = {"floor_output", "floor_va_ratio", "floor_va_abs", "floor_va_max_share"}
+    unknown = sorted(set(options) - allowed)
+    if unknown:
+        raise ValueError(f"regularize_options accepts {sorted(allowed)}, got unknown keys {unknown}")
 
     C, S, K_F = raw.C, raw.S, raw.K_F
     M = C * S
@@ -1015,14 +1379,31 @@ def package_mrio_to_calibration_result(
     if len(set(raw.countries)) != C or len(set(raw.sectors)) != S:
         raise ValueError("Country and sector labels must be unique")
     before = {name: arr.copy() for name, arr in (("Z", Z), ("F", F), ("VA", VA), ("TLS", TLS), ("Y", Y))}
+    labels = [f"{c}_{s}" for c in raw.countries for s in raw.sectors]
+    regularization: dict[str, Any] = {"applied": bool(regularize)}
     if regularize:
         # Provider OUT margins can differ from the released transactions.
         # Calibrate to actual sales and record the change from reported Y;
         # otherwise TLS repair leaves consumer budgets unbalanced.
         Y = Z.sum(axis=1) + F.sum(axis=1)
-        Z, F, VA, TLS, Y = regularize_mrio_table(
-            Z, F, VA, TLS, Y, n_countries=C, n_sectors=S
+        Z, F, VA, TLS, Y, report = regularize_mrio_table(
+            Z, F, VA, TLS, Y, n_countries=C, n_sectors=S, return_report=True, **options
         )
+        floor = report["va_floor"]
+        regularization.update({
+            "va_floor_rule": floor["rule"],
+            "va_floored_nodes": [
+                {"node": labels[i], "value_added_before": before_va, "value_added_after": after_va,
+                 "gross_output": output, "binding": bind}
+                for i, before_va, after_va, output, bind in zip(
+                    floor["nodes"], floor["value_added_before"], floor["value_added_after"],
+                    floor["gross_output"], floor["binding"])
+            ],
+            "phantom_nodes": [labels[i] for i in report["phantom_nodes"]],
+            "spectral": report["spectral"],
+        })
+    elif options:
+        raise ValueError("regularize_options require regularize=True")
 
     va_row = np.sum(VA, axis=0) if VA.ndim == 2 else VA
     labor = (2.0 / 3.0) * va_row
@@ -1044,6 +1425,16 @@ def package_mrio_to_calibration_result(
         capital_full,
     ])
 
+    closure_category = str(list(raw.fd_categories)[1 if K_F >= 2 else 0])
+    if K_F >= 2 and closure_category not in _INVESTMENT_CODES:
+        warnings.warn(
+            f"package_mrio_to_calibration_result: calibrate_trade_model adds the foreign balance to "
+            f"final-use index 1, which is {closure_category!r} in {list(raw.fd_categories)}, not investment. "
+            "Condense the roster first (puremacro.trade._oecd_icio.condense_final_demand for OECD rosters; "
+            "the load_* functions condense every provider) so that index 1 is investment.",
+            RuntimeWarning, stacklevel=2,
+        )
+
     result = calibrate_trade_model(
         matrix,
         ns=S,
@@ -1054,28 +1445,122 @@ def package_mrio_to_calibration_result(
         validate=validate,
     )
 
-
     adjustments = {
         name: {"changed_entries": int(np.count_nonzero(arr != before[name])),
                "max_abs_change": float(np.max(np.abs(arr - before[name]), initial=0.0)),
                "net_change": float(np.sum(arr - before[name]))}
         for name, arr in (("Z", Z), ("F", F), ("VA", VA), ("TLS", TLS), ("Y", Y))
     }
+    F_cat = F_2d.reshape(M, C, K_F)
+    negative_cells = {str(cat): int(np.count_nonzero(F_cat[:, :, k] < 0))
+                      for k, cat in enumerate(raw.fd_categories)}
     return replace(result, metadata={
         **result.metadata, **raw.metadata,
         "source": raw.source, "year": raw.year, "unit": raw.unit,
         "schema": raw.metadata.get("schema", "RawIOData country-major sector ordering"),
         "is_synthetic": bool(raw.metadata.get("is_synthetic", raw.source.startswith("Synthetic_"))),
         "regularized": regularize, "adjustments": adjustments,
+        "regularization": regularization,
+        "negative_final_demand_cells": negative_cells,
         "output_reconciliation": "transaction row sales" if regularize else "provider output",
         "labor_share_assumption": 2.0 / 3.0, "capital_share_assumption": 1.0 / 3.0,
         "fd_categories": tuple(raw.fd_categories),
+        "closure_category": closure_category,
     })
+
+
+def _condense_provider_final_uses(raw: RawIOData, provider: str) -> RawIOData:
+    """Condense a provider's native final uses to ``("C", "I", "Cx")``, conserving sums.
+
+    Uses ``_PROVIDER_FINAL_USE_MAPPINGS[provider]`` (see its comment); records
+    ``source_fd_categories``, ``final_use_mapping``, ``final_use_semantics``
+    and ``negative_final_demand_cells`` in the metadata. Signed entries
+    (negative inventory changes) are kept; nothing is clipped.
+    """
+    mapping = _PROVIDER_FINAL_USE_MAPPINGS[provider]
+    cats = [str(c) for c in raw.fd_categories]
+    mapped = [code for group in mapping.values() for code in group]
+    if sorted(mapped) != sorted(cats):
+        raise ValueError(
+            f"{provider} final-use roster {cats} does not match the condensation mapping {mapping}"
+        )
+    K = len(cats)
+    F = np.asarray(raw.final_demand_matrix, dtype=float).reshape(raw.M, raw.C, K)
+    grouped = np.stack([F[:, :, [cats.index(code) for code in group]].sum(axis=2)
+                        for group in mapping.values()], axis=2)
+    taxes = None
+    if raw.taxes_less_subsidies_fd is not None:
+        tfd = np.asarray(raw.taxes_less_subsidies_fd, dtype=float).reshape(raw.C, K)
+        taxes = np.stack([tfd[:, [cats.index(code) for code in group]].sum(axis=1)
+                          for group in mapping.values()], axis=1).ravel()
+    record = {key: list(group) for key, group in mapping.items()}
+    negative = {key: int(np.count_nonzero(grouped[:, :, j] < 0)) for j, key in enumerate(mapping)}
+    return replace(
+        raw, final_demand_matrix=grouped.reshape(raw.M, -1), fd_categories=list(mapping),
+        taxes_less_subsidies_fd=taxes,
+        metadata={**raw.metadata, "source_fd_categories": cats, "final_use_mapping": record,
+                  "final_demand_mapping": record, "negative_final_demand_cells": negative,
+                  "final_use_semantics": dict(_PROVIDER_FINAL_USE_SEMANTICS[provider]),
+                  "inventory_treatment": "signed inventory changes and valuables kept in Cx; no clipping"},
+    )
 
 
 # ---------------------------------------------------------------------------
 # Harmonized Ingestion Adapters for 5 Major Databases
 # ---------------------------------------------------------------------------
+
+
+_COMPRESSION_MAGIC: tuple[tuple[bytes, str], ...] = (
+    (b"\x1f\x8b", "gzip"), (b"BZh", "bz2"), (b"\xfd7zXZ\x00", "xz"),
+    (b"PK\x03\x04", "zip"), (b"\x28\xb5\x2f\xfd", "zstd"),
+)
+
+
+def _detect_compression(path: Path) -> str | None:
+    """Compression method from the file's magic bytes (``None`` for plain files)."""
+    with open(path, "rb") as handle:
+        head = handle.read(6)
+    for magic, method in _COMPRESSION_MAGIC:
+        if head.startswith(magic):
+            return method
+    return None
+
+
+def _read_first_row(path: Path, sep: str, compression: str | None) -> list[str]:
+    """Cells of the first line as raw strings, decompressed like the full read.
+
+    Goes through ``pandas.read_csv`` with ``header=None`` so compressed
+    harmonized files (gzip, bz2, xz, single-member zip) are sniffed exactly as
+    they are read, and duplicate labels are not renamed.
+    """
+    try:
+        frame = pd.read_csv(path, sep=sep, header=None, nrows=1, dtype=str, keep_default_na=False,
+                            compression=compression or "infer", encoding="utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"{path} is not a UTF-8 text table (or a gzip/bz2/xz/zip-compressed one)") from exc
+    except pd.errors.EmptyDataError:
+        return []
+    return [str(cell) for cell in frame.iloc[0].tolist()] if len(frame) else []
+
+
+def _find_unique_match(directories: Sequence[Path], patterns: Sequence[str], what: str) -> Path | None:
+    """First directory with a match for ``patterns``; refuses ambiguous directories.
+
+    Matches are de-duplicated and sorted, so the result does not depend on the
+    filesystem order; more than one match in the same directory raises
+    ``ValueError`` asking for an explicit ``file_path``.
+    """
+    for d in directories:
+        if not d.is_dir():
+            continue
+        matches = sorted({p for pattern in patterns for p in d.glob(pattern) if p.is_file()})
+        if len(matches) > 1:
+            raise ValueError(
+                f"Ambiguous {what} in {d}: {[m.name for m in matches]} all match; pass file_path= explicitly."
+            )
+        if matches:
+            return matches[0]
+    return None
 
 
 def load_figaro(
@@ -1093,6 +1578,31 @@ def load_figaro(
     """Load Eurostat FIGARO table with automatic EUR -> USD currency harmonization.
 
     Schema: 46 countries x 64 NACE Rev. 2 sectors = 2,944 nodes, 5 final demand categories.
+
+    Accepted file: the puremacro harmonized labelled layout (not the native
+    Eurostat archive, which :func:`puremacro.trade.mrio.read_figaro_native`
+    reads). Rows are ``COUNTRY_SECTOR`` nodes in country-major order followed by
+    a ``TLS`` and a ``VA`` row; columns are the same nodes followed by five
+    final-use columns per country labelled ``COUNTRY_CODE`` with ``CODE`` in
+    ``P3_S13, P3_S14, P3_S15, P51G, P5M``. Final-use columns are read by label,
+    in any order (the Eurostat order P3_S13, P3_S14, P3_S15, P51G, P5M and the
+    order of :data:`FIGARO_FD_CATEGORIES` both work); unknown or duplicated
+    codes raise ``ValueError``.
+
+    The file may be gzip-, bz2- or xz-compressed or a single-member ZIP
+    (detected from its bytes, not its name); ``.tsv`` in the file suffixes
+    selects tab separation.
+
+    Final uses are condensed before calibration to ``C = P3_S13 + P3_S14 +
+    P3_S15`` (final consumption of government, households and NPISH),
+    ``I = P51G`` (gross fixed capital formation, which receives the
+    foreign-balance closure) and ``Cx = P5M`` (changes in inventories and
+    valuables); the mapping and the meaning of each slot are recorded in
+    ``metadata["final_use_mapping"]`` and ``metadata["final_use_semantics"]``.
+    Cx here is not the OECD
+    Cx (DPABR, residents' direct purchases abroad), so bridges that read
+    ``("C", "I", "Cx")`` as (C, G, X) must consult the mapping. Up to 4.3.0 the five native
+    categories were passed through and the closure landed on P3_S15 (NPISH).
 
     Parameters
     ----------
@@ -1141,7 +1651,8 @@ def load_figaro(
             metadata={**raw_eur.metadata, "exchange_rate_usd_per_eur": eur_to_usd, "original_unit": "M_EUR"},
             unit="M_USD",
         )
-        return package_mrio_to_calibration_result(raw_usd, regularize=regularize)
+        return package_mrio_to_calibration_result(_condense_provider_final_uses(raw_usd, "figaro"),
+                                                  regularize=regularize)
 
     target: Path | None = None
     if file_path is not None:
@@ -1152,12 +1663,7 @@ def load_figaro(
         candidates = [Path(os.environ["IO_FIGARO_DIR"]) ] if os.environ.get("IO_FIGARO_DIR") else []
         if data_dir:
             candidates.insert(0, Path(data_dir))
-        for d in candidates:
-            if d.is_dir():
-                matches = list(d.glob(f"*{year}*.csv")) + list(d.glob(f"*{year}*.tsv"))
-                if matches:
-                    target = matches[0]
-                    break
+        target = _find_unique_match(candidates, (f"*{year}*.csv", f"*{year}*.tsv"), f"FIGARO {year} tables")
 
     if target is None or not target.is_file():
         if fallback_to_synthetic:
@@ -1176,17 +1682,27 @@ def load_figaro(
             metadata={**raw_eur.metadata, "exchange_rate_usd_per_eur": eur_to_usd, "original_unit": "M_EUR"},
                 unit="M_USD",
             )
-            return package_mrio_to_calibration_result(raw_usd, regularize=regularize)
+            return package_mrio_to_calibration_result(_condense_provider_final_uses(raw_usd, "figaro"),
+                                                      regularize=regularize)
         raise FileNotFoundError(f"Eurostat FIGARO table for year {year} not found.")
 
-    sep = "\t" if str(target).endswith(".tsv") else ","
-    df = pd.read_csv(target, sep=sep, index_col=0, low_memory=False)
+    sep = "\t" if ".tsv" in [suffix.lower() for suffix in target.suffixes] else ","
+    compression = _detect_compression(target)
+    header = _read_first_row(target, sep, compression)
+    from collections import Counter
+    duplicated = sorted(label for label, count in Counter(header).items() if count > 1)
+    if duplicated:
+        raise ValueError(f"FIGARO table has duplicate column labels {duplicated[:10]}")
+    df = pd.read_csv(target, sep=sep, index_col=0, low_memory=False, compression=compression or "infer")
 
     # Supported interchange schema: labeled country-major intermediate rows
     # and columns, five final-demand categories per country, then TLS and VA.
     # Native Eurostat archives require conversion to this explicit layout.
     if len(df) < 3 or [str(x).upper() for x in df.index[-2:]] != ["TLS", "VA"]:
-        raise ValueError("FIGARO harmonized table requires final TLS and VA rows")
+        raise ValueError(
+            "FIGARO harmonized table requires final TLS and VA rows; the native Eurostat "
+            "file (trailing W2_* rows) is read by puremacro.trade.mrio.read_figaro_native"
+        )
     M = len(df) - 2
     int_cols = list(df.columns[:M])
     if any("_" not in label for label in int_cols):
@@ -1200,13 +1716,29 @@ def load_figaro(
     n_fd = N * len(FIGARO_FD_CATEGORIES)
     if df.shape[1] != M + n_fd:
         raise ValueError("Final-demand columns must contain five categories per country")
-    fd_cols = df.columns[M:]
-    if [str(c).split("_", 1)[0] for c in fd_cols] != [c for c in countries for _ in FIGARO_FD_CATEGORIES]:
-        raise ValueError("Final-demand columns must have matching country-major labels")
+    # Read final uses by label (COUNTRY_CODE), never by position.
+    fd_cols = [str(c) for c in df.columns[M:]]
+    if len(set(fd_cols)) != len(fd_cols):
+        raise ValueError("Final-demand column labels must be unique")
+    split = [label.split("_", 1) if "_" in label else [label, ""] for label in fd_cols]
+    unknown_countries = sorted({part[0] for part in split} - set(countries))
+    if unknown_countries:
+        raise ValueError(f"Final-demand columns name countries absent from the rows: {unknown_countries}")
+    unknown_codes = sorted({part[1] for part in split} - set(FIGARO_FD_CATEGORIES))
+    if unknown_codes:
+        raise ValueError(
+            f"Unknown FIGARO final-use code(s) {unknown_codes}: label final-demand columns "
+            f"COUNTRY_CODE with CODE in {list(FIGARO_FD_CATEGORIES)} (any order)"
+        )
+    wanted = [f"{c}_{code}" for c in countries for code in FIGARO_FD_CATEGORIES]
+    missing = sorted(set(wanted) - set(fd_cols))
+    if missing:
+        raise ValueError(f"Missing FIGARO final-demand columns: {missing[:10]}")
+    order = [M + fd_cols.index(label) for label in wanted]
     Z = df.iloc[:M, :M].to_numpy(dtype=float) * eur_to_usd
-    F = df.iloc[:M, M:].to_numpy(dtype=float) * eur_to_usd
+    F = df.iloc[:M, order].to_numpy(dtype=float) * eur_to_usd
     TLS = df.iloc[M, :M].to_numpy(dtype=float) * eur_to_usd
-    TLS_fd = df.iloc[M, M:].to_numpy(dtype=float) * eur_to_usd
+    TLS_fd = df.iloc[M, order].to_numpy(dtype=float) * eur_to_usd
     VA = df.iloc[M + 1, :M].to_numpy(dtype=float) * eur_to_usd
     OUT = np.sum(Z, axis=1) + np.sum(F, axis=1)
 
@@ -1228,10 +1760,12 @@ def load_figaro(
         "exchange_rate_usd_per_eur": eur_to_usd, "original_unit": "M_EUR",
         "is_synthetic": False, "file_path": str(target.resolve()),
         "sha256": hashlib.sha256(target.read_bytes()).hexdigest(),
-        "schema": "puremacro positional harmonized table (not a native archive reader)",
-        "schema_validation": "shape and finite values; native archive parity unverified",
+        "schema": "puremacro labelled harmonized table (not a native archive reader)",
+        "schema_validation": ("country-major node labels, final uses read by COUNTRY_CODE label, "
+                              "finite values; native archive parity unverified"),
+        "source_fd_column_order": [part[1] for part in split[:len(FIGARO_FD_CATEGORIES)]],
     })
-    return package_mrio_to_calibration_result(raw, regularize=regularize)
+    return package_mrio_to_calibration_result(_condense_provider_final_uses(raw, "figaro"), regularize=regularize)
 
 
 def load_exiobase(
@@ -1250,6 +1784,30 @@ def load_exiobase(
     """Load EXIOBASE 3 table with automatic EUR -> USD currency harmonization.
 
     Schema: 49 regions x 163 industries (ixi) or 200 products (pxp), 7 final demand categories.
+
+    Accepted file: only the puremacro harmonized positional layout, a single
+    headerless tab-separated numeric table with ``49 * S`` intermediate rows
+    followed by 7 value-added rows (summed), and ``49 * S`` intermediate
+    columns followed by ``49 * 7`` final-use columns in
+    :data:`EXIOBASE_FD_CATEGORIES` order per region (``S = 163`` for ixi,
+    ``200`` for pxp). The native EXIOBASE archive (``IOT_<year>_<model>.zip``
+    with ``Z.txt``, ``Y.txt``, ``x.txt`` and ``satellite/F.txt``, labelled with
+    two header rows) is not read here: use
+    ``puremacro.trade.mrio.read_exiobase_native``. A ZIP archive with more
+    than one member or with a native ``Z.txt``/``Y.txt``/``x.txt``/``F.txt``
+    member, or a labelled native ``Z.txt``/``Y.txt``, raises ``ValueError``
+    saying so. The harmonized table itself may be gzip-, bz2- or
+    xz-compressed or a single-member ZIP (detected from its bytes).
+
+    Final uses are condensed before calibration to ``C = HFCE + NPISH + GGFC``,
+    ``I = GFCF`` (receives the foreign-balance closure) and
+    ``Cx = INVNT + VALUABLES + EXPORT``; the mapping and the meaning of each
+    slot are recorded in ``metadata["final_use_mapping"]`` and
+    ``metadata["final_use_semantics"]``. Cx here is not the OECD
+    Cx (DPABR, residents' direct purchases abroad), so bridges that read
+    ``("C", "I", "Cx")`` as (C, G, X) must consult the mapping.
+    Up to 4.3.0 the seven native categories were passed through and the
+    closure landed on NPISH.
 
     Parameters
     ----------
@@ -1300,7 +1858,8 @@ def load_exiobase(
             metadata={**raw_eur.metadata, "exchange_rate_usd_per_eur": eur_to_usd, "original_unit": "M_EUR"},
             unit="M_USD",
         )
-        return package_mrio_to_calibration_result(raw_usd, regularize=regularize)
+        return package_mrio_to_calibration_result(_condense_provider_final_uses(raw_usd, "exiobase"),
+                                                  regularize=regularize)
 
     target: Path | None = None
     if file_path is not None:
@@ -1311,12 +1870,8 @@ def load_exiobase(
         candidates = [Path(os.environ["IO_EXIOBASE_DIR"]) ] if os.environ.get("IO_EXIOBASE_DIR") else []
         if data_dir:
             candidates.insert(0, Path(data_dir))
-        for d in candidates:
-            if d.is_dir():
-                matches = list(d.glob(f"*{model}*{year}*")) + list(d.glob(f"*{year}*{model}*"))
-                if matches:
-                    target = matches[0]
-                    break
+        target = _find_unique_match(candidates, (f"*{model}*{year}*", f"*{year}*{model}*"),
+                                    f"EXIOBASE {model} {year} tables")
 
     if target is None or not target.is_file():
         if fallback_to_synthetic:
@@ -1335,14 +1890,44 @@ def load_exiobase(
             metadata={**raw_eur.metadata, "exchange_rate_usd_per_eur": eur_to_usd, "original_unit": "M_EUR"},
                 unit="M_USD",
             )
-            return package_mrio_to_calibration_result(raw_usd, regularize=regularize)
+            return package_mrio_to_calibration_result(_condense_provider_final_uses(raw_usd, "exiobase"),
+                                                      regularize=regularize)
         raise FileNotFoundError(f"EXIOBASE 3 ({model}) table for year {year} not found.")
 
-    df = pd.read_csv(target, sep="\t", header=None, low_memory=False)
-    N = 49
-    S = 200 if model == "pxp" else 163
+    native_hint = ("the native EXIOBASE archive (IOT_<year>_<model>.zip with Z.txt, Y.txt, x.txt and "
+                   "satellite/F.txt) is read by puremacro.trade.mrio.read_exiobase_native; load_exiobase "
+                   "reads only the harmonized positional layout (a headerless tab-separated numeric table "
+                   "of 49*S intermediate rows plus 7 value-added rows by 49*S intermediate columns plus "
+                   "49*7 final-use columns)")
+    import zipfile
+    compression = _detect_compression(target)
+    if compression == "zip" or target.suffix.lower() == ".zip":
+        try:
+            with zipfile.ZipFile(target) as archive:
+                members = [name for name in archive.namelist() if not name.endswith("/")]
+        except zipfile.BadZipFile as exc:
+            raise ValueError(f"{target} is not a readable ZIP archive: {native_hint}") from exc
+        native_members = {"z.txt", "y.txt", "x.txt", "f.txt"}
+        if len(members) != 1 or Path(members[0]).name.lower() in native_members:
+            raise ValueError(f"{target} is a ZIP archive with members {members[:6]}: {native_hint}")
+        compression = "zip"
+    first_cells = [cell.strip().lower() for cell in _read_first_row(target, "\t", compression)[:3]]
+    try:
+        [float(cell) for cell in first_cells if cell]
+    except ValueError:
+        raise ValueError(f"{target} starts with labels {first_cells}: {native_hint}") from None
+
+    df = pd.read_csv(target, sep="\t", header=None, low_memory=False, compression=compression or "infer")
+    exio_sectors = EXIOBASE_200_SECTORS if model == "pxp" else EXIOBASE_163_SECTORS
+    N = len(EXIOBASE_COUNTRIES)
+    S = len(exio_sectors)
     M = N * S
     n_fd_cols = N * len(EXIOBASE_FD_CATEGORIES)
+    if df.shape[0] < M + 7 or df.shape[1] < M + n_fd_cols:
+        raise ValueError(
+            f"{target} has shape {df.shape}; the harmonized EXIOBASE {model} layout needs at least "
+            f"({M + 7}, {M + n_fd_cols}): {native_hint}"
+        )
 
     Z = df.iloc[:M, :M].values.astype(np.float64) * eur_to_usd
     F = df.iloc[:M, M : M + n_fd_cols].values.astype(np.float64) * eur_to_usd
@@ -1354,7 +1939,7 @@ def load_exiobase(
 
     raw = RawIOData(
         countries=list(EXIOBASE_COUNTRIES),
-        sectors=list(EXIOBASE_200_SECTORS if model == "pxp" else EXIOBASE_163_SECTORS),
+        sectors=list(exio_sectors),
         intermediate_matrix=Z,
         final_demand_matrix=F,
         value_added=VA,
@@ -1372,7 +1957,7 @@ def load_exiobase(
         "schema": "puremacro positional harmonized table (not a native archive reader)",
         "schema_validation": "shape and finite values; native archive parity unverified",
     })
-    return package_mrio_to_calibration_result(raw, regularize=regularize)
+    return package_mrio_to_calibration_result(_condense_provider_final_uses(raw, "exiobase"), regularize=regularize)
 
 
 def load_wiod(
@@ -1389,6 +1974,22 @@ def load_wiod(
     """Load World Input-Output Database (WIOD) 2016 release table.
 
     Schema: 44 countries x 56 sectors = 2,464 nodes, 5 final demand categories.
+
+    Accepted file: a WIOD 2016 wide table (``.dta`` or ``.csv``) with columns
+    ``Country``, ``IndustryCode`` and ``v<COUNTRY><r>`` value columns
+    (``r = 1..56`` intermediate uses, ``57..61`` final uses CONS_h, CONS_np,
+    CONS_g, GFCF, INVT), and ``VA``, ``TXSP`` and ``GO`` rows. Other layouts
+    (for example the long ``lr_wiod_wiot`` format) raise ``ValueError``.
+
+    Final uses are condensed before calibration to ``C = CONS_h + CONS_np +
+    CONS_g``, ``I = GFCF`` (receives the foreign-balance closure) and
+    ``Cx = INVT`` (changes in inventories and valuables); the mapping and the
+    meaning of each slot are recorded in ``metadata["final_use_mapping"]``
+    and ``metadata["final_use_semantics"]``. Cx here is not the OECD
+    Cx (DPABR, residents' direct purchases abroad), so bridges that read
+    ``("C", "I", "Cx")`` as (C, G, X) must consult the mapping.
+    Up to 4.3.0 the five native categories were passed through and the
+    closure landed on CONS_np (NPISH).
 
     Parameters
     ----------
@@ -1420,7 +2021,7 @@ def load_wiod(
         if file_path is not None or data_dir is not None:
             raise ValueError("Custom synthetic dimensions cannot be combined with an empirical file or data directory.")
         raw = generate_synthetic_mrio("wiod", year=year, seed=seed, custom_c=custom_c, custom_s=custom_s, unit="M_USD")
-        return package_mrio_to_calibration_result(raw, regularize=regularize)
+        return package_mrio_to_calibration_result(_condense_provider_final_uses(raw, "wiod"), regularize=regularize)
 
     target: Path | None = None
     if file_path is not None:
@@ -1431,23 +2032,25 @@ def load_wiod(
         candidates = [Path(os.environ["IO_WIOD_DIR"]) ] if os.environ.get("IO_WIOD_DIR") else []
         if data_dir:
             candidates.insert(0, Path(data_dir))
-        for d in candidates:
-            if d.is_dir():
-                matches = list(d.glob(f"*{year}*.dta")) + list(d.glob(f"*{year}*.csv"))
-                if matches:
-                    target = matches[0]
-                    break
+        target = _find_unique_match(candidates, (f"*{year}*.dta", f"*{year}*.csv"), f"WIOD {year} tables")
 
     if target is None or not target.is_file():
         if fallback_to_synthetic:
             raw = generate_synthetic_mrio("wiod", year=year, seed=seed, unit="M_USD")
-            return package_mrio_to_calibration_result(raw, regularize=regularize)
+            return package_mrio_to_calibration_result(_condense_provider_final_uses(raw, "wiod"),
+                                                      regularize=regularize)
         raise FileNotFoundError(f"WIOD table for year {year} not found.")
 
     if str(target).endswith(".dta"):
         df = pd.read_stata(target)
     else:
-        df = pd.read_csv(target, low_memory=False)
+        df = pd.read_csv(target, low_memory=False, compression=_detect_compression(target) or "infer")
+    missing_columns = [c for c in ("Country", "IndustryCode") if c not in df.columns]
+    if missing_columns:
+        raise ValueError(
+            f"{target} lacks the WIOD 2016 wide-table columns {missing_columns}; load_wiod expects "
+            "Country, IndustryCode and v<COUNTRY><1..61> value columns with VA, TXSP and GO rows"
+        )
 
     all_countries = df["Country"].dropna().unique()
     countries = [str(c) for c in all_countries if str(c) not in ("TOT", "")]
@@ -1504,7 +2107,7 @@ def load_wiod(
         "schema": "puremacro positional harmonized table (not a native archive reader)",
         "schema_validation": "shape and finite values; native archive parity unverified",
     })
-    return package_mrio_to_calibration_result(raw, regularize=regularize)
+    return package_mrio_to_calibration_result(_condense_provider_final_uses(raw, "wiod"), regularize=regularize)
 
 
 def load_eora(
@@ -1521,6 +2124,22 @@ def load_eora(
     """Load Eora26 MRIO table with unit harmonization from Thousand USD to Million USD.
 
     Schema: 189 countries x 26 sectors = 4,914 nodes, 6 final demand categories.
+
+    Accepted file: the puremacro harmonized positional layout, a single
+    headerless numeric table (tab-separated ``.txt`` or ``.csv``) with 4,914
+    intermediate rows followed by 6 value-added rows (summed), and 4,914
+    intermediate columns followed by ``189 * 6`` final-use columns in
+    :data:`EORA_FD_CATEGORIES` order per country, in thousand USD.
+
+    Final uses are condensed before calibration to ``C = HFCE + NPISH + GGFC``,
+    ``I = GFCF`` (receives the foreign-balance closure) and
+    ``Cx = INVNT + ACQ_VAL``; the mapping and the meaning of each slot are
+    recorded in ``metadata["final_use_mapping"]`` and
+    ``metadata["final_use_semantics"]``. Cx here is not the OECD
+    Cx (DPABR, residents' direct purchases abroad), so bridges that read
+    ``("C", "I", "Cx")`` as (C, G, X) must consult the mapping.
+    Up to 4.3.0 the six native categories were passed through and the
+    closure landed on NPISH.
 
     Parameters
     ----------
@@ -1567,7 +2186,7 @@ def load_eora(
             metadata={**raw_th.metadata, "unit_scale": scale, "original_unit": "000_USD"},
             unit="M_USD",
         )
-        return package_mrio_to_calibration_result(raw, regularize=regularize)
+        return package_mrio_to_calibration_result(_condense_provider_final_uses(raw, "eora"), regularize=regularize)
 
     target: Path | None = None
     if file_path is not None:
@@ -1578,12 +2197,8 @@ def load_eora(
         candidates = [Path(os.environ["IO_EORA_DIR"]) ] if os.environ.get("IO_EORA_DIR") else []
         if data_dir:
             candidates.insert(0, Path(data_dir))
-        for d in candidates:
-            if d.is_dir():
-                matches = list(d.glob(f"*Eora26*{year}*.txt")) + list(d.glob(f"*Eora26*{year}*.csv"))
-                if matches:
-                    target = matches[0]
-                    break
+        target = _find_unique_match(candidates, (f"*Eora26*{year}*.txt", f"*Eora26*{year}*.csv"),
+                                    f"Eora26 {year} tables")
 
     if target is None or not target.is_file():
         if fallback_to_synthetic:
@@ -1602,20 +2217,26 @@ def load_eora(
             metadata={**raw_th.metadata, "unit_scale": scale, "original_unit": "000_USD"},
                 unit="M_USD",
             )
-            return package_mrio_to_calibration_result(raw, regularize=regularize)
+            return package_mrio_to_calibration_result(_condense_provider_final_uses(raw, "eora"),
+                                                      regularize=regularize)
         raise FileNotFoundError(f"Eora26 table for year {year} not found.")
 
-    sep = "\t" if str(target).endswith(".txt") else ","
-    df = pd.read_csv(target, sep=sep, header=None, low_memory=False)
+    sep = "\t" if ".txt" in [suffix.lower() for suffix in target.suffixes] else ","
+    df = pd.read_csv(target, sep=sep, header=None, low_memory=False,
+                     compression=_detect_compression(target) or "infer")
 
-    N = 189
-    S = 26
+    N = len(EORA_189_COUNTRIES)
+    S = len(EORA_26_SECTORS)
     M = N * S
     n_fd_cols = N * len(EORA_FD_CATEGORIES)
+    if df.shape[0] < M + 6 or df.shape[1] < M + n_fd_cols:
+        raise ValueError(
+            f"{target} has shape {df.shape}; the harmonized Eora26 layout needs at least "
+            f"({M + 6}, {M + n_fd_cols}) (headerless numeric table, thousand USD)"
+        )
 
     Z = df.iloc[:M, :M].values.astype(np.float64) * scale
     F = df.iloc[:M, M : M + n_fd_cols].values.astype(np.float64) * scale
-
     va_raw = df.iloc[M : M + 6, :M].values.astype(np.float64) * scale
     VA = np.sum(va_raw, axis=0)
     TLS = np.zeros(M, dtype=np.float64)
@@ -1640,7 +2261,7 @@ def load_eora(
         "schema": "puremacro positional harmonized table (not a native archive reader)",
         "schema_validation": "shape and finite values; native archive parity unverified",
     })
-    return package_mrio_to_calibration_result(raw, regularize=regularize)
+    return package_mrio_to_calibration_result(_condense_provider_final_uses(raw, "eora"), regularize=regularize)
 
 
 def load_oecd_icio_granular(
@@ -1659,9 +2280,15 @@ def load_oecd_icio_granular(
     Reads the OECD 2023 regular native labeled CSV or ZIP: 77 economies,
     45 activities, TLS/VA/OUT margins and six final uses. Final demand is
     mapped to C=(HFCE, NPISH, GGFC), I=(GFCF, INVNT), Cx=DPABR before
-    calibration, so the foreign-balance closure applies to investment.
-    Provider output margins and pre-repair accounting discrepancies are
-    retained in metadata. Native 2025 and extended archives are unsupported.
+    calibration, so the foreign-balance closure applies to investment. The
+    synthetic teaching branches (``custom_c``/``custom_s`` and
+    ``fallback_to_synthetic``) use the same mapping, so they share the real
+    path's closure and three final-use categories (up to 4.3.0 they kept the six
+    native categories and put the closure on NPISH). Provider output margins,
+    pre-repair accounting discrepancies and the per-category count of negative
+    condensed final-use cells (``negative_final_demand_cells``; signed INVNT can
+    make I negative, which ``accounting="consistent"`` rejects) are retained in
+    metadata. Native 2025 and extended archives are unsupported.
 
     Parameters
     ----------
@@ -1692,8 +2319,9 @@ def load_oecd_icio_granular(
             raise ValueError("Custom dimensions generate synthetic data; set fallback_to_synthetic=True explicitly.")
         if file_path is not None or data_dir is not None:
             raise ValueError("Custom synthetic dimensions cannot be combined with an empirical file or data directory.")
+        from ._oecd_icio import condense_final_demand
         raw = generate_synthetic_mrio("oecd", year=year, seed=seed, custom_c=custom_c, custom_s=custom_s, unit="M_USD")
-        return package_mrio_to_calibration_result(raw, regularize=regularize)
+        return package_mrio_to_calibration_result(condense_final_demand(raw), regularize=regularize)
 
     target: Path | None = None
     if file_path is not None:
@@ -1719,8 +2347,9 @@ def load_oecd_icio_granular(
 
     if target is None or not target.is_file():
         if fallback_to_synthetic:
+            from ._oecd_icio import condense_final_demand
             raw = generate_synthetic_mrio("oecd", year=year, seed=seed, unit="M_USD")
-            return package_mrio_to_calibration_result(raw, regularize=regularize)
+            return package_mrio_to_calibration_result(condense_final_demand(raw), regularize=regularize)
         raise FileNotFoundError(f"OECD ICIO granular CSV for year {year} not found.")
 
     from ._oecd_icio import read_native, condense_final_demand
@@ -1815,6 +2444,7 @@ def verify_accounting_invariants(calib: TradeCalibrationResult) -> dict[str, Any
 
 
 __all__ = [
+    "OECD2020_ICIO_PROVENANCE",
     "bundled_icio_path",
     "bundled_reference_path",
     "bundled_workbook_path",

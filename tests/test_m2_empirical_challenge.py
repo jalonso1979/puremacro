@@ -75,7 +75,7 @@ def synthetic_2c_2s_calib():
 @pytest.fixture(scope="module")
 def icio_77c_11s_calib():
     """Calibrate empirical 77-country 11-sector OECD ICIO benchmark."""
-    return calibrate_trade_model(load_icio_data(), ns=11, nc=77, nfd=3, validate=True)
+    return calibrate_trade_model(load_icio_data(source="legacy"), ns=11, nc=77, nfd=3, validate=True)
 
 
 class TestExtremeSubsistenceAddingUp:

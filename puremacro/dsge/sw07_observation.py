@@ -1,15 +1,21 @@
 """SW07 observation equation: maps model variables to observable series.
 
 Ported from puremacro/dsge/_references/sw07_pfeifer.mod (varobs +
-observation equations). Seven observables:
+observation equations). Seven observables, all in percent as in the SW07
+data appendix (ECB WP 722, printed p. 47: "Consumption, investment, GDP,
+wages and hours are expressed in 100 times log"); the model variables are
+percent deviations from the balanced growth path:
 
-    dy      = y - y(-1) + ctrend           (real per-capita GDP growth)
-    dc      = c - c(-1) + ctrend           (real per-capita consumption growth)
-    dinve   = inve - inve(-1) + ctrend     (real per-capita investment growth)
-    dw      = w - w(-1) + ctrend           (real wage growth)
-    labobs  = lab + constelab              (log hours)
-    pinfobs = pinf + constepinf            (GDP-deflator inflation)
-    robs    = r + conster                  (federal funds rate, quarterly)
+    dy      = y - y(-1) + ctrend           (100 x dlog real per-capita GDP)
+    dc      = c - c(-1) + ctrend           (100 x dlog real per-capita consumption)
+    dinve   = inve - inve(-1) + ctrend     (100 x dlog real per-capita investment)
+    dw      = w - w(-1) + ctrend           (100 x dlog real wage)
+    labobs  = lab + constelab              (100 x log per-capita hours)
+    pinfobs = pinf + constepinf            (100 x dlog GDP deflator, quarterly)
+    robs    = r + conster                  (federal funds rate / 4, quarterly)
+
+The bundled data's columns are OBSERVED_VARS (gdp_growth ... ffr), in the
+order above.
 
 State variables are at indices [0:20]; controls at [20:44].
 """
@@ -75,7 +81,7 @@ def make_state_space(params: dict) -> StateSpaceModel:
     # wage_growth: w - w_lag
     Z[3, _idx("w")]     =  1.0
     Z[3, _idx("w_lag")] = -1.0
-    # log_hours: lab
+    # log_hours (100 x log per-capita hours): lab
     Z[4, _idx("lab")] = 1.0
     # infl: pinf
     Z[5, _idx("pinf")] = 1.0

@@ -1,8 +1,8 @@
 """Regression tests for the 3.4.0 pre-release trade/GPU review findings.
 
 Everything here runs on a tiny synthetic calibration, so it is fast and needs no
-private data. Accelerator-specific cases skip when torch / mlx are not installed;
-the NumPy paths always run, including on CI.
+private data. Accelerator-specific cases skip when torch / mlx are not installed or
+cannot be imported; the NumPy paths always run, including on CI.
 
 Covered findings:
 - ``import puremacro.trade`` must not import torch or mlx (lazy accelerator loading).
@@ -43,9 +43,51 @@ from puremacro.trade.gpu import backend as gpu_backend
 from puremacro.trade.solver import solve_trade_equilibrium
 from puremacro.trade.tables import to_latex_selected_country_table, to_latex_selected_country_with_row
 
+
+# Accelerator gating has two halves (2026-09-22 audit).
+#
+# 1. Collection: the parametrizations and ``skipif`` marks use the cheap ``find_spec``
+#    probes ``has_torch()``/``has_mlx()``, so collecting this module never imports torch
+#    or mlx (tests/test_adversarial_orch20_m3_2.py diffs ``sys.modules`` for torch
+#    in-process, and an import at collection would blind it).
+# 2. Run time: ``_accelerator_import_gate`` (autouse) and the ``importable_mlx`` fixture
+#    skip a case whose library is installed but cannot be imported. A torch whose shared
+#    library does not load passes ``find_spec``; before this gate it produced five hard
+#    failures with the contradictory "device='cpu' is not a PyTorch device" error.
 HAS_TORCH = gpu_backend.has_torch()
 HAS_MLX = gpu_backend.has_mlx()
 PYTHON = sys.executable
+
+_ACCELERATOR_LOADERS = {"torch": "_load_torch", "mlx": "_load_mlx"}
+
+
+def _skip_unless_importable(backend: str | None) -> None:
+    """Skip, never fail, when ``backend`` is torch/mlx and the library cannot be imported."""
+    if backend not in _ACCELERATOR_LOADERS:
+        return
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)  # _load_* warns once about a broken install
+        available = getattr(gpu_backend, _ACCELERATOR_LOADERS[backend])() is not None
+    if not available:
+        pytest.skip(f"{backend} is installed but cannot be imported in this environment")
+
+
+def _skip_unimportable_accelerator_case(node) -> None:
+    """Apply ``_skip_unless_importable`` to a test case parametrized with ``backend``."""
+    callspec = getattr(node, "callspec", None)
+    if callspec is not None:
+        _skip_unless_importable(callspec.params.get("backend"))
+
+
+@pytest.fixture(autouse=True)
+def _accelerator_import_gate(request):
+    _skip_unimportable_accelerator_case(request.node)
+
+
+@pytest.fixture
+def importable_mlx():
+    """For the MLX-only tests: skip when mlx is installed but cannot be imported."""
+    _skip_unless_importable("mlx")
 
 
 # ---------------------------------------------------------------------------
@@ -113,11 +155,127 @@ def shock3():
 
 def _available_gpu_backends() -> list[tuple[str | None, str]]:
     out: list[tuple[str | None, str]] = [("cpu", "numpy")]
-    if HAS_TORCH:
+    if gpu_backend.has_torch():
         out.append(("cpu", "torch"))
-    if HAS_MLX:
+    if gpu_backend.has_mlx():
         out.append(("mlx", "mlx"))
     return out
+
+
+def test_installed_but_unimportable_accelerator_skips_instead_of_failing(monkeypatch, request):
+    """A torch (or mlx) that ``find_spec`` sees but that cannot be imported is skipped.
+
+    Regression for the 2026-09-22 audit: the torch cases were parametrized on
+    ``has_torch()`` alone, so a torch whose shared library does not load produced five hard
+    failures. The configuration is simulated here, so the check runs on every machine.
+    """
+    from types import SimpleNamespace
+
+    # The run-time half of the gate is active for every test of this module.
+    assert "_accelerator_import_gate" in request.fixturenames
+
+    monkeypatch.setattr(gpu_backend, "has_torch", lambda: True)
+    monkeypatch.setattr(gpu_backend, "has_mlx", lambda: True)
+    monkeypatch.setattr(gpu_backend, "_load_torch", lambda: None)
+    monkeypatch.setattr(gpu_backend, "_load_mlx", lambda: None)
+
+    # Collection still generates the cases (find_spec is True) ...
+    assert ("cpu", "torch") in _available_gpu_backends()
+    assert ("mlx", "mlx") in _available_gpu_backends()
+    assert ("torch", "cpu") in _evaluator_backends()
+    assert ("mlx", "cpu") in _evaluator_backends()
+
+    # ... and the gate skips them at run time instead of letting them fail.
+    def case(**params):
+        return SimpleNamespace(callspec=SimpleNamespace(params=params))
+
+    for params in (
+        {"device": "cpu", "backend": "torch"},
+        {"device": "mlx", "backend": "mlx"},
+        {"backend": "torch", "device": "cpu", "factor_equivalence": True},
+    ):
+        with pytest.raises(pytest.skip.Exception, match="installed but cannot be imported"):
+            _skip_unimportable_accelerator_case(case(**params))
+    with pytest.raises(pytest.skip.Exception, match="installed but cannot be imported"):
+        _skip_unless_importable("mlx")  # what the ``importable_mlx`` fixture runs
+
+    # NumPy cases and unparametrized tests are never gated.
+    _skip_unimportable_accelerator_case(case(device="cpu", backend="numpy"))
+    _skip_unimportable_accelerator_case(SimpleNamespace())
+
+    # An importable library lets the case run.
+    monkeypatch.setattr(gpu_backend, "_load_torch", lambda: object())
+    _skip_unimportable_accelerator_case(case(device="cpu", backend="torch"))
+
+
+def test_torch_backend_with_cpu_device_reports_unimportable_torch(monkeypatch):
+    """``backend='torch', device='cpu'`` without an importable torch names the real cause."""
+    monkeypatch.setattr(gpu_backend, "_load_torch", lambda: None)
+    with pytest.raises(RuntimeError, match="PyTorch is not installed or could not be imported"):
+        gpu_backend._resolve_backend_device("cpu", "torch")
+    # The device-name error is reserved for strings that are not torch devices at all.
+    with pytest.raises(ValueError, match="is not a PyTorch device"):
+        gpu_backend._resolve_backend_device("mlx", "torch")
+    # 'cpu' alone keeps degrading to the NumPy evaluator.
+    assert gpu_backend._resolve_backend_device("cpu", None) == ("numpy", "cpu")
+    # Every torch-capable device string reports the missing library, not the device name,
+    # including the ones that resolve through ``select_compute_device('torch')``.
+    for dev in ("cuda", "cuda:0", "mps", "gpu", None, "torch", "pytorch"):
+        with pytest.raises(RuntimeError, match="not installed or could not be imported"):
+            gpu_backend._resolve_backend_device(dev, "torch")
+    with pytest.raises(RuntimeError, match="PyTorch is not installed or could not be imported"):
+        select_compute_device("cuda")
+
+
+def test_mlx_device_with_torch_backend_is_a_value_error_with_or_without_mlx(monkeypatch):
+    """``device='mlx'``/``'apple_mlx'`` is never a PyTorch device.
+
+    Before the audit fix this combination raised ``RuntimeError`` ("Apple MLX requested but
+    'mlx' package is not installed") on machines without MLX and ``ValueError`` on machines
+    with it; it is now ``ValueError`` everywhere, and the message lists the accepted strings.
+    """
+    monkeypatch.setattr(gpu_backend, "_load_torch", lambda: _fake_torch(cuda=False, mps=False))
+    for mlx_installed in (False, True):
+        monkeypatch.setattr(gpu_backend, "has_mlx", lambda: mlx_installed)
+        monkeypatch.setattr(gpu_backend, "_load_mlx", lambda: object() if mlx_installed else None)
+        for dev in ("mlx", "apple_mlx"):
+            for be in ("torch", "pytorch"):
+                with pytest.raises(ValueError, match="is not a PyTorch device") as info:
+                    gpu_backend._resolve_backend_device(dev, be)
+                for accepted in ("'cpu'", "'cuda'", "'cuda:N'", "'mps'", "'gpu'", "'torch'", "'pytorch'"):
+                    assert accepted in str(info.value)
+
+
+def _fake_torch(cuda: bool, mps: bool):
+    """Minimal stand-in exposing only what ``select_compute_device`` queries."""
+    from types import SimpleNamespace
+
+    return SimpleNamespace(
+        cuda=SimpleNamespace(is_available=lambda: cuda, device_count=lambda: int(cuda)),
+        backends=SimpleNamespace(mps=SimpleNamespace(is_available=lambda: mps)),
+    )
+
+
+def test_torch_backend_keeps_accepting_the_pre_audit_device_strings(monkeypatch):
+    """The unimportable-torch fix must not narrow the accepted ``backend='torch'`` devices.
+
+    Before the fix ``device='torch'``/``'pytorch'`` and ``device='gpu'`` resolved through
+    ``select_compute_device``; they must keep resolving to a PyTorch device.
+    """
+    monkeypatch.setattr(gpu_backend, "_load_torch", lambda: _fake_torch(cuda=False, mps=True))
+    assert gpu_backend._resolve_backend_device("torch", "torch") == ("torch", "mps")
+    assert gpu_backend._resolve_backend_device("pytorch", "pytorch") == ("torch", "mps")
+    assert gpu_backend._resolve_backend_device("gpu", "torch") == ("torch", "mps")
+    assert gpu_backend._resolve_backend_device("cpu", "torch") == ("torch", "cpu")
+    assert gpu_backend._resolve_backend_device(None, "torch") == ("torch", "mps")
+
+    # 'gpu' with neither CUDA nor MPS is a valid request the machine cannot serve.
+    monkeypatch.setattr(gpu_backend, "_load_torch", lambda: _fake_torch(cuda=False, mps=False))
+    monkeypatch.setattr(gpu_backend, "has_mlx", lambda: True)
+    with pytest.raises(RuntimeError, match="neither CUDA nor MPS"):
+        gpu_backend._resolve_backend_device("gpu", "torch")
+    with pytest.raises(ValueError, match="is not a PyTorch device"):
+        gpu_backend._resolve_backend_device("numpy", "torch")
 
 
 # ---------------------------------------------------------------------------
@@ -208,6 +366,7 @@ def test_gpu_solver_default_call_matches_numpy_solver(calib3, device, backend):
 
 
 @pytest.mark.skipif(not HAS_MLX, reason="Apple MLX is not available")
+@pytest.mark.usefixtures("importable_mlx")
 def test_mlx_solver_default_call_matches_numpy_solver(calib3):
     ref = solve_trade_equilibrium(calib3, method="condensed")
     res = solve_trade_equilibrium_mlx(calib3)
@@ -315,9 +474,9 @@ def _central_difference_jacobian(ev: BatchedJacobianEvaluator, xm: np.ndarray, e
 
 def _evaluator_backends() -> list[tuple[str, str]]:
     out = []
-    if HAS_TORCH:
+    if gpu_backend.has_torch():
         out.append(("torch", "cpu"))
-    if HAS_MLX:
+    if gpu_backend.has_mlx():
         out.append(("mlx", "cpu"))
     return out
 
@@ -390,6 +549,7 @@ def test_numpy_evaluator_warns_when_ad_is_requested(calib3, shock3):
 
 
 @pytest.mark.skipif(not HAS_MLX, reason="Apple MLX is not available")
+@pytest.mark.usefixtures("importable_mlx")
 def test_mlx_batched_eval_defaults_to_float64_cpu_stream(calib3, shock3):
     import mlx.core as mx
 
@@ -416,6 +576,7 @@ def test_mlx_batched_eval_defaults_to_float64_cpu_stream(calib3, shock3):
 
 
 @pytest.mark.skipif(not HAS_MLX, reason="Apple MLX is not available")
+@pytest.mark.usefixtures("importable_mlx")
 def test_explicit_float32_device_warns_and_polishes_in_float64(calib3, shock3):
     tau, tau_fd = shock3
     ref = solve_trade_equilibrium(calib3, tau=tau, tau_fd=tau_fd, method="condensed")
@@ -433,6 +594,7 @@ def test_explicit_float32_device_warns_and_polishes_in_float64(calib3, shock3):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.skipif(not backend_available("mlx"), reason="Apple MLX is not available")
+@pytest.mark.usefixtures("importable_mlx")
 def test_condensed_mlx_backend_matches_numpy_on_iterating_problem(calib3, shock3):
     tau, tau_fd = shock3
     res_np = solve_trade_equilibrium(calib3, tau=tau, tau_fd=tau_fd, method="condensed", backend="numpy")
@@ -447,6 +609,7 @@ def test_condensed_mlx_backend_matches_numpy_on_iterating_problem(calib3, shock3
 
 
 @pytest.mark.skipif(not backend_available("mlx"), reason="Apple MLX is not available")
+@pytest.mark.usefixtures("importable_mlx")
 def test_condensed_mlx_non_convergence_falls_back_to_numpy_with_warning(calib3, shock3):
     tau, tau_fd = shock3
     with pytest.warns(RuntimeWarning, match="Backend 'mlx' did not converge .* falling back to 'numpy'"):
@@ -535,6 +698,7 @@ def test_legacy_compat_only_applies_to_five_scenario_batches(calib_can_usa):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.skipif(not backend_available("mlx"), reason="Apple MLX is not available")
+@pytest.mark.usefixtures("importable_mlx")
 def test_allen_arkolakis_mlx_honours_requested_tolerance():
     from puremacro.spatial.allen_arkolakis import AllenArkolakisModel
 

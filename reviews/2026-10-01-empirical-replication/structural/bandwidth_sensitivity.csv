@@ -1,0 +1,4 @@
+bandwidth,crr,em,objective,optimizer_success,boundary,conditional_null_j_pvalue
+4,0.98,0.09985686524032279,291703.0447162016,True,True,
+8,0.98,0.010000000000000004,396736.0957893792,True,True,
+12,0.98,0.010000000000000004,465428.59892543906,True,True,

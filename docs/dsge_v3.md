@@ -236,8 +236,8 @@ To ensure stability, `puremacro` organizes warmup into Stan-style staged windows
 ### 2.6 Comprehensive MCMC Diagnostics
 
 Every NUTS run produces an audited set of diagnostics:
-- **Rank-Normalized Split-$\hat{R}$**: Splits each chain in half to detect both within-chain non-stationarity and between-chain lack of mixing; values $< 1.05$ indicate convergence.
-- **Bulk Effective Sample Size ($ESS_{bulk}$)**: Measures estimation accuracy for posterior means and medians via Geyer's initial positive sequence.
+- **Split-$\hat{R}$** (Gelman-Rubin on half-chains, not rank-normalized): Splits each chain in half to detect both within-chain non-stationarity and between-chain lack of mixing; values $< 1.05$ indicate convergence.
+- **Bulk Effective Sample Size ($ESS_{bulk}$)**: Measures estimation accuracy for posterior means and medians via Geyer's initial monotone sequence (single-chain ESS summed over chains; not rank-normalized, so it is not the multi-chain bulk ESS of Vehtari, Gelman, Simpson, Carpenter and Bürkner 2021, *Bayesian Analysis* 16(2)).
 - **Tail Effective Sample Size ($ESS_{tail}$)**: Evaluates sampling quality in the tails (5% and 95% quantiles).
 - **Energy Bayesian Fraction of Missing Information ($E\text{-}BFMI$)**:
   $$E\text{-}BFMI = \frac{\sum_{t=1}^N (E_t - E_{t-1})^2}{(N-1) \operatorname{Var}(E)}$$

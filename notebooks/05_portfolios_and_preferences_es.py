@@ -13,18 +13,19 @@
 # %% [markdown]
 # # Riesgo, rendimientos y preferencias
 #
+# **¿Por qué la política monetaria tiene efectos reales en presencia de fijación escalonada de precios, y cómo las preferencias recursivas separan la aversión al riesgo de la sustitución intertemporal?**
+#
 # Tres de las capacidades más avanzadas de la librería: **múltiples estados
-# endógenos** (un activo líquido + uno ilíquido), **preferencias de Epstein–Zin**
+# endógenos** (un activo líquido + uno ilíquido), **preferencias de Epstein–Zin (1989)**
 # que separan la aversión al riesgo de la elasticidad de sustitución
-# intertemporal, y el **método de la cuadrícula endógena (EGM)** como
+# intertemporal, y el **método de la cuadrícula endógena (EGM; Carroll 1997)** como
 # alternativa rápida y precisa de resolución. Resolvemos un problema de cartera
 # de dos activos, elevamos la aversión al riesgo bajo Epstein–Zin manteniendo
 # fija la elasticidad, y mostramos que el EGM y la iteración en la función de
-# valor recuperan la misma política de consumo. Todo con `puremacro.vfi`, en el
+# valor recuperan la misma política de consumo (Woodford 2003; Christiano, Eichenbaum & Evans 2005). Todo con `puremacro.vfi`, en el
 # navegador.
-
-# %% [markdown]
-# ## El método en tres piezas
+#
+# ## El método en matemáticas
 #
 # **Restricción presupuestaria de dos activos.** Los hogares mantienen un activo
 # líquido $m$ (de libre ajuste, rendimiento bajo $r_m$) y un activo ilíquido $k$
@@ -55,6 +56,21 @@
 # corrientes endógenos que lo justifican — sin búsqueda de raíces, coste $O(n)$
 # por iteración, y una política continua (interpolada).
 #
+# ### Parámetros del modelo base
+#
+# | Parámetro | Símbolo | Interpretación Económica | Valor Base | Unidades |
+# |---|---|---|---|---|
+# | Factor de descuento trimestral | $\beta$ | Tasa subjetiva de preferencia temporal | 0.990 | Adimensional (trimestral) |
+# | Aversión al riesgo | $\gamma$ | Coeficiente Epstein-Zin de aversión relativa al riesgo | 2.0 - 8.0 | Adimensional |
+# | Sustitución intertemporal | $\psi$ | Elasticidad de sustitución intertemporal (EIS) | 0.500 | Adimensional |
+# | Rendimiento del activo líquido | $r_m$ | Tasa de rendimiento libre de riesgo en saldos líquidos | 0.010 | Tasa trimestral |
+# | Rendimiento del activo ilíquido | $r_k$ | Tasa de retorno sobre el capital ilíquido | 0.030 | Tasa trimestral |
+# | Costo de ajuste de cartera | $\kappa$ | Penalización lineal por rebalanceo de activo ilíquido | 0.050 | Fracción del volumen |
+# | Persistencia del ingreso | $\rho_z$ | Autocorrelación AR(1) de la productividad laboral | 0.900 | Adimensional |
+# | Volatilidad de innovación | $\sigma_z$ | Desviación estándar de innovación idiosincrática | 0.200 | Desviación estándar |
+# | Puntos de grilla líquida | $n_m$ | Puntos de discretización de activos líquidos | 40 | Recuento entero |
+# | Puntos de grilla ilíquida | $n_k$ | Puntos de discretización de activos ilíquidos | 30 | Recuento entero |
+#
 # **Intuición.** Separar $\gamma$ de $\psi$ importa porque el riesgo y el tiempo
 # son distintos: $\gamma$ gobierna cuánto le disgusta al hogar una *apuesta* sobre
 # el valor del próximo período, mientras que $\psi$ gobierna con qué disposición
@@ -66,6 +82,15 @@
 # división en dos activos es una disyuntiva riesgo–rendimiento — la prima de
 # rendimiento del activo ilíquido se paga con fricciones de ajuste, de modo que
 # los saldos líquidos son el amortiguador que absorbe el riesgo de renta.
+#
+# ### Referencias clave
+#
+# - Calvo (1983). Staggered prices in a utility-maximizing framework. *Journal of Monetary Economics*, 12(3), 383–398.
+# - Carroll (1997). Death to the log-linearized consumption Euler equation! Very poor and very rich households should have different savings propensities. *NBER Working Paper*, No. 6298.
+# - Christiano et al. (2005). Nominal rigidities and the dynamic effects of a shock to monetary policy. *Journal of Political Economy*, 113(1), 1–45.
+# - Clarida et al. (1999). The science of monetary policy: A New Keynesian perspective. *Journal of Economic Literature*, 37(4), 1661–1707.
+# - Epstein & Zin (1989). Substitution, risk aversion and the temporal behavior of consumption and asset returns: A theoretical framework. *Econometrica*, 57(4), 937–969.
+# - Woodford (2003). *Interest and Prices: Foundations of a Theory of Monetary Policy*. Princeton University Press.
 
 # %%
 import sys
@@ -122,7 +147,7 @@ ax.legend(loc="upper right")
 fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04, label="mass")
 
 # %% [markdown]
-# **Lee el resultado.** La cuota ilíquida impresa arriba (la masa en $k$ como
+# **Lectura de los resultados.** La cuota ilíquida impresa arriba (la masa en $k$ como
 # fracción de la riqueza total) está muy por encima de la mitad: los hogares
 # guardan la mayor parte de su riqueza en el activo ilíquido de mayor rendimiento
 # y mantienen solo un saldo líquido $m$ reducido. Esa pequeña porción líquida es
@@ -168,7 +193,7 @@ ax.set_xlabel("Assets today"); ax.set_ylabel("Assets tomorrow")
 ax.set_title("Epstein–Zin: precautionary saving (EIS fixed)"); ax.legend(loc="upper left")
 
 # %% [markdown]
-# **Lee el resultado.** Con la EIS mantenida en $\psi=1.5$, lo único que cambió
+# **Lectura de los resultados.** Con la EIS mantenida en $\psi=1.5$, lo único que cambió
 # entre las dos resoluciones es la aversión al riesgo ($\gamma=2$ frente a
 # $\gamma=8$), y aun así los activos medios aumentan — un efecto precautorio puro
 # que un único parámetro CRRA no podría aislar, ya que elevar la CRRA también
@@ -211,7 +236,7 @@ ax.set_xlabel("Assets a"); ax.set_ylabel("Consumption c")
 ax.set_title("EGM vs. VFI consumption policy"); ax.legend(loc="upper left")
 
 # %% [markdown]
-# **Lee el resultado.** La brecha máxima entre las políticas de consumo del EGM y
+# **Lectura de los resultados.** La brecha máxima entre las políticas de consumo del EGM y
 # de la VFI (impresa arriba) es una fracción pequeña del consumo — los dos
 # algoritmos coinciden. El residuo no es error del EGM sino *discretización* de la
 # VFI: la política del EGM es continua (interpola a partir de la ecuación de Euler
@@ -273,7 +298,7 @@ assert min_slope >= -1e-9                                  # EGM consumption ris
 # se vuelve más rígido), pero cada iteración sigue siendo $O(n)$ en la malla (sin
 # búsqueda de raíces por estado), que es la verdadera ventaja de velocidad del EGM.
 #
-# **¿Qué tan completa es la biblioteca?** `puremacro.vfi` es un kit de
+# **¿Qué tan exhaustivo es esto?** `puremacro.vfi` es un kit de
 # herramientas completo para agentes heterogéneos, y el EGM, Epstein–Zin y los
 # múltiples estados endógenos son todos miembros de primera clase del mismo motor.
 # Los demás cuadernos de muestra se apoyan en él: la desigualdad de riqueza de

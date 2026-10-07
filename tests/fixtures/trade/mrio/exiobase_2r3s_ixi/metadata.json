@@ -1,0 +1,7 @@
+{
+    "description": "Hand-authored 2-region x 3-industry fixture in the EXIOBASE 3 ixi layout",
+    "name": "puremacro_fixture",
+    "system": "ixi",
+    "version": "fixture",
+    "history": []
+}

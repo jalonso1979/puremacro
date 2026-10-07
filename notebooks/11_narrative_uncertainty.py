@@ -16,7 +16,7 @@
 # **How can researchers and policy authorities quantify economic policy uncertainty in real time from raw news coverage without relying on proprietary feeds or expensive black-box language models?** `puremacro.narrative` builds research-grade **text-as-data uncertainty indices** from any corpus you supply, using only pure-numpy dictionary scoring — no network, no API key, no language model. Here we plant a known uncertainty shock in a synthetic news corpus and recover it with the Baker-Bloom-Davis **EPU** and the monetary-policy **MPU** indices.
 
 # %% [markdown]
-# ## The index in one equation
+# ## The method in math
 #
 # Baker-Bloom-Davis EPU flags a document $d$ as *uncertain* only when it hits all
 # **three** term groups at once:
@@ -29,12 +29,31 @@
 # and `normalize="bbd_100"` rescales it to the published units (sample mean 100, sd 50):
 # $\mathrm{EPU}_\tau = 100 + 50\cdot(\mathrm{EPU}^{\mathrm{raw}}_\tau - \overline{\mathrm{EPU}^{\mathrm{raw}}})/\mathrm{sd}(\mathrm{EPU}^{\mathrm{raw}})$.
 #
+# ### Baseline Calibration
+#
+# | Symbol | Economic / Linguistic Meaning | Baseline Specification | Units |
+# |---|---|---|---|
+# | $\mathcal{E}$ | Economic term lexicon | `{"economic", "economy", "recession", ...}` | Lexicon set |
+# | $\mathcal{P}$ | Policy term lexicon | `{"policy", "regulation", "deficit", "tax", ...}` | Lexicon set |
+# | $\mathcal{U}$ | Uncertainty term lexicon | `{"uncertain", "uncertainty", "ambiguous", ...}` | Lexicon set |
+# | $\mathcal{M}$ | Monetary policy keyword set | `{"federal reserve", "interest rate", "fomc", ...}` | Lexicon set |
+# | $N_\tau$ | Total news article volume in quarter $\tau$ | $12$ articles/quarter ($288$ total) | Document count |
+# | $\text{EPU}_\tau$ | Standardized Economic Policy Uncertainty index | Sample mean $100$, sample std $50$ | Index points |
+# | $\text{MPU}_\tau$ | Standardized Monetary Policy Uncertainty index | Zero mean, unit variance | Standard deviations (z-units) |
+#
 # **Intuition.** The *co-occurrence* of all three groups is what makes the index specific.
 # A piece about "economic growth" (no policy, no uncertainty) or a sports story that
 # happens to say "uncertain" never fires; only documents simultaneously about the economy,
 # about policy, and about uncertainty count. MPU drops the co-occurrence requirement and
 # just counts monetary-policy keywords, then z-scores — looser, but enough when the
 # vocabulary is already narrow.
+#
+# ### Seminal Literature Citations
+#
+# - Ahir, H., Bloom, N., & Furceri, D. (2022). The world uncertainty index. *NBER Working Paper*, No. 29763.
+# - Baker, S. R., Bloom, N., & Davis, S. J. (2016). Measuring economic policy uncertainty. *Quarterly Journal of Economics*, 131(4), 1593–1636.
+# - Bloom, N. (2009). The impact of uncertainty shocks. *Econometrica*, 77(3), 623–685.
+# - Husted, L., Rogers, J., & Sun, B. (2020). Monetary policy uncertainty. *Journal of Monetary Economics*, 115, 20–36.
 
 # %% [markdown]
 # ## Setup — imports and style
@@ -327,7 +346,7 @@ ax2.set_title("Average MPU keyword density per document")
 # injected signal phrases) below to your own domain and re-run.
 
 # %%
-# ← Replace these three groups with your own domain vocabulary.
+# ← change this: replace these three groups with your own domain vocabulary.
 my_lexicon = {
     "economy": frozenset({"climate", "emissions", "carbon", "warming", "greenhouse"}),
     "policy": frozenset({"policy", "regulation", "treaty", "tax", "subsidy", "mandate"}),

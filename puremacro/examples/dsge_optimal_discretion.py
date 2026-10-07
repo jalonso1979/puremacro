@@ -175,7 +175,7 @@ def main() -> tuple[DiscretionaryPolicyResult, PolicyResult]:
 
     # Sanity checks
     assert np.isclose(actual_inf_bias, theory_inf_bias, rtol=1e-4), "Inflation bias mismatch"
-    assert actual_stab_bias > 0.0, "Stabilization bias must be strictly positive"
+    assert actual_stab_bias > 0.0, "At beta = 0.99 the unconditional stabilization bias is positive"
 
     # Riccati matrix verification: PSD continuation matrix V
     V = res_disc.V

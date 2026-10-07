@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "package_file": "/tmp/puremacro-research-wheel-final/installed/puremacro/__init__.py",
+  "benchmark_count": 6,
+  "benchmark_passes": 6,
+  "enigh_deciles": 10,
+  "expanded_households": 38830230,
+  "lp_parameters": [
+    0.7887716506421132,
+    0.6350019583375801
+  ],
+  "lp_inference_valid": true,
+  "distributional_total_ev": -65302180753.93599,
+  "network_blocked_with_positive_control": true,
+  "repository_source_absent_from_sys_path": true,
+  "note": "Built from current working tree, including pre-existing uncommitted work; no package published."
+}

@@ -1,0 +1,7 @@
+label,target,target_se,unit,model,residual,used_in_fit,residual_over_target_se
+"cov(gdp_growth,gdp_growth;lag=2)",0.15580218860677442,0.06968332790543164,(100*dlog real per-capita GDP per quarter) * (100*dlog real per-capita GDP per quarter),1.477234793909524,1.3214326053027496,False,18.963396913191158
+"cov(infl,infl;lag=2)",0.3124596799908127,0.08790585089115517,(100*dlog GDP deflator per quarter) * (100*dlog GDP deflator per quarter),2.058811731028373,1.7463520510375603,False,19.866164007670996
+"cov(ffr,ffr;lag=2)",0.6010167505315445,0.2178756145829865,(federal funds annual percentage rate / 4) * (federal funds annual percentage rate / 4),12.137455205333337,11.536438454801793,False,52.94965421845173
+"cov(gdp_growth,gdp_growth;lag=4)",0.06190627393659276,0.050345627441120075,(100*dlog real per-capita GDP per quarter) * (100*dlog real per-capita GDP per quarter),-5.946914110671845,-6.008820384608438,False,-119.35138541347683
+"cov(infl,infl;lag=4)",0.28903184779338853,0.07667520859625072,(100*dlog GDP deflator per quarter) * (100*dlog GDP deflator per quarter),1.557295411649061,1.2682635638556725,False,16.54072531493169
+"cov(ffr,ffr;lag=4)",0.5040926340504379,0.20098539497621784,(federal funds annual percentage rate / 4) * (federal funds annual percentage rate / 4),7.880094129821927,7.376001495771489,False,36.69919148425822

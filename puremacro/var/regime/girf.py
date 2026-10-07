@@ -59,12 +59,18 @@ Stated simplifications
   over the drawn histories (each carrying its own simulation noise);
   it reflects history/simulation uncertainty, not parameter uncertainty.
 - ``ms_var_fit`` estimates a *shared* autoregressive matrix ``A`` with
-  regime-specific ``mu_k`` / ``Sigma_k`` (Hamilton 1989 teaching spec).
+  regime-specific ``mu_k`` / ``Sigma_k`` (MSIH spec in Krolzig 1997
+  notation; Hamilton 1989 instead switches the mean with a constant
+  variance).
   With common regime paths and common draws the paired difference is
   then linear in the impulse, so the MS-GIRF differs across starting
   regimes only through the impact Cholesky ``chol(Sigma_k)``. The full
   simulation machinery is kept so a regime-dependent ``A_k`` extension
   inherits it unchanged.
+- An MS fit with ``p = 0`` (a hidden Markov model with switching mean
+  and covariance, no lags) has no dynamics: its GIRF is
+  ``delta * chol(Sigma_k)[:, shock]`` at ``h = 0`` and exactly zero at
+  every later horizon.
 
 References
 ----------
@@ -77,6 +83,8 @@ Kilian, L. and Vigfusson, R.J. (2011). Are the responses of the U.S.
 Hamilton, J.D. (1989). A new approach to the economic analysis of
     nonstationary time series and the business cycle. Econometrica
     57(2), 357-384.
+Krolzig, H.-M. (1997). Markov-Switching Vector Autoregressions.
+    Springer Lecture Notes 454.
 """
 from __future__ import annotations
 
@@ -324,9 +332,10 @@ def _prep_ms(fit: MSVARResult, Y: np.ndarray):
                 if mask.any():
                     y[mask] += fit.mu[k] + eps[mask, h] @ Ls[k].T
             out[:, h] = y
-            # ⚡ Bolt: in-place array shifting avoids np.concatenate memory reallocation
-            buf[:, :-1] = buf[:, 1:]
-            buf[:, -1] = y
+            if p:                             # p = 0: no lags to carry
+                # ⚡ Bolt: in-place array shifting avoids np.concatenate memory reallocation
+                buf[:, :-1] = buf[:, 1:]
+                buf[:, -1] = y
         return out
 
     ts = np.arange(p, Y.shape[0])             # smoothed_probs rows t = p .. T-1
@@ -368,6 +377,8 @@ def girf(
         data must be passed as ``Y``.
     Y : (T, n) array_like
         The sample the model was fitted on (histories are drawn from it).
+        For a one-variable ``MSVARResult`` a 1-D ``(T,)`` array is also
+        accepted, as in :func:`ms_var_fit`; other fits need 2-D input.
     shock : int
         Index of the shocked equation. Identification is a Cholesky
         factorisation of the within-regime residual covariance in the
@@ -396,8 +407,14 @@ def girf(
         difference and its bootstrap band.
     """
     Y = np.asarray(Y, dtype=float)
+    if Y.ndim == 1 and isinstance(fit, MSVARResult) and fit.A.shape[0] == 1:
+        # ms_var_fit treats a 1-D Y as one variable; accept the same input.
+        Y = Y[:, None]
     if Y.ndim != 2:
-        raise ValueError(f"girf: Y must be 2-D (T, n); got shape {Y.shape}.")
+        raise ValueError(
+            f"girf: Y must be 2-D (T, n); got shape {Y.shape}. A 1-D Y is "
+            "accepted only for a one-variable MS-VAR fit."
+        )
 
     if isinstance(fit, TVARResult):
         prep = _prep_tvar(fit, Y)

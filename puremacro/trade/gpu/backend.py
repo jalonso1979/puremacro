@@ -114,7 +114,9 @@ def _load_mlx() -> Any | None:
 def _require_torch(what: str) -> Any:
     torch = _load_torch()
     if torch is None:
-        raise RuntimeError(f"Device '{what}' requested but PyTorch is not installed.")
+        raise RuntimeError(
+            f"Device '{what}' requested but PyTorch is not installed or could not be imported."
+        )
     return torch
 
 
@@ -206,7 +208,7 @@ def select_compute_device(preferred: str | None = None) -> tuple[str, str]:
     if pref in ("torch", "pytorch"):
         torch = _load_torch()
         if torch is None:
-            raise RuntimeError("PyTorch requested but not installed.")
+            raise RuntimeError("PyTorch requested but it is not installed or could not be imported.")
         if torch.cuda.is_available():
             return ("torch", "cuda")
         if _mps_available(torch):
@@ -252,6 +254,24 @@ def _resolve_backend_device(device: str | None, backend: str | None) -> tuple[st
     the user's ``device`` and ``backend`` arguments into a concrete pair, so the
     device string is never re-parsed (``'gpu'`` is the MLX device, not a request
     for "any GPU").
+
+    With ``backend='torch'`` the accepted device strings are ``'cpu'``, ``'cuda'``,
+    ``'cuda:N'``, ``'mps'``, ``'gpu'`` (the best PyTorch GPU: CUDA, then MPS) and
+    ``'torch'``/``'pytorch'`` (same as ``device=None``).
+
+    Raises
+    ------
+    ValueError
+        If ``backend`` is unknown or ``device`` is not a device of that backend
+        (for example ``device='mlx'`` with ``backend='torch'``, whether or not MLX
+        is installed).
+    RuntimeError
+        If ``backend='torch'`` or ``backend='mlx'`` is requested by name but the
+        library is not installed or cannot be imported, or if the requested device
+        is not available to it (for example ``device='gpu'`` with
+        ``backend='torch'`` on a machine without CUDA or MPS). ``device='cpu'`` with
+        ``backend='torch'`` therefore raises ``RuntimeError`` on a machine whose
+        torch is absent or broken; it never blames the device name.
     """
     dev = None if device is None else str(device).lower().strip()
     be = None if backend is None else str(backend).lower().strip()
@@ -264,11 +284,30 @@ def _resolve_backend_device(device: str | None, backend: str | None) -> tuple[st
         return select_compute_device(dev)
 
     if be in ("torch", "pytorch"):
-        if dev is None:
+        if dev is None or dev in ("torch", "pytorch"):
             return select_compute_device("torch")
+        if not (dev in ("cpu", "mps", "cuda", "gpu") or dev.startswith("cuda:")):
+            raise ValueError(
+                f"device={device!r} is not a PyTorch device (expected 'cpu', 'cuda', 'cuda:N', 'mps', "
+                "'gpu', 'torch' or 'pytorch')."
+            )
+        if _load_torch() is None:
+            # A torch that is absent, or present but not importable (``_load_torch`` already
+            # warned), is "unavailable": report that cause instead of blaming the device name
+            # (``select_compute_device('cpu')`` would silently degrade to NumPy here).
+            raise RuntimeError(
+                f"backend='torch' with device={device!r} requested but PyTorch is not installed or "
+                "could not be imported; use backend='numpy' (or backend=None) with device='cpu' "
+                "for the NumPy evaluator."
+            )
         sel_backend, sel_device = select_compute_device(dev)
         if sel_backend != "torch":
-            raise ValueError(f"device={device!r} is not a PyTorch device (expected 'cuda', 'cuda:N', 'mps' or 'cpu').")
+            # Only reachable for device='gpu' when PyTorch has neither CUDA nor MPS and the
+            # best GPU is MLX: the request is valid but not available to PyTorch.
+            raise RuntimeError(
+                f"device={device!r} with backend='torch' requested but neither CUDA nor MPS is "
+                "available to PyTorch."
+            )
         return (sel_backend, sel_device)
 
     if be in ("mlx", "apple_mlx"):

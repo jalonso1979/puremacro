@@ -17,6 +17,9 @@ Tests:
 3. ScoreDiagnosticsResult .to_typst() export.
 4. Elevated VFISolution (.summary(), .to_frame(), export quintet, headless .plot()).
 5. Elevated HJBSolution (.summary(), .to_frame(), export quintet, headless .plot(), and dict mapping protocol).
+5b. Report quintet (.to_dataframe(), .to_markdown(), .to_latex(), .to_typst(), .summary()) of the result
+    classes of trade.{ces_newton, household, continuation, stability, mrio, condensed, dynamic} and
+    dsge.stacked_newton, each built from the smallest fixture the module's own tests use.
 6. Deprecation warning update verification (retiring stale 2.0.0 references).
 """
 from __future__ import annotations
@@ -503,6 +506,318 @@ def test_hjb_solution_elevation_and_dict_compatibility():
 
 
 # ---------------------------------------------------------------------------
+# 4b. MRIO engines and the stacked Newton-Krylov: the report quintet on real results
+# ---------------------------------------------------------------------------
+# One short test per result class, each built from the smallest fixture the module's own
+# tests use (analytic or two-country tables). Each result must render the quintet.
+
+
+def _assert_quintet(obj, **frame_kwargs):
+    frame = obj.to_dataframe(**frame_kwargs)
+    assert isinstance(frame, pd.DataFrame) and not frame.empty
+    for method in ("to_markdown", "to_latex", "to_typst"):
+        text = getattr(obj, method)()
+        assert isinstance(text, str) and text.strip(), method
+    if hasattr(obj, "summary"):
+        assert isinstance(obj.summary(), str) and obj.summary().strip()
+
+
+def _two_country_trade_calibration():
+    """The two-country, one-sector table of docs/trade_ces_newton.md."""
+    from puremacro.trade import calibrate_trade_model
+
+    Z = np.array([[10.0, 12.0], [8.0, 14.0]])
+    F = np.array([[30.0, 8.0, 20.0, 20.0], [15.0, 15.0, 50.0, 18.0]])
+    production_tax = np.array([4.0, 6.0])
+    final_tax = np.array([2.0, 1.0, 3.0, 2.0])
+    output = Z.sum(1) + F.sum(1)
+    va = output - Z.sum(0) - production_tax
+    table = np.vstack([np.hstack([Z, F]), np.r_[production_tax, final_tax],
+                       np.r_[2 * va / 3, np.zeros(4)], np.r_[va / 3, np.zeros(4)]])
+    return calibrate_trade_model(table, ns=1, nc=2, nfd=2, country_codes=["A", "B"])
+
+
+def _two_country_tariffs():
+    tau = np.ones((2, 1, 2))
+    tau[1, 0, 0] = 1.2
+    tau_fd = np.ones((2, 2, 2))
+    tau_fd[1, :, 0] = 1.2
+    return tau, tau_fd
+
+
+def test_ces_block_newton_result_quintet():
+    from puremacro.trade.ces_newton import CESBlockNewtonResult, NestedCESTechnology, solve_ces_block_newton
+
+    tau, tau_fd = _two_country_tariffs()
+    tech = NestedCESTechnology(sigma_va_materials=0.3, sigma_sectors=0.5, sigma_origins=1.5, rho_va=0.8)
+    res = solve_ces_block_newton(_two_country_trade_calibration(), tau, tau_fd, technology=tech)
+    assert isinstance(res, CESBlockNewtonResult) and res.converged
+    _assert_quintet(res)
+
+
+@pytest.fixture(scope="module")
+def household_prefs():
+    from puremacro.trade.household import calibrate_household
+
+    x0 = np.array([[25.0, 10.0], [45.0, 60.0], [30.0, 30.0]])
+    eta = np.array([[0.6, 0.5], [0.9, 1.1], [1.3, 1.2]])
+    return x0, eta, calibrate_household(x0, "stone_geary", expenditure_elasticities=eta,
+                                        supernumerary_share=[0.4, 0.5],
+                                        sector_codes=["AGR", "MAN", "SRV"], country_codes=["USA", "ROW"])
+
+
+def test_household_calibration_result_quintet(household_prefs):
+    from puremacro.trade.household import HouseholdCalibrationResult
+
+    _, _, prefs = household_prefs
+    assert isinstance(prefs.calibration, HouseholdCalibrationResult)
+    _assert_quintet(prefs.calibration)
+
+
+def test_household_demand_result_quintet(household_prefs):
+    from puremacro.trade.household import HouseholdDemandResult
+
+    _, _, prefs = household_prefs
+    prices = np.array([[1.3, 0.8], [0.9, 1.25], [1.1, 1.05]])
+    state = prefs.evaluate(prices, np.array([105.0, 110.0]), validate=True)
+    assert isinstance(state, HouseholdDemandResult)
+    _assert_quintet(state)
+
+
+def test_household_welfare_result_quintet(household_prefs):
+    from puremacro.trade.household import HouseholdWelfareResult
+
+    _, _, prefs = household_prefs
+    prices = np.array([[1.3, 0.8], [0.9, 1.25], [1.1, 1.05]])
+    welfare = prefs.welfare(prices, np.array([105.0, 110.0]), validate=True)
+    assert isinstance(welfare, HouseholdWelfareResult)
+    _assert_quintet(welfare)
+
+
+def test_supernumerary_fit_result_quintet(household_prefs):
+    from puremacro.trade.household import SupernumeraryFitResult, fit_supernumerary_share
+
+    x0, eta, prefs = household_prefs
+    own = -prefs.supernumerary_share * prefs.eta * (1 - prefs.beta)
+    fit = fit_supernumerary_share(x0, eta, own)
+    assert isinstance(fit, SupernumeraryFitResult)
+    _assert_quintet(fit)
+
+
+@pytest.fixture(scope="module")
+def continuation_problem():
+    from dataclasses import replace
+
+    from puremacro.trade._oecd_icio import condense_final_demand
+    from puremacro.trade.data import generate_synthetic_mrio, package_mrio_to_calibration_result
+
+    raw = generate_synthetic_mrio("oecd", custom_c=3, custom_s=3, seed=2)
+    raw = replace(raw, taxes_less_subsidies_fd=np.zeros(raw.C * raw.K_F))
+    calib = package_mrio_to_calibration_result(condense_final_demand(raw))
+    nc, ns, nfd = calib.nc, calib.ns, calib.n_final_demand
+    tau, tau_fd = np.ones((ns * nc, ns, nc)), np.ones((ns * nc, nfd, nc))
+    tau[ns:, :, 0], tau_fd[ns:, :, 0] = 1.1, 1.1
+    return calib, tau, tau_fd
+
+
+def test_parameter_continuation_result_quintet(continuation_problem):
+    from puremacro.trade.continuation import ParameterContinuationResult, sigma_path
+
+    calib, tau, tau_fd = continuation_problem
+    path = sigma_path(calib, tau, tau_fd, 0.5, tol=1e-9)
+    assert isinstance(path, ParameterContinuationResult)
+    _assert_quintet(path)
+
+
+def test_direct_target_result_quintet(continuation_problem):
+    from puremacro.trade.continuation import DirectTargetResult, try_starts
+
+    calib, tau, tau_fd = continuation_problem
+    multi = try_starts(calib, dict(tau=tau, tau_fd=tau_fd, sigma=0.5, tol=1e-9), [{"name": "calibrated", "x0": None}])
+    assert isinstance(multi, DirectTargetResult)
+    _assert_quintet(multi)
+
+
+def test_reduced_stability_result_quintet():
+    from puremacro.trade import calibrate_trade_model, solve_trade_equilibrium
+    from puremacro.trade.stability import StabilityResult, reduced_stability
+
+    y0, alpha = np.array([100.0, 150.0]), np.array([0.3, 0.4])
+    F = np.array([[60.0, 40.0], [40.0, 110.0]])
+    data = np.zeros((5, 6))
+    data[3, :2], data[4, :2] = (1 - alpha) * y0, alpha * y0
+    for c in range(2):
+        data[:2, 2 + 2 * c:4 + 2 * c] = F[:, c][:, None] * np.array([0.7, 0.3])[None, :]
+    calib = calibrate_trade_model(data, ns=1, nc=2, nfd=2, country_codes=["A", "B"])
+    base = solve_trade_equilibrium(calib, accounting="consistent", tol=1e-12)
+    report = reduced_stability(calib, base)
+    assert isinstance(report, StabilityResult)
+    _assert_quintet(report)
+
+
+def _mrio_toy_table():
+    from puremacro.trade import mrio as m
+
+    z = np.array([[1, 0.1, 0.2, 0], [0.3, 1, 0, 0.1], [0.1, 0, 2, 0.2], [0, 0.2, 0.1, 1]])
+    C = np.array([[4.0, 0.5], [1.0, 1.0], [0.4, 5.0], [1.0, 3.0]])
+    G = np.array([[1.0, 0.1], [2.0, 0.2], [0.1, 1.5], [0.2, 2.0]])
+    X = np.array([[0.1, 0.2], [0, 0], [0.3, 0.2], [0, 0]])
+    F = np.stack([C, G, X], axis=2)
+    output = z.sum(1) + F.sum(axis=(1, 2))
+    taxes = np.array([0.1, -0.1, 0.2, 0.1])
+    va = output - z.sum(0) - taxes
+    return m.MRIOTable.from_arrays(z, F, va, taxes, np.array([[0.2, 0.1, 0.0], [0.4, 0.3, 0.0]]),
+                                   country_codes=("A", "B"), sector_codes=("goods", "services"),
+                                   fd_codes=("C", "G", "X"), output=output,
+                                   merchandise_mask=np.array([True, False]))
+
+
+def test_mrio_accounting_report_quintet():
+    from puremacro.trade.mrio import MRIOAccountingReport
+
+    table = _mrio_toy_table()
+    _assert_quintet(table)
+    report = table.accounting_report()
+    assert isinstance(report, MRIOAccountingReport)
+    _assert_quintet(report)
+
+
+def test_mrio_build_report_quintet():
+    from puremacro.trade.mrio import MRIOBuildReport, regularize_table
+
+    balanced, report = regularize_table(_mrio_toy_table())
+    assert isinstance(report, MRIOBuildReport) and report.passed
+    _assert_quintet(report)
+
+
+def test_coarse_tariff_result_quintet():
+    from puremacro.trade.mrio import CoarseTariffResult, Concordance, coarse_tariff_rates
+
+    table = _mrio_toy_table()
+    one = Concordance.from_mapping("one", {"goods": "ALL", "services": "ALL"})
+    rates = np.array([[0.0, 0.0], [0.1, 0.0]])       # A taxes B's goods at 10%
+    res = coarse_tariff_rates(rates, table, one, "output", importer="A")
+    assert isinstance(res, CoarseTariffResult)
+    _assert_quintet(res)
+
+
+@pytest.fixture(scope="module")
+def condensed_solution():
+    from puremacro.trade.condensed import (BalancedIOTable, build_tariff_wedges, calibrate_condensed,
+                                           compute_measures, solve_condensed)
+    from tools.reference_validation.validate_oecd import load_fixture
+
+    table = BalancedIOTable.from_raw(load_fixture(), reference_country="REST")
+    calib = calibrate_condensed(table)
+    wedges = build_tariff_wedges(calib, 0.10, importer="USA")
+    result = solve_condensed(calib, wedges)
+    return calib, wedges, result, compute_measures(calib, wedges, result.state, country="USA")
+
+
+def test_condensed_equilibrium_result_quintet(condensed_solution):
+    from puremacro.trade.condensed import CondensedEquilibriumResult
+
+    result = condensed_solution[2]
+    assert isinstance(result, CondensedEquilibriumResult) and result.passed
+    _assert_quintet(result)
+
+
+def test_raw_flow_certificate_quintet(condensed_solution):
+    from puremacro.trade.condensed import RawFlowCertificate
+
+    certificate = condensed_solution[2].certificate
+    assert isinstance(certificate, RawFlowCertificate) and certificate.passed
+    _assert_quintet(certificate)
+
+
+def test_condensed_measures_result_quintet(condensed_solution):
+    from puremacro.trade.condensed import CondensedMeasuresResult
+
+    measures = condensed_solution[3]
+    assert isinstance(measures, CondensedMeasuresResult)
+    _assert_quintet(measures)
+
+
+@pytest.fixture(scope="module")
+def dynamic_fixture():
+    from puremacro.trade.dynamic import (DynamicEconomy, DynamicTariff, analytic_two_country_accounts,
+                                         calibrate_dynamic, solve_dynamic_steady_state,
+                                         solve_dynamic_transition, tariff_path)
+
+    calibration = calibrate_dynamic(analytic_two_country_accounts())
+    economy = DynamicEconomy(calibration, adjustment_cost=2, risk_aversion=2)
+    rates = np.zeros((calibration.n_cells, calibration.n_countries))
+    rates[calibration.country == 0, 1] = 0.06
+    rates[calibration.country == 1, 0] = 0.08
+    shock = DynamicTariff.build(rates, label="analytic tariff")
+    baseline = solve_dynamic_steady_state(economy)
+    terminal = solve_dynamic_steady_state(economy, shock, tol=1e-11)
+    run = solve_dynamic_transition(economy, tariff_path(economy.zero_policy(), shock, horizon=24),
+                                   terminal=terminal, tol=1e-10)
+    return calibration, economy, baseline, terminal, run
+
+
+def test_dynamic_calibration_quintet(dynamic_fixture):
+    from puremacro.trade.dynamic import DynamicCalibration
+
+    calibration = dynamic_fixture[0]
+    assert isinstance(calibration, DynamicCalibration)
+    _assert_quintet(calibration)
+
+
+def test_dynamic_steady_state_result_quintet(dynamic_fixture):
+    from puremacro.trade.dynamic import DynamicSteadyStateResult
+
+    terminal = dynamic_fixture[3]
+    assert isinstance(terminal, DynamicSteadyStateResult)
+    _assert_quintet(terminal)
+
+
+def test_dynamic_transition_and_welfare_results_quintet(dynamic_fixture):
+    from puremacro.trade.dynamic import ConsumptionEquivalentResult, DynamicTransitionResult
+
+    run = dynamic_fixture[4]
+    assert isinstance(run, DynamicTransitionResult)
+    _assert_quintet(run)
+    assert isinstance(run.welfare, ConsumptionEquivalentResult)
+    _assert_quintet(run.welfare)
+
+
+def test_dynamic_stability_result_quintet(dynamic_fixture):
+    from puremacro.trade.dynamic import DynamicStabilityResult, stability_report
+
+    _, economy, baseline, _, _ = dynamic_fixture
+    report = stability_report(economy, baseline)
+    assert isinstance(report, DynamicStabilityResult)
+    _assert_quintet(report)
+
+
+def test_stacked_newton_results_quintet():
+    from puremacro.dsge.stacked_newton import (HorizonComparison, StackedNewtonResult, StackedProblem,
+                                               compare_horizons, solve_stacked_newton_krylov)
+
+    alpha, beta, delta = 0.33, 0.96, 0.10
+    k_ss = (alpha / (1 / beta - (1 - delta))) ** (1 / (1 - alpha))
+    c_ss = k_ss ** alpha - delta * k_ss
+
+    def equations_fn(y_plus, y_curr, y_lag, eps):
+        euler = 1 / y_curr[0] - beta / y_plus[0] * (alpha * float(eps) * y_curr[1] ** (alpha - 1) + 1 - delta)
+        resource = y_curr[1] - (float(eps) * y_lag[1] ** alpha + (1 - delta) * y_lag[1] - y_curr[0])
+        return [euler, resource]
+
+    y_ss, y_init = np.array([c_ss, k_ss]), np.array([c_ss, 0.5 * k_ss])
+    short = solve_stacked_newton_krylov(StackedProblem(equations_fn, y_init, y_ss, np.ones(40),
+                                                       variable_names=["c", "k"]), tol=1e-8)
+    long = solve_stacked_newton_krylov(StackedProblem(equations_fn, y_init, y_ss, np.ones(80),
+                                                      variable_names=["c", "k"]), tol=1e-8)
+    assert isinstance(short, StackedNewtonResult)
+    _assert_quintet(short)
+    comparison = compare_horizons(short, long, periods=20, tolerance=1e-5)
+    assert isinstance(comparison, HorizonComparison)
+    _assert_quintet(comparison)
+
+
+# ---------------------------------------------------------------------------
 # 5. Stale Deprecation Warnings Retired
 # ---------------------------------------------------------------------------
 
@@ -515,8 +830,10 @@ def test_garch_utils_deprecation_warning():
     matches = [w for w in record if "puremacro.lp.garch_utils" in str(w.message)]
     assert len(matches) > 0
     msg = str(matches[0].message)
-    assert "a future major release (4.0.0)" in msg
-    assert "2.0.0" not in msg
+    # 4.0.0 shipped (2026-09-16) keeping the shim; the target was retargeted to 5.0.0 on
+    # 2026-09-22 and tests/test_docs_hygiene_audit_fixes.py guards it against drifting again.
+    assert "a future major release (5.0.0)" in msg
+    assert "2.0.0" not in msg and "4.0.0" not in msg
 
 
 def test_sigma_numpy_deprecation_warning():
@@ -527,5 +844,6 @@ def test_sigma_numpy_deprecation_warning():
     matches = [w for w in record if "SigmaObject is deprecated" in str(w.message)]
     assert len(matches) > 0
     msg = str(matches[0].message)
-    assert "a future major release (4.0.0)" in msg
-    assert "2.0.0" not in msg
+    # 4.0.0 shipped keeping this shim too; retargeted to 5.0.0 with garch_utils (2026-09-23).
+    assert "a future major release (5.0.0)" in msg
+    assert "2.0.0" not in msg and "4.0.0" not in msg

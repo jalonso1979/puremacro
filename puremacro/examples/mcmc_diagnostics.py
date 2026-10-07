@@ -4,12 +4,14 @@ We run two independent ``minnesota_gibbs`` chains from different
 starting seeds, then check convergence with three diagnostics:
 
   - Geweke (1992) z-score per chain.
-  - Gelman-Rubin R̂ across chains.
+  - Split R̂ across chains (each chain halved, as in Gelman et al.'s
+    BDA3 and Vehtari et al. 2021), with the classic Gelman-Rubin R̂
+    alongside.
   - Effective sample size per chain.
 
 A small ``n_draws`` deliberately produces a marginal R̂ to show what a
 not-yet-converged sampler looks like; bumping ``n_draws`` should drive
-R̂ → 1 and ESS up.
+split R̂ → 1 and ESS up.
 
 Run:
     python -m puremacro.examples.mcmc_diagnostics
@@ -67,8 +69,12 @@ def main() -> None:
               f"Geweke z={z:+.2f}  ESS={ess:.0f}")
     print()
     gr = gelman_rubin(chains)
-    print(f"  Gelman-Rubin R̂ = {gr['R_hat']:.4f}  (want ≤ 1.01 for convergence)")
-    print(f"  Within-chain var W = {gr['W']:.5f}, "
+    gr_split = gelman_rubin(chains, split=True)
+    print(f"  Split R̂ = {gr_split['R_hat']:.4f}   (classic Gelman-Rubin R̂ = {gr['R_hat']:.4f})")
+    print("  Split R̂ halves each chain, so it also detects a drift shared by all chains.")
+    print("  The 1.01 cutoff of Vehtari et al. (2021) is for their rank-normalised")
+    print("  split R̂, which is not computed here.")
+    print(f"  Whole chains: within-chain var W = {gr['W']:.5f}, "
           f"between-chain var B = {gr['B']:.5f}")
     print()
     print("Trace summary across all chains:")
@@ -82,7 +88,7 @@ def main() -> None:
         for c, chain in enumerate(chains):
             axes[0].plot(chain, lw=0.6, color=f"{0.6 - c*0.2:.2f}",
                          label=f"chain {c}")
-        axes[0].set_title(f"Trace of A_1[0,0]   (R̂={gr['R_hat']:.3f})")
+        axes[0].set_title(f"Trace of A_1[0,0]   (split R̂={gr_split['R_hat']:.3f})")
         axes[0].legend(frameon=False)
         for c, chain in enumerate(chains):
             acf = autocorrelations(chain, max_lag=60)

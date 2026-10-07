@@ -265,6 +265,25 @@ class TestMSVarGirf:
         expected = fit.smoothed_probs.mean(axis=0)
         assert np.allclose(res.pooled_weights, expected / expected.sum(), atol=1e-10)
 
+    def test_one_variable_fit_accepts_1d_y(self, ms_case):
+        """ms_var_fit accepts a 1-D Y as one variable; girf now does too for
+        a one-variable MS fit, and gives exactly the (T, 1) result."""
+        Y, fit, res = ms_case
+        assert fit.A.shape[0] == 1
+        res_1d = girf(fit, Y[:, 0], shock=0, horizon=8, n_hist=15, n_sim=25,
+                      n_boot=50, rng=5)
+        for name in ("girf_by_regime", "girf_pooled", "difference",
+                     "difference_lo", "difference_hi"):
+            np.testing.assert_array_equal(getattr(res_1d, name), getattr(res, name))
+
+    def test_1d_y_rejected_for_multivariable_ms_fit(self):
+        rng = np.random.default_rng(3)
+        Y2 = np.column_stack([_hamilton_style_data(T=160, seed=2)[:, 0],
+                              rng.standard_normal(160)])
+        fit2 = ms_var_fit(Y2, K=2, p=1, n_iter=20)
+        with pytest.raises(ValueError, match="girf: Y must be 2-D"):
+            girf(fit2, Y2[:, 0], n_hist=5, n_sim=5, n_boot=10)
+
 
 # ---------------------------------------------------------------------------
 # TVECM smoke (cointegrated data)

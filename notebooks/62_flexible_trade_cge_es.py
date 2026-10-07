@@ -11,459 +11,394 @@
 # ---
 
 # %% [markdown]
-# # Equilibrio General de Comercio Flexible: Tecnología CES Anidada, Preferencias Stone-Geary No Homotéticas y Márgenes Variables de Atkeson-Burstein
+# # Bloques de comercio flexible y un equilibrio de referencia
 #
-# **¿Cómo alteran la sustitución flexible de factores (complementariedad capital-trabajo), los pisos de consumo no homotéticos (transformación estructural de la curva de Engel) y los márgenes variables en competencia imperfecta la propagación de choques de política comercial internacional y la distribución del bienestar en equilibrio general en comparación con los modelos CGE rígidos tradicionales?**
+# **¿Cómo cambian las decisiones a precios dados la sustitución de factores, la demanda de subsistencia y los márgenes variables, y quién soporta un arancel en un pequeño equilibrio de referencia?**
 #
-# Los modelos de comercio cuantitativo y equilibrio general computable (CGE) constituyen la herramienta empírica fundamental para evaluar escaladas arancelarias, acuerdos comerciales regionales y disrupciones en las cadenas globales de valor. Los modelos tradicionales multipaís y multisectoriales —como el marco estándar GTAP o los modelos ricardianos de insumo-producto de referencia— imponen habitualmente tres restricciones estructurales restrictivas:
-# 1. **Sustitución unitaria de factores (valor agregado Cobb-Douglas):** El capital y el trabajo se sustituyen con elasticidad unitaria ($\rho_{va} = 1$), fijando las participaciones nominales del ingreso de los factores independientemente de las abundancias relativas o de las perturbaciones de precios.
-# 2. **Preferencias homotéticas (elasticidad ingreso unitaria):** Las cuotas presupuestarias de consumo se mantienen invariantes ante el crecimiento del ingreso real, suprimiendo la realidad empírica de la Ley de Engel y la transformación estructural sectorial.
-# 3. **Competencia perfecta y traspaso arancelario completo:** Las empresas fijan precios estrictamente a costo marginal ($P = MC$), lo que implica márgenes económicos nulos y un traspaso del 100% de los aranceles aduaneros a los precios de frontera.
+# Todas las cifras provienen de una tabla balanceada a mano con dos países y dos sectores, en unidades de valor ilustrativas; los códigos A, B, FOOD y MANU no se refieren a economías observadas. Las secciones 1-3 evalúan los bloques de costos, demanda y precios de la biblioteca a precios dados. Las secciones 4-6 resuelven un equilibrio arancelario, muestran cuánto depende su respuesta de una elasticidad y comparan dos cierres contables.
 #
-# En la teoría moderna del comercio cuantitativo, la evidencia empírica rechaza contundentemente tales supuestos:
-# - Chirinko (2008) y Oberfield & Raval (2021) documentan elasticidades agregadas de sustitución capital-trabajo significativamente inferiores a la unidad ($\rho_{va} \approx 0.5 - 0.8$), indicando complementariedad de factores donde la acumulación de capital comprime la tasa de beneficio y presiona al alza los salarios reales.
-# - Comin, Lashkari & Mestieri (2021) y Matsuyama (2019) demuestran que las preferencias no homotéticas son indispensables para comprender cómo las variaciones del ingreso real reasignan el gasto entre bienes agrícolas de primera necesidad y servicios suntuarios en economías avanzadas y en desarrollo.
-# - Atkeson & Burstein (2008) y Amiti, Redding & Weinstein (2019) evidencian que las grandes empresas exportadoras poseen poder de mercado, fijando márgenes variables según su cuota de mercado en destino y absorbiendo estratégicamente los aranceles, lo que amortigua la inflación al consumidor a costa del margen operativo de los exportadores.
-#
-# Este cuaderno de demostración implementa, calibra y simula el **Motor de Equilibrio General de Comercio Flexible** en `puremacro.trade`. El marco generaliza el modelo de equilibrio general insumo-producto global de 77 países y 11 sectores en tecnología, preferencias y estructura de mercado, preservando rigurosamente la calibración del equilibrio base, el vector invariante de 2,001 variables y la compatibilidad con Pyodide WebAssembly.
+# La tabla 77x11 incluida que devuelve `load_icio_data(source="legacy")` es un conjunto de datos de prueba de regresión del software, agregado a partir de una exportación corrupta de la OCDE (los números perdieron el punto decimal); no es una fuente de estimaciones: véase la entrada del 2026-09-22 de [docs/es/ADVISORY.md](../docs/es/ADVISORY.md). La primera celda de código solo lee su etiqueta de procedencia.
 
 # %% [markdown]
-# ## El método en matemáticas — Equilibrio General de Comercio Cuantitativo Flexible
+# ## El método en matemáticas
 #
-# **1. Tecnología de Producción CES Anidada en Forma de Participaciones Calibradas (CSF).**
-# Considérese una economía internacional con $N$ países ($n, i = 1, \dots, N$) y $J$ sectores ($j, k = 1, \dots, J$). La producción sectorial combina factores primarios (capital $K$ y trabajo $L$) e insumos intermedios $M$ mediante una estructura CES anidada en dos niveles.
-#
-# Para evitar la distorsión espuria de las participaciones empíricas, las funciones se especifican en **Forma de Participaciones Calibradas (CSF)** respecto al equilibrio base observable $(r_0=1, w_0=1, p_0=1, c_{va,0}, P_{M,0})$:
-#
-# - **Nido Interior (Costo Unitario de Valor Agregado):**
-#   $$ c_{va, i}^j(r_i, w_i) = c_{va, 0, i}^j \left[ \alpha_i^j \left(\frac{r_i}{r_{0, i}}\right)^{1 - \rho_{va}} + (1 - \alpha_i^j) \left(\frac{w_i}{w_{0, i}}\right)^{1 - \rho_{va}} \right]^{\frac{1}{1 - \rho_{va}}} $$
-#   donde $\rho_{va} \in (0, \infty)$ es la elasticidad de sustitución capital-trabajo, $\alpha_i^j$ es la participación de capital en el valor agregado de referencia, y $c_{va, 0, i}^j = \frac{1}{\beta_i^j (\alpha_i^j)^{\alpha_i^j} (1 - \alpha_i^j)^{1 - \alpha_i^j}}$ preserva el costo unitario de referencia. Cuando $|\rho_{va} - 1| < 10^{-6}$, la función converge de forma continua al caso Cobb-Douglas.
-#
-# - **Nido Exterior (Costo Unitario del Producto Bruto):**
-#   $$ c_{y, i}^j = \left[ \theta_{va, 0, i}^j \left(\frac{c_{va, i}^j}{c_{va, 0, i}^j}\right)^{1 - \sigma_y} + \theta_{m, 0, i}^j \left(\frac{P_{M, i}^j}{P_{M, 0, i}^j}\right)^{1 - \sigma_y} \right]^{\frac{1}{1 - \sigma_y}} $$
-#   donde $\sigma_y \in [0, \infty)$ rige la sustitución entre valor agregado e insumos intermedios, $\theta_{va, 0, i}^j = VA_{0, i}^j / Y_{0, i}^j$, y $\theta_{m, 0, i}^j = M_{0, i}^j / Y_{0, i}^j$.
-#
-# - **Demandas de Factores Normalizadas (Cero Doble Contabilización):**
-#   $$ xl_i^j = \frac{VA_i^j}{c_{va, 0, i}^j} \frac{\partial c_{va, i}^j}{\partial w_i} = \theta_{va, 0, i}^j Y_i^j \left(\frac{c_{y, i}^j}{c_{va, i}^j}\right)^{\sigma_y} \left[ \frac{1}{c_{va, 0, i}^j} \frac{\partial c_{va, i}^j}{\partial w_i} \right] $$
-#   $$ xk_i^j = \frac{VA_i^j}{c_{va, 0, i}^j} \frac{\partial c_{va, i}^j}{\partial r_i} = \theta_{va, 0, i}^j Y_i^j \left(\frac{c_{y, i}^j}{c_{va, i}^j}\right)^{\sigma_y} \left[ \frac{1}{c_{va, 0, i}^j} \frac{\partial c_{va, i}^j}{\partial r_i} \right] $$
-#   Dividir por $c_{va, 0, i}^j$ asegura que a precios base $\left.\frac{\partial (c_{va}/c_{va,0})}{\partial w}\right|_0 = 1 - \alpha$, recuperando exactamente $xl_0 = l_0$ y $xk_0 = k_0$ sin elevar al cuadrado las participaciones de valor agregado.
-#
-# **2. Preferencias LES de Stone-Geary No Homotéticas en Dos Niveles.**
-# En `puremacro.trade`, la demanda final se estructura jerárquicamente entre categorías macroeconómicas ($nfd=3$: Consumo de Hogares, Inversión Bruta y Consumo Público) y variedades por origen geográfico.
-#
-# Para preservar la sensibilidad de precios del comercio internacional sin colapsar la elasticidad Armington, la no homoteticidad se aísla en el **Nivel 1 Consumo de Hogares** ($c_C$), mientras que el **Nivel 2 aprovisionamiento internacional** retiene la elasticidad empírica de comercio $\sigma_{trade} \in [4, 8]$:
-# - **Nivel 1 (Asignación Sectorial de Hogares):**
-#   $$ c_{C, n}^j = \bar{c}_n^j + \frac{\theta_n^{j, LES}}{P_{C, n}^j} \left( Y_{C, n}^{con} - \sum_{k=1}^J P_{C, n}^k \bar{c}_n^k \right) $$
-#   donde $\theta_n^{j, LES} = \frac{(1 - \mu_n^j) E_{C, 0, n}^j}{E_{C, 0, n} - \sum_k \mu_k^j E_{C, 0, n}^k}$ representa las participaciones marginales de gasto ($\sum_j \theta_n^{j, LES} = 1$).
-# - **Escalamiento Suave de Subsistencia Invariante al Año Base:**
-#   $$ \bar{c}_n^j(Y) = \mu_n^j c_{C, 0, n}^j \cdot g\left(\frac{Y_{C, n}^{con}}{Y_{C, 0, n}^{con}}\right), \qquad g(u) = \frac{\tanh(3 u)}{\tanh(3)} $$
-#   Dado que $g(1.0) \equiv 1.0$ con precisión de punto flotante ($< 10^{-16}$), el consumo de referencia se preserva de forma idéntica ($c_{C, n}^j(x_0) \equiv c_{C, 0, n}^j$). Cuando $\mu_n^j = 0$, las preferencias convergen de manera continua a Cobb-Douglas homotético.
-#
-# **3. Competencia Imperfecta de Grandes Empresas y Márgenes Variables de Atkeson-Burstein.**
-# En industrias imperfectamente competitivas, las empresas oligopólicas internalizan su impacto sobre el índice sectorial de precios. Siguiendo a Atkeson & Burstein (2008), el margen óptimo $\mu_{ni}^j$ del país de origen $i$ en el destino $n$ depende endógenamente de su cuota de mercado bilateral $s_{ni}^j = \pi_{ni}^j$:
-# $$ \mu_{ni}^j = \frac{\sigma_j}{\sigma_j - 1 + \left(1 - \frac{\sigma_j}{\theta_j}\right) s_{ni}^j} $$
-# donde $\sigma_j > 1$ denota la elasticidad intra-sectorial entre variedades y $\theta_j \ge 1$ es la elasticidad inter-sectorial ($\sigma_j \ge \theta_j$).
-# - Cuando una firma tiene una cuota insignificante ($s_{ni}^j \approx 0$), su margen converge al nivel competitivo de Dixit-Stiglitz: $\mu_{ni}^j \to \frac{\sigma_j}{\sigma_j - 1}$.
-# - Cuando un exportador domina el consumo en destino ($s_{ni}^j \to 1$), su margen se expande hacia el nivel monopolístico $\frac{\theta_j}{\theta_j - 1}$.
-# - Para preservar el vaciado de mercado en el equilibrio base ($ff_1(x_0) = 0$), los márgenes entran en la fijación de precios en forma relativa calibrada:
-#   $$ p_{ni}^j = \frac{\mu_{ni}^j}{\mu_{ni, 0}^j} c_i^j $$
-#   garantizando que $\frac{\mu_{ni}^j}{\mu_{ni, 0}^j} \equiv 1.0$ a precios de referencia.
-#
-# **4. Análisis de Bienestar en Equilibrio General y Variación Equivalente Hicksiana ($EV$).**
-# Las variaciones en el bienestar nacional $\Delta \mathcal{W}_n$ se cuantifican mediante la Variación Equivalente Hicksiana ($EV$), que mide la cantidad monetaria que los hogares aceptarían a precios base para situarse en el nivel de utilidad contrafactual:
-# $$ EV_n = E_n(p_0, u') - E_n(p_0, u_0) = \text{Términos de Intercambio}_n + \text{Eficiencia en Volumen de Comercio}_n $$
-# Bajo el motor CGE flexible, el $EV$ proporciona una métrica monetaria exacta y robusta ante no homoteticidades y rentas por márgenes variables.
+# Los gorros indican razones respecto de la referencia: $\hat r$ y $\hat w$ son la renta del capital y el salario, $\alpha$ es la participación del capital en el valor agregado y $\rho$ la elasticidad capital-trabajo. Costo unitario del valor agregado con elasticidad de sustitución constante (CES) y demanda condicional de factores:
+# $$\hat c_{VA}=\big[\alpha\hat r^{1-\rho}+(1-\alpha)\hat w^{1-\rho}\big]^{1/(1-\rho)},\qquad \frac{K/L}{K_0/L_0}=\Big(\frac{\hat w}{\hat r}\Big)^{\rho}.$$
+# La demanda de los hogares es un sistema de gasto lineal (LES; Geary 1950, Stone 1954) con una cantidad de subsistencia que escala con el ingreso: $c_s=\bar c_s(u)+b_s\big[m-\sum_kP_k\bar c_k(u)\big]^+/P_s$ con $\bar c_s(u)=\gamma_s c_{s0}\,g(u)$ y $g(u)=\tanh(3u)/\tanh(3)$. Aquí $m$ es el presupuesto del hogar, $u$ el ingreso relativo a la referencia, $P_s$ los precios compuestos, $c_{s0}$ las cantidades de referencia, $\gamma_s$ la participación de subsistencia, $b_s$ las participaciones presupuestarias marginales calibradas y $[\cdot]^+$ el recorte en cero de la biblioteca.
+# Márgenes de Cournot (Atkeson y Burstein 2008) con participación de mercado de destino $\omega$: $\mathcal M(\omega)=\sigma_j/[\sigma_j-1+(1-\sigma_j/\theta_j)\,\omega]$, con la elasticidad dentro del sector $\sigma_j$ mayor que la elasticidad entre sectores $\theta_j$, acotados a $[1,5]$.
+# El equilibrio de referencia resuelve $\|R(x)\|_\infty\le\epsilon$ para precios, producciones, precios de factores y transferencias. El productor $j$ compra insumos de un único nido CES sobre todos los países-sector de origen $i$, $Z_{ij}=a_{ij}\,y_j\,\big(P_j/(p_i\tau_{ij})\big)^{\sigma}$. Cuando A impone el arancel $t$, la parte que soportan los productores de B es $\iota=-\Delta\ln p_B/\ln(1+t)$, con el precio de los alimentos de A como numerario, y los términos de intercambio de un país son su valor unitario de exportación sobre su valor unitario de importación a precios de productor.
 
 # %% [markdown]
 # ## Intuición
 #
-# **Intuición.** ¿Por qué la flexibilidad en tecnología, preferencias y estructura de mercado transforma cuantitativamente los resultados de las políticas comerciales?
+# **Intuición.** Un $\rho$ mayor significa que las empresas sustituyen trabajo por capital con más facilidad cuando los salarios suben frente a las rentas. Una cantidad de subsistencia que escala con el ingreso convierte a los alimentos en un bien necesario, de modo que su participación presupuestaria cae al subir el ingreso. Cuando $\sigma_j>\theta_j$, una empresa con mayor participación en su mercado de destino enfrenta una demanda menos elástica y cobra un margen mayor. Estos tres bloques se evalúan a precios dados y no cierran ningún mercado. En el equilibrio, el arancel de A reduce sus compras a B; con el ahorro externo fijo, los precios y salarios de B deben ajustarse hasta que el comercio vuelva a equilibrarse. Las canastas de uso final tienen coeficientes fijos, así que los compradores de A dejan los bienes de B sobre todo a través de los insumos intermedios, a una velocidad que fija $\sigma$. Si sustituyen con facilidad, una baja de los precios de B recupera ventas y B absorbe el arancel. Si sustituyen demasiado poco, una baja de precios reduce los ingresos por exportaciones de B y sus precios deben subir: es una condición de tipo Marshall-Lerner, en cuya frontera la respuesta del equilibrio no está acotada.
 #
-# 1. **Sensibilidad de Precios de Factores (Complementariedad vs Sustituibilidad):**
-#    En los modelos Cobb-Douglas estándar ($\rho_{va} = 1$), una contracción del 10% en el producto manufacturero reduce las demandas de capital y trabajo en idéntica proporción, de modo que las remuneraciones relativas se ajustan con suavidad. Cuando el capital y el trabajo son complementarios estrictos ($\rho_{va} = 0.70$, coherente con estimaciones microeconómicas), las firmas no pueden sustituir con facilidad maquinaria ociosa por mano de obra. Ante un choque arancelario adverso, el precio del factor menos móvil debe desplomarse con mayor intensidad para restablecer el equilibrio en los mercados de factores. La complementariedad amplifica la dispersión distributiva entre el capital y el trabajo.
+# ## Código resuelto
 #
-# 2. **Transformación Estructural y Curvas de Engel:**
-#    Cuando el ingreso real cae ante una guerra arancelaria global, los modelos homotéticos suponen que los hogares reducen su gasto en alimentos, automóviles y servicios financieros en porcentajes idénticos. En la práctica, el consumo agroalimentario está regido por necesidades de subsistencia ($\bar{c}_{AGRI} > 0$). Ante pérdidas de ingreso real, los hogares protegen el consumo de alimentos y recortan gastos discrecionales en manufacturas y servicios. Modelar preferencias no homotéticas revela que las economías emergentes con altas participaciones presupuestarias en alimentos sufren contracciones desproporcionadas en su absorción real cuando los aranceles encarecen los insumos agrícolas y los bienes esenciales.
-#
-# 3. **Fijación Estratégica de Precios y Traspaso Incompleto de Aranceles:**
-#    Bajo competencia perfecta ($P = MC$), un arancel del 20% sobre las importaciones eleva el precio en frontera en un 20% exacto. Bajo márgenes variables de Atkeson-Burstein, los grandes exportadores que concentran elevadas cuotas de mercado (como los fabricantes automotrices o tecnológicos) enfrentan una demanda con elasticidad variable. En lugar de trasladar íntegramente el arancel y ceder participación de mercado, las firmas extranjeras comprimen estratégicamente sus márgenes ($\mu_{ni}^j \downarrow$), absorbiendo parte del choque arancelario. En consecuencia, la inflación doméstica de precios al consumidor se modera, pero las utilidades operativas de los exportadores extranjeros se reducen, generando dinámicas en los términos de intercambio divergentes a las de modelos competitivos.
+# Los países A y B producen alimentos (FOOD) y manufacturas (MANU).
 
 # %%
-# Preámbulo: importar librerías numéricas, estilo gráfico y motor de comercio flexible
-import sys
 from pathlib import Path
-import time
-import warnings
-
+from dataclasses import replace
+import sys
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
+import matplotlib.pyplot as plt
+from scipy.optimize import brentq
 
-# Aplicar tipografía y diseño visual estándar de puremacro
-_cwd = Path.cwd()
-sys.path.insert(0, str(_cwd if (_cwd / "_nbstyle.py").exists() else _cwd / "notebooks"))
-try:
-    import _nbstyle
-    _nbstyle.apply_style()
-except ImportError:
-    pass
-
-import puremacro.trade as pt
+repo = Path.cwd() if (Path.cwd() / "puremacro").is_dir() else Path.cwd().parent
+sys.path.insert(0, str(repo))
+sys.path.insert(0, str(repo / "notebooks"))
+import _nbstyle
+_nbstyle.apply_style()
+colors, dashes = _nbstyle.palette(3), _nbstyle.styles(3)
+from puremacro.trade import (calibrate_trade_model, compute_equilibrium_residuals,
+                             solve_flexible_trade_equilibrium, solve_trade_equilibrium)
+from puremacro.trade.ces_newton import NestedCESTechnology, solve_ces_block_newton
 from puremacro.trade.data import load_icio_data
-from puremacro.trade.calibration import calibrate_trade_model
 from puremacro.trade.flexible import (
-    FlexibleTradeModelConfig,
-    FlexibleTechnologyConfig,
-    FlexiblePreferenceConfig,
-    FlexibleMarketStructureConfig,
-    FlexibleTradeEquilibriumResult,
-    solve_flexible_trade_equilibrium,
+    FlexibleTechnologyConfig, FlexiblePreferenceConfig,
+    compute_nested_ces_costs, compute_nested_factor_demands,
+    compute_stone_geary_final_demand, compute_atkeson_burstein_markups,
+    smooth_subsistence_scaling,
 )
 
-print("Demostración de CGE Flexible de puremacro.trade Inicializada.")
-print(f"Versión de NumPy  : {np.__version__}")
-print(f"Versión de Pandas : {pd.__version__}")
+# The bundled 77x11 table is a regression fixture (docs/ADVISORY.md): read its label, nothing else.
+fixture = load_icio_data(source="legacy", return_structured=True)
+assert fixture.metadata["is_regression_fixture"]
+print("Bundled 77x11 table", fixture.matrix.shape, "->", fixture.metadata["use"])
+
+# Rows/columns of the intermediate block: A-food, A-manufactures, B-food, B-manufactures.
+Z = np.array([[10., 15., 5., 5.], [15., 20., 10., 10.],
+              [5., 5., 12., 18.], [10., 10., 18., 22.]])
+output0 = np.array([100., 150., 120., 180.])
+# Three final uses per country (A's, then B's); both sectors of a country share one final-use mix.
+final_weights = np.array([[.50, .25, .05, .10, .08, .02]] * 2 +
+                         [[.10, .08, .02, .50, .25, .05]] * 2)
+F = (output0 - Z.sum(axis=1))[:, None] * final_weights
+production_tax = .05 * output0  # 5% of output revenue
+factor_income = output0 - Z.sum(axis=0) - production_tax
+labor_share = np.array([.70, .40, .60, .30])
+# Row order read by calibrate_trade_model: transactions, taxes (production, then 2% on final
+# uses), labour income, capital income.
+table = np.vstack([np.hstack([Z, F]),
+    np.r_[production_tax, .02 * F.sum(axis=0)],
+    np.r_[labor_share * factor_income, np.zeros(6)],
+    np.r_[(1 - labor_share) * factor_income, np.zeros(6)]])
+np.testing.assert_allclose(table[:4].sum(axis=1), table[:, :4].sum(axis=0))  # sales = costs
+calib = calibrate_trade_model(table, ns=2, nc=2, nfd=3,
+    country_codes=["A", "B"], sector_codes=["FOOD", "MANU"])
+calib = replace(calib, metadata={**calib.metadata, "is_synthetic": True,
+    "source": "hand-balanced teaching table", "unit": "illustrative value units"})
+print({key: calib.metadata[key] for key in ("source", "unit", "is_synthetic")})
+
+# %% [markdown]
+# ### 1. Sustitución condicional de factores
+#
+# Mantenemos fijos las rentas del capital, los precios de los insumos y la producción, y variamos el salario relativo a la renta. Las curvas muestran el capital por trabajador en las manufacturas de A; el assert comprueba la ley de potencias en todos los sectores y países.
 
 # %%
-# --- Experimento 1: Carga del Benchmark Empírico ICIO de la OCDE e Invariancia del Año Base ---
-# La base empírica del modelo CGE cuantitativo es la matriz de Insumo-Producto Interpaís
-# de la OCDE (ICIO), que abarca 77 países y 11 sectores industriales agregados.
-print("\n--- Experimento 1: Ingesta de ICIO de la OCDE y Validación de Invariancia Base ---")
-t0 = time.perf_counter()
-icio_data = load_icio_data()
-calib = calibrate_trade_model(icio_data)
-t_calib = time.perf_counter() - t0
+ones = np.ones((1, calib.n_sectors, calib.n_countries))  # unit goods prices
+factor_ones = np.ones((1, 1, calib.n_countries))  # unit factor prices
+# No tariffs; axes are (origin country-sector, using sector, destination country).
+tau_ones = np.ones((calib.n_sectors * calib.n_countries, calib.n_sectors, calib.n_countries))
+wage_ratios = np.linspace(.8, 1.2, 25)
+elasticities = (.7, 1., 1.4)
+fig, ax = plt.subplots(figsize=(9, 5))
+for rho, color, dash in zip(elasticities, colors, dashes):
+    tech = FlexibleTechnologyConfig(rho_va=rho, sigma_y=.2)
 
-print(f"Calibración completada en {t_calib:.3f}s:")
-print(f"  Países (nc)               : {calib.n_countries} (p. ej. USA, CHN, DEU, JPN, MEX)")
-print(f"  Sectores Industriales (ns): {calib.n_sectors} (p. ej. AGRI, MINQ, MANU, SERV)")
-print(f"  Usos Demanda Final (nfd)  : {calib.n_final_demand} (C, I, G)")
-print(f"  Ecuaciones de Equilibrio  : 2*ns*nc + 3*nc + (nc - 1) = {2 * calib.n_sectors * calib.n_countries + 4 * calib.n_countries - 1}")
+    def capital_per_worker(wage_ratio):
+        # Only the wage moves: rental rates, intermediate prices and output stay at the benchmark.
+        wages = factor_ones * wage_ratio
+        c_va, c_y = compute_nested_ces_costs(r=factor_ones, w=wages, P_M=ones, calib=calib, tech_cfg=tech)
+        labor, capital, _ = compute_nested_factor_demands(
+            calib.ytot, r=factor_ones, w=wages, P_M=ones, c_va=c_va, c_y=c_y, p=ones,
+            tau=tau_ones, calib=calib, tech_cfg=tech, normalized=True)
+        return capital / labor
 
-# Resolver bajo especificación base mediante la API de divulgación progresiva en dos líneas
-res_base = solve_flexible_trade_equilibrium(calib)
+    kl0 = capital_per_worker(1.)
+    ratios = np.array([capital_per_worker(x) / kl0 for x in wage_ratios])
+    # Every sector and country obeys (K/L)/(K0/L0) = (w/r)^rho, whatever its capital share or sigma_y.
+    np.testing.assert_allclose(ratios, np.broadcast_to(wage_ratios[:, None, None, None] ** rho, ratios.shape),
+                               rtol=1e-10)
+    print(f"rho = {rho:.1f}: capital per worker at w/r = {wage_ratios[-1]:.1f} is "
+          f"{ratios[-1, 0, 1, 0]:.3f} x baseline")
+    ax.plot(wage_ratios, ratios[:, 0, 1, 0], color=color, linestyle=dash, label=rf"$\rho = {rho:.1f}$")
+ax.set(xlabel="Wage / rental rate (relative to baseline)", ylabel="Capital per worker / baseline",
+       title="Country A manufacturing: conditional CES factor substitution")
+ax.legend()
 
-print(f"\nSolución del Equilibrio Base:")
-print(f"  Estado de Convergencia    : {res_base.converged}")
-print(f"  Norma Residual Final      : {res_base.residual_norm:.4e}")
-print(f"  Iteraciones de Newton     : {res_base.iterations}")
-
-# Aserciones de invariancia con precisión de máquina
-assert res_base.converged, "La solución base flexible debe converger."
-assert res_base.residual_norm < 2.5e-3, "La norma residual debe satisfacer la tolerancia estándar."
-
-# Verificar que las demandas factoriales repliquen exactamente las dotaciones empíricas a precios base
-factor_df = res_base.factor_allocation_frame()
-assert len(factor_df) == calib.n_countries * calib.n_sectors
-print(f"Asignación Factorial Base (Muestra de Demandas País-Sector de Trabajo y Capital):\n{factor_df.head(4)}")
-
-# %%
-# --- Experimento 2: Sustitución de Factores Capital-Trabajo en Equilibrio General ---
-# Analizar cómo la variación en la elasticidad de sustitución capital-trabajo rho_va modifica
-# las remuneraciones factoriales ante un choque arancelario asimétrico. Evaluamos dos regímenes:
-# 1. Complementariedad Factorial Empírica (rho_va = 0.70, Oberfield & Raval 2021)
-# 2. Benchmark Cobb-Douglas Clásico      (rho_va = 1.00)
-
-print("\n--- Experimento 2: Sustitución Capital-Trabajo Bajo Choque Arancelario ---")
-
-elasticity_regimes = [0.70, 1.00]
-labels = ["Complementariedad (0.70)", "Cobb-Douglas (1.00)"]
-results_tech = []
-
-# Construir un arancel unilateral del 20% aplicado por Estados Unidos a las manufacturas extranjeras
-tau_us_manu = np.ones((calib.n_sectors * calib.n_countries, calib.n_sectors, calib.n_countries), dtype=float)
-usa_idx = calib.country_codes.index("USA") if "USA" in calib.country_codes else 0
-manu_idx = calib.sector_codes.index("MANU") if "MANU" in calib.sector_codes else 2
-
-for c_orig in range(calib.n_countries):
-    if c_orig != usa_idx:
-        # Arancel del 20% sobre insumos manufactureros extranjeros importados a EE. UU.
-        orig_row = c_orig * calib.n_sectors + manu_idx
-        tau_us_manu[orig_row, :, usa_idx] = 1.20
-
-for rho in elasticity_regimes:
-    t_start = time.perf_counter()
-    cfg_tech = FlexibleTradeModelConfig(
-        technology=FlexibleTechnologyConfig(rho_va=rho, sigma_y=0.20)
-    )
-    res_rho = solve_flexible_trade_equilibrium(calib, config=cfg_tech, tau=tau_us_manu, max_iter=80)
-    results_tech.append(res_rho)
-    print(f"  rho_va = {rho:4.2f} -> Convergencia: {res_rho.converged} en {res_rho.iterations:2d} iters (tiempo: {time.perf_counter() - t_start:.2f}s)")
-
-# Extraer salarios y rentas del capital para EE. UU. y China
-us_wages = []
-us_rentals = []
-chn_wages = []
-chn_rentals = []
-chn_idx = calib.country_codes.index("CHN") if "CHN" in calib.country_codes else 1
-
-for res in results_tech:
-    # Ordenamiento del vector de estado: [log(p); log(y); log(r); log(w); T; XN]
-    # log(r) inicia en 2 * ns * nc; log(w) inicia en 2 * ns * nc + nc
-    offset_r = 2 * calib.n_sectors * calib.n_countries
-    offset_w = offset_r + calib.n_countries
-    us_rentals.append(np.exp(res.x_sol[offset_r + usa_idx]))
-    us_wages.append(np.exp(res.x_sol[offset_w + usa_idx]))
-    chn_rentals.append(np.exp(res.x_sol[offset_r + chn_idx]))
-    chn_wages.append(np.exp(res.x_sol[offset_w + chn_idx]))
+# %% [markdown]
+# ### 2. Demanda a precios fijos
+#
+# Comparamos subsistencia nula con una participación de subsistencia de alimentos $\gamma=0.30$: el 30% de la cantidad de alimentos de referencia, escalado por $g(u)$, forma el componente de subsistencia; no es el 30% del ingreso. Como $g(u)>u$ para $0<u<1$, el gasto de subsistencia cae más despacio que el ingreso. Si llegara a superar el presupuesto, la biblioteca recortaría en cero el ingreso supernumerario y devolvería una canasta que gasta de más, con un `RuntimeWarning`; a precios unitarios eso solo puede ocurrir a algún ingreso si $\sum_s\gamma_s s_{s0}$ (participaciones presupuestarias de referencia $s_{s0}$) supera $\tanh(3)/3$. La celda imprime esa suma y la razón entre el gasto de subsistencia y el presupuesto en la cuadrícula, y comprueba que se agote el presupuesto. Esta regla escalada por el ingreso no se deriva de una función de utilidad (su matriz de Slutsky es asimétrica; véase [docs/es/trade_household.md](../docs/es/trade_household.md)), por lo que da curvas de Engel pero ninguna medida de bienestar.
 
 # %%
-# --- Visualización 1: Sensibilidad de Precios de Factores Ante Elasticidades Capital-Trabajo ---
-fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+income0 = (calib.l_endow + calib.k_endow + calib.T).reshape(1, 1, 2)  # benchmark consumer income
+household_share = calib.theta[:, :1, :]  # household budget as a share of income
+income_ratios = np.linspace(.6, 1.8, 31)
+gamma_food = .30
+preferences = {"Zero subsistence": FlexiblePreferenceConfig(),
+               f"Food subsistence share {gamma_food:.2f}":
+                   FlexiblePreferenceConfig(subsistence_shares={"FOOD": gamma_food})}
+# Benchmark food quantity of country A (unit prices, so quantity = spending).
+food0 = compute_stone_geary_final_demand(income0, ones, calib, FlexiblePreferenceConfig())[0, 0, 0]
+food_share0 = food0 / (household_share * income0)[0, 0, 0]
+# Subsistence spending over the budget at income ratio u: gamma * s0 * g(u) / u.
+subsistence_ratio = gamma_food * food_share0 * smooth_subsistence_scaling(income_ratios) / income_ratios
+assert subsistence_ratio.max() < 1  # the clip at zero never binds on this grid
+print(f"A's benchmark food share s0 = {food_share0:.3f}; gamma * s0 = {gamma_food * food_share0:.3f} "
+      f"against tanh(3)/3 = {np.tanh(3) / 3:.3f}")
+print(f"Subsistence spending / budget: {subsistence_ratio.min():.3f} to {subsistence_ratio.max():.3f} "
+      f"on the grid, {gamma_food * food_share0 * 3 / np.tanh(3):.3f} in the limit of zero income")
+fig, ax = plt.subplots(figsize=(9, 5))
+for (label, pref), color, dash in zip(preferences.items(), colors, dashes):
+    food_shares = []
+    for income_ratio in income_ratios:
+        income = income_ratio * income0
+        demand = compute_stone_geary_final_demand(income, ones, calib, pref)
+        household_budget = household_share * income
+        np.testing.assert_allclose(demand.sum(axis=1, keepdims=True), household_budget, rtol=1e-10)
+        food_shares.append(100 * demand[0, 0, 0] / household_budget[0, 0, 0])
+    print(f"{label}: food share {food_shares[0]:.1f}% at income x{income_ratios[0]:.1f}, "
+          f"{food_shares[-1]:.1f}% at x{income_ratios[-1]:.1f}")
+    ax.plot(income_ratios, food_shares, color=color, linestyle=dash, label=label)
+    if pref.subsistence_shares:
+        assert food_shares[0] > food_shares[-1]  # food behaves as a necessity
+ax.set(xlabel="Income / baseline income", ylabel="Food share of household budget (%)",
+       title="Country A: demand block at fixed unit prices")
+ax.legend()
 
-# Panel A: Rendimientos Factoriales en EE. UU. Bajo Protección Arancelaria
-axes[0].plot(elasticity_regimes, us_wages, marker="o", lw=2, color=_nbstyle.S1["color"], label="Salario Real EE. UU. (w)")
-axes[0].plot(elasticity_regimes, us_rentals, marker="s", lw=2, color=_nbstyle.S2["color"], ls="--", label="Renta del Capital EE. UU. (r)")
-axes[0].axvline(1.0, color=_nbstyle.SPINE, ls=":", alpha=0.7, label="Cobb-Douglas (rho=1.0)")
-axes[0].set_title("Estados Unidos: Rendimientos Factoriales vs Elasticidad", fontsize=11, fontweight="bold")
-axes[0].set_xlabel("Elasticidad de Sustitución Capital-Trabajo (rho_va)", fontsize=10)
-axes[0].set_ylabel("Índice de Precios del Factor (Base = 1.0)", fontsize=10)
-axes[0].grid(True, alpha=0.3)
-axes[0].legend(frameon=True)
-
-# Panel B: Rendimientos Factoriales en China Ante Choque Arancelario
-axes[1].plot(elasticity_regimes, chn_wages, marker="o", lw=2, color=_nbstyle.S1["color"], label="Salario Real China (w)")
-axes[1].plot(elasticity_regimes, chn_rentals, marker="s", lw=2, color=_nbstyle.S2["color"], ls="--", label="Renta del Capital China (r)")
-axes[1].axvline(1.0, color=_nbstyle.SPINE, ls=":", alpha=0.7, label="Cobb-Douglas (rho=1.0)")
-axes[1].set_title("China: Rendimientos Factoriales vs Elasticidad", fontsize=11, fontweight="bold")
-axes[1].set_xlabel("Elasticidad de Sustitución Capital-Trabajo (rho_va)", fontsize=10)
-axes[1].set_ylabel("Índice de Precios del Factor (Base = 1.0)", fontsize=10)
-axes[1].grid(True, alpha=0.3)
-axes[1].legend(frameon=True)
-
-# Aserciones verificando la sensibilidad factorial
-assert len(us_wages) == 2 and len(chn_wages) == 2
-print("Experimento 2: Análisis de Sustitución Factorial Concluido con Éxito.")
-
-# %%
-# --- Experimento 3: Preferencias No Homotéticas de Stone-Geary y Curvas de Engel ---
-# Simular cómo los pisos de subsistencia no homotéticos reasignan el gasto en consumo
-# entre naciones con diferentes niveles de desarrollo.
-# Comparamos:
-# - Modelo Cobb-Douglas Homotético (subsistencia mu_s = 0.0)
-# - Modelo LES No Homotético con Subsistencia Agrícola (mu_AGRI = 0.30)
-print("\n--- Experimento 3: Preferencias No Homotéticas Stone-Geary y Reasignación Estructural ---")
-
-# La solución Cobb-Douglas de referencia del Exp 2 provee el equilibrio homotético exacto
-res_homothetic = results_tech[1]
-print(f"  Solución Homotética de Referencia : Convergencia={res_homothetic.converged} (norma={res_homothetic.residual_norm:.4e})")
-
-cfg_nonhomothetic = FlexibleTradeModelConfig(
-    preference=FlexiblePreferenceConfig(subsistence_shares={"AGRI": 0.30})
-)
-res_nonhomothetic = solve_flexible_trade_equilibrium(calib, config=cfg_nonhomothetic, tau=tau_us_manu, max_iter=60)
-print(f"  Solución No Homotética            : Convergencia={res_nonhomothetic.converged} (norma={res_nonhomothetic.residual_norm:.4e})")
-
-# Evaluar las distribuciones de bienestar bajo ambos regímenes respecto al año base
-welfare_homo = res_homothetic.welfare_summary(base_result=res_base)
-welfare_nonhomo = res_nonhomothetic.welfare_summary(base_result=res_base)
-
-# Seleccionar una muestra representativa de economías avanzadas y emergentes
-sample_countries = ["USA", "DEU", "JPN", "CHN", "MEX", "BRA", "IND", "ZAF"]
-sample_indices = [calib.country_codes.index(c) for c in sample_countries if c in calib.country_codes]
-
-print("\nComparación de Variación Equivalente ($ Millones, Homotético vs Stone-Geary):")
-comp_records = []
-for c_code in sample_countries:
-    if c_code in calib.country_codes:
-        idx = calib.country_codes.index(c_code)
-        comp_records.append({
-            "País": c_code,
-            "EV (Homotético)": welfare_homo.loc[idx, "EV"],
-            "EV (Stone-Geary)": welfare_nonhomo.loc[idx, "EV"],
-        })
-comp_df = pd.DataFrame(comp_records)
-print(comp_df.to_string(index=False))
-
-# Aserciones confirmando la convergencia de preferencias
-assert res_homothetic.converged and res_nonhomothetic.converged
+# %% [markdown]
+# ### 3. Márgenes a participaciones de mercado dadas
+#
+# Evaluamos la función de precios de Cournot de la biblioteca con $\sigma_j=5$ y $\theta_j=2$. La curva transforma una participación de mercado supuesta en un margen; no resuelve la participación posterior a un arancel. Con el costo marginal fijo, una caída de la participación de 0.30 a 0.20 reduce el margen y, por tanto, el precio. No imponemos un porcentaje de traslado a precios ni lo presentamos como estimación del modelo.
 
 # %%
-# --- Visualización 2: Desplazamientos de la Curva de Engel y Reasignación de Bienestar ---
-fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+market_shares = np.linspace(0., .6, 61)
+sigma_j, theta_j = 5., 2.  # within-sector elasticity above the across-sector one
+markups, _ = compute_atkeson_burstein_markups(market_shares, sigma_j=sigma_j, theta_j=theta_j)
+np.testing.assert_allclose(markups, sigma_j / (sigma_j - 1 + (1 - sigma_j / theta_j) * market_shares))
+assert np.all(np.diff(markups) > 0)  # larger share, less elastic residual demand, higher markup
+initial_markup, _ = compute_atkeson_burstein_markups(np.array([.30]), sigma_j=sigma_j, theta_j=theta_j)
+# With mu_0 given, the function returns the price at the unchanged marginal cost c_i = 1.
+new_markup, relative_price = compute_atkeson_burstein_markups(np.array([.20]),
+    c_i=np.ones(1), mu_0=initial_markup, sigma_j=sigma_j, theta_j=theta_j)
+markup_ratio = float(new_markup[0] / initial_markup[0])
+np.testing.assert_allclose(relative_price, markup_ratio)
+print(f"Share 0.30 -> 0.20: markup {initial_markup[0]:.4f} -> {new_markup[0]:.4f}; "
+      f"price at unchanged cost x{markup_ratio:.4f} ({100 * (1 - markup_ratio):.2f}% lower)")
+fig, ax = plt.subplots(figsize=(9, 5))
+ax.plot(100 * market_shares, markups, color=colors[0])
+ax.plot([30, 20], [initial_markup[0], new_markup[0]], linestyle="none", marker="o", color=colors[0])
+ax.annotate(f"share 30% -> 20%: markup x{markup_ratio:.4f}", xy=(25, new_markup[0]),
+            xytext=(27, new_markup[0] - .03), color=_nbstyle.TEXTO)
+ax.set(xlabel="Assumed destination market share (%)", ylabel="Gross markup",
+       title=rf"Pricing block: markup against market share ($\sigma_j={sigma_j:g}$, $\theta_j={theta_j:g}$)")
 
-# Panel A: Comparación de Bienestar entre Economías
-x_pos = np.arange(len(comp_df))
-width = 0.35
-
-axes[0].bar(x_pos - width/2, comp_df["EV (Homotético)"] / 1e3, width, label="Cobb-Douglas Homotético", color=_nbstyle.S2["color"], edgecolor=_nbstyle.FONDO)
-axes[0].bar(x_pos + width/2, comp_df["EV (Stone-Geary)"] / 1e3, width, label="Stone-Geary No Homotético (mu_AGRI=0.3)", color=_nbstyle.S1["color"], edgecolor=_nbstyle.FONDO)
-axes[0].set_xticks(x_pos)
-axes[0].set_xticklabels(comp_df["País"], fontsize=10)
-axes[0].set_title("Variación Equivalente Hicksiana ($ Miles de Millones)", fontsize=11, fontweight="bold")
-axes[0].set_ylabel("Impacto en Bienestar ($MM)", fontsize=10)
-axes[0].grid(True, alpha=0.3, axis="y")
-axes[0].legend(frameon=True)
-
-# Panel B: Relación Estilizada de la Curva de Engel (Participación vs Ingreso Real)
-simulated_incomes = np.linspace(0.4, 2.0, 100)
-mu_agri = 0.30
-theta_agri = 0.15
-# Bajo Stone-Geary LES: s_AGRI = (p_bar * c_bar + theta * (Y - p_bar * c_bar)) / Y
-budget_share_agri = (mu_agri + theta_agri * (simulated_incomes - mu_agri)) / simulated_incomes
-budget_share_serv = 1.0 - budget_share_agri
-
-axes[1].plot(simulated_incomes, budget_share_agri * 100, lw=2.5, color=_nbstyle.S1["color"], label="Necesidades Agrícolas (Alimentos)")
-axes[1].plot(simulated_incomes, budget_share_serv * 100, lw=2.5, color=_nbstyle.S2["color"], ls="--", label="Manufacturas y Servicios")
-axes[1].set_title("Ley de Engel: Transformación Estructural vía Stone-Geary", fontsize=11, fontweight="bold")
-axes[1].set_xlabel("Ingreso Real de los Hogares Relativo a Base (Y / Y0)", fontsize=10)
-axes[1].set_ylabel("Participación en el Gasto de Consumo (%)", fontsize=10)
-axes[1].grid(True, alpha=0.3)
-axes[1].legend(frameon=True)
+# %% [markdown]
+# ### 4. Un equilibrio arancelario de referencia
+#
+# `solve_trade_equilibrium` con contabilidad consistente ([docs/es/trade_accounting.md](../docs/es/trade_accounting.md)): comercio valorado a precios de productor, aranceles devueltos como transferencia de suma fija y ahorro externo fijo en unidades de A-FOOD, el numerario. Cada productor compra insumos de un único nido CES con $\sigma=2$ sobre los cuatro países-sector de origen, de modo que $\sigma$ también gobierna la sustitución entre insumos FOOD y MANU. Las canastas de uso final tienen coeficientes fijos y cada categoría de uso final gasta una fracción fija del ingreso (la inversión, neta del ahorro externo). El país A grava todas sus importaciones desde B con un 10%, para uso intermedio y final. $\sigma=2$ es ilustrativo, no una estimación; la sección 5 lo varía. Este cálculo no usa los bloques de las secciones 1-3.
 
 # %%
-# --- Experimento 4: Competencia Imperfecta y Márgenes Variables de Atkeson-Burstein ---
-# Bajo competencia de Atkeson-Burstein, las grandes empresas fijan márgenes que varían según
-# su participación de mercado en el destino. Comparamos:
-# 1. Precios Competitivos (márgenes = 1.0, traspaso fronterizo del 100%)
-# 2. Precios Oligopólicos   (márgenes variables, compresión estratégica del margen)
+# Consistent accounting: producer-price trade, duties rebated lump sum, foreign saving fixed in
+# units of A-FOOD (the numeraire), one CES nest with elasticity sigma over all origin cells.
+ge_options = dict(method="newton", accounting="consistent", sigma=2., tol=1e-8, max_iter=80)
 
-print("\n--- Experimento 4: Competencia Imperfecta y Traspaso Arancelario ---")
 
-# La fijación competitiva está representada por el benchmark resuelto en el Exp 2
-res_comp = results_tech[1]
+def solve_tariff(sigma, tariff, **extra):
+    """Baseline and counterfactual when A taxes all imports from B at the rate `tariff`."""
+    options = {**ge_options, "sigma": sigma, **extra}
+    rates = np.array([tariff, 0.])  # ad valorem rates by importing country, not multipliers
+    start = solve_trade_equilibrium(calib, **options)
+    result = solve_trade_equilibrium(calib, tau=rates, tau_fd=rates, base_result=start, **options)
+    for solved in (start, result):
+        assert solved.converged and solved.max_residual <= options["tol"]
+    return start, result
 
-cfg_oligopoly = FlexibleTradeModelConfig(
-    market_structure=FlexibleMarketStructureConfig(
-        variable_markups=True,
-        sigma_j=5.0,  # Elasticidad intra-sectorial entre variedades
-        theta_j=2.0,  # Elasticidad inter-sectorial superior
-    )
-)
-res_oligopoly = solve_flexible_trade_equilibrium(calib, config=cfg_oligopoly, tau=tau_us_manu, max_iter=60)
 
-print(f"  Solución Competitiva : Convergencia={res_comp.converged} en {res_comp.iterations} iters")
-print(f"  Solución Oligopólica : Convergencia={res_oligopoly.converged} en {res_oligopoly.iterations} iters")
+def incidence_on_b(start, result, tariff):
+    """Share of A's log tariff absorbed by the fall in B's producer prices (A-FOOD fixed at 1)."""
+    return -np.log(result.p_sol[0, :, 1] / start.p_sol[0, :, 1]) / np.log1p(tariff)
 
-# Inspeccionar las distribuciones de márgenes
-markups_comp = res_comp.summary_markups()
-markups_olig = res_oligopoly.summary_markups()
 
-print("\nResumen de Márgenes Competitivos:")
-print(markups_comp.to_string(index=False))
-print("\nResumen de Márgenes de Atkeson-Burstein:")
-print(markups_olig.to_string(index=False))
+tariff = .10
+base, counterfactual = solve_tariff(2., tariff)
+print(f"Maximum residual: baseline {base.max_residual:.1e}, counterfactual {counterfactual.max_residual:.1e}")
+sector_labels = [f"{country}-{sector}" for country in calib.country_codes for sector in calib.sector_codes]
+price_changes = 100 * (counterfactual.p_sol / base.p_sol - 1).ravel(order="F")
+output_changes = 100 * (counterfactual.y_sol / base.y_sol - 1).ravel(order="F")
+print(pd.DataFrame({"producer price (%)": price_changes, "gross output (%)": output_changes},
+                   index=sector_labels).round(3).to_string())
+incidence = incidence_on_b(base, counterfactual, tariff)
+landed = (1 + tariff) * counterfactual.p_sol[0, :, 1] / base.p_sol[0, :, 1]
+tot_a, tot_b = counterfactual.terms_of_trade
+wage_change = 100 * (counterfactual.w_sol / base.w_sol - 1).ravel()
+rent_change = 100 * (counterfactual.r_sol / base.r_sol - 1).ravel()
+print("Tariff-inclusive price of B's goods in A (baseline 1): FOOD {:.4f}, MANU {:.4f}".format(*landed))
+print("Share of the tariff borne by B's producer prices: FOOD {:.3f}, MANU {:.3f}".format(*incidence))
+print(f"Terms of trade (export / import unit value): A {tot_a:.4f}, B {tot_b:.4f}")
+print("Wages (%): A {:+.3f}, B {:+.3f}; rental rates (%): A {:+.3f}, B {:+.3f}".format(*wage_change, *rent_change))
+assert price_changes[0] == 0  # A-FOOD is the numeraire
+# Headline: B bears roughly all of the tariff, and A's terms of trade rise by about 1 + t.
+assert np.all((incidence > .9) & (incidence < 1.1)) and abs(np.log(tot_a) / np.log1p(tariff) - 1) < .01
+# Closure check: foreign saving fixed as a share of world factor income instead of in A-FOOD units.
+world = incidence_on_b(*solve_tariff(2., tariff, foreign_saving_units="world_income"), tariff)
+print("Same shares with foreign saving fixed as a share of world income: FOOD {:.3f}, MANU {:.3f}".format(*world))
 
-# Aserciones validando que los márgenes respeten los límites teóricos [1.0, 5.0]
-assert np.allclose(markups_comp["mean"], 1.0)
-assert np.all(markups_olig["min"] >= 1.0)
-assert np.all(markups_olig["max"] <= 5.0)
-
-# %%
-# --- Visualización 3: Dispersión de Márgenes y Traspaso Incompleto ---
-fig, axes = plt.subplots(1, 2, figsize=(13, 5))
-
-# Panel A: Mecanismo de Compresión Estratégica de Márgenes
-market_shares = np.linspace(0.0, 0.6, 100)
-sigma_val = 5.0
-theta_val = 2.0
-# Fórmula: mu = sigma / (sigma - 1 + (1 - sigma/theta) * s)
-theoretical_markups = sigma_val / (sigma_val - 1.0 + (1.0 - sigma_val / theta_val) * market_shares)
-
-axes[0].plot(market_shares * 100, theoretical_markups, lw=2.5, color=_nbstyle.S1["color"], label="Margen Atkeson-Burstein (sigma=5, theta=2)")
-axes[0].axhline(sigma_val / (sigma_val - 1.0), color=_nbstyle.SPINE, ls="--", alpha=0.7, label=f"Margen Empresa Pequeña ({sigma_val/(sigma_val-1):.2f})")
-axes[0].set_title("Precios Oligopólicos: Margen vs Cuota en Destino", fontsize=11, fontweight="bold")
-axes[0].set_xlabel("Cuota de Mercado en Sector de Destino (%)", fontsize=10)
-axes[0].set_ylabel("Multiplicador de Margen Bruto (mu)", fontsize=10)
-axes[0].grid(True, alpha=0.3)
-axes[0].legend(frameon=True)
-
-# Panel B: Comparación de Traspaso Arancelario
-tariffs = np.linspace(0, 0.50, 100)
-pass_through_competitive = tariffs * 100
-# Con absorción de margen del 35% para exportadores dominantes:
-pass_through_oligopoly = tariffs * (1.0 - 0.35) * 100
-
-axes[1].plot(tariffs * 100, pass_through_competitive, lw=2.5, color=_nbstyle.S1["color"], label="Traspaso Competitivo Completo (100%)")
-axes[1].plot(tariffs * 100, pass_through_oligopoly, lw=2.5, color=_nbstyle.S2["color"], ls="--", label="Traspaso Incompleto Atkeson-Burstein (65%)")
-axes[1].set_title("Precios al Consumidor: Traspaso Completo vs Incompleto", fontsize=11, fontweight="bold")
-axes[1].set_xlabel("Tasa Arancelaria Aduanera Nominal (%)", fontsize=10)
-axes[1].set_ylabel("Incremento en Precio de Frontera (%)", fontsize=10)
-axes[1].grid(True, alpha=0.3)
-axes[1].legend(frameon=True)
-
-print("Experimento 4: Análisis de Competencia Imperfecta Concluido con Éxito.")
+# %% [markdown]
+# ### 5. Cuánto del arancel soporta B depende de $\sigma$
+#
+# Repetimos el cálculo con el arancel de 10% sobre una cuadrícula de $\sigma$ y localizamos el $\sigma$ en el que el jacobiano del sistema de equilibrio en la referencia es singular. La cuadrícula omite el intervalo entre 0.8 y 1.2 alrededor de ese punto.
 
 # %%
-# --- Experimento 5: Contrafactual de Guerra Comercial Multipilar y Descomposición de Bienestar ---
-# Integrar las tres extensiones en una simulación de guerra comercial multipilar.
-# Comparamos el modelo rígido base contra una especificación completamente flexible que combina:
-# - Complementariedad de Factores (rho_va = 0.70, sigma_y = 0.25)
-# - Demanda No Homotética        (mu_AGRI = 0.20)
-# - Márgenes Variables            (sigma_j = 5.0, theta_j = 2.0)
+sigma_grid = np.r_[0., .2, .4, .5, .6, .7, .8, 1.2, 1.35, 1.5, 1.75, 2., 2.5, 3., 3.5, 4., 5.]
+share_columns = ["B-FOOD", "B-MANU"]
+sweep = pd.DataFrame(index=pd.Index(sigma_grid, name="sigma"),
+                     columns=[*share_columns, "A terms of trade"], dtype=float)
+for sigma in sigma_grid:
+    start, result = solve_tariff(sigma, tariff)
+    sweep.loc[sigma] = [*incidence_on_b(start, result, tariff), result.terms_of_trade[0]]
+print(sweep.loc[[0., .5, .8, 1.2, 2., 5.]].round(3).to_string())
 
-print("\n--- Experimento 5: Contrafactual Multipilar y Descomposición de Bienestar ---")
+# The benchmark state is the same for every sigma, so the Jacobian there depends on sigma alone.
+x0 = base.x_sol.ravel()
 
-cfg_full_flexible = FlexibleTradeModelConfig(
-    technology=FlexibleTechnologyConfig(rho_va=0.70, sigma_y=0.25),
-    preference=FlexiblePreferenceConfig(subsistence_shares={"AGRI": 0.20}),
-    market_structure=FlexibleMarketStructureConfig(variable_markups=True, sigma_j=5.0, theta_j=2.0)
-)
 
-t_solve_start = time.perf_counter()
-res_full = solve_flexible_trade_equilibrium(calib, config=cfg_full_flexible, tau=tau_us_manu, max_iter=100)
-print(f"Solución Flexible Multipilar Finalizada en {time.perf_counter() - t_solve_start:.2f}s:")
-print(f"  Convergencia       : {res_full.converged}")
-print(f"  Iteraciones        : {res_full.iterations}")
-print(f"  Norma Residual     : {res_full.residual_norm:.4e}")
+def benchmark_jacobian(sigma, h=1e-6):
+    residual = lambda x: compute_equilibrium_residuals(x, calib, sigma=sigma, accounting="consistent")
+    return np.column_stack([(residual(x0 + h * e) - residual(x0 - h * e)) / (2 * h)
+                            for e in np.eye(x0.size)])
 
-welfare_full = res_full.welfare_summary(base_result=res_base)
-print(f"\nMuestra de Descomposición de Bienestar ($ Millones):\n{welfare_full.head(6)}")
 
-# Verificar consistencia en la descomposición de bienestar
-assert res_full.converged, "El modelo completamente flexible debe converger."
-assert len(welfare_full) == calib.n_countries, "Debe generar bienestar para la totalidad de países."
+sigma_star = brentq(lambda s: np.linalg.det(benchmark_jacobian(s)), .9, 1.05, xtol=1e-6)
+# Symptom, not a check: from the benchmark start, Newton does not find the 10% equilibrium near sigma*.
+near_options = {**ge_options, "sigma": 1.}
+near = solve_trade_equilibrium(calib, tau=np.array([tariff, 0.]), tau_fd=np.array([tariff, 0.]),
+                               base_result=solve_trade_equilibrium(calib, **near_options), **near_options)
+print(f"det J changes sign at sigma* = {sigma_star:.4f}; Newton at sigma = 1 converged: {near.converged}")
+assert np.all(np.abs(sweep.loc[0., share_columns]) < .05)  # nothing substitutes: B's prices barely move
+assert np.all(sweep.loc[.5, share_columns] < 0) and np.all(sweep.loc[2., share_columns] > 0)
+above = sweep.loc[sweep.index > sigma_star, share_columns].to_numpy()
+assert np.all(np.diff(above, axis=0) < 0)  # above sigma*, easier substitution shifts less onto B
 
-# %%
-# --- Visualización 4: Resumen de Equilibrio General Multipilar Completo ---
-fig, ax = plt.subplots(figsize=(10, 5))
+fig, (ax_price, ax_share) = plt.subplots(1, 2, figsize=(12, 5), layout="constrained")
+fig.suptitle(f"Country A taxes all imports from B at {100 * tariff:.0f}% (intermediate and final use)")
+ax_price.bar(sector_labels, price_changes, color=colors[0])
+ax_price.axhline(0, color=_nbstyle.SPINE, linewidth=.7)
+bar_labels = _nbstyle.etiquetar_barras(ax_price, fmt="{:.2f}")
+bar_labels[0].set_text("0 (numeraire)")
+ax_price.set_ylim(1.1 * price_changes.min() - .5, 1.5)
+ax_price.set(title=r"Producer prices relative to A-FOOD, $\sigma=2$", ylabel="Change from baseline (%)")
+for column, color, dash, marker in zip(share_columns, colors, dashes, ["o", "s"]):
+    for side, label in ((sweep.index < sigma_star, column), (sweep.index > sigma_star, None)):
+        ax_share.plot(sweep.index[side], sweep.loc[side, column], color=color, linestyle=dash,
+                      marker=marker, label=label)
+ax_share.axhline(1, color=_nbstyle.SPINE, linewidth=.7, linestyle="--")
+ax_share.axhline(0, color=_nbstyle.SPINE, linewidth=.7)
+ax_share.axvline(sigma_star, color=_nbstyle.SPINE, linewidth=1, linestyle=":")
+ax_share.annotate("B bears the whole tariff", xy=(3.2, 1), xytext=(3.2, 1.15), color=_nbstyle.TEXTO)
+ax_share.annotate(rf"$\sigma^*={sigma_star:.3f}$: singular Jacobian", xy=(sigma_star, -1.5),
+                  xytext=(sigma_star + .15, -1.5), color=_nbstyle.TEXTO)
+ax_share.set(title="Share of the tariff borne by B's producer prices",
+             xlabel=r"Intermediate-sourcing elasticity $\sigma$", ylabel=r"$-\Delta\ln p_B\,/\,\ln(1+t)$")
+ax_share.legend(loc="lower right")
 
-# Diagrama de dispersión: Variación de términos de intercambio vs producto real
-top_countries = ["USA", "CHN", "DEU", "JPN", "GBR", "FRA", "MEX", "CAN", "KOR", "BRA", "IND"]
-scatter_indices = [calib.country_codes.index(c) for c in top_countries if c in calib.country_codes]
-
-# Extraer índices de precios de producto e indicadores de términos de intercambio
-p_base = np.exp(res_base.x_sol[:calib.n_sectors * calib.n_countries]).reshape((1, calib.n_sectors, calib.n_countries), order="F")
-p_full = np.exp(res_full.x_sol[:calib.n_sectors * calib.n_countries]).reshape((1, calib.n_sectors, calib.n_countries), order="F")
-tot_proxy = (np.mean(p_full, axis=1) / np.mean(p_base, axis=1)).ravel() - 1.0
-
-# Extraer variaciones en producto bruto real
-y_base = np.exp(res_base.x_sol[calib.n_sectors * calib.n_countries:2 * calib.n_sectors * calib.n_countries]).reshape((1, calib.n_sectors, calib.n_countries), order="F")
-y_full = np.exp(res_full.x_sol[calib.n_sectors * calib.n_countries:2 * calib.n_sectors * calib.n_countries]).reshape((1, calib.n_sectors, calib.n_countries), order="F")
-gdp_change = (np.sum(y_full, axis=1) / np.sum(y_base, axis=1)).ravel() - 1.0
-
-ax.scatter(tot_proxy[scatter_indices] * 100, gdp_change[scatter_indices] * 100, s=120, color=_nbstyle.S1["color"], alpha=0.8, edgecolors=_nbstyle.FONDO, lw=1.5)
-
-for idx in scatter_indices:
-    c_code = calib.country_codes[idx]
-    ax.annotate(
-        c_code,
-        (tot_proxy[idx] * 100, gdp_change[idx] * 100),
-        textcoords="offset points",
-        xytext=(5, 5),
-        fontsize=9,
-        fontweight="bold"
-    )
-
-ax.axhline(0, color=_nbstyle.SPINE, ls="--", alpha=0.5)
-ax.axvline(0, color=_nbstyle.SPINE, ls="--", alpha=0.5)
-ax.set_title("Contrafactual Multipilar: Términos de Intercambio vs Respuesta del Producto Real", fontsize=11, fontweight="bold")
-ax.set_xlabel("Variación Porcentual en Términos de Intercambio (%)", fontsize=10)
-ax.set_ylabel("Variación Porcentual en Producto Bruto (%)", fontsize=10)
-ax.grid(True, alpha=0.3)
+# %% [markdown]
+# ### 6. ¿El cierre o los bloques flexibles?
+#
+# `solve_flexible_trade_equilibrium` lleva los bloques de las secciones 1-3 al equilibrio general, pero solo resuelve con el cierre contable heredado: no tiene opción de contabilidad consistente. Para los bloques de tecnología por sí solos ($\rho_{va}$, $\sigma_{inter}$), `solve_ces_block_newton` resuelve el mismo CES anidado con contabilidad consistente. Resolver el arancel de 10% por ambas vías, con $\sigma_{inter}=2$ como en la sección 4, separa el efecto del cierre del efecto de $\rho_{va}$. La tabla reporta cada precio de B relativo a A-FOOD, para comparar ambos cierres en la misma escala.
 
 # %%
-# --- Conclusiones Analíticas y Computacionales ---
-print("\n" + "="*80)
-print("CONCLUSIONES ECONÓMICAS Y COMPUTACIONALES: EQUILIBRIO GENERAL DE COMERCIO FLEXIBLE")
-print("="*80)
-print("1. Flexibilidad Tecnológica:")
-print("   La Forma de Participaciones Calibradas (CSF) garantiza cero error de recalibración (F(x0)=0).")
-print("   La complementariedad capital-trabajo (rho_va < 1) amplifica las disparidades salariales ante choques de oferta.")
-print("\n2. No Homoteticidad en Preferencias:")
-print("   El sistema Stone-Geary LES con escalamiento suave g(u) replica con fidelidad la Ley de Engel.")
-print("   Revela una vulnerabilidad asimétrica en economías en desarrollo con altas cuotas de gasto en alimentos.")
-print("\n3. Estructura de Mercado y Márgenes:")
-print("   Los márgenes de Atkeson-Burstein capturan la fijación estratégica: exportadores absorben aumentos arancelarios,")
-print("   generando traspaso incompleto a precios al consumidor y desplazamientos en términos de intercambio sin expandir el estado.")
-print("="*80)
+def relative_to_a_food(result, baseline):
+    """Percent change of each producer price relative to A-FOOD, comparable across closures."""
+    ratio = (result.p_sol / baseline.p_sol).ravel(order="F")
+    return 100 * (ratio / ratio[0] - 1)
+
+
+no_tariff, a_tariff = np.zeros(2), np.array([tariff, 0.])
+closures = {}
+for rho_va in (.5, 1., 2.):
+    # Consistent closure: the nested-CES technology solved by exact block Newton.
+    technology = NestedCESTechnology.from_flexible(FlexibleTechnologyConfig(rho_va=rho_va, sigma_inter=2.))
+    consistent = [solve_ces_block_newton(calib, r, r, technology=technology).equilibrium
+                  for r in (no_tariff, a_tariff)]
+    # Legacy closure: the flexible solver, which has no consistent-accounting option.
+    legacy = [solve_flexible_trade_equilibrium(calib, rho_va=rho_va, sigma_inter=2., tau=r, tau_fd=r, tol=1e-10)
+              for r in (no_tariff, a_tariff)]
+    assert all(solved.converged for solved in consistent + legacy)
+    assert legacy[1].metadata["flexible_settings_applied"]
+    closures[f"rho_va = {rho_va:.1f}"] = [*relative_to_a_food(consistent[1], consistent[0])[2:],
+                                          *relative_to_a_food(legacy[1], legacy[0])[2:]]
+closures = pd.DataFrame(closures, index=["consistent B-FOOD", "consistent B-MANU",
+                                         "legacy B-FOOD", "legacy B-MANU"]).T
+print("Change in B's producer prices relative to A-FOOD (%), sigma_inter = 2:")
+print(closures.round(3).to_string())
+print("Legacy trade-balance valuation of final-demand trade:", legacy[1].metadata["trade_balance_valuation"])
+# At rho_va = 1 each route reproduces a plain solve: section 4, and the legacy solver.
+np.testing.assert_allclose(closures.iloc[1, :2], price_changes[2:], atol=1e-8)
+legacy_options = dict(method="newton", accounting="legacy", replicate_matlab_precedence=False,
+                      sigma=2., tol=1e-10, max_iter=80)
+plain_legacy = [solve_trade_equilibrium(calib, tau=r, tau_fd=r, **legacy_options) for r in (no_tariff, a_tariff)]
+np.testing.assert_allclose(closures.iloc[1, 2:], relative_to_a_food(plain_legacy[1], plain_legacy[0])[2:],
+                           atol=1e-6)
+# The closure flips the sign; rho_va moves each price by a small fraction of that gap.
+rho_spread = (closures.max() - closures.min()).max()
+print(f"Largest change of any column across rho_va (percentage points): {rho_spread:.3f}")
+assert (closures.iloc[:, :2] < 0).all().all() and (closures.iloc[:, 2:] > 0).all().all()
+assert rho_spread < .1
+# With Leontief sourcing (sigma_inter = 0) rho_va has no effect at all on this economy.
+leontief = {}
+for rho_va in (.5, 2.):
+    baseline, shocked = [solve_flexible_trade_equilibrium(calib, rho_va=rho_va, tau=r, tau_fd=r, tol=1e-10)
+                         for r in (no_tariff, a_tariff)]
+    # The output mix cannot change, so w/r stays at its baseline and rho_va never comes into play.
+    assert np.abs(np.log((shocked.w_sol / shocked.r_sol) / (baseline.w_sol / baseline.r_sol))).max() < 1e-10
+    leontief[rho_va] = relative_to_a_food(shocked, baseline)
+np.testing.assert_allclose(leontief[.5], leontief[2.], atol=1e-8)
+print("sigma_inter = 0, B's prices relative to A-FOOD (%), identical for rho_va = 0.5 and 2:",
+      np.round(leontief[.5][2:], 3))
+
+# %% [markdown]
+# ## Lectura de los resultados
+#
+# **Bloques a precios dados.** En la primera figura el capital por trabajador en las manufacturas de A sigue exactamente $(w/r)^\rho$: cuando el salario sube 20% frente a la renta del capital, llega a 1.136, 1.200 y 1.291 veces su valor de referencia para $\rho=0.7$, 1.0 y 1.4. En la segunda, la subsistencia convierte a los alimentos en un bien necesario: la participación de los alimentos en A cae de 45.3% con 0.6 veces el ingreso de referencia a 36.9% con 1.8 veces, frente a un 40.5% constante sin subsistencia. El gasto de subsistencia se mantiene entre 0.068 y 0.193 del presupuesto en la cuadrícula (0.366 en el límite de ingreso nulo), porque $\gamma s_0=0.121$ está por debajo de $\tanh(3)/3=0.332$; el recorte nunca se activa. En la tercera, una caída de la participación de mercado de 0.30 a 0.20 reduce el margen de 1.4085 a 1.3514, un precio 4.05% menor con el costo marginal sin cambio.
+#
+# **Quién soporta el arancel de A.** Con $\sigma=2$, los precios de productor de B caen 8.807% (FOOD) y 9.269% (MANU) relativos a A-FOOD, mientras que A-MANU se mueve -0.023% y ninguna producción bruta cambia más de 0.276%. B absorbe 0.967 y 1.021 del arancel en logaritmos, así que el precio con arancel de los bienes de B en A casi no cambia (1.0031 para FOOD, 0.9980 para MANU). El ajuste ocurre por los términos de intercambio: los de A suben a 1.0999, casi exactamente $1+t$, y los de B caen a 0.9092. El salario de B cae 10.499% y su renta del capital 10.440%, mientras que los precios de los factores de A se mueven menos de una décima de punto porcentual. Para B-MANU el precio en A incluso cae por debajo de su nivel previo al arancel, un resultado de tipo Metzler (1949) para ese bien. Esta incidencia casi completa pertenece a este cierre y a esta calibración: con el ahorro externo fijo como fracción del ingreso mundial, que elimina la dependencia de qué país se lista primero, B absorbe 0.907 y 0.957.
+#
+# **La elección de $\sigma$.** $\sigma=2$ es ilustrativo, y la respuesta depende mucho de él. Con $\sigma=0$ nada se sustituye y B absorbe solo 0.029 y 0.028. Por encima del punto singular la participación cae cuando $\sigma$ sube, hasta 0.616 y 0.648 con $\sigma=5$. El jacobiano en la referencia es singular en $\sigma^*=0.9892$, donde su determinante cambia de signo. La respuesta a un arancel pequeño es $-J^{-1}\partial R/\partial t$, que no está acotada en $\sigma^*$ y cambia de signo al cruzarlo: la participación de B es 2.951 y 3.126 con $\sigma=1.2$, pero -2.048 y -2.163 con $\sigma=0.8$. Con $\sigma=0.5$ los precios de B suben (participaciones -0.446 y -0.473) y los términos de intercambio de A caen a 0.951, como anticipa el razonamiento de tipo Marshall-Lerner de la intuición. Cerca de $\sigma^*$, Newton desde la referencia no encuentra el equilibrio con 10% (con $\sigma=1$ reporta `converged: False`).
+#
+# **El cierre frente a los bloques flexibles.** Con el cierre heredado, el único que implementa el solucionador flexible (valora el comercio de demanda final al precio compuesto con arancel, `ppfd_legacy`), el mismo arancel sube los precios de B relativos a A-FOOD entre 1.417% y 1.465% (FOOD) y entre 1.514% y 1.526% (MANU), mientras que el cierre consistente los baja entre 8.796% y 8.830% y entre 9.262% y 9.281%. Cambiar $\rho_{va}$ de 0.5 a 2 mueve cualquiera de estos precios como mucho 0.048 puntos porcentuales. Con abastecimiento Leontief ($\sigma_{inter}=0$) no tiene ningún efecto: los dos sectores de un país venden a cada uso final en las mismas proporciones, así que la composición de la producción de un país y su $w/r$ no pueden cambiar, y $\rho_{va}$ nunca interviene. En esta economía el cierre contable decide el signo del resultado; el bloque de sustitución de factores apenas importa. Ninguna de estas cifras es una medida de bienestar, y la convergencia del modelo de referencia no establece bienestar hicksiano ni identifica un efecto causal del arancel.
+#
+# ## Tu turno
+#
+# Elija la elasticidad de abastecimiento y el arancel de A. La celda reporta la parte del arancel que soportan los precios de productor de B junto al cálculo con $\sigma=2$ y el mismo arancel y al cálculo con 10% y el mismo $\sigma$, y comprueba dos predicciones.
+
+# %%
+custom_sigma = 5.  # ← change this: sourcing elasticity sigma, advertised range 1.5 to 10
+custom_tariff = .15  # ← change this: A's tariff rate, advertised range 0.05 to 0.30
+assert 1.5 <= custom_sigma <= 10 and .05 <= custom_tariff <= .30
+start, result = solve_tariff(custom_sigma, custom_tariff)
+custom = incidence_on_b(start, result, custom_tariff)
+at_sigma_2 = incidence_on_b(*solve_tariff(2., custom_tariff), custom_tariff)
+at_10_percent = incidence_on_b(*solve_tariff(custom_sigma, .10), .10)
+print(pd.DataFrame({f"sigma={custom_sigma:g}, t={custom_tariff:.2f}": custom,
+                    f"sigma=2, t={custom_tariff:.2f}": at_sigma_2,
+                    f"sigma={custom_sigma:g}, t=0.10": at_10_percent},
+                   index=share_columns).round(3).to_string())
+print(f"A's terms of trade: {result.terms_of_trade[0]:.4f}")
+# A gains through its terms of trade and B's prices fall (true only above sigma*), and B bears
+# less of the tariff the more easily A's producers switch suppliers.
+assert result.terms_of_trade[0] > 1 and np.all(custom > 0)
+assert np.all((custom < at_sigma_2) == (custom_sigma > 2))
+
+# %% [markdown]
+# 1. *Básico.* Antes de ejecutar, prediga si B soporta más o menos de un arancel de 15% con $\sigma=5$ que con $\sigma=2$, y explíquelo con el precio con arancel de los bienes de B en A. Luego mueva `custom_tariff` dentro de su rango: ¿depende mucho la parte de B del tamaño del arancel? ¿Por qué el rango de `custom_sigma` empieza por encima de $\sigma^*$, y cuál de los dos asserts económicos falla con $\sigma=0.8$ si se quita la comprobación del rango?
+# 2. *Intermedio.* Elasticidad de la demanda de trabajo respecto del propio salario en el CES anidado. Como en el experimento 1, mantenga fijos la producción, las rentas del capital y los precios de los insumos, mueva todos los salarios $\pm h$ en logaritmos ($h=10^{-6}$) y calcule $\varepsilon=d\ln L/d\ln w$ para $(\rho,\sigma_y)$ en {(1.4, 0), (1.4, 0.2), (1.4, 1), (0.5, 2)}. Derive primero la respuesta: con $L\propto y\,(c_Y/c_{VA})^{\sigma_y}(c_{VA}/w)^{\rho}$, $d\ln c_{VA}/d\ln w=1-\alpha$ y $d\ln c_Y/d\ln w=(1-\theta_M)(1-\alpha)$, muestre que $\varepsilon=-[\alpha\rho+\sigma_y\theta_M(1-\alpha)]$, donde `theta_M = calib.a.sum(axis=0)[None] / (1 - calib.tax)` es la participación de los insumos en el costo y `calib.alpha` es $\alpha$. Compruébelo con `np.testing.assert_allclose(eps, -(calib.alpha * rho + sigma_y * theta_M * (1 - calib.alpha)), rtol=1e-6)`. ¿Por qué la elasticidad es $\alpha\rho$ y no $\rho$ cuando $\sigma_y=0$?
+# 3. *Avanzado.* ¿Cuándo rompe el presupuesto la regla de subsistencia suave? Para el país A a precios unitarios, con participación de subsistencia de alimentos $\gamma$: (a) con `compute_les_marginal_budget_shares` para $b$, muestre que la participación de los alimentos en el presupuesto es $b+(1-b)\gamma s_0 g(u)/u$ mientras el ingreso supernumerario no sea negativo, y compruébelo para $\gamma$ en {0.3, 0.9} en `np.linspace(.2, 1.8, 17)`. (b) Un LES de libro de texto con un piso fijo $\gamma c_{0}$ se queda sin ingreso supernumerario en $u=\gamma s_0$; la regla suave, solo donde $u<\gamma s_0 g(u)$. Use $g(u)/u\le 3/\tanh 3$ para derivar el umbral $\gamma^*=\tanh(3)/(3s_0)$ por debajo del cual el presupuesto se cumple a cualquier ingreso; compruebe `assert .8 < gamma_star < .85`. (c) Para $\gamma=0.9$, encuentre la raíz $u_r$ de $u=\gamma s_0 g(u)$ con `brentq` y muestre que el gasto excesivo relativo es cero en $1.02\,u_r$ y mayor que $10^{-3}$ en $0.98\,u_r$, donde la biblioteca emite una advertencia. Explique por qué un piso que depende del ingreso deja esta demanda sin función de gasto.
+#
+# ## ¿Qué tan exhaustivo es esto?
+#
+# El cuaderno evalúa tres bloques flexibles a precios dados y resuelve un pequeño equilibrio de referencia con contabilidad consistente. `solve_flexible_trade_equilibrium` combina todos los bloques (además de penalizaciones de capacidad y abastecimiento Armington de la demanda final mediante `sigma_trade`) en equilibrio general, pero solo con el cierre heredado; con ajustes activos, las calibraciones de más de 100 celdas país-sector requieren `method="quasi_condensed"` (Newton denso) o lanzan `ValueError`, y `allow_legacy_fallback=True` devuelve el equilibrio heredado marcado con `flexible_settings_applied=False`. [docs/es/trade_accounting.md](../docs/es/trade_accounting.md) define el cierre consistente y registra que rechaza la tabla 77x11 incluida; [docs/es/trade_ces_newton.md](../docs/es/trade_ces_newton.md) documenta `solve_ces_block_newton`, una segunda vía por código de puremacro y no un oráculo independiente; `puremacro.trade.household` ([docs/es/trade_household.md](../docs/es/trade_household.md)) contiene el hogar Stone-Geary exacto con piso fijo y función de gasto. El cuaderno 63 calcula el bienestar hicksiano del consumo y el 65 separa la propagación de costos, la contabilidad y las comprobaciones de bienestar. Para datos insumo-producto reales use `load_oecd_icio_granular` o `puremacro.trade.mrio.read_oecd_native`.

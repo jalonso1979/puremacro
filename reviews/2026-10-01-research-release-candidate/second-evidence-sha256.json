@@ -1,0 +1,9 @@
+{
+  "release-gate-after-notebook-repairs.log": "fd830712926271172f7e8e0c9795e30c0d3ee65cd736eacd14058db878a15fb5",
+  "release-gate-after-notebook-repairs.log.json": "0e2c7f33e4389a55c37bd9b7b25bb51e725a3e33ef3a4baff3b93ba4d5cb3745",
+  "second-gate-unexpected-notebook-failures.log": "702fc91e99ca531c658f5a53cccf0018144d1fe6cae5989c8e399e146a849327",
+  "second-gate-notebook-differences.json": "2bfde7eca4040d0507e196fa6651fee98822b06931a5acf8a11544675fdd2da6",
+  "second-validation-summary.json": "41f372efc761815498cbc833adea34884b5f0afee9a96a5ee0ab7bd994626dd0",
+  "second-final-source-match.json": "dcfb47f924c9f8e469cdfa044f707b8a3f9be4fc46100e1512f82e6fdb6c1f78",
+  "amended-candidate-provenance.json": "63dff358f4ea971d3003a272a0c29a915b371ceacff357598aa49d1dc8de3377"
+}

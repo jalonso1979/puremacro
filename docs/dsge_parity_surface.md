@@ -275,6 +275,16 @@ suite_report = run_parity_suite("models/", dynare_results={"sw07": oo}, order=2)
 assert suite_report.passed
 ```
 
+`M_.Sigma_e` is compared when the puremacro object declares a covariance
+(tolerance `shock_cov`, 1e-10, reported in `details["covariance_status"]`).
+By default, order-2 second moments follow `stoch_simul(order=2)` without
+`pruning`: the risk-corrected mean and first-order second moments. For a
+reference from `stoch_simul(order=2, pruning)`, pass `pruning=True`: the
+comparison then uses the exact moments of the pruned solution, which reproduce
+Dynare 8's to 7e-14 on the five live models, autocorrelations included. Autocorrelation rows of
+zero-variance variables that are NaN on both sides are listed in
+`details["moments_excluded"]`.
+
 ### 5.3 CLI availability
 
 `puremacro-dynare parity` deliberately exits with an error since 4.0.0: it has

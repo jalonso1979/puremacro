@@ -8,19 +8,79 @@ import numpy as np
 import pandas as pd
 
 
+def _overall_line(att: float, se: float, lo: float, hi: float,
+                  alpha: Optional[float]) -> str:
+    """``+x.xxxx  (se s, 90% CI [lo, hi])`` for the summaries below."""
+    line = f"{att:+.4f}"
+    if se is not None and np.isfinite(se):
+        level = "" if alpha is None or not np.isfinite(alpha) else f"{100 * (1 - alpha):.0f}% "
+        line += f"  (se {se:.4f}, {level}CI [{lo:+.4f}, {hi:+.4f}])"
+    return line
+
+
+def _aggregation_line(aggregation: Optional[str]) -> str:
+    """The ``aggregation :`` summary line, or nothing when it was not set."""
+    if aggregation is None:
+        return ""
+    return f"  aggregation       : {aggregation}\n"
+
+
+def _ci_label(alpha: Optional[float]) -> str:
+    """``"90% CI"`` for ``alpha = 0.10``; plain ``"CI"`` when unknown."""
+    if alpha is None or not np.isfinite(alpha):
+        return "CI"
+    return f"{100 * (1 - alpha):.0f}% CI"
+
+
+#: Section 5 algorithm of Arkhangelsky et al. (2021) behind each SDID se.
+_SDID_SE_ALGORITHMS = {"placebo": "Algorithm 4", "bootstrap": "Algorithm 2",
+                       "jackknife": "Algorithm 3"}
+
+
 @dataclass(frozen=True)
 class CallawaySantannaResult:
     """Result of :func:`puremacro.did.callaway_santanna`.
+
+    Equation numbers are those of Callaway and Sant'Anna (2021), arXiv
+    1803.09015v4. ``n_g`` is the number of units in cohort ``g``; every
+    aggregate weights cohorts by it (it estimates P(G = g | G <= T)).
 
     Attributes
     ----------
     att_gt : pd.DataFrame
         Group-time ATTs with columns ``[g, t, event_time, att, se, lo, hi]``.
     att_event_study : pd.DataFrame
-        Cohort-mean event-study aggregation with columns
-        ``[event_time, att, se, lo, hi, n_cohorts]``.
+        Event study theta_es(e), eq. 3.4: at each event time the ATT(g, g+e)
+        of the cohorts that identify it, weighted by cohort size. Columns
+        ``[event_time, att, se, lo, hi, n_cohorts]``. (Equal cohort weights
+        only under ``aggregation="unweighted"``, the rule of puremacro 4.3.0
+        and earlier.)
     att_overall : float
-        Simple-mean of post-treatment ATTs across (g, t).
+        The overall summary chosen by ``aggregation``; by default
+        theta^O_sel (eq. 3.11), the cohort-size-weighted mean of the cohort
+        averages theta_sel(g) — the paper's recommended summary.
+    att_overall_se, att_overall_lo, att_overall_hi : float
+        Bootstrap standard error and percentile band of ``att_overall`` (the
+        cohort sizes are re-estimated on every draw). NaN when ``n_boot=0``.
+    aggregation : str, optional
+        ``"group"`` (eq. 3.11), ``"simple"`` (eq. 3.10), ``"dynamic"`` or
+        ``"calendar"`` (eq. 3.12), or ``"unweighted"`` (legacy, not a CS
+        estimand). :func:`~puremacro.did.callaway_santanna` always sets it;
+        it is ``None`` for a result built by hand, and ``summary()`` then
+        leaves the line out.
+    alpha : float, optional
+        ``1 − coverage`` of every band.
+    att_group : pd.DataFrame, optional
+        theta_sel(g) (eq. 3.7) per cohort: columns
+        ``[g, n_g, weight, att, se, lo, hi]``; ``weight`` is the cohort's
+        weight in theta^O_sel.
+    overall_aggregations : pd.DataFrame, optional
+        Every overall summary, one row each: columns
+        ``[aggregation, estimand, att, se, lo, hi]``.
+    event_study_vcov : pd.DataFrame, optional
+        Bootstrap covariance matrix of the ``att_event_study`` coefficients,
+        indexed by event time on both axes; its diagonal is ``se**2``. Pass it
+        as ``sigma=`` to :func:`puremacro.did.honest_did`.
 
     References
     ----------
@@ -31,16 +91,28 @@ class CallawaySantannaResult:
     att_gt: pd.DataFrame
     att_event_study: pd.DataFrame
     att_overall: float
+    att_overall_se: float = float("nan")
+    att_overall_lo: float = float("nan")
+    att_overall_hi: float = float("nan")
+    aggregation: Optional[str] = None
+    alpha: Optional[float] = None
+    att_group: Optional[pd.DataFrame] = None
+    overall_aggregations: Optional[pd.DataFrame] = None
+    event_study_vcov: Optional[pd.DataFrame] = None
 
     def summary(self) -> str:
         """One-paragraph human-readable summary of the fit."""
         n_gt = len(self.att_gt)
         n_es = len(self.att_event_study)
+        overall = _overall_line(self.att_overall, self.att_overall_se,
+                                self.att_overall_lo, self.att_overall_hi,
+                                self.alpha)
         return (
             f"Callaway-Sant'Anna result\n"
             f"  group-time ATTs   : {n_gt}\n"
             f"  event-study rows  : {n_es}\n"
-            f"  overall ATT       : {self.att_overall:+.4f}\n"
+            f"  overall ATT       : {overall}\n"
+            + _aggregation_line(self.aggregation)
         )
 
     def to_frame(self) -> pd.DataFrame:
@@ -80,11 +152,34 @@ class SunAbrahamResult:
     Attributes
     ----------
     att_gt : pd.DataFrame
-        Group-time ATTs (same as Callaway-Sant'Anna).
+        Group-time ATTs (the cohort-specific CATT(e, l); same as
+        Callaway-Sant'Anna).
     att_event_study : pd.DataFrame
-        Cohort-share-weighted event-study aggregation.
+        Interaction-weighted event study nu_l (SA eq. 27): at each relative
+        period the cohort effects weighted by the sample share of each cohort
+        among the cohorts observed there. ``se`` is the bootstrap standard
+        deviation of the aggregate itself (joint unit-level draws with the
+        shares re-estimated, so the covariance between cohorts that share
+        controls is kept); ``lo``/``hi`` are ``att -/+ z se``.
     att_overall : float
-        Share-weighted mean of post-treatment ATTs.
+        Overall summary chosen by ``aggregation``; by default ``"simple"``,
+        every post-treatment ATT(g, t) cell weighted by cohort size (CS eq.
+        3.10). ``"dynamic"`` is SA's own nu_g for g = all post periods.
+    att_overall_se, att_overall_lo, att_overall_hi : float
+        Joint-bootstrap standard error and normal band of ``att_overall``.
+    aggregation : str, optional
+        ``"simple"``, ``"group"``, ``"dynamic"`` or ``"calendar"``.
+        :func:`~puremacro.did.sun_abraham` always sets it; it is ``None``
+        for a result built by hand, and ``summary()`` then leaves the line
+        out.
+    alpha : float, optional
+        ``1 − coverage`` of every band.
+    overall_aggregations : pd.DataFrame, optional
+        Every overall summary: columns ``[aggregation, estimand, att, se, lo, hi]``.
+    event_study_vcov : pd.DataFrame, optional
+        Bootstrap covariance matrix of the event-study coefficients; its
+        diagonal is ``se**2``. Pass it as ``sigma=`` to
+        :func:`puremacro.did.honest_did`.
 
     References
     ----------
@@ -96,16 +191,27 @@ class SunAbrahamResult:
     att_gt: pd.DataFrame
     att_event_study: pd.DataFrame
     att_overall: float
+    att_overall_se: float = float("nan")
+    att_overall_lo: float = float("nan")
+    att_overall_hi: float = float("nan")
+    aggregation: Optional[str] = None
+    alpha: Optional[float] = None
+    overall_aggregations: Optional[pd.DataFrame] = None
+    event_study_vcov: Optional[pd.DataFrame] = None
 
     def summary(self) -> str:
         """One-paragraph human-readable summary of the fit."""
         n_gt = len(self.att_gt)
         n_es = len(self.att_event_study)
+        overall = _overall_line(self.att_overall, self.att_overall_se,
+                                self.att_overall_lo, self.att_overall_hi,
+                                self.alpha)
         return (
             f"Sun-Abraham result\n"
             f"  group-time ATTs   : {n_gt}\n"
             f"  event-study rows  : {n_es}\n"
-            f"  overall ATT       : {self.att_overall:+.4f}\n"
+            f"  overall ATT       : {overall}\n"
+            + _aggregation_line(self.aggregation)
         )
 
     def to_frame(self) -> pd.DataFrame:
@@ -219,11 +325,13 @@ class SyntheticDiDResult:
         Pre-period time weights (sum to 1). Renamed from ``lambda`` since
         ``lambda`` is a Python reserved keyword.
     se : float
-        Bootstrap standard error.
-    lo : float
-        Lower bootstrap percentile.
-    hi : float
-        Upper bootstrap percentile.
+        Standard error: the square root of the ``se_method`` variance
+        estimate of Arkhangelsky et al. (2021, Section 5), in the outcome's
+        units. NaN when inference was skipped (``n_boot=0``) or is not
+        defined (the jackknife with one treated unit).
+    lo, hi : float
+        Gaussian confidence interval ``tau ∓ z_{1−α/2}·se`` (eq. 5.1), not
+        bootstrap percentiles. NaN whenever ``se`` is.
     treatment_time : float
         Common treatment time identified by the estimator.
     y_treated : pd.Series | None
@@ -233,12 +341,26 @@ class SyntheticDiDResult:
         ω-weighted donor outcome path over the same periods; the SDID
         estimate is the post-period gap between ``y_treated`` and
         ``y_synthetic`` net of the λ-weighted pre-period gap.
+    se_method : str | None
+        Variance estimator behind ``se``: ``"placebo"`` (Algorithm 4),
+        ``"bootstrap"`` (Algorithm 2) or ``"jackknife"`` (Algorithm 3). For
+        ``synthetic_did(se_method="auto")`` it is the method ``"auto"``
+        resolved to. ``None`` when :func:`~puremacro.did.synthetic_did` ran
+        with ``n_boot=0`` (no variance was computed, so there is no
+        estimator to name) and for a result built by hand.
+    alpha : float | None
+        ``1 − coverage`` of ``[lo, hi]`` (0.10 for a 90 % interval).
+    n_reps : int | None
+        Replications actually used: ``B`` (``n_boot``) for the placebo and
+        the bootstrap, the number of units ``N`` for the jackknife, and 0
+        when no inference was run (``n_boot=0``) or the jackknife is not
+        defined.
 
     References
     ----------
     Arkhangelsky, D., Athey, S., Hirshberg, D.A., Imbens, G.W. and
         Wager, S. (2021). Synthetic difference-in-differences. AER
-        111(12), 4088-4118.
+        111(12), 4088-4118 (arXiv:1812.09970v4: eq. 5.1; Algorithms 2-4).
     """
 
     tau: float
@@ -250,27 +372,51 @@ class SyntheticDiDResult:
     treatment_time: float
     y_treated: Optional[pd.Series] = None
     y_synthetic: Optional[pd.Series] = None
+    se_method: Optional[str] = None
+    alpha: Optional[float] = None
+    n_reps: Optional[int] = None
 
     def summary(self) -> str:
         """One-paragraph human-readable summary of the fit."""
-        return (
-            f"Synthetic-DiD result\n"
-            f"  treatment time    : {self.treatment_time}\n"
-            f"  donor units       : {len(self.omega)}\n"
-            f"  pre-period weights: {len(self.lambda_w)}\n"
-            f"  τ̂                 : {self.tau:+.4f} (se {self.se:.4f})\n"
-            f"  CI                : [{self.lo:+.4f}, {self.hi:+.4f}]\n"
-        )
+        lines = [
+            "Synthetic-DiD result",
+            f"  treatment time    : {self.treatment_time}",
+            f"  donor units       : {len(self.omega)}",
+            f"  pre-period weights: {len(self.lambda_w)}",
+            f"  τ̂                 : {self.tau:+.4f} (se {self.se:.4f})",
+            f"  {_ci_label(self.alpha):<18}: [{self.lo:+.4f}, {self.hi:+.4f}]",
+        ]
+        if self.se_method is not None:
+            method = self.se_method
+            algo = _SDID_SE_ALGORITHMS.get(method)
+            if algo is not None:
+                method += f" ({algo})"
+            if self.n_reps is not None:
+                method += f", {self.n_reps} replications"
+            lines.append(f"  se method         : {method}")
+        return "\n".join(lines) + "\n"
 
     def to_frame(self) -> pd.DataFrame:
-        """Return summary of point estimate, standard error, and CI."""
-        return pd.DataFrame([{
+        """Return summary of point estimate, standard error, and CI.
+
+        Columns ``[tau, se, lo, hi, treatment_time]``, followed by
+        ``se_method``, ``alpha`` and ``n_reps`` for each of them that the
+        result records (is not ``None``). :func:`~puremacro.did.synthetic_did`
+        always records ``alpha`` and ``n_reps``, and ``se_method`` only when
+        ``n_boot > 0``: with ``n_boot=0`` there is no ``se_method`` column.
+        """
+        row = {
             "tau": self.tau,
             "se": self.se,
             "lo": self.lo,
             "hi": self.hi,
             "treatment_time": self.treatment_time,
-        }])
+        }
+        for name in ("se_method", "alpha", "n_reps"):
+            value = getattr(self, name)
+            if value is not None:
+                row[name] = value
+        return pd.DataFrame([row])
 
     def to_markdown(self, **kwargs) -> str:
         """Export summary to Markdown table."""

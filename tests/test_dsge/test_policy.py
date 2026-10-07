@@ -3,7 +3,8 @@
 Covers:
 - Validation 10: 3-equation NK model OSR optimal Taylor coefficient matches
   closed-form analytical optimum within 1e-4 tolerance.
-- Validation 11: LQ commitment IRFs and timeless perspective (lambda_{-1} = 0),
+- Validation 11: LQ commitment IRFs start from the steady state (lambda_{-1} = 0),
+  where the Ramsey plan and the timeless rule coincide,
   verifying multiplier dynamics, inflation undershoot (price-level targeting),
   and commitment vs discretion loss comparison.
 - Dennis (2007) policy iteration convergence and properties under discretion.
@@ -141,12 +142,13 @@ def test_osr_continuous_bk_penalty_surface():
 # ==============================================================================
 
 def test_validation_11_lq_commitment_irf_and_timeless_perspective():
-    """Validation 11: LQ commitment reproduces published IRF sign pattern and timeless perspective.
+    """Validation 11: LQ commitment reproduces the published IRF sign pattern from the steady state (lambda_{-1} = 0).
 
     Under commitment following a cost-push shock:
     - Period 0: inflation rises (pi_0 > 0), output contracts (y_0 < 0).
     - Period 1+: inflation undershoots (pi_1 < 0) as part of price-level targeting commitment.
-    - Timeless perspective sets initial lagged multipliers lambda_{-1} = 0.
+    - IRFs start from the steady state (lambda_{-1} = 0), where the Ramsey plan and the
+      timeless rule coincide.
     - Policy multipliers (mult_*) are accessible as model variables for IRFs and moments.
     """
     model = _build_nk_model(kappa=0.5, phi_pi=1.5, rho_u=0.5)

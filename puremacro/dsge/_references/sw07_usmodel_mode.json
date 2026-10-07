@@ -1,0 +1,60 @@
+{
+ "_meta": {
+  "source": "usmodel_mode.mat of the Smets and Wouters (2007) AER replication files, as redistributed in Johannes Pfeifer's DSGE_mod (Smets_Wouters_2007/usmodel_mode.mat): the authors' posterior mode xparam1 and the Hessian hh of the negative log posterior there",
+  "parameter_order": "estimated_params block of sw07_pfeifer.mod = puremacro.dsge.sw07_priors.PRIORS order; Dynare's stderr names SE_<shock> are given as <shock>",
+  "dynare_reference": {
+   "software": "Dynare 8 snapshot 8-2026-05-26-1803 under MATLAB R2026a, 2026-10-03",
+   "mod": "Pfeifer's Smets_Wouters_2007.mod with first_obs=71 (1965Q1), presample=4, lik_init=2, mode_compute=0, mode_file=usmodel_mode, mh_replic=0; data usmodel_data.mat (1947Q3-2004Q4)",
+   "log_posterior_at_mode": -841.4621,
+   "laplace_log_data_density": -923.052692,
+   "puremacro_same_inputs": {
+    "log_posterior_at_mode": -840.81,
+    "laplace_with_dynare_hessian": -922.401,
+    "call": "sw07_log_posterior(mode, dataset='authors', first_obs='1965Q1', presample=4, lik_init='diffuse')"
+   },
+   "paper": {
+    "table_2_marginal_likelihood": -905.8,
+    "note": "ECB WP 722 Table 2 (PDF p. 37) / AER Table 2; 'all models are estimated using the period 1956:1-1965:4 as a training sample'. Neither Dynare 8 on the public replication files nor puremacro reproduces it; see docs/replication.md."
+   }
+  }
+ },
+ "mode": {
+  "ea": 0.45178828166212176,
+  "eb": 0.24246070101377046,
+  "eg": 0.5200103192082884,
+  "eqs": 0.45010690608083065,
+  "em": 0.23983932548400175,
+  "epinf": 0.141123850778673,
+  "ew": 0.24439160123349973,
+  "crhoa": 0.9587740953362461,
+  "crhob": 0.18243934512556007,
+  "crhog": 0.9761614150464989,
+  "crhoqs": 0.7095693238736019,
+  "crhoms": 0.1271314763130675,
+  "crhopinf": 0.9038073405580113,
+  "crhow": 0.9718537740244471,
+  "cmap": 0.7448718466831306,
+  "cmaw": 0.8881459266182488,
+  "csadjcost": 5.488197009060616,
+  "csigma": 1.3951928979514387,
+  "chabb": 0.7124006351787524,
+  "cprobw": 0.737541323772002,
+  "csigl": 1.9198838416864004,
+  "cprobp": 0.6562662602975502,
+  "cindw": 0.5919983094973862,
+  "cindp": 0.22835401911534914,
+  "czcap": 0.5472131292389921,
+  "cfc": 1.6149795879763305,
+  "crpi": 2.029467403441132,
+  "crr": 0.8153248720213849,
+  "cry": 0.08468690532858184,
+  "crdy": 0.22292570806394757,
+  "constepinf": 0.8179822205381722,
+  "constebeta": 0.16065411471321542,
+  "constelab": -0.10306516698580762,
+  "ctrend": 0.43202637481051603,
+  "cgy": 0.5261212194708431,
+  "calfa": 0.19280045641815527
+ },
+ "hessian_log_det": 229.34476561960406
+}

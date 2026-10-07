@@ -5,6 +5,12 @@ Scope:
   to the textbook manual 2x2 DiD in a balanced 2-group, 2-period design.
 * INTERNAL: Sun-Abraham (2021) interaction-weighted estimator is algebraically
   identical to Callaway-Sant'Anna on the canonical 2-group, 2-period design.
+* ANALYTICAL: on a noiseless staggered panel with unequal cohort sizes and
+  cohort- and time-varying effects, the Callaway-Sant'Anna event study and
+  every overall summary equal the hand-computed values of CS (2021) eqs. 3.4,
+  3.7, 3.10, 3.11 and 3.12 (cohort-size weights), and the Sun-Abraham IW event
+  study equals SA (2021) eq. 27. The single-cohort cases above cannot tell an
+  unweighted cohort mean from a size-weighted one; these can.
 * INTERNAL: Borusyak-Jaravel-Spiess (2024) imputation estimator recovers the
   exact 2x2 DiD treatment effect on the canonical design.
 * INTERNAL: ``spatial_did`` with every untreated unit beyond the outermost ring
@@ -79,6 +85,84 @@ def _compute_bjs_2x2() -> dict:
     df = _did_canonical_2x2_data()
     res = borusyak_jaravel_spiess(df, unit="unit", time="time", outcome="y", treat_time="treat_time", n_boot=20, seed=42)
     return {"att": float(res.att_overall)}
+
+
+# ---------------------------------------------------------------------------
+# Staggered adoption with unequal cohort sizes: the aggregation weights matter
+# ---------------------------------------------------------------------------
+#: t = 1..6; cohort g = 3 has 10 units, cohort g = 5 has 40, 50 never treated.
+_AGG_N = {3: 10, 5: 40}
+_AGG_N_NEVER = 50
+#: Planted ATT(g, t): 1 + 0.5 (t - 3) for g = 3 and 3 + (t - 5) for g = 5.
+_AGG_ATT = {3: {3: 1.0, 4: 1.5, 5: 2.0, 6: 2.5}, 5: {5: 3.0, 6: 4.0}}
+
+
+def _did_staggered_weights_data() -> pd.DataFrame:
+    """Noiseless staggered panel: y_it = a_i + 0.3 t + ATT(g_i, t) 1{t >= g_i}.
+
+    With no noise every 2x2 comparison recovers its planted ATT(g, t) exactly,
+    so the aggregates are pure functions of the planted cells and the cohort
+    sizes, and can be computed by hand.
+    """
+    cohorts = [3.0] * _AGG_N[3] + [5.0] * _AGG_N[5] + [np.nan] * _AGG_N_NEVER
+    rows = []
+    for i, g in enumerate(cohorts):
+        a_i = float(np.sin(i + 1.0))
+        for t in range(1, 7):
+            eff = _AGG_ATT[int(g)].get(t, 0.0) if np.isfinite(g) else 0.0
+            rows.append((i, t, a_i + 0.3 * t + eff, g))
+    return pd.DataFrame(rows, columns=["unit", "time", "y", "treat_time"])
+
+
+def _compute_cs_staggered_weights() -> dict:
+    from puremacro.did.callaway_santanna import callaway_santanna
+
+    res = callaway_santanna(_did_staggered_weights_data(), n_boot=0)
+    es = res.att_event_study.set_index("event_time")["att"]
+    overall = res.overall_aggregations.set_index("aggregation")["att"]
+    return {
+        "theta_es_0_to_3": np.array([es.loc[e] for e in (0, 1, 2, 3)]),
+        "theta_sel_g3_g5": res.att_group["att"].to_numpy(),
+        "att_overall_default": float(res.att_overall),
+        "theta_O_W": float(overall.loc["simple"]),
+        "theta_O_es": float(overall.loc["dynamic"]),
+        "theta_O_c": float(overall.loc["calendar"]),
+    }
+
+
+def _reference_cs_staggered_weights() -> dict:
+    """Hand arithmetic, P(G = 3 | G <= T) = 10/50 = 0.2, P(G = 5 | G <= T) = 0.8."""
+    return {
+        # eq. 3.4: 0.2*1 + 0.8*3, 0.2*1.5 + 0.8*4, then cohort 3 alone
+        "theta_es_0_to_3": np.array([2.6, 3.5, 2.0, 2.5]),
+        # eq. 3.7: (1 + 1.5 + 2 + 2.5)/4, (3 + 4)/2
+        "theta_sel_g3_g5": np.array([1.75, 3.5]),
+        # eq. 3.11 (the default): 0.2*1.75 + 0.8*3.5
+        "att_overall_default": 3.15,
+        # eq. 3.10: (10*7 + 40*7) / (4*10 + 2*40)
+        "theta_O_W": 350.0 / 120.0,
+        # eq. 3.12: (2.6 + 3.5 + 2.0 + 2.5)/4
+        "theta_O_es": 2.65,
+        # eq. 3.12 with eq. 3.8: (1.0 + 1.5 + [0.2*2 + 0.8*3] + [0.2*2.5 + 0.8*4])/4
+        "theta_O_c": 2.25,
+    }
+
+
+def _compute_sa_staggered_weights() -> dict:
+    from puremacro.did.sun_abraham import sun_abraham
+
+    res = sun_abraham(_did_staggered_weights_data(), n_boot=0)
+    es = res.att_event_study.set_index("event_time")["att"]
+    return {"nu_0_to_3": np.array([es.loc[e] for e in (0, 1, 2, 3)]),
+            "att_overall": float(res.att_overall)}
+
+
+def _reference_sa_staggered_weights() -> dict:
+    """SA eq. 27: shares of cohorts observed at relative period l, N_e / sum N_e."""
+    return {"nu_0_to_3": np.array([(10 * 1.0 + 40 * 3.0) / 50, (10 * 1.5 + 40 * 4.0) / 50,
+                                   2.0, 2.5]),
+            # every post cell weighted by its cohort size (CS eq. 3.10)
+            "att_overall": 350.0 / 120.0}
 
 
 def _did_canonical_3p_data() -> pd.DataFrame:
@@ -317,6 +401,65 @@ CASES: list[ValidationCase] = [
             "Sun & Abraham (2021, J. Econometrics 225:175-199): in a single-cohort "
             "2-period design, the interaction-weighted estimator and Callaway-Sant'Anna "
             "are algebraically identical."
+        ),
+    ),
+    ValidationCase(
+        id="did.callaway_santanna_aggregations_match_cs2021_equations",
+        subsystem="did",
+        title=(
+            "Callaway-Sant'Anna event study and overall ATTs equal the paper's "
+            "cohort-size-weighted aggregations on a staggered design"
+        ),
+        title_es=(
+            "El estudio de eventos y los ATT globales de Callaway-Sant'Anna igualan "
+            "las agregaciones del artículo, ponderadas por tamaño de cohorte, en un "
+            "diseño escalonado"
+        ),
+        mechanism=Mechanism.ANALYTICAL,
+        compute=_compute_cs_staggered_weights,
+        reference=_reference_cs_staggered_weights,
+        tol=Tol.EXACT,
+        citation=(
+            "Callaway & Sant'Anna (2021, J. Econometrics 225:200-230), arXiv:1803.09015v4 "
+            "Section 3: eq. 3.4 theta_es(e) with weights P(G=g | G+e<=T) (p. 15, Table 1); "
+            "eq. 3.7 theta_sel(g) (p. 17); eq. 3.10 theta^O_W and eq. 3.11 theta^O_sel, "
+            "the recommended overall summary (p. 18); eq. 3.12 theta^O_es and theta^O_c "
+            "(p. 19)."
+        ),
+        notes=(
+            "Noiseless panel, t = 1..6: cohort 3 (10 units, ATT 1, 1.5, 2, 2.5), cohort 5 "
+            "(40 units, ATT 3, 4), 50 never treated. Every target is hand arithmetic on the "
+            "planted cells and the shares 0.2/0.8. The equal-cohort-mean rule puremacro "
+            "used up to 4.3.0 gives 2.0 and 2.75 at e = 0, 1 and 2.333 overall, against "
+            "2.6, 3.5 and 3.15."
+        ),
+    ),
+    ValidationCase(
+        id="did.sun_abraham_iw_event_study_matches_sa2021_eq27",
+        subsystem="did",
+        title=(
+            "Sun-Abraham interaction-weighted event study equals the cohort-share "
+            "average of the cohort effects on a staggered design"
+        ),
+        title_es=(
+            "El estudio de eventos ponderado por interacción de Sun-Abraham iguala el "
+            "promedio de los efectos de cohorte ponderado por su participación en un "
+            "diseño escalonado"
+        ),
+        mechanism=Mechanism.ANALYTICAL,
+        compute=_compute_sa_staggered_weights,
+        reference=_reference_sa_staggered_weights,
+        tol=Tol.EXACT,
+        citation=(
+            "Sun & Abraham (2021, J. Econometrics 225:175-199), arXiv:1804.05785, eq. 27 "
+            "(p. 23): nu_l averages CATT(e, l) with the sample shares of the cohorts "
+            "observed at relative period l; with never-treated controls and no covariates "
+            "it coincides with Callaway-Sant'Anna (p. 24)."
+        ),
+        notes=(
+            "Same noiseless panel as the Callaway-Sant'Anna aggregation case; "
+            "att_overall is sun_abraham's default overall summary, every "
+            "post-treatment cell weighted by cohort size (350/120)."
         ),
     ),
     ValidationCase(

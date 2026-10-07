@@ -6,11 +6,11 @@ Standalone replication / demo scripts that each showcase one method. Every scrip
 python -m puremacro.examples.<name>
 ```
 
-There are **83 scripts** in `puremacro/examples/` (66 described below; the remainder are listed at the end).
+There are **90 scripts** in `puremacro/examples/` (69 described below; the remainder are listed at the end).
 
 ## Recommended starter shortlist
 
-Twelve scripts that together span the methods catalogue. Read in this order if you want a one-week tour:
+Thirteen scripts that together span the methods catalogue. Read in this order if you want a one-week tour:
 
 | # | Script | What it teaches |
 |---|---|---|
@@ -57,13 +57,13 @@ Twelve scripts that together span the methods catalogue. Read in this order if y
 | `svariv_mertens_ravn` | 213 | Mertens-Ravn (2013)-style proxy-SVAR replication on synthetic data. |
 | `gk_robust_from_gibbs` | 98 | Posterior-aware sign-restriction bands: Giacomini-Kitagawa 2021 |
 | `gk_robust_signs` | 107 | Giacomini-Kitagawa (2021) robust bands vs RWZ posterior bands |
-| `hfi_gertler_karadi` | 73 | HFI monetary-policy shock: synthetic Gertler-Karadi 2015-style pipeline. |
+| `hfi_gertler_karadi` | 180 | HFI monetary-policy shock: synthetic Gertler-Karadi 2015-style pipeline. |
 
 ### Local projection methods
 
 | Script | LOC | Headline |
 |---|---:|---|
-| `la_lp_pmw_demo` | 90 | Lag-augmented LP (Plagborg-Møller-Wolf 2021) vs Newey-West Jordà LP. |
+| `la_lp_pmw_demo` | 136 | Lag-augmented LP (Montiel Olea & Plagborg-Møller 2021, one extra lag, EHW SEs) vs Newey-West Jordà LP. |
 | `lp_asymmetric_tenreyro` | 59 | Tenreyro-Thwaites (2016)-style asymmetric local projection on synthetic data. |
 | `lp_panel_dk` | 53 | Panel local projection of GDP on uncertainty with Driscoll-Kraay SE. |
 | `lp_smooth_demo` | 55 | Barnichon-Brownlees (2019) smoothed local projections on synthetic data. |
@@ -73,7 +73,7 @@ Twelve scripts that together span the methods catalogue. Read in this order if y
 
 | Script | LOC | Headline |
 |---|---:|---|
-| `ms_var_business_cycle` | 100 | Hamilton (1989)-style two-regime MS-VAR for a recession dating exercise. |
+| `ms_var_business_cycle` | 126 | Two-regime MSIH MS-VAR (switching intercept and variance, shared AR) for a recession dating exercise. |
 | `regime_workflow` | 108 | End-to-end regime workflow: Bai-Perron breaks → regime indicator |
 | `tvar_threshold_demo` | 90 | Self-exciting threshold VAR: regime-dependent dynamics. |
 | `tvp_var_demo` | 108 | Time-varying-parameter VAR (Primiceri-style FFBS Gibbs). |
@@ -191,6 +191,8 @@ Scripts that ship but have no entry above yet:
 - `dsge_fertility_demo`
 - `dsge_nk_sketchpad`
 - `dsge_nuts_estimation`
+- `dsge_optimal_discretion`
+- `dsge_var_estimation`
 - `empirical_benchmark_replications`
 - `garch_midas_macro_volatility`
 - `hank_sequence_space`

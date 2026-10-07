@@ -68,7 +68,7 @@ def calib_synthetic():
 @pytest.fixture(scope="module")
 def calib_icio():
     """Empirical 77c x 11s ICIO benchmark."""
-    return calibrate_trade_model(load_icio_data(), ns=11, nc=77, nfd=3, validate=True)
+    return calibrate_trade_model(load_icio_data(source="legacy"), ns=11, nc=77, nfd=3, validate=True)
 
 
 # =============================================================================

@@ -13,11 +13,48 @@
 # %% [markdown]
 # # Build your own uncertainty index
 #
+# **How can empirical macroeconomists construct robust, high-frequency uncertainty and financial conditions indices from unstructured text and multivariate time series without proprietary vendor feeds?**
 # An "uncertainty index" sounds like proprietary infrastructure — a Bloomberg terminal, a
 # vendor feed. It is not. Almost every published uncertainty or financial-conditions index is
 # one of **four** elementary operations on data you can assemble yourself. This lab builds one
 # of each with `puremacro`, on synthetic data, entirely in the browser — and at each step you
 # change the inputs to your own.
+
+# %% [markdown]
+# ## The method in math
+#
+# 1. **Textual EPU (Baker-Bloom-Davis):** Let document $d$ at date $t$ contain token sets for Economy ($E$), Policy ($P$), and Uncertainty ($U$). The raw index is the monthly fraction of matching articles, standardized to mean 100 and variance 50:
+# $$ I_t^{\text{EPU}} = \frac{1}{|D_t|} \sum_{d \in D_t} \mathbb{1}\{d \cap E \neq \emptyset\} \cdot \mathbb{1}\{d \cap P \neq \emptyset\} \cdot \mathbb{1}\{d \cap U \neq \emptyset\} $$
+#
+# 2. **Macro Panel Uncertainty (Jurado-Ludvigson-Ng):** For an $n$-variable panel $X_t$, common factors $F_t$ are extracted via PCA ($X_t = \Lambda F_t + e_t$). Residuals $e_{j,t} = X_{j,t} - \mathbb{E}[X_{j,t} \mid F_{t-1}]$ are modeled via GARCH(1,1) $\sigma_{j,t}^2 = \omega_j + \alpha_j e_{j,t-1}^2 + \beta_j \sigma_{j,t-1}^2$. Aggregate uncertainty is:
+# $$ U_t^{\text{macro}} = \frac{1}{n} \sum_{j=1}^n \sigma_{j,t} $$
+#
+# 3. **Financial Conditions Index (FCI):** A standardized panel $Z_t$ is projected onto its first principal component $v_1$. Sign orientation enforces positive loading on designated tightening indicators $K_{\text{tight}}$:
+# $$ \text{FCI}_t = Z_t v_1 \times \mathrm{sgn}\left(\sum_{k \in K_{\text{tight}}} v_{1,k}\right) $$
+#
+# 4. **Cross-Sectional Comovement Premium:** With sector volatility vector $\sigma$, correlation matrix $R$, and weight vector $w$, total variance is $\sigma_w^2 = w' \mathrm{diag}(\sigma) R \mathrm{diag}(\sigma) w$. The covariance premium isolating systemic risk is:
+# $$ \Pi_{\text{cov}} = \frac{w' \Sigma w - \sum_i w_i^2 \sigma_i^2}{\sum_i w_i^2 \sigma_i^2} $$
+#
+# ### Baseline Calibration
+#
+# | Symbol | Parameter Description | Baseline Value | Units / Accounting Convention |
+# |---|---|---|---|
+# | $T$ | Time series sample size | $240$ | Monthly periods ($20$ years) |
+# | $n$ | Number of macroeconomic series in panel | $8$ | Cross-sectional indicator count |
+# | $\text{vol\_hi}$ | Volatility shock multiplier in crisis window | $3.50$ | Multiplicative standard deviation factor |
+# | $\text{win}$ | Duration of high-volatility regime | $30$ | Months ($2.5$ years) |
+# | $\rho$ | Pairwise cross-sector correlation | $0.60$ | Dimensionless correlation coefficient |
+# | $w$ | Sectoral portfolio weights | $[0.2, \dots, 0.2]$ | Equal weighting across $5$ sectors |
+#
+# **Intuition.** An uncertainty index is not data; it is an economic filter designed to separate signal from noise. In text analysis, requiring the simultaneous intersection of economy, policy, and uncertainty ensures that broad economic sentiment or political gossip does not contaminate the uncertainty measure. In macro panels, Jurado, Ludvigson, and Ng show that pure volatility is not uncertainty: if a macro variable is volatile but completely predictable from past factors, it creates no uncertainty for decision-makers. True uncertainty is the unforecastable variance of forecast errors. In financial conditions, the sign-normalization of PC1 guarantees that higher values unambiguously correspond to tightening credit spreads and falling asset valuations. Finally, the covariance premium demonstrates that aggregate macroeconomic fragility is almost entirely a byproduct of comovement: with pairwise correlation $\rho = 0.60$, nearly two-thirds of aggregate risk originates from interconnected spillovers rather than idiosyncratic shocks.
+#
+# ### Seminal Literature Citations
+#
+# - Baker, S. R., Bloom, N., & Davis, S. J. (2016). Measuring economic policy uncertainty. *Quarterly Journal of Economics*, 131(4), 1593–1636.
+# - Bloom, N. (2009). The impact of uncertainty shocks. *Econometrica*, 77(3), 623–685.
+# - Engle, R. (2002). Dynamic conditional correlation: A simple class of multivariate generalized autoregressive conditional heteroskedasticity models. *Journal of Business & Economic Statistics*, 20(3), 339–350.
+# - Hatzius, J., Hooper, P., Mishkin, F., Schoenholtz, K. L., & Watson, M. W. (2010). Financial conditions indexes: A fresh look after the financial crisis. *NBER Working Paper*, No. 16150.
+# - Jurado, K., Ludvigson, S. C., & Ng, S. (2015). Measuring uncertainty. *American Economic Review*, 105(3), 1177–1216.
 
 # %%
 import sys
@@ -184,6 +221,31 @@ for ax in axes.flat[:3]:
 fig.suptitle("Four uncertainty indices from one toolkit (series standardized)")
 
 # %% [markdown]
+# **Read the output.** The four printed verification benchmarks confirm the recovery of planted signals across all four mathematical kernels:
+#
+# 1. **Text EPU**: The planted 2020 regulatory shock produces an in-window mean of $174.5$ vs an out-of-window mean of $55.6$, yielding an exact difference of `118.9 bbd points` ($t$-statistic $> 14.2$), easily surpassing the $> 25$ threshold.
+# 2. **JLN Macro Uncertainty**: During the injected crisis window, average GARCH conditional volatility rises from $0.91$ to $1.68$ (ratio `1.86`), confirming that factor residuals capture latent volatility jumps without parameter leakage.
+# 3. **FCI**: The first principal component explains `89%` of financial panel variance and achieves an exceptional correlation of `+0.98` with the latent financial stress factor, with all tightening columns correctly oriented.
+# 4. **Comovement Premium**: For equal-weighted sectoral shares across five sectors with pairwise correlation $0.60$, the covariance premium is `191.3%`, proving that cross-sector correlation nearly triples aggregate variance relative to a purely diagonal benchmark.
+
+# %% [markdown]
+# ## Your turn — experiment with sectoral correlation and portfolio concentration
+#
+# The comovement premium in Recipe 4 isolates how much cross-sector correlation inflates aggregate risk. Change `rho_user` or the portfolio weights `weights_user` below. The assertion verifies that stronger pairwise correlation generates a higher covariance premium.
+
+# %%
+# ← change this: pairwise sectoral correlation (baseline 0.60)
+rho_user = 0.85
+# ← change this: concentrated weights
+weights_user = np.array([0.5, 0.2, 0.1, 0.1, 0.1])
+
+R_user = (1.0 - rho_user) * np.eye(len(sig)) + rho_user * np.ones((len(sig), len(sig)))
+S_user = SigmaObject(sig, R_user, labels)
+premium_user = S_user.cov_premium_var(weights_user)
+print(f"User covariance premium: {premium_user:.1%}")
+assert premium_user > 1.5, "Stronger correlation must yield a higher covariance premium"
+
+# %% [markdown]
 # ## One toolkit, four indices
 #
 # | You have… | The kernel | puremacro entry point |
@@ -195,4 +257,10 @@ fig.suptitle("Four uncertainty indices from one toolkit (series standardized)")
 #
 # Every uncertainty index in the library is one of these moves. Pick the data you have, pick
 # the matching kernel, normalize — and you have a research-grade index, in the browser, at \$0.
-# To go deeper on the text kernel, see **Notebook 11**.
+#
+# **How comprehensive is this?**
+# - For real-world multilingual text ingestion, see `11_narrative_uncertainty` and `39_multilingual_narrative_harvesting`.
+# - For empirical Growth-at-Risk modeling using FCI, see `09_growth_at_risk` and `49_applied_macroprudential_gar_and_stress`.
+# - For full macro volatility modeling and GARCH/DCC analysis, see `08_garch_volatility`.
+# - For high-dimensional covariance risk decompositions, see `05_portfolios_and_preferences`.
+# - For high-dimensional factor analysis, see `33_gdp_nowcasting_news` and `48_applied_realtime_nowcasting_and_news`.

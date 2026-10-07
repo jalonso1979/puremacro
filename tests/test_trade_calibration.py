@@ -135,7 +135,7 @@ def matlab_base_results() -> dict[str, np.ndarray]:
 @pytest.fixture(scope="module")
 def matlab_raw_data() -> np.ndarray:
     """The 77-country 11-sector ICIO matrix bundled with puremacro."""
-    return load_icio_data()
+    return load_icio_data(source="legacy")
 
 
 # ---------------------------------------------------------------------------
@@ -376,7 +376,7 @@ class TestTradeDataModule:
 
     def test_icio_data_container_and_properties(self):
         """Verify ICIOData container slices and accounting identities."""
-        icio = load_icio_data(return_structured=True)
+        icio = load_icio_data(source="legacy", return_structured=True)
         assert isinstance(icio, ICIOData)
         assert icio.matrix.shape == (850, 1078)
         assert icio.intermediate_matrix.shape == (847, 847)
@@ -400,13 +400,13 @@ class TestTradeDataModule:
         assert max_diff < 2e-4
 
     def test_load_icio_data_calibration_validation(self):
-        """Verify calibrate_trade_model(load_icio_data()).validate() passes cleanly."""
-        raw = load_icio_data()
+        """Verify calibrate_trade_model(load_icio_data(source='legacy')).validate() passes cleanly."""
+        raw = load_icio_data(source="legacy")
         calib = calibrate_trade_model(raw)
         checks = calib.validate()
         assert isinstance(checks, dict)
         failing = [k for k, v in checks.items() if not v]
-        assert not failing, f"calibrate_trade_model(load_icio_data()) failed validation checks: {failing}"
+        assert not failing, f"calibrate_trade_model(load_icio_data(source='legacy')) failed validation checks: {failing}"
         assert all(checks.values()), f"Expected all validation checks to be True, got: {checks}"
 
 

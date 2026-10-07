@@ -13,6 +13,7 @@
 # %% [markdown]
 # # Volatility clustering: GARCH and DCC
 #
+# **How can financial econometricians model the time-varying volatility clustering of asset returns and capture the sudden spikes in cross-asset correlations that occur during financial crises?**
 # Financial returns are calm for a while, then turbulent — volatility clusters.
 # `puremacro.garch` fits GARCH(1,1) by pure-numpy/scipy Gaussian MLE (no `arch`
 # package) and the Engle DCC for time-varying correlations. We simulate from
@@ -38,6 +39,19 @@
 #    \qquad R_t = \operatorname{diag}(Q_t)^{-1/2}\,Q_t\,\operatorname{diag}(Q_t)^{-1/2}, $$
 # so the correlation matrix $R_t$ moves through time even though $\bar Q$ is fixed. The full
 # conditional covariance is then $H_t = D_t R_t D_t$ with $D_t = \operatorname{diag}(\sigma_{1,t},\dots)$.
+#
+# ### Baseline Parameterization
+#
+# | Symbol | Economic / Statistical Meaning | Baseline Value | Units |
+# |---|---|---|---|
+# | $\omega$ | GARCH variance intercept | $0.050$ | Variance units ($\%^2$) |
+# | $\alpha$ | ARCH parameter (reaction to market news) | $0.100$ | Dimensionless elasticity |
+# | $\beta$ | GARCH persistence parameter | $0.850$ | Dimensionless persistence |
+# | $\alpha + \beta$ | Volatility half-life / persistence metric | $0.950$ | Persistence sum ($< 1.0$) |
+# | $a$ | DCC news responsiveness parameter | $0.050$ | Dimensionless weight |
+# | $b$ | DCC correlation persistence parameter | $0.900$ | Dimensionless persistence |
+# | $\bar{\rho}$ | Unconditional cross-asset correlation | $0.450$ | Correlation coefficient $[-1, 1]$ |
+# | $T$ | Sample length | $2000$ (GARCH) / $1800$ (DCC) | Trading periods (days/months) |
 
 # %% [markdown]
 # **Intuition.** Volatility clustering — big moves follow big moves, calm follows calm — is
@@ -49,6 +63,13 @@
 # number, it lets them rise and fall — the reason correlations *spike in crises* (everything
 # falls together) and ease in calm times. The weights $(a,b)$ play the same
 # persistence role for comovement that $(\alpha,\beta)$ play for a single series' variance.
+#
+# ### Seminal Literature Citations
+#
+# - Bollerslev, T. (1986). Generalized autoregressive conditional heteroskedasticity. *Journal of Econometrics*, 31(3), 307–327.
+# - Engle, R. F. (1982). Autoregressive conditional heteroscedasticity with estimates of the variance of United Kingdom inflation. *Econometrica*, 50(4), 987–1007.
+# - Engle, R. (2002). Dynamic conditional correlation: A simple class of multivariate generalized autoregressive conditional heteroskedasticity models. *Journal of Business & Economic Statistics*, 20(3), 339–350.
+# - Francq, C., & Zakoïan, J. M. (2019). *GARCH Models: Structure, Statistical Inference and Financial Applications*. John Wiley & Sons.
 
 # %%
 import sys

@@ -122,7 +122,7 @@ def synthetic_2c_2s_calib() -> TradeCalibrationResult:
 @pytest.fixture(scope="module")
 def empirical_calib() -> TradeCalibrationResult:
     """Calibrate full 77-country 11-sector empirical model from the bundled ICIO data."""
-    return calibrate_trade_model(load_icio_data(), ns=11, nc=77, nfd=3, validate=True)
+    return calibrate_trade_model(load_icio_data(source="legacy"), ns=11, nc=77, nfd=3, validate=True)
 
 
 # ---------------------------------------------------------------------------
@@ -200,6 +200,30 @@ class TestSyntheticEquilibrium:
         # Relative discrepancy between Newton and SciPy solutions < 1e-4
         max_rel_diff = np.max(np.abs(res_newt.x_sol - res_hybr.x_sol) / (np.abs(res_hybr.x_sol) + 1.0))
         assert max_rel_diff < 1e-4
+
+    @pytest.mark.parametrize("method", ["hybr", "lm"])
+    @pytest.mark.parametrize("tol", [1e-4, 1e-5, 1e-7])
+    def test_scipy_fallbacks_meet_the_absolute_residual_tolerance(
+        self, synthetic_2c_2s_calib: TradeCalibrationResult, method: str, tol: float
+    ) -> None:
+        """tol is an absolute residual bound, not MINPACK's relative step xtol.
+
+        Up to 4.4.0 hybr stopped at max|F| = 1.06e-4, 1.38e-5 and 1.82e-7 for
+        these tolerances and reported converged=False. The oracle is the
+        residual recomputed with compute_equilibrium_residuals.
+        """
+        from puremacro.trade import compute_equilibrium_residuals
+
+        calib = synthetic_2c_2s_calib
+        nc, ns = calib.n_countries, calib.n_sectors
+        tau = np.ones((ns * nc, ns, nc), dtype=float)
+        tau_fd = np.ones((ns * nc, calib.n_final_demand, nc), dtype=float)
+        tau[2:, :, 0] = 1.10
+        tau_fd[2:, :, 0] = 1.10
+        res = solve_trade_equilibrium(calib, tau=tau, tau_fd=tau_fd, method=method, tol=tol)
+        assert res.converged is True
+        recomputed = compute_equilibrium_residuals(res.x_sol, calib, tau=tau, tau_fd=tau_fd)
+        assert np.max(np.abs(recomputed)) <= tol
 
     def test_operator_precedence_toggle(self, synthetic_2c_2s_calib: TradeCalibrationResult) -> None:
         """Verify replicate_matlab_precedence toggle propagates correctly."""

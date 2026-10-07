@@ -1732,25 +1732,161 @@ def solve_nonlinear_transition(
 # ---------------------------------------------------------------------------
 # Two-Asset HANK Sequence-Space Engine (Kaplan, Moll & Violante 2018; Auclert et al. 2021)
 # ---------------------------------------------------------------------------
+#
+# Household problem (quarterly).  A household enters date t with liquid assets
+# b, illiquid assets a and productivity s, and solves
+#
+#     V_t(s, b, a) = max  u(c) + beta E[V_{t+1}(s', b', a') | s]
+#     c + b' + a' = (1 + r^b_t) b + (1 + r^a_t) a + z_t s - chi(d, a),
+#     d = a' - (1 + r^a_t) a,     b' >= b_min,     a' >= 0,
+#
+# with CRRA utility u(c) = c^(1-gamma)/(1-gamma) (log for gamma = 1) and the
+# convex, kink-free portfolio adjustment cost (KMV 2018 adjustment-cost
+# structure without the linear term, so that policies are differentiable)
+#
+#     chi(d, a) = chi_0 / (1 + chi_1) * |d|^(1 + chi_1) / (a + a_bar)^chi_1.
+#
+# r^b_t and r^a_t are the returns *realised* at t on assets carried into t
+# (the convention of the one-asset block above).  The backward iteration is
+# the endogenous-grid method on the two marginal values V_a and V_b:
+# for every (a, b', s) the first-order condition for a',
+# W_a(a', b', s) = W_b(a', b', s) (1 + chi_d(a', a)), with W_x = beta E[V_x'],
+# is solved for a' (safeguarded Newton inside the bracketing grid interval),
+# the Euler equation u'(c) = W_b gives c, the budget constraint gives the
+# endogenous b, and linear interpolation maps it back to the b grid.  States
+# for which b' = b_min binds solve u'(c) (1 + chi_d) = W_a(a', b_min, s) for a'
+# directly.  Envelope conditions: V_b = (1 + r^b) u'(c) and
+# V_a = (1 + r^a - chi_a(a', a)) u'(c), with chi_a the derivative of the cost
+# with respect to a at fixed a'.  Policies are kept inside the grids and c
+# comes from the budget constraint, so the bilinear lottery is exactly
+# mean-preserving and no wealth is created or destroyed at the grid edges.
+#
+# Closure.  The returns on both assets are paid out of aggregate income, on the
+# holdings households actually carry into t, so household non-financial
+# income per efficiency unit is
+#
+#     z_t N = Y_t - r^b_t B_{t-1} - r^a_t A_{t-1},        N = E[s],
+#
+# with B_{t-1} = sum D b', A_{t-1} = sum D a' chosen at t-1 (B_{-1}, A_{-1}
+# at the steady state).  Aggregate household income is then exactly Y_t:
+# rate changes redistribute income between asset holders and workers, and the
+# supply of each asset accommodates the portfolio split households choose.
+# Adjustment costs are a resource cost, so the goods market clears as
+# Y_t = C_t + CHI_t, and the aggregate household budget
+# C_t + CHI_t + W_t - W_{t-1} = Y_t (W = A + B) then gives W_t = W_{-1}: total
+# wealth stays at A_ss + B_ss (Walras's law) while its composition moves.  This
+# is the two-asset analogue of the balanced-budget labour tax of the one-asset
+# block, where Walras's law pins the single asset.  (Paying the returns on the
+# fixed steady-state stocks instead, z_t N = Y_t - r^b_t B - r^a_t A, leaves
+# household income above output by r_b dB_{t-1} + r_a dA_{t-1}, and total wealth
+# then follows dW_t = (1 + r_b) dW_{t-1} + (r_a - r_b) dA_{t-1}, an explosive
+# root that contaminates long-horizon IRFs.)
+#
+# GE block (identical to the one-asset block): NKPC pi = K_pi dY, Taylor rule
+# i_t = phi_pi pi_t + eps_t, ex-ante liquid real rate r^{b,ea}_t = i_t - pi_{t+1}
+# (= M_r_Y dY + eps), ex-ante illiquid rate r^{a,ea}_t = r^a_ss +
+# alpha_ab (r^{b,ea}_t - r^b_ss).  Ex-ante rates are realised one period later,
+# r^b_{t+1} = r^{b,ea}_t, and date-0 returns are predetermined.  The Jacobians
+# of _two_asset_jacobians and TwoAssetSequenceSpaceHANKResult are those of the
+# household sector *closed* by the income rule above (inputs: Y and the ex-ante
+# rates; z is solved out), dated by the ex-ante convention;
+# _two_asset_household_jacobians returns the raw household-block Jacobians
+# with respect to the realised inputs (r^b_t, r^a_t, z_t), without closure.
+#
+# Supported range: the adjustment-cost curvature chi_1 >= 1 (chi_1 = 1 is
+# quadratic).  For chi_1 < 1 the marginal cost |d|^chi_1 has an infinite slope
+# at d = 0 and the EGM iteration cycles instead of converging.
+
+_TA_EGM_TOL = 1e-11
+_TA_EGM_MAX_ITER = 10000
+# The EGM iteration is stopped early (converged=False) when the best residual of the last
+# _TA_EGM_STALL_WINDOW iterations is not below _TA_EGM_STALL_FACTOR times the best residual before
+# them (checked from iteration 2 * window on).  Every validated calibration converges in < 1000
+# iterations; a contraction slower than 0.5**(1/500) per iteration would need > 17000 iterations.
+_TA_EGM_STALL_WINDOW = 500
+_TA_EGM_STALL_FACTOR = 0.5
+_TA_C_FLOOR = 1e-12
+# Central-difference steps of the Fake-News Algorithm, per input.  Rates are ~1e-2 per quarter, so a
+# 1e-4 step would be 1-2% of the rate and cross kinks of the linear interpolants; 1e-5 gives the
+# local derivative (the direct method at 1e-5 and 1e-6 agrees to ~1e-8).
+_TA_FD_STEP = {"r_b": 1e-5, "r_a": 1e-5, "z": 1e-4}
+_TA_GRID_TOP_TOL = 1e-8
+_TA_INPUTS = ("r_b", "r_a", "z")
+_TA_OUTPUTS = ("C", "D", "A", "B", "CHI")
+_TA_INPUT_ALIASES = {
+    "r_b": "r_b", "rb": "r_b", "r": "r_b",
+    "r_a": "r_a", "ra": "r_a",
+    "z": "z", "w": "z", "y": "z",
+}
+
 
 def _transaction_cost(
     d: np.ndarray | float,
     a: np.ndarray | float,
     chi_0: float = 0.25,
     chi_1: float = 1.0,
+    a_bar: float | None = None,
 ) -> np.ndarray | float:
-    """Portfolio adjustment transaction cost chi(d, a) on deposits/withdrawals.
+    """Portfolio adjustment cost chi(d, a) of a deposit d into the illiquid account.
 
-    Formula (Kaplan, Moll & Violante 2018; Auclert et al. 2021):
-        chi(d, a) = (chi_0 / |1 + chi_1|) * (|d| / (a + 1e-4))^(1 + chi_1) * (a + 1e-4)
-    When chi_1 == 1.0, reduces to standard quadratic adjustment cost:
-        chi(d, a) = 0.5 * chi_0 * d^2 / (a + 1e-4)
+    ``d = a' - (1 + r_a) a`` is the net deposit (negative for a withdrawal) and
+    ``a`` the illiquid holding at the start of the period, both in units of
+    goods (steady-state non-financial income per efficiency unit is 1)::
+
+        chi(d, a) = chi_0 / (1 + chi_1) * |d|^(1 + chi_1) / (a + a_bar)^chi_1
+
+    which for ``chi_1 == 1`` is the quadratic cost ``0.5 chi_0 d^2 / (a + a_bar)``.
+    This is the Kaplan, Moll & Violante (2018) cost structure without the linear
+    ``|d|`` term, so that policies are differentiable (a requirement of the
+    Fake-News Jacobians).  ``a_bar > 0`` keeps the cost of depositing into an
+    empty account finite.  With ``a_bar=None`` (the legacy formula, kept for
+    backward compatibility; the solver always passes ``a_bar``) the denominator
+    is ``max(a, 1e-4)``, which makes depositing into an empty account
+    prohibitively expensive.
     """
-    denom = np.maximum(a, 1e-4)
     abs_d = np.abs(d)
+    if a_bar is None:
+        denom = np.maximum(a, 1e-4)
+    else:
+        denom = np.asarray(a, dtype=float) + float(a_bar)
     if chi_1 == 1.0:
         return 0.5 * chi_0 * (abs_d ** 2) / denom
     return (chi_0 / abs(1.0 + chi_1)) * ((abs_d / denom) ** (1.0 + chi_1)) * denom
+
+
+def _two_asset_cost(
+    a_next: np.ndarray,
+    a: np.ndarray,
+    r_a: float,
+    chi_0: float,
+    chi_1: float,
+    a_bar: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Adjustment cost and derivatives as a function of (a', a).
+
+    Returns ``(chi, chi_d, chi_a, chi_dd)``: the cost of moving from ``a`` to
+    ``a'`` (``d = a' - (1 + r_a) a``), its derivative with respect to ``a'``,
+    its derivative with respect to ``a`` at fixed ``a'``
+    (``-(1 + r_a) chi_d - chi_1 chi / (a + a_bar)``) and the second derivative
+    with respect to ``a'``.
+    """
+    d = a_next - (1.0 + r_a) * a
+    den = a + a_bar
+    abs_d = np.abs(d)
+    ratio = abs_d / den
+    core = ratio ** chi_1
+    chi = chi_0 / (1.0 + chi_1) * abs_d * core
+    chi_d = chi_0 * np.sign(d) * core
+    chi_a = -(1.0 + r_a) * chi_d - chi_1 * chi / den
+    with np.errstate(divide="ignore", invalid="ignore"):
+        chi_dd = chi_0 * chi_1 * ratio ** (chi_1 - 1.0) / den
+    return chi, chi_d, chi_a, chi_dd
+
+
+def _two_asset_grid(lo: float, hi: float, n: int, curvature: float = 2.0) -> np.ndarray:
+    """Grid on [lo, hi] with points concentrated near ``lo`` (x_i = lo + (hi - lo) (i/(n-1))^curvature)."""
+    x = np.linspace(0.0, 1.0, int(n))
+    return lo + (hi - lo) * x ** curvature
 
 
 def _lottery_2d(
@@ -1759,7 +1895,11 @@ def _lottery_2d(
     a_grid: np.ndarray,
     b_grid: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """2D Bilinear lottery: split (a_dest, b_dest) among 4 neighbouring grid points."""
+    """2D bilinear lottery: split (a_dest, b_dest) among the 4 neighbouring grid points.
+
+    Mean-preserving for destinations inside the grids; a destination outside a
+    grid is clipped to its edge (the solver keeps every policy inside the grids).
+    """
     na = len(a_grid)
     idx_a = np.clip(np.searchsorted(a_grid, a_dest), 0, na - 1)
     idx_al = np.clip(idx_a - 1, 0, na - 1)
@@ -1809,7 +1949,12 @@ def _build_transition_matrix_2d(
 
 
 def _stationary_distribution_2d(Lam: np.ndarray) -> np.ndarray:
-    """Exact stationary distribution of a column-stochastic 2D transition matrix Lambda."""
+    """Exact stationary distribution of a column-stochastic 2D transition matrix Lambda.
+
+    Linear solve with the normalisation replacing one equation; falls back to
+    power iteration (tolerance 1e-13, warning if not reached) when the solve is
+    singular or its residual ``max |Lambda D - D|`` exceeds 1e-10.
+    """
     N = Lam.shape[0]
     A = Lam - np.eye(N)
     A[-1, :] = 1.0
@@ -1817,25 +1962,83 @@ def _stationary_distribution_2d(Lam: np.ndarray) -> np.ndarray:
     b[-1] = 1.0
     try:
         D = np.linalg.solve(A, b)
-        if np.all(np.isfinite(D)) and D.min() > -1e-5:
+        if (
+            np.all(np.isfinite(D))
+            and D.min() > -1e-9
+            and float(np.max(np.abs(Lam @ D - D))) < 1e-10
+        ):
             D = np.maximum(D, 0.0)
             return D / D.sum()
     except np.linalg.LinAlgError:
         pass
     D = np.full(N, 1.0 / N)
-    for _ in range(20000):
+    converged = False
+    for _ in range(200000):
         D_new = Lam @ D
-        if np.max(np.abs(D_new - D)) < 1e-12:
+        if np.max(np.abs(D_new - D)) < 1e-13:
             D = D_new
+            converged = True
             break
         D = D_new
+    if not converged:
+        warnings.warn(
+            "two-asset stationary distribution: power iteration did not reach 1e-13",
+            RuntimeWarning,
+            stacklevel=3,
+        )
     D = np.maximum(D, 0.0)
     return D / D.sum()
 
 
+def _two_asset_forward(
+    D: np.ndarray, a_pol: np.ndarray, b_pol: np.ndarray, a_grid: np.ndarray, b_grid: np.ndarray, pi_s: np.ndarray,
+) -> np.ndarray:
+    """D_{t+1} = Lambda(a_pol, b_pol) D_t without forming Lambda (same lottery as _build_transition_matrix_2d)."""
+    na, nb, ns = D.shape
+    idx_al, idx_ah, w_al, w_ah, idx_bl, idx_bh, w_bl, w_bh = _lottery_2d(a_pol, b_pol, a_grid, b_grid)
+    D_end = np.zeros_like(D)
+    for s in range(ns):
+        mass = D[:, :, s].ravel()
+        tot = np.zeros(na * nb)
+        for ia, wa in ((idx_al, w_al), (idx_ah, w_ah)):
+            for ib, wb in ((idx_bl, w_bl), (idx_bh, w_bh)):
+                tot += np.bincount(
+                    (ia[:, :, s] * nb + ib[:, :, s]).ravel(),
+                    weights=mass * (wa[:, :, s] * wb[:, :, s]).ravel(),
+                    minlength=na * nb,
+                )
+        D_end[:, :, s] = tot.reshape(na, nb)
+    return D_end @ pi_s
+
+
+def _two_asset_expectation(
+    E: np.ndarray, a_pol: np.ndarray, b_pol: np.ndarray, a_grid: np.ndarray, b_grid: np.ndarray, pi_s: np.ndarray,
+) -> np.ndarray:
+    """Lambda' E: expected next-period value of E for every current state (transpose of _two_asset_forward)."""
+    idx_al, idx_ah, w_al, w_ah, idx_bl, idx_bh, w_bl, w_bh = _lottery_2d(a_pol, b_pol, a_grid, b_grid)
+    EV = E @ pi_s.T
+    s_idx = np.arange(E.shape[2])[None, None, :]
+    return (
+        w_al * w_bl * EV[idx_al, idx_bl, s_idx]
+        + w_al * w_bh * EV[idx_al, idx_bh, s_idx]
+        + w_ah * w_bl * EV[idx_ah, idx_bl, s_idx]
+        + w_ah * w_bh * EV[idx_ah, idx_bh, s_idx]
+    )
+
+
 @dataclass
 class _TwoAssetHouseholdBlock:
-    """Steady-state Two-Asset household block."""
+    """Steady-state two-asset household block (arrays indexed [a, b, s]).
+
+    ``w_ss`` is steady-state non-financial income per efficiency unit (``z``);
+    ``a_ss``/``b_ss`` are the next-period illiquid/liquid policies, ``d_ss`` the
+    net deposit ``a' - (1 + r_a) a`` and ``chi_ss`` the adjustment cost paid.
+    ``Va_ss``/``Vb_ss`` are the marginal values of illiquid and liquid assets.
+    ``iterations``/``residual`` report the EGM fixed point
+    (sup-norm change of c, a', b' in the last iteration); ``converged`` is True
+    only if that residual fell below ``tol`` and the stationary distribution
+    was solved exactly.
+    """
     a_grid: np.ndarray
     b_grid: np.ndarray
     s_grid: np.ndarray
@@ -1847,18 +2050,39 @@ class _TwoAssetHouseholdBlock:
     w_ss: float
     chi_0: float
     chi_1: float
-    V_ss: np.ndarray
+    a_bar: float
+    Va_ss: np.ndarray
+    Vb_ss: np.ndarray
     c_ss: np.ndarray
     d_ss: np.ndarray
     a_ss: np.ndarray
     b_ss: np.ndarray
+    chi_ss: np.ndarray
     D_ss: np.ndarray
     Lambda: np.ndarray
     converged: bool
+    iterations: int = 0
+    residual: float = float("nan")
+    tol: float = _TA_EGM_TOL
 
     @property
     def C_ss(self) -> float:
         return float(np.sum(self.D_ss * self.c_ss))
+
+    @property
+    def CHI_ss(self) -> float:
+        """Aggregate adjustment cost (a resource cost)."""
+        return float(np.sum(self.D_ss * self.chi_ss))
+
+    @property
+    def Y_ss(self) -> float:
+        """Steady-state output Y = C + CHI (= w_ss N + r_b B + r_a A by the aggregate budget)."""
+        return self.C_ss + self.CHI_ss
+
+    @property
+    def N_ss(self) -> float:
+        """Aggregate efficiency units E[s]."""
+        return float(np.sum(self.D_ss.sum(axis=(0, 1)) * self.s_grid))
 
     @property
     def D_flow_ss(self) -> float:
@@ -1888,10 +2112,69 @@ class _TwoAssetHouseholdBlock:
     def deposit_distribution(self) -> np.ndarray:
         return np.sum(self.D_ss * self.d_ss, axis=(1, 2))
 
+    @property
+    def mass_at_a_max(self) -> float:
+        """Mass on the top illiquid grid point (should be ~0: the grid must contain the ergodic set)."""
+        return float(self.marginal_distribution_a[-1])
+
+    @property
+    def mass_at_b_max(self) -> float:
+        """Mass on the top liquid grid point (should be ~0)."""
+        return float(self.marginal_distribution_b[-1])
+
+    @property
+    def htm_share(self) -> float:
+        """Share of households choosing b' = b_min (liquidity-constrained, 'hand-to-mouth')."""
+        return float(self.D_ss[self.b_ss <= self.b_grid[0] + 1e-12].sum())
+
+    @property
+    def wealthy_htm_share(self) -> float:
+        """Share of households with b' = b_min but positive illiquid wealth a' > 0."""
+        mask = (self.b_ss <= self.b_grid[0] + 1e-12) & (self.a_ss > 1e-10)
+        return float(self.D_ss[mask].sum())
+
+    @property
+    def budget_residual(self) -> float:
+        """C + CHI - (w N + r_b B + r_a A): zero up to rounding when no wealth leaks at the grid edges."""
+        return self.Y_ss - (self.w_ss * self.N_ss + self.r_b_ss * self.B_ss + self.r_a_ss * self.A_ss)
+
+    def mpc(self, h: float = 1e-5) -> np.ndarray:
+        """Quarterly MPC out of a one-off lump-sum transfer, per state (central difference of size h)."""
+        up = _two_asset_backward(self, self.Va_ss, self.Vb_ss, transfer=h)[2]
+        dn = _two_asset_backward(self, self.Va_ss, self.Vb_ss, transfer=-h)[2]
+        return (up - dn) / (2.0 * h)
+
+
+def _two_asset_refine_root(fun, lo, hi, g_lo, g_hi, max_iter: int = 60, rtol: float = 1e-15):
+    """Vectorised safeguarded Newton for a decreasing g with g(lo) >= 0 > g(hi).
+
+    ``fun(x)`` returns ``(g, dg)``; a Newton step that leaves the current
+    bracket (or is not finite) is replaced by bisection.
+    """
+    lo = np.array(lo, dtype=float, copy=True)
+    hi = np.array(hi, dtype=float, copy=True)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        x = lo + (hi - lo) * np.clip(g_lo / (g_lo - g_hi), 0.0, 1.0)
+    x = np.where(np.isfinite(x), x, 0.5 * (lo + hi))
+    for _ in range(max_iter):
+        g, dg = fun(x)
+        pos = g >= 0
+        lo = np.where(pos, x, lo)
+        hi = np.where(pos, hi, x)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            x_new = x - g / dg
+        bad = ~np.isfinite(x_new) | (x_new < lo) | (x_new > hi)
+        x_new = np.where(bad, 0.5 * (lo + hi), x_new)
+        step = np.abs(x_new - x)
+        x = x_new
+        if np.all(step <= rtol * (1.0 + np.abs(x))):
+            break
+    return x
+
 
 def _two_asset_step(
-    V_next: np.ndarray,
-    c_next: np.ndarray,
+    Va_next: np.ndarray,
+    Vb_next: np.ndarray,
     a_grid: np.ndarray,
     b_grid: np.ndarray,
     s_grid: np.ndarray,
@@ -1900,223 +2183,595 @@ def _two_asset_step(
     gamma: float,
     r_b: float,
     r_a: float,
-    w: float,
+    z: float,
     chi_0: float,
     chi_1: float,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """One backward step for the Two-Asset household block."""
-    na = len(a_grid)
-    nb = len(b_grid)
-    ns = len(s_grid)
+    a_bar: float,
+    transfer: float = 0.0,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """One backward EGM step of the two-asset household block.
 
-    EV = np.tensordot(V_next, pi_s, axes=([2], [1]))
-    marg_u = np.maximum(c_next, 1e-6) ** (-gamma)
-    E_marg_u = np.tensordot(marg_u, pi_s, axes=([2], [1]))
-    c_endo = (beta * (1.0 + r_b) * np.maximum(E_marg_u, 1e-300)) ** (-1.0 / gamma)
-    m_endo = c_endo + b_grid[None, :, None]
+    ``Va_next``/``Vb_next`` (shape ``(n_a, n_b, n_s)``) are the marginal values
+    of illiquid and liquid assets carried into ``t + 1``.  ``r_b``, ``r_a`` are
+    the returns realised at ``t``, ``z`` non-financial income per efficiency
+    unit and ``transfer`` a lump-sum transfer at ``t``.  Returns
+    ``(Va_t, Vb_t, c_t, a'_t, b'_t, d_t, chi_t)`` on the ``(a, b, s)`` grid.
+    """
+    na, nb, ns = len(a_grid), len(b_grid), len(s_grid)
+    a = a_grid
+    Wa = beta * (Va_next @ pi_s.T)  # W[a', b', s] = beta E[V(a', b', s') | s]
+    Wb = beta * (Vb_next @ pi_s.T)
+    # Cost on the (a' = a_j, a = a_i) node pairs
+    chi_n, chid_n, _, _ = _two_asset_cost(a[:, None], a[None, :], r_a, chi_0, chi_1, a_bar)
 
-    d_mat = a_grid[None, :] - (1.0 + r_a) * a_grid[:, None]
-    cost_mat = _transaction_cost(d_mat, a_grid[:, None], chi_0, chi_1)
-    adj_mat = (d_mat + cost_mat)[:, None, None, :]
+    ia = np.arange(na)[:, None, None]
+    ib = np.arange(nb)[None, :, None]
+    is_ = np.arange(ns)[None, None, :]
+    income = z * s_grid[None, None, :] + transfer
 
-    liq_cash = (1.0 + r_b) * b_grid[:, None] + w * s_grid[None, :]
-    m_avail_all = liq_cash[None, :, :, None] - adj_mat
+    # --- 1. unconstrained a'(a, b', s): W_a(a') = W_b(a') (1 + chi_d(a', a))
+    G = Wa[:, None, :, :] - Wb[:, None, :, :] * (1.0 + chid_n[:, :, None, None])  # [j, a, b', s]
+    neg = G < 0
+    any_neg = neg.any(axis=0)
+    first = np.argmax(neg, axis=0)
+    corner_lo = any_neg & (first == 0)
+    corner_hi = ~any_neg
+    j1 = np.where(any_neg & (first > 0), first, 1)
+    j0 = j1 - 1
+    x0 = a[j0]
+    dx = a[j1] - x0
+    Wa0, Wa1 = Wa[j0, ib, is_], Wa[j1, ib, is_]
+    Wb0, Wb1 = Wb[j0, ib, is_], Wb[j1, ib, is_]
+    sWa = (Wa1 - Wa0) / dx
+    sWb = (Wb1 - Wb0) / dx
+    a_now = np.broadcast_to(a[:, None, None], (na, nb, ns))
 
-    val_cand = np.full((na, nb, ns, na), -1e10)
-    c_cand = np.empty((na, nb, ns, na))
-    b_cand = np.empty((na, nb, ns, na))
+    def g_unc(x):
+        Wa_x = Wa0 + sWa * (x - x0)
+        Wb_x = Wb0 + sWb * (x - x0)
+        _, cd, _, cdd = _two_asset_cost(x, a_now, r_a, chi_0, chi_1, a_bar)
+        return Wa_x - Wb_x * (1.0 + cd), sWa - sWb * (1.0 + cd) - Wb_x * cdd
 
-    for ja in range(na):
-        for is_ in range(ns):
-            xp = m_endo[ja, :, is_]
-            fp = c_endo[ja, :, is_]
-            m_v = m_avail_all[:, :, is_, ja]
-            c_int = np.interp(m_v, xp, fp)
-            mask_c = m_v < xp[0]
-            c_int[mask_c] = np.maximum(m_v[mask_c], 1e-6)
-            c_int = np.maximum(np.minimum(c_int, m_v), 1e-6)
-            c_cand[:, :, is_, ja] = c_int
-            b_p = np.maximum(m_v - c_int, 0.0)
-            b_cand[:, :, is_, ja] = b_p
+    ap_endo = _two_asset_refine_root(g_unc, x0, a[j1], G[j0, ia, ib, is_], G[j1, ia, ib, is_])
+    ap_endo = np.where(corner_lo, a[0], np.where(corner_hi, a[-1], ap_endo))
+    Wb_at = np.where(
+        corner_lo, Wb[0, ib, is_],
+        np.where(corner_hi, Wb[-1, ib, is_], Wb0 + sWb * (np.clip(ap_endo, x0, x0 + dx) - x0)),
+    )
+    c_endo = Wb_at ** (-1.0 / gamma)
+    chi_endo = _two_asset_cost(ap_endo, a_now, r_a, chi_0, chi_1, a_bar)[0]
+    # endogenous current liquid holdings b(a, b', s) from the budget constraint
+    b_endo = (c_endo + ap_endo + b_grid[None, :, None] + chi_endo - (1.0 + r_a) * a_now - income) / (1.0 + r_b)
 
-            EV_int = np.interp(b_p, b_grid, EV[ja, :, is_])
-            valid = m_v > 1e-4
-            u_c = np.where(valid, np.log(c_int) if gamma == 1.0 else (c_int ** (1.0 - gamma) - 1.0) / (1.0 - gamma), -1e10)
-            val_cand[:, :, is_, ja] = np.where(valid, u_c + beta * EV_int, -1e10)
+    # --- 2. invert b_endo(a, ., s) onto the b grid (linear, extrapolating above the top point)
+    be = np.moveaxis(b_endo, 1, 2)  # [a, s, b']
+    ae = np.moveaxis(ap_endo, 1, 2)
+    k = np.clip((be[:, :, None, :] <= b_grid[None, None, :, None]).sum(axis=-1) - 1, 0, nb - 2)  # [a, s, b]
+    xb0 = np.take_along_axis(be, k, axis=-1)
+    xb1 = np.take_along_axis(be, k + 1, axis=-1)
+    span = xb1 - xb0  # b_endo is strictly increasing in b' (Euler equation); guard a degenerate interval
+    w = (b_grid[None, None, :] - xb0) / np.where(np.abs(span) > 1e-300, span, 1e-300)
+    bp = np.moveaxis(b_grid[k] + w * (b_grid[k + 1] - b_grid[k]), 2, 1)
+    ap = np.moveaxis(
+        np.take_along_axis(ae, k, axis=-1) * (1.0 - w) + np.take_along_axis(ae, k + 1, axis=-1) * w, 2, 1,
+    )
+    cash = (1.0 + r_b) * b_grid[None, :, None] + (1.0 + r_a) * a[:, None, None] + income
 
-    best_ja = np.argmax(val_cand, axis=-1)
-    ia_idx = np.arange(na)[:, None, None]
-    ib_idx = np.arange(nb)[None, :, None]
-    is_idx = np.arange(ns)[None, None, :]
-    c_new = c_cand[ia_idx, ib_idx, is_idx, best_ja]
-    b_new = b_cand[ia_idx, ib_idx, is_idx, best_ja]
-    a_new = a_grid[best_ja]
-    d_new = a_new - (1.0 + r_a) * a_grid[:, None, None]
-    V_new = np.max(val_cand, axis=-1)
-    return V_new, c_new, d_new, a_new, b_new
+    # --- 3. liquidity-constrained states (b' = b_min): u'(c(a')) (1 + chi_d) = W_a(a', b_min, s)
+    constrained = b_grid[None, :, None] < b_endo[:, 0:1, :]
+    if constrained.any():
+        ic, kc, sc = np.nonzero(constrained)
+        cash_c = cash[ic, kc, sc] - b_grid[0]
+        c_nodes = cash_c[None, :] - a[:, None] - chi_n[:, ic]
+        slope_n = 1.0 + chid_n[:, ic]
+        with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
+            H = Wa[:, 0, sc] - np.maximum(c_nodes, 1e-300) ** (-gamma) * slope_n
+        H = np.where(c_nodes > 0, H, np.where(slope_n > 0, -np.inf, np.inf))
+        negc = H < 0
+        any_c = negc.any(axis=0)
+        fc = np.argmax(negc, axis=0)
+        c_lo = any_c & (fc == 0)
+        c_hi = ~any_c
+        m1 = np.where(any_c & (fc > 0), fc, 1)
+        m0 = m1 - 1
+        x0c = a[m0]
+        Wa0c = Wa[m0, 0, sc]
+        sWac = (Wa[m1, 0, sc] - Wa0c) / (a[m1] - x0c)
+        a_c = a[ic]
+
+        def h_con(x):
+            chi_x, cd, _, cdd = _two_asset_cost(x, a_c, r_a, chi_0, chi_1, a_bar)
+            c = cash_c - x - chi_x
+            cp = np.maximum(c, 1e-300)
+            with np.errstate(over="ignore", invalid="ignore"):
+                u1 = cp ** (-gamma)
+                h = Wa0c + sWac * (x - x0c) - u1 * (1.0 + cd)
+                dh = sWac - (gamma * cp ** (-gamma - 1.0) * (1.0 + cd) ** 2 + u1 * cdd)
+            h = np.where(c > 0, h, np.where(1.0 + cd > 0, -np.inf, np.inf))
+            return h, np.where(c > 0, dh, np.nan)
+
+        cols = np.arange(len(ic))
+        h_lo = H[m0, cols]
+        h_hi = H[m1, cols]
+        h_lo = np.where(np.isfinite(h_lo), h_lo, 1.0)
+        h_hi = np.where(np.isfinite(h_hi), h_hi, -1.0)
+        ap_c = _two_asset_refine_root(h_con, x0c, a[m1], h_lo, h_hi)
+        ap[ic, kc, sc] = np.where(c_lo, a[0], np.where(c_hi, a[-1], ap_c))
+        bp[ic, kc, sc] = b_grid[0]
+
+    # --- 4. keep policies on the grids and read consumption off the budget constraint
+    # (the floor _TA_C_FLOOR only guards the power below; callers detect a binding floor with
+    # _two_asset_floored_states, because a floored c violates the budget constraint)
+    ap = np.clip(ap, a[0], a[-1])
+    bp = np.clip(bp, b_grid[0], b_grid[-1])
+    chi, _, chi_a, _ = _two_asset_cost(ap, a[:, None, None], r_a, chi_0, chi_1, a_bar)
+    c = np.maximum(cash - ap - bp - chi, _TA_C_FLOOR)
+    uc = c ** (-gamma)
+    Vb = (1.0 + r_b) * uc
+    Va = (1.0 + r_a - chi_a) * uc
+    d = ap - (1.0 + r_a) * a[:, None, None]
+    return Va, Vb, c, ap, bp, d, chi
+
+
+def _two_asset_backward(
+    hh: "_TwoAssetHouseholdBlock",
+    Va_next: np.ndarray,
+    Vb_next: np.ndarray,
+    r_b: float | None = None,
+    r_a: float | None = None,
+    z: float | None = None,
+    transfer: float = 0.0,
+):
+    """_two_asset_step at the household block's parameters (inputs default to their steady-state values)."""
+    return _two_asset_step(
+        Va_next, Vb_next, hh.a_grid, hh.b_grid, hh.s_grid, hh.pi_s, hh.beta, hh.gamma,
+        hh.r_b_ss if r_b is None else float(r_b),
+        hh.r_a_ss if r_a is None else float(r_a),
+        hh.w_ss if z is None else float(z),
+        hh.chi_0, hh.chi_1, hh.a_bar, float(transfer),
+    )
+
+
+def _two_asset_outputs(step: tuple) -> dict[str, np.ndarray]:
+    _, _, c, ap, bp, d, chi = step
+    return {"C": c, "D": d, "A": ap, "B": bp, "CHI": chi}
+
+
+def _two_asset_floored_states(
+    a_grid: np.ndarray,
+    b_grid: np.ndarray,
+    s_grid: np.ndarray,
+    r_b: float,
+    r_a: float,
+    z: float,
+    ap: np.ndarray,
+    bp: np.ndarray,
+    chi: np.ndarray,
+    transfer: float = 0.0,
+) -> int:
+    """Number of states where the consumption floor of _two_asset_step binds.
+
+    There ``c = _TA_C_FLOOR > cash - a' - b' - chi``, so the budget constraint
+    fails; a correct solution has none.
+    """
+    cash = (
+        (1.0 + r_b) * b_grid[None, :, None]
+        + (1.0 + r_a) * a_grid[:, None, None]
+        + z * s_grid[None, None, :]
+        + transfer
+    )
+    return int(np.count_nonzero(cash - ap - bp - chi < _TA_C_FLOOR))
 
 
 def _solve_two_asset_household_block(
     *,
-    beta: float = 0.985,
+    beta: float = 0.98,
     gamma: float = 1.0,
-    r_b_ss: float = 0.01,
-    r_a_ss: float = 0.03,
+    r_b_ss: float = 0.005,
+    r_a_ss: float = 0.0125,
     w_ss: float = 1.0,
     n_a: int = 25,
     n_b: int = 25,
-    a_max: float = 30.0,
-    b_max: float = 15.0,
+    a_max: float = 40.0,
+    b_max: float = 10.0,
     b_min: float = 0.0,
-    chi_0: float = 0.25,
+    chi_0: float = 1.0,
     chi_1: float = 1.0,
-    max_iter: int = 50,
-    tol: float = 1e-5,
+    max_iter: int = _TA_EGM_MAX_ITER,
+    tol: float = _TA_EGM_TOL,
+    a_bar: float = 0.25,
 ) -> _TwoAssetHouseholdBlock:
-    """Solve the Two-Asset stationary household problem and stationary distribution."""
-    a_grid = np.geomspace(1e-4, a_max + 1e-4, n_a) - 1e-4
-    b_grid = np.linspace(b_min, b_max, n_b)
-    s_grid = np.array([0.5, 1.5])
-    pi_s = np.array([[0.9, 0.1], [0.1, 0.9]])
+    """Solve the two-asset stationary household problem and its stationary distribution.
 
-    c = np.maximum(
-        r_b_ss * b_grid[None, :, None] + r_a_ss * a_grid[:, None, None] + w_ss * s_grid[None, None, :],
-        0.05,
+    Iterates the EGM step on ``(V_a, V_b)`` until the sup-norm change of the
+    policies ``c``, ``a'`` and ``b'`` falls below ``tol``, then solves for the
+    exact stationary distribution of the lottery transition matrix.
+    ``converged`` is False, with a RuntimeWarning, if ``max_iter`` is reached
+    first, if the residual stalls (no halving of the best residual within
+    ``_TA_EGM_STALL_WINDOW`` iterations; the iteration then stops early) or if
+    the consumption floor binds anywhere (the budget constraint would fail).
+    Returns are quarterly; income is in units of steady-state non-financial
+    income per efficiency unit (``w_ss``).  Warns if more than 1e-8 of the mass
+    sits on the top point of either grid (the grid does not contain the
+    ergodic set, e.g. because ``beta (1 + r_a_ss) >= 1``).
+
+    Supported range: ``chi_1 >= 1``.  For ``chi_1 < 1`` a RuntimeWarning is
+    issued up front: the marginal adjustment cost has an infinite slope at
+    ``d = 0`` and the EGM iteration cycles (residual ~2e-2 for ``chi_1 = 0.5``).
+    """
+    if not (gamma > 0 and chi_0 > 0 and chi_1 > 0 and a_bar > 0 and w_ss > 0):
+        raise ValueError("gamma, chi_0, chi_1, a_bar and w_ss must be positive")
+    if chi_1 < 1.0:
+        warnings.warn(
+            f"two-asset household block: chi_1={chi_1:g} < 1 is outside the supported range chi_1 >= 1; "
+            "the marginal adjustment cost has an infinite slope at d = 0 and the EGM iteration is expected "
+            "to cycle instead of converging (converged is then False)",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+    if not (a_max > 0 and b_max > b_min and int(n_a) >= 3 and int(n_b) >= 3):
+        raise ValueError("need a_max > 0, b_max > b_min and at least 3 points on each grid")
+    if r_b_ss <= -1 or r_a_ss <= -1:
+        raise ValueError("returns must exceed -100%")
+    s_grid, pi_s = _income_process(len(_S_GRID))
+    if b_min < 0 and (1.0 + r_b_ss) * b_min - b_min + w_ss * s_grid.min() <= 0:
+        raise ValueError("b_min is below the natural borrowing limit: consumption cannot stay positive")
+    a_grid = _two_asset_grid(0.0, float(a_max), int(n_a))
+    b_grid = _two_asset_grid(float(b_min), float(b_max), int(n_b))
+
+    c = (
+        w_ss * s_grid[None, None, :]
+        + r_b_ss * (b_grid[None, :, None] - min(b_min, 0.0))
+        + r_a_ss * a_grid[:, None, None]
     )
-    V = (np.log(c) if gamma == 1.0 else (c ** (1.0 - gamma) - 1.0) / (1.0 - gamma)) / (1.0 - beta)
+    Va = (1.0 + r_a_ss) * c ** (-gamma)
+    Vb = (1.0 + r_b_ss) * c ** (-gamma)
+    ap = np.zeros_like(c)
+    bp = np.zeros_like(c)
     d = np.zeros_like(c)
-    a_prime = np.zeros_like(c)
-    b_prime = np.zeros_like(c)
+    chi = np.zeros_like(c)
+    params = (a_grid, b_grid, s_grid, pi_s, beta, gamma, r_b_ss, r_a_ss, w_ss, chi_0, chi_1, a_bar)
 
     converged = False
-    for it in range(max_iter):
-        V_new, c_new, d_new, a_p, b_p = _two_asset_step(
-            V, c, a_grid, b_grid, s_grid, pi_s, beta, gamma, r_b_ss, r_a_ss, w_ss, chi_0, chi_1,
+    stalled = False
+    resid = float("inf")
+    it = 0
+    history: list[float] = []
+    win = _TA_EGM_STALL_WINDOW
+    for it in range(1, int(max_iter) + 1):
+        Va, Vb, c_new, ap_new, bp_new, d, chi = _two_asset_step(Va, Vb, *params)
+        resid = float(max(
+            np.max(np.abs(c_new - c)), np.max(np.abs(ap_new - ap)), np.max(np.abs(bp_new - bp)),
+        ))
+        c, ap, bp = c_new, ap_new, bp_new
+        history.append(resid)
+        if not np.isfinite(resid):
+            break
+        if resid < tol:
+            converged = True
+            break
+        if it >= 2 * win and it % 50 == 0:
+            if min(history[-win:]) > _TA_EGM_STALL_FACTOR * min(history[:-win]):
+                stalled = True
+                break
+    if not converged:
+        why = "the residual stalled (the iteration cycles) at" if stalled else "sup-norm policy change"
+        warnings.warn(
+            f"two-asset household block did not converge: {why} {resid:.2e} after {it} "
+            f"iterations (tol {tol:.0e}; beta*(1+r_a)={beta * (1.0 + r_a_ss):.4f}, "
+            f"beta*(1+r_b)={beta * (1.0 + r_b_ss):.4f}, chi_1={chi_1:g})",
+            RuntimeWarning,
+            stacklevel=2,
         )
-        diff = float(np.max(np.abs(c_new - c)))
-        V, c, d, a_prime, b_prime = V_new, c_new, d_new, a_p, b_p
-    Lam = _build_transition_matrix_2d(a_prime, b_prime, a_grid, b_grid, pi_s)
-    D_flat = _stationary_distribution_2d(Lam)
-    D_ss = D_flat.reshape((n_a, n_b, len(s_grid)))
-    converged = bool(np.isclose(np.sum(D_ss), 1.0, atol=1e-5) and np.all(D_ss >= -1e-6))
+    n_floor = _two_asset_floored_states(a_grid, b_grid, s_grid, r_b_ss, r_a_ss, w_ss, ap, bp, chi)
+    if n_floor:
+        warnings.warn(
+            f"two-asset household block: the consumption floor binds in {n_floor} states, so the budget "
+            "constraint fails there (converged set to False)",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+    Lam = _build_transition_matrix_2d(ap, bp, a_grid, b_grid, pi_s)
+    D_ss = _stationary_distribution_2d(Lam).reshape(ap.shape)
+    stat_ok = bool(np.all(np.isfinite(D_ss)) and abs(D_ss.sum() - 1.0) < 1e-10)
 
-    return _TwoAssetHouseholdBlock(
-        a_grid=a_grid,
-        b_grid=b_grid,
-        s_grid=s_grid,
-        pi_s=pi_s,
-        beta=beta,
-        gamma=gamma,
-        r_b_ss=r_b_ss,
-        r_a_ss=r_a_ss,
-        w_ss=w_ss,
-        chi_0=chi_0,
-        chi_1=chi_1,
-        V_ss=V,
-        c_ss=c,
-        d_ss=d,
-        a_ss=a_prime,
-        b_ss=b_prime,
-        D_ss=D_ss,
-        Lambda=Lam,
-        converged=converged,
+    hh = _TwoAssetHouseholdBlock(
+        a_grid=a_grid, b_grid=b_grid, s_grid=s_grid, pi_s=pi_s, beta=float(beta), gamma=float(gamma),
+        r_b_ss=float(r_b_ss), r_a_ss=float(r_a_ss), w_ss=float(w_ss), chi_0=float(chi_0), chi_1=float(chi_1),
+        a_bar=float(a_bar), Va_ss=Va, Vb_ss=Vb, c_ss=c, d_ss=d, a_ss=ap, b_ss=bp, chi_ss=chi, D_ss=D_ss,
+        Lambda=Lam, converged=bool(converged and stat_ok and n_floor == 0), iterations=int(it), residual=resid,
+        tol=float(tol),
     )
+    top = [
+        (name, mass, bound)
+        for name, mass, bound in (
+            ("illiquid", hh.mass_at_a_max, f"a_max={a_max:g}"),
+            ("liquid", hh.mass_at_b_max, f"b_max={b_max:g}"),
+        )
+        if mass > _TA_GRID_TOP_TOL
+    ]
+    if top:
+        where = " and ".join(f"a share {mass:.3e} of households on the top {name} grid point ({bound})"
+                             for name, mass, bound in top)
+        warnings.warn(
+            f"two-asset steady state: {where}; the grid does not contain the ergodic set and the grid edge "
+            f"acts as a binding constraint (beta*(1+r_a)={beta * (1.0 + r_a_ss):.4f}; increase "
+            f"{'/'.join(b.split('=')[0] for _, _, b in top)} or lower beta or r_a_ss)",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+    return hh
 
 
 def _two_asset_fake_news_inputs(
     hh: _TwoAssetHouseholdBlock,
     shock_input: str,
     T: int,
-    h: float = 1e-4,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """ABRS step 1 for two-asset block: date-0 responses dc, dd and date-1 distribution response dD1."""
-    args = (
-        hh.a_grid, hh.b_grid, hh.s_grid, hh.pi_s,
-        hh.beta, hh.gamma, hh.r_b_ss, hh.r_a_ss, hh.w_ss,
-        hh.chi_0, hh.chi_1,
-    )
-    V_base, c_base, d_base, a_base, b_base = _two_asset_step(hh.V_ss, hh.c_ss, *args)
-    Lam_base = _build_transition_matrix_2d(a_base, b_base, hh.a_grid, hh.b_grid, hh.pi_s)
-    D1_base = Lam_base @ hh.D_ss.ravel()
+    h: float | None = None,
+) -> tuple[dict[str, np.ndarray], np.ndarray]:
+    """ABRS step 1: date-0 outcome responses dy_0^s and date-1 distribution responses dD_1^s.
 
-    r_b_p = hh.r_b_ss + (h if shock_input in ("rb", "r_b", "r") else 0.0)
-    r_a_p = hh.r_a_ss + (h if shock_input in ("ra", "r_a") else 0.0)
-    w_p = hh.w_ss + (h if shock_input in ("w", "y") else 0.0)
-
-    V_p, c_p, d_p, a_p, b_p = _two_asset_step(
-        hh.V_ss, hh.c_ss, hh.a_grid, hh.b_grid, hh.s_grid, hh.pi_s,
-        hh.beta, hh.gamma, r_b_p, r_a_p, w_p, hh.chi_0, hh.chi_1,
-    )
-    Lam_p = _build_transition_matrix_2d(a_p, b_p, hh.a_grid, hh.b_grid, hh.pi_s)
-    D1_p = Lam_p @ hh.D_ss.ravel()
-
+    A unit shock to the realised input (``'r_b'``, ``'r_a'`` or ``'z'``) at
+    date ``s`` perturbs the backward step at ``s``; the date-0 policies respond
+    through the perturbed continuation marginal values ``(V_a, V_b)``, which
+    are propagated one step at a time (``dV_k``), so one backward pass of
+    length ``T`` gives every column.  Central differences of size ``h``
+    (default: ``_TA_FD_STEP[input]``, 1e-5 for rates and 1e-4 for income).
+    Returns ``(dy, dD1)`` with ``dy[o]`` of shape ``(T, N)`` for each outcome in
+    ``('C', 'D', 'A', 'B', 'CHI')`` and ``dD1`` of shape ``(T, N)``.
+    """
+    try:
+        inp = _TA_INPUT_ALIASES[shock_input]
+    except KeyError:
+        raise ValueError(f"shock_input must be one of {sorted(_TA_INPUT_ALIASES)}; got {shock_input!r}") from None
+    h = _TA_FD_STEP[inp] if h is None else float(h)
+    base = {"r_b": hh.r_b_ss, "r_a": hh.r_a_ss, "z": hh.w_ss}
     N = hh.c_ss.size
-    dc = np.zeros((T, N))
-    dd = np.zeros((T, N))
+    dy = {o: np.zeros((T, N)) for o in _TA_OUTPUTS}
     dD1 = np.zeros((T, N))
-
-    dV = (V_p - V_base) / h
-    dc_k = (c_p - c_base) / h
-    dd_k = (d_p - d_base) / h
-    dD1_k = (D1_p - D1_base) / h
-
+    dVa = dVb = None
     for k in range(T):
-        if k > 0:
-            V_k, c_k, d_k, a_k, b_k = _two_asset_step(
-                hh.V_ss + h * dV, hh.c_ss, *args,
-            )
-            dV = (V_k - V_base) / h
-            dc_k = (c_k - c_base) / h
-            dd_k = (d_k - d_base) / h
-            Lam_k = _build_transition_matrix_2d(a_k, b_k, hh.a_grid, hh.b_grid, hh.pi_s)
-            dD1_k = (Lam_k @ hh.D_ss.ravel() - D1_base) / h
-        dc[k] = dc_k.ravel()
-        dd[k] = dd_k.ravel()
-        dD1[k] = dD1_k.ravel()
+        if k == 0:
+            up = _two_asset_backward(hh, hh.Va_ss, hh.Vb_ss, **{inp: base[inp] + h})
+            dn = _two_asset_backward(hh, hh.Va_ss, hh.Vb_ss, **{inp: base[inp] - h})
+        else:
+            up = _two_asset_backward(hh, hh.Va_ss + h * dVa, hh.Vb_ss + h * dVb)
+            dn = _two_asset_backward(hh, hh.Va_ss - h * dVa, hh.Vb_ss - h * dVb)
+        dVa = (up[0] - dn[0]) / (2.0 * h)
+        dVb = (up[1] - dn[1]) / (2.0 * h)
+        o_up, o_dn = _two_asset_outputs(up), _two_asset_outputs(dn)
+        for o in _TA_OUTPUTS:
+            dy[o][k] = ((o_up[o] - o_dn[o]) / (2.0 * h)).ravel()
+        D_up = _two_asset_forward(hh.D_ss, o_up["A"], o_up["B"], hh.a_grid, hh.b_grid, hh.pi_s)
+        D_dn = _two_asset_forward(hh.D_ss, o_dn["A"], o_dn["B"], hh.a_grid, hh.b_grid, hh.pi_s)
+        dD1[k] = ((D_up - D_dn) / (2.0 * h)).ravel()
+    return dy, dD1
 
-    return dc, dd, dD1
+
+def _two_asset_expectation_vectors(hh: _TwoAssetHouseholdBlock, y: np.ndarray, T: int) -> np.ndarray:
+    """E[t] = (Lambda')^t y, shape (T, N)."""
+    E = np.empty((T,) + hh.c_ss.shape)
+    E[0] = y
+    for t in range(1, T):
+        E[t] = _two_asset_expectation(E[t - 1], hh.a_ss, hh.b_ss, hh.a_grid, hh.b_grid, hh.pi_s)
+    return E.reshape(T, -1)
+
+
+def _two_asset_household_jacobians(
+    hh: _TwoAssetHouseholdBlock,
+    T: int,
+    inputs: Sequence[str] = _TA_INPUTS,
+    outputs: Sequence[str] = _TA_OUTPUTS,
+    h: float | None = None,
+) -> dict[tuple[str, str], np.ndarray]:
+    """Fake-News Jacobians of the household block alone, dated by the *realised* inputs.
+
+    ``J[(o, x)][t, s] = dO_t / dx_s`` for aggregate outcome ``O`` (C, D, A = sum a',
+    B = sum b', CHI) and realised input ``x`` (``r_b``, ``r_a``, ``z``), with no
+    income closure.  ABRS (2021) steps 1-4: ``F[0, s] = D_ss' dy_0^s``,
+    ``F[t, s] = E_{t-1}' dD_1^s``, ``J[t, s] = J[t-1, s-1] + F[t, s]``.
+    """
+    T = int(T)
+    D_flat = hh.D_ss.ravel()
+    ss_outputs = {"C": hh.c_ss, "D": hh.d_ss, "A": hh.a_ss, "B": hh.b_ss, "CHI": hh.chi_ss}
+    E = {o: _two_asset_expectation_vectors(hh, ss_outputs[o], T) for o in outputs}
+    J: dict[tuple[str, str], np.ndarray] = {}
+    for x in inputs:
+        dy, dD1 = _two_asset_fake_news_inputs(hh, x, T, h)
+        for o in outputs:
+            F = np.empty((T, T))
+            F[0] = dy[o] @ D_flat
+            if T > 1:
+                F[1:] = E[o][:-1] @ dD1.T
+            Jo = np.empty((T, T))
+            Jo[0] = F[0]
+            for t in range(1, T):
+                Jo[t, 0] = F[t, 0]
+                Jo[t, 1:] = Jo[t - 1, :-1] + F[t, 1:]
+            J[(o, _TA_INPUT_ALIASES[x])] = Jo
+    return J
+
+
+def _two_asset_closure_matrices(
+    hh: _TwoAssetHouseholdBlock,
+    raw: dict[tuple[str, str], np.ndarray],
+) -> dict[str, np.ndarray]:
+    """Response of non-financial income ``dz`` under the income closure, per realised input.
+
+    Linearising ``z_t N = Y_t - r^b_t B_{t-1} - r^a_t A_{t-1}`` around the steady
+    state, with ``dA``/``dB`` the households' own responses
+    (``dA = J_Az dz + J_A,rb dr^b + J_A,ra dr^a``, likewise ``dB``), gives
+
+        (N I + L (r_b J_Bz + r_a J_Az)) dz
+            = dY - (B I + L (r_b J_B,rb + r_a J_A,rb)) dr^b - (A I + L (r_b J_B,ra + r_a J_A,ra)) dr^a,
+
+    with ``L`` the lag operator ``(L x)_t = x_{t-1}`` and realised rates.
+    Returns ``{'Y': G_Y, 'r_b': G_rb, 'r_a': G_ra}`` with ``dz = G_Y dY + G_rb dr^b + G_ra dr^a``
+    on the horizon of ``raw``.
+    """
+    T = raw[("A", "z")].shape[0]
+    N, A, B = hh.N_ss, hh.A_ss, hh.B_ss
+    rb, ra = hh.r_b_ss, hh.r_a_ss
+    eye = np.eye(T)
+    lag = np.eye(T, k=-1)
+
+    def interest(x: str) -> np.ndarray:  # r_b dB + r_a dA per unit of realised input x
+        return rb * raw[("B", x)] + ra * raw[("A", x)]
+
+    Mz = N * eye + lag @ interest("z")
+    return {
+        "Y": np.linalg.solve(Mz, eye),
+        "r_b": -np.linalg.solve(Mz, B * eye + lag @ interest("r_b")),
+        "r_a": -np.linalg.solve(Mz, A * eye + lag @ interest("r_a")),
+    }
 
 
 def _two_asset_jacobians(hh: _TwoAssetHouseholdBlock, T: int) -> dict[str, np.ndarray]:
-    """Compute all 6 Two-Asset Fake-News Jacobians (J_C_rb, J_C_ra, J_C_Y, J_D_rb, J_D_ra, J_D_Y)."""
-    D_flat = hh.D_ss.ravel()
-    c_flat = hh.c_ss.ravel()
-    d_flat = hh.d_ss.ravel()
-    Lam = hh.Lambda
+    """GE-ready Jacobians of the household sector closed by the income rule, ex-ante dated.
 
-    # Shock rb
-    dc_rb, dd_rb, dD1_rb = _two_asset_fake_news_inputs(hh, "rb", T)
-    J_C_rb, _, _ = _fake_news_recursion(T, c_flat, Lam, D_flat, dc_rb, dD1_rb)
-    J_D_rb, _, _ = _fake_news_recursion(T, d_flat, Lam, D_flat, dd_rb, dD1_rb)
+    Inputs are aggregate output ``Y`` and the ex-ante liquid/illiquid real
+    rates ``r^{b,ea}_s``, ``r^{a,ea}_s`` (realised by households at ``s + 1``).
+    Non-financial income is not an input: it is solved out through the closure
+    ``z_t N = Y_t - r^b_t B_{t-1} - r^a_t A_{t-1}`` on the households' own lagged
+    holdings (see :func:`_two_asset_closure_matrices`), so household income
+    equals ``Y``.  With ``J^{real}`` the raw household Jacobians of
+    :func:`_two_asset_household_jacobians` on ``T + 1`` dates and ``G`` the
+    closure matrices,
 
-    # Shock ra
-    dc_ra, dd_ra, dD1_ra = _two_asset_fake_news_inputs(hh, "ra", T)
-    J_C_ra, _, _ = _fake_news_recursion(T, c_flat, Lam, D_flat, dc_ra, dD1_ra)
-    J_D_ra, _, _ = _fake_news_recursion(T, d_flat, Lam, D_flat, dd_ra, dD1_ra)
+        J_O_Y = (J^{real}_{O,z} G_Y)[:T, :T]
+        J_O_rb = (J^{real}_{O,r_b} + J^{real}_{O,z} G_rb)[:T, 1:T+1]   (ex-ante shift)
+        J_O_ra = (J^{real}_{O,r_a} + J^{real}_{O,z} G_ra)[:T, 1:T+1]
 
-    # Shock w
-    dc_w, dd_w, dD1_w = _two_asset_fake_news_inputs(hh, "w", T)
-    J_C_w, _, _ = _fake_news_recursion(T, c_flat, Lam, D_flat, dc_w, dD1_w)
-    J_D_w, _, _ = _fake_news_recursion(T, d_flat, Lam, D_flat, dd_w, dD1_w)
+    for outcome ``O`` in (C, D, A, B, CHI).  ``J_z_Y``, ``J_z_rb`` and ``J_z_ra``
+    give the implied response of ``z``; ``J_C_r`` is an alias of ``J_C_rb``.
+    The aggregate budget then reads ``J_Q + (I - L) J_W = I`` for ``Y`` and
+    ``0`` for the rates (``Q = C + CHI``, ``W = A + B``), so in general
+    equilibrium (``dY = dQ``) total wealth does not move.
+    """
+    T = int(T)
+    raw = _two_asset_household_jacobians(hh, T + 1)
+    G = _two_asset_closure_matrices(hh, raw)
+    out: dict[str, np.ndarray] = {}
+    for o in _TA_OUTPUTS:
+        Jz = raw[(o, "z")]
+        out[f"J_{o}_Y"] = np.ascontiguousarray((Jz @ G["Y"])[:T, :T])
+        out[f"J_{o}_rb"] = np.ascontiguousarray((raw[(o, "r_b")] + Jz @ G["r_b"])[:T, 1:T + 1])
+        out[f"J_{o}_ra"] = np.ascontiguousarray((raw[(o, "r_a")] + Jz @ G["r_a"])[:T, 1:T + 1])
+    out["J_z_Y"] = np.ascontiguousarray(G["Y"][:T, :T])
+    out["J_z_rb"] = np.ascontiguousarray(G["r_b"][:T, 1:T + 1])
+    out["J_z_ra"] = np.ascontiguousarray(G["r_a"][:T, 1:T + 1])
+    out["J_C_r"] = out["J_C_rb"]
+    return out
 
-    scale_y = hh.w_ss / hh.C_ss
-    J_C_Y = J_C_w * scale_y
-    J_D_Y = J_D_w * scale_y
 
-    return {
-        "J_C_rb": J_C_rb,
-        "J_C_ra": J_C_ra,
-        "J_C_Y": J_C_Y,
-        "J_D_rb": J_D_rb,
-        "J_D_ra": J_D_ra,
-        "J_D_Y": J_D_Y,
-        "J_C_r": J_C_rb,
-    }
+def _two_asset_transition(
+    hh: _TwoAssetHouseholdBlock,
+    r_b_path: np.ndarray,
+    r_a_path: np.ndarray,
+    z_path: np.ndarray,
+    transfer_path: np.ndarray | None = None,
+) -> dict[str, np.ndarray]:
+    """Non-linear household block along realised input paths (direct method).
+
+    Paths have length ``T`` and hold the realised returns and non-financial
+    income at dates ``0..T-1``; after ``T`` the economy is back at the steady
+    state.  Policies are iterated backward from ``(Va_ss, Vb_ss)`` and the
+    distribution is pushed forward from ``D_ss``.  Returns aggregate paths of
+    C, D, A (= sum D a'), B (= sum D b') and CHI.
+    """
+    T = len(r_b_path)
+    if transfer_path is None:
+        transfer_path = np.zeros(T)
+    Va, Vb = hh.Va_ss, hh.Vb_ss
+    pols: list[dict[str, np.ndarray]] = [None] * T  # type: ignore[list-item]
+    n_floor = 0
+    for t in range(T - 1, -1, -1):
+        step = _two_asset_backward(hh, Va, Vb, r_b=r_b_path[t], r_a=r_a_path[t], z=z_path[t],
+                                   transfer=float(transfer_path[t]))
+        Va, Vb = step[0], step[1]
+        pols[t] = _two_asset_outputs(step)
+        n_floor += _two_asset_floored_states(
+            hh.a_grid, hh.b_grid, hh.s_grid, float(r_b_path[t]), float(r_a_path[t]), float(z_path[t]),
+            step[3], step[4], step[6], float(transfer_path[t]),
+        )
+    if n_floor:
+        warnings.warn(
+            f"two-asset transition: the consumption floor binds in {n_floor} (state, date) pairs, so the "
+            "budget constraint fails there; the shock is too large for this grid",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+    D = hh.D_ss.copy()
+    agg = {o: np.empty(T) for o in _TA_OUTPUTS}
+    for t in range(T):
+        for o in _TA_OUTPUTS:
+            agg[o][t] = float(np.sum(D * pols[t][o]))
+        D = _two_asset_forward(D, pols[t]["A"], pols[t]["B"], hh.a_grid, hh.b_grid, hh.pi_s)
+    return agg
+
+
+def _two_asset_closed_transition(
+    hh: _TwoAssetHouseholdBlock,
+    Y_path: np.ndarray,
+    r_b_path: np.ndarray,
+    r_a_path: np.ndarray,
+    tol: float = 1e-13,
+    max_iter: int = 200,
+) -> dict[str, np.ndarray]:
+    """Non-linear household block under the income closure (direct method).
+
+    ``Y_path`` is output in levels and ``r_b_path``/``r_a_path`` the returns
+    *realised* at dates ``0..T-1``.  Non-financial income solves the fixed point
+
+        z_t N = Y_t - r^b_t B_{t-1} - r^a_t A_{t-1},   B_{-1} = B_ss, A_{-1} = A_ss,
+
+    with ``A_t``/``B_t`` the aggregate holdings chosen at ``t`` along the
+    non-linear transition; it is found by fixed-point iteration on the ``z``
+    path (sup-norm tolerance ``tol``; RuntimeWarning if not reached).  Returns
+    the aggregates of :func:`_two_asset_transition` plus ``'z'``.
+    """
+    Y_path = np.asarray(Y_path, dtype=float)
+    r_b_path = np.asarray(r_b_path, dtype=float)
+    r_a_path = np.asarray(r_a_path, dtype=float)
+    N = hh.N_ss
+    B_lag = np.full(len(Y_path), hh.B_ss)
+    A_lag = np.full(len(Y_path), hh.A_ss)
+    z = (Y_path - r_b_path * B_lag - r_a_path * A_lag) / N
+    step = float("inf")
+    for _ in range(int(max_iter)):
+        agg = _two_asset_transition(hh, r_b_path, r_a_path, z)
+        B_lag[1:], A_lag[1:] = agg["B"][:-1], agg["A"][:-1]
+        z_new = (Y_path - r_b_path * B_lag - r_a_path * A_lag) / N
+        step = float(np.max(np.abs(z_new - z)))
+        z = z_new
+        if step < tol:
+            break
+    else:
+        warnings.warn(f"two-asset closed transition: z fixed point not reached (step {step:.1e})",
+                      RuntimeWarning, stacklevel=2)
+    agg = _two_asset_transition(hh, r_b_path, r_a_path, z)
+    agg["z"] = z
+    return agg
 
 
 @dataclass(frozen=True)
 class TwoAssetSequenceSpaceHANKResult:
-    """Results from Two-Asset Sequence-Space HANK general-equilibrium solve."""
+    """Results from the two-asset sequence-space HANK general-equilibrium solve.
+
+    IRFs are deviations from the steady state in levels (``irf_output``,
+    ``irf_consumption``, ``irf_deposit``: the aggregate net deposit flow
+    ``sum D (a' - (1 + r_a) a)``) or in quarterly rates (``irf_inflation``,
+    ``irf_rate_b``, ``irf_rate_a``: the *ex-ante* real returns, realised one
+    quarter later).  The Jacobians are ``(T, T)`` Jacobians of the household
+    sector closed by the income rule ``z_t N = Y_t - r^b_t B_{t-1} - r^a_t A_{t-1}``
+    (inputs: output ``Y`` and the ex-ante rates; see :func:`_two_asset_jacobians`
+    and the module comment above ``_transaction_cost``).  In equilibrium total
+    wealth ``A + B`` does not move; only its composition does.  ``steady_state`` also carries the
+    household-block diagnostics (``hh_iterations``, ``hh_residual``,
+    ``mass_at_a_max``, ``mass_at_b_max``, ``htm_share``, ``wealthy_htm_share``,
+    ``mpc``, ``budget_residual``).  ``converged`` is True only if the household
+    fixed point reached its tolerance and the GE solve is finite.
+    """
     irf_output: np.ndarray
     irf_consumption: np.ndarray
     irf_deposit: np.ndarray
@@ -2143,11 +2798,11 @@ class TwoAssetSequenceSpaceHANKResult:
     distribution: np.ndarray = field(default_factory=lambda: np.zeros((0, 0, 0)))
     trans_matrix: np.ndarray = field(default_factory=lambda: np.zeros((0, 0)))
     horizon: int = 40
-    beta: float = 0.985
+    beta: float = 0.98
     gamma: float = 1.0
-    r_b_ss: float = 0.01
-    r_a_ss: float = 0.03
-    chi_0: float = 0.25
+    r_b_ss: float = 0.005
+    r_a_ss: float = 0.0125
+    chi_0: float = 1.0
     chi_1: float = 1.0
     converged: bool = True
 
@@ -2156,6 +2811,7 @@ class TwoAssetSequenceSpaceHANKResult:
         c_pk, c_at = _peak(self.irf_consumption)
         d_pk, d_at = _peak(self.irf_deposit)
         pi_pk, pi_at = _peak(self.irf_inflation)
+        ss = self.steady_state
         lines = [
             "Two-Asset Sequence-Space HANK General Equilibrium Solve (Kaplan et al. 2018; Auclert et al. 2021)",
             "=" * 78,
@@ -2163,8 +2819,12 @@ class TwoAssetSequenceSpaceHANKResult:
             f"Steady-State Illiquid Return r_a: {self.r_a_ss:.4f}",
             f"Steady-State Liquid Return r_b  : {self.r_b_ss:.4f}",
             f"Adjustment Cost Parameters      : chi_0={self.chi_0:.2f}, chi_1={self.chi_1:.2f}",
-            f"Steady-State Output Y_ss        : {self.steady_state.get('Y', np.nan):.4f}",
-            f"Steady-State Consumption C_ss   : {self.steady_state.get('C', np.nan):.4f}",
+            f"Steady-State Output Y_ss        : {ss.get('Y', np.nan):.4f}",
+            f"Steady-State Consumption C_ss   : {ss.get('C', np.nan):.4f}",
+            f"Illiquid / Liquid Wealth A, B   : {ss.get('A', np.nan):.4f}, {ss.get('B', np.nan):.4f}",
+            f"Hand-to-Mouth Share (wealthy)   : {ss.get('htm_share', np.nan):.3f} ({ss.get('wealthy_htm_share', np.nan):.3f})",
+            f"Household Block Converged       : {self.converged} "
+            f"({int(ss.get('hh_iterations', 0))} iterations, residual {ss.get('hh_residual', np.nan):.1e})",
             f"Peak Output Response            : {y_pk:+.6f} (t={y_at})",
             f"Peak Consumption Response       : {c_pk:+.6f} (t={c_at})",
             f"Peak Deposit Flow Response      : {d_pk:+.6f} (t={d_at})",
@@ -2235,27 +2895,111 @@ class TwoAssetSequenceSpaceHANKResult:
         return fig
 
 
+def _two_asset_steady_state_dict(hh: _TwoAssetHouseholdBlock) -> dict[str, float]:
+    """Aggregate steady state and household-block diagnostics of a two-asset block."""
+    return {
+        "Y": hh.Y_ss,
+        "C": hh.C_ss,
+        "CHI": hh.CHI_ss,
+        "D": hh.D_flow_ss,
+        "r_b": hh.r_b_ss,
+        "r_a": hh.r_a_ss,
+        "pi": 0.0,
+        "i": hh.r_b_ss,
+        "w": hh.w_ss,
+        "A": hh.A_ss,
+        "B": hh.B_ss,
+        "N": hh.N_ss,
+        "mpc": float(np.sum(hh.D_ss * hh.mpc())),
+        "htm_share": hh.htm_share,
+        "wealthy_htm_share": hh.wealthy_htm_share,
+        "mass_at_a_max": hh.mass_at_a_max,
+        "mass_at_b_max": hh.mass_at_b_max,
+        "budget_residual": hh.budget_residual,
+        "hh_iterations": float(hh.iterations),
+        "hh_residual": hh.residual,
+    }
+
+
 def solve_two_asset_hank_sequence_space(
     T: int = 40,
-    beta: float = 0.985,
+    beta: float = 0.98,
     gamma: float = 1.0,
-    r_b_ss: float = 0.01,
-    r_a_ss: float = 0.03,
+    r_b_ss: float = 0.005,
+    r_a_ss: float = 0.0125,
     phi_pi: float = 1.5,
     kappa: float = 0.1,
-    chi_0: float = 0.25,
+    chi_0: float = 1.0,
     chi_1: float = 1.0,
     shock_magnitude: float = -0.0025,
     shock_rho: float = 0.5,
     n_a: int = 25,
     n_b: int = 25,
-    a_max: float = 30.0,
-    b_max: float = 15.0,
+    a_max: float = 40.0,
+    b_max: float = 10.0,
     b_min: float = 0.0,
     alpha_ab: float = 0.5,
+    a_bar: float = 0.25,
 ) -> TwoAssetSequenceSpaceHANKResult:
-    """Solve Two-Asset Sequence-Space HANK general equilibrium transition dynamics."""
+    """Solve the two-asset HANK steady state, its Fake-News Jacobians and the linear GE response.
+
+    Households choose consumption, liquid bonds ``b`` and an illiquid asset
+    ``a`` that can be adjusted only at the convex cost
+    ``chi(d, a) = chi_0/(1+chi_1) |d|^(1+chi_1) / (a + a_bar)^chi_1``
+    (``d = a' - (1 + r_a) a``; Kaplan, Moll & Violante 2018).  The steady
+    state is solved by EGM on ``(V_a, V_b)`` to a sup-norm tolerance of 1e-11,
+    the household Jacobians by the Fake-News Algorithm (Auclert, Bardóczy,
+    Rognlie & Straub 2021) with anticipation effects, and the general
+    equilibrium by one ``T x T`` solve of the goods-market condition
+    ``dY = d(C + CHI)`` with ``dr_b = M_r_Y dY + eps`` (NKPC, Taylor rule and
+    Fisher equation, as in :func:`solve_hank_sequence_space`) and
+    ``dr_a = alpha_ab dr_b``.  Asset returns are paid out of aggregate income
+    on the holdings households carry into the period
+    (``z_t N = Y_t - r^b_t B_{t-1} - r^a_t A_{t-1}``), so household income
+    equals output, a rate change redistributes income between savers and
+    workers, and in equilibrium total wealth ``A + B`` stays at its steady
+    state while its composition moves (Walras's law).  See the comment block
+    above ``_transaction_cost`` for the timing and closure conventions.
+
+    This is a stylised teaching model (Kaplan-Moll-Violante cost structure,
+    Auclert et al. solution method); it is not a replication of either paper's
+    calibration.  Supported adjustment-cost curvature: ``chi_1 >= 1``.
+
+    Parameters
+    ----------
+    T : int, default 40
+        Horizon of the IRFs and of the ``(T, T)`` Jacobians (quarters).
+    beta : float, default 0.98
+        Household discount factor (also the NKPC discount factor).  The
+        illiquid-wealth distribution is interior only if ``beta (1 + r_a_ss) < 1``.
+    gamma : float, default 1.0
+        Relative risk aversion (CRRA; 1 is log utility).
+    r_b_ss, r_a_ss : float, default 0.005, 0.0125
+        Steady-state quarterly real returns on the liquid and illiquid assets
+        (2% and 5% a year).
+    phi_pi, kappa : float, default 1.5, 0.1
+        Taylor-rule inflation coefficient and NKPC slope.
+    chi_0, chi_1, a_bar : float, default 1.0, 1.0, 0.25
+        Adjustment-cost scale, curvature (``chi_1 = 1`` is quadratic; values
+        below 1 are unsupported and warn) and the shift that keeps depositing
+        into an empty account affordable.
+    shock_magnitude, shock_rho : float, default -0.0025, 0.5
+        Monetary shock ``eps_t = shock_magnitude * shock_rho**t`` to the
+        Taylor rule (-0.0025 is a 25 bp quarterly cut).
+    n_a, n_b, a_max, b_max, b_min : grid sizes and bounds
+        Illiquid grid on ``[0, a_max]`` and liquid grid on ``[b_min, b_max]``,
+        both denser near the lower bound.  A RuntimeWarning is issued if the
+        grids do not contain the ergodic set.
+    alpha_ab : float, default 0.5
+        Pass-through of the ex-ante liquid real rate to the illiquid rate.
+
+    Returns
+    -------
+    TwoAssetSequenceSpaceHANKResult
+    """
     T = int(T)
+    if T < 1:
+        raise ValueError("T must be a positive integer")
     hh = _solve_two_asset_household_block(
         beta=float(beta),
         gamma=float(gamma),
@@ -2268,54 +3012,87 @@ def solve_two_asset_hank_sequence_space(
         b_min=float(b_min),
         chi_0=float(chi_0),
         chi_1=float(chi_1),
+        a_bar=float(a_bar),
     )
-
-    jacobians = _two_asset_jacobians(hh, T=T)
-    J_C_rb = jacobians["J_C_rb"]
-    J_C_ra = jacobians["J_C_ra"]
-    J_C_Y = jacobians["J_C_Y"]
-    J_D_rb = jacobians["J_D_rb"]
-    J_D_ra = jacobians["J_D_ra"]
-    J_D_Y = jacobians["J_D_Y"]
-
-    K_pi, M_r_Y = _ge_matrices(T, float(beta), float(kappa), float(phi_pi))
     shock_seq = float(shock_magnitude) * (float(shock_rho) ** np.arange(T))
+    return _two_asset_ge_solve(hh, T, float(phi_pi), float(kappa), shock_seq, float(alpha_ab))
 
-    LHS = np.eye(T) - J_C_Y - (J_C_rb + alpha_ab * J_C_ra) @ M_r_Y
-    RHS = (J_C_rb + alpha_ab * J_C_ra) @ shock_seq
-    dY = np.linalg.solve(LHS, RHS)
-    dC = dY.copy()
+
+def _two_asset_ge_paths(
+    hh: _TwoAssetHouseholdBlock,
+    T: int,
+    phi_pi: float,
+    kappa: float,
+    shock_seq: np.ndarray,
+    alpha_ab: float = 0.5,
+    jacobians: dict[str, np.ndarray] | None = None,
+) -> dict[str, Any]:
+    """Linear GE paths of the two-asset model (deviations from the steady state).
+
+    Returns a dict with the ``(T,)`` paths ``Y``, ``C``, ``CHI``, ``D``, ``A``,
+    ``B``, ``z`` (non-financial income per efficiency unit), ``r_b``, ``r_a``
+    (ex-ante real rates), ``pi``, ``i`` and the Jacobians used
+    (``'jacobians'``; computed with :func:`_two_asset_jacobians` unless given).
+    By construction ``dY = dC + dCHI`` and ``dA + dB = 0`` up to rounding.
+    """
+    T = int(T)
+    shock_seq = np.asarray(shock_seq, dtype=float)
+    if jacobians is None:
+        jacobians = _two_asset_jacobians(hh, T=T)
+    J = jacobians
+    alpha_ab = float(alpha_ab)
+    K_pi, M_r_Y = _ge_matrices(T, hh.beta, float(kappa), float(phi_pi))
+
+    # Goods market: dY = d(C + CHI); spending Jacobians with respect to Y and to the ex-ante liquid rate
+    JQ_Y = J["J_C_Y"] + J["J_CHI_Y"]
+    JQ_r = (J["J_C_rb"] + J["J_CHI_rb"]) + alpha_ab * (J["J_C_ra"] + J["J_CHI_ra"])
+    LHS = np.eye(T) - JQ_Y - JQ_r @ M_r_Y
+    dY = np.linalg.solve(LHS, JQ_r @ shock_seq)
     dr_b = M_r_Y @ dY + shock_seq
     dr_a = alpha_ab * dr_b
     dpi = K_pi @ dY
-    dD = J_D_rb @ dr_b + J_D_ra @ dr_a + J_D_Y @ dY
-
-    ss_dict = {
-        "Y": hh.C_ss,
-        "C": hh.C_ss,
-        "D": hh.D_flow_ss,
-        "r_b": hh.r_b_ss,
-        "r_a": hh.r_a_ss,
-        "pi": 0.0,
-        "i": hh.r_b_ss,
-        "w": hh.w_ss,
-        "A": hh.A_ss,
-        "B": hh.B_ss,
+    out: dict[str, Any] = {
+        o: J[f"J_{o}_Y"] @ dY + J[f"J_{o}_rb"] @ dr_b + J[f"J_{o}_ra"] @ dr_a for o in _TA_OUTPUTS + ("z",)
     }
+    out.update({"Y": dY, "r_b": dr_b, "r_a": dr_a, "pi": dpi, "i": float(phi_pi) * dpi + shock_seq,
+                "jacobians": J})
+    return out
+
+
+def _two_asset_ge_solve(
+    hh: _TwoAssetHouseholdBlock,
+    T: int,
+    phi_pi: float,
+    kappa: float,
+    shock_seq: np.ndarray,
+    alpha_ab: float = 0.5,
+) -> TwoAssetSequenceSpaceHANKResult:
+    """Linear GE response of a solved two-asset household block to a Taylor-rule shock path.
+
+    Goods market ``dY = d(C + CHI)`` with ``dC + dCHI = J_Y dY + J_rb dr_b + J_ra dr_a``
+    (closed household-sector Jacobians of :func:`_two_asset_jacobians`),
+    ``dr_b = M_r_Y dY + eps`` and ``dr_a = alpha_ab dr_b`` (ex-ante rates):
+    ``(I - J_Y - (J_rb + alpha_ab J_ra) M_r_Y) dY = (J_rb + alpha_ab J_ra) eps``.
+    """
+    paths = _two_asset_ge_paths(hh, T, phi_pi, kappa, shock_seq, alpha_ab)
+    jacobians = paths["jacobians"]
+    dY = paths["Y"]
+    ss_dict = _two_asset_steady_state_dict(hh)
+    converged = bool(hh.converged and np.all(np.isfinite(dY)))
 
     return TwoAssetSequenceSpaceHANKResult(
         irf_output=dY,
-        irf_consumption=dC,
-        irf_deposit=dD,
-        irf_inflation=dpi,
-        irf_rate_b=dr_b,
-        irf_rate_a=dr_a,
-        jacobian_c_rb=J_C_rb,
-        jacobian_c_ra=J_C_ra,
-        jacobian_c_y=J_C_Y,
-        jacobian_d_rb=J_D_rb,
-        jacobian_d_ra=J_D_ra,
-        jacobian_d_y=J_D_Y,
+        irf_consumption=paths["C"],
+        irf_deposit=paths["D"],
+        irf_inflation=paths["pi"],
+        irf_rate_b=paths["r_b"],
+        irf_rate_a=paths["r_a"],
+        jacobian_c_rb=jacobians["J_C_rb"],
+        jacobian_c_ra=jacobians["J_C_ra"],
+        jacobian_c_y=jacobians["J_C_Y"],
+        jacobian_d_rb=jacobians["J_D_rb"],
+        jacobian_d_ra=jacobians["J_D_ra"],
+        jacobian_d_y=jacobians["J_D_Y"],
         asset_grid=hh.a_grid,
         liquid_asset_grid=hh.b_grid,
         joint_distribution=hh.joint_distribution,
@@ -2330,13 +3107,13 @@ def solve_two_asset_hank_sequence_space(
         distribution=hh.D_ss,
         trans_matrix=hh.Lambda,
         horizon=T,
-        beta=float(beta),
-        gamma=float(gamma),
-        r_b_ss=float(r_b_ss),
-        r_a_ss=float(r_a_ss),
-        chi_0=float(chi_0),
-        chi_1=float(chi_1),
-        converged=hh.converged,
+        beta=hh.beta,
+        gamma=hh.gamma,
+        r_b_ss=hh.r_b_ss,
+        r_a_ss=hh.r_a_ss,
+        chi_0=hh.chi_0,
+        chi_1=hh.chi_1,
+        converged=converged,
     )
 
 

@@ -1,0 +1,6 @@
+| parameter | estimate |       se | ci_lower | ci_upper | boundary |
+|-----------|----------|----------|----------|----------|----------|
+|     sigma | 1.469875 | 0.059139 | 1.353964 | 1.585786 |    False |
+|     kappa | 0.152528 | 0.004758 | 0.143203 | 0.161854 |    False |
+|       rho | 0.594417 |  0.01293 | 0.569074 | 0.619759 |    False |
+Saved study to research_output/20261001T195122751014Z/structural

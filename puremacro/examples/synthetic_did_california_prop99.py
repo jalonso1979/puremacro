@@ -4,6 +4,13 @@ Applies SDID to evaluate the causal impact of a policy intervention on a state/f
 panel, illustrating the combination of unit weights omega and time weights lambda
 with affine intercept adjustment.
 
+The panel is simulated in the shape of the California Proposition 99 design (one
+treated state, 15 donor states, true effect -4.5); it is not the real data. With a
+single treated unit ``synthetic_did`` reports the placebo standard error of
+Arkhangelsky et al. (2021, Algorithm 4) and the Gaussian interval tau -/+ z*se. On
+the real Proposition 99 panel it returns tau = -15.61 (the paper's Table 1: -15.6);
+see docs/did.md.
+
 Run:
     python -m puremacro.examples.synthetic_did_california_prop99
 
@@ -14,6 +21,13 @@ Evaluación causal de políticas mediante Diferencias en Diferencias Sintéticas
 Aplica SDID para evaluar el impacto causal de una intervención de política en un
 panel de estados o empresas, ilustrando la combinación de ponderaciones de unidades
 omega y ponderaciones temporales lambda con ajuste de intercepto.
+
+El panel es simulado con la forma del diseño de la Proposición 99 de California (un
+estado tratado, 15 estados donantes, efecto verdadero -4.5); no son los datos reales.
+Con una sola unidad tratada, ``synthetic_did`` reporta el error estándar placebo de
+Arkhangelsky et al. (2021, Algoritmo 4) y el intervalo gaussiano tau -/+ z*se. Con el
+panel real de la Proposición 99 devuelve tau = -15.61 (Tabla 1 del artículo: -15.6);
+véase docs/es/did.md.
 
 Ejecución:
     python -m puremacro.examples.synthetic_did_california_prop99
@@ -83,9 +97,13 @@ def main():
     out = run_sdid_simulation()
     res = out["res"]
 
+    # With one treated unit se_method="auto" resolves to the placebo
+    # estimator (Algorithm 4), so this prints "Placebo SE".
+    se_label = f"{res.se_method.capitalize()} SE:"
+    ci_label = f"{100 * (1 - res.alpha):.0f}% CI:"
     print(f"  SDID Estimated Tau: {res.tau:.4f} (True: {out['tau_true']:.4f})")
-    print(f"  Bootstrap SE:       {res.se:.4f}")
-    print(f"  90% CI:             [{res.lo:.4f}, {res.hi:.4f}]")
+    print(f"  {se_label:<20}{res.se:.4f}")
+    print(f"  {ci_label:<20}[{res.lo:.4f}, {res.hi:.4f}]")
 
     piv = out["df"].pivot(index="time", columns="unit", values="y")
     treated_traj = piv["State_00"].values

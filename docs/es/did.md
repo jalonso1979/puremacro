@@ -74,17 +74,43 @@ print(res_cs.to_latex())
 print(res_cs.to_typst())
 ```
 
+### Agregación: pesos por tamaño de cohorte, como en el artículo
+
+Todos los agregados ponderan las cohortes por su **tamaño**. Si $n_g$ es el número de unidades de la cohorte $g$, la proporción $n_g / \sum_{g'} n_{g'}$ estima $P(G = g \mid G \le T)$. La numeración de ecuaciones es la de la versión arXiv del artículo (1803.09015v4, sección 3, pp. 15–19).
+
+- **Estudio de eventos** (ec. 3.4): $\theta_{es}(e) = \sum_g \mathbf{1}\{g + e \le T\}\, P(G = g \mid G + e \le T)\, ATT(g, g + e)$, el promedio ponderado por tamaño de las cohortes observadas $e$ períodos después de adoptar. Los pre-períodos usan los mismos pesos.
+- **ATT global**, que se elige con `aggregation=`:
+
+| `aggregation=` | Estimando | Definición |
+|---|---|---|
+| `"group"` (por defecto) | $\theta^O_{sel}$, ec. 3.11 | $\sum_g P(G = g \mid G \le T)\,\theta_{sel}(g)$, donde $\theta_{sel}(g)$ (ec. 3.7) es la media de las celdas post-tratamiento de la cohorte $g$. El artículo lo recomienda como resumen general: el efecto medio que experimentan las unidades alguna vez tratadas, el análogo del ATT 2×2. |
+| `"simple"` | $\theta^O_W$, ec. 3.10 | Cada celda post-tratamiento ponderada por el tamaño de su cohorte. Da más peso a las cohortes tempranas, que tienen más celdas post-tratamiento. |
+| `"dynamic"` | $\theta^O_{es}$, ec. 3.12 | Media de $\theta_{es}(e)$ sobre $e \ge 0$. |
+| `"calendar"` | $\theta^O_c$, ec. 3.12 | Media, sobre los períodos con tratamiento, de $\theta_c(t)$ (ec. 3.8), el efecto ponderado por tamaño de las cohortes tratadas en $t$. |
+| `"unweighted"` | ninguno | La regla de puremacro 4.3.0 y anteriores: cada cohorte cuenta una vez en el estudio de eventos y `att_overall` es la media simple de las celdas post-tratamiento. **No** es un estimando de Callaway–Sant'Anna; úsela solo para reproducir números antiguos. |
+
+Los cinco resúmenes coinciden cuando todos los $ATT(g, t)$ son iguales. Se separan cuando los efectos difieren entre cohortes y las cohortes difieren en tamaño. En un panel sin ruido con una cohorte de 10 unidades (efectos 1, 1.5, 2, 2.5) y otra de 40 (efectos 3, 4), $\theta_{es}(0) = 2.6$ y $\theta^O_{sel} = 3.15$, mientras que la regla de cohortes iguales da 2.0 y 2.33 (caso de validación `did.callaway_santanna_aggregations_match_cs2021_equations`).
+
+**Inferencia.** Los errores estándar salen de un bootstrap de panel que remuestrea unidades completas. Cada réplica reestima todos los $ATT(g, t)$ *y* los tamaños de cohorte, así que el `se` de cada agregado incluye la covarianza entre cohortes que comparten controles y la incertidumbre de estimar los pesos (el Corolario 2 del artículo). `lo`/`hi` son bandas percentiles puntuales.
+
 Atributos principales de `CallawaySantannaResult`:
 - `att_gt`: DataFrame con las estimaciones $ATT(g, t)$ y sus errores estándar bootstrap (columnas `g, t, event_time, att, se, lo, hi`).
-- `att_event_study`: Efectos dinámicos agregados según el tiempo transcurrido desde el tratamiento; cada horizonte es la media sin ponderar de las cohortes que lo identifican (`n_cohorts`).
-- `att_overall`: Media simple de las celdas post-tratamiento $ATT(g, t)$ (cada celda cohorte-período identificada cuenta una vez; *no* se pondera por tamaño de cohorte — use `sun_abraham` para un efecto global ponderado por participación de unidades).
+- `att_event_study`: el estudio de eventos $\theta_{es}(e)$ de la ec. 3.4; `n_cohorts` es el número de cohortes que identifican cada horizonte.
+- `att_overall`, `att_overall_se`, `att_overall_lo`, `att_overall_hi`: el resumen global elegido con `aggregation` ($\theta^O_{sel}$ por defecto), con su error estándar bootstrap y su banda percentil.
+- `att_group`: $\theta_{sel}(g)$ por cohorte (columnas `g, n_g, weight, att, se, lo, hi`); `weight` es el peso de la cohorte en $\theta^O_{sel}$.
+- `overall_aggregations`: los cinco resúmenes globales lado a lado (columnas `aggregation, estimand, att, se, lo, hi`).
+- `event_study_vcov`: la matriz de covarianzas bootstrap de los coeficientes del estudio de eventos. Páselo como `sigma=` a `honest_did`, que de lo contrario usa solo la diagonal.
 - `.to_markdown()`, `.to_latex()`, `.to_typst()`: Métodos de exportación del estudio de eventos (sin columna de índice); `.plot()` lo dibuja con su banda de confianza.
 
 ---
 
 ## 2. Sun y Abraham (2021)
 
-Sun y Abraham modelan explícitamente las trayectorias de cada cohorte y ponderan los coeficientes dinámicos por la participación muestral de cada grupo, garantizando que el perfil dinámico no se contamine por cambios en la composición de las cohortes que identifican cada horizonte. `att_overall` es la media de los $ATT(g, t)$ post-tratamiento ponderada por la participación de cada cohorte:
+Sun y Abraham muestran que los coeficientes de una regresión dinámica de efectos fijos bidireccionales pueden contaminarse con efectos de otros períodos relativos. Su estimador ponderado por interacción (IW) estima en cambio cada efecto por cohorte $CATT_{e,\ell}$ y los promedia en cada período relativo $\ell$ con la participación muestral de cada cohorte entre las observadas en ese período (su ec. 27). Sin covariables y con controles nunca tratados, Sun y Abraham señalan que su estimador coincide con el de Callaway y Sant'Anna (arXiv:1804.05785, p. 24): el estudio de eventos de `sun_abraham` es el $\theta_{es}(e)$ de la ec. 3.4 anterior. Los dos estimadores **no** difieren en cómo ponderan las cohortes; ambos usan las participaciones de cohorte.
+
+`sun_abraham` reutiliza las estimaciones grupo-tiempo *y las réplicas bootstrap conjuntas* de `callaway_santanna`. Su `se` del estudio de eventos es la desviación estándar bootstrap del propio agregado, con las participaciones de cohorte reestimadas en cada réplica. Eso recoge la covarianza entre cohortes que comparten los mismos controles y el término de estimación de pesos de la Proposición 6 de Sun y Abraham. `lo`/`hi` son `att ∓ z·se`. Con la misma `seed`, su columna `se` es igual a la de `callaway_santanna`.
+
+Hasta la versión 4.3.0 el `se` agregado era $\sqrt{\sum_g w_g^2 se_g^2}$, que trata las cohortes como independientes. Según el proceso de error, quedaba entre 0.6 y 1.4 veces la verdad de Monte Carlo. `att_overall` usa por defecto `aggregation="simple"`, que pondera cada celda post-tratamiento por el tamaño de su cohorte ($\theta^O_W$, ec. 3.10, el valor que `sun_abraham` siempre ha devuelto). `aggregation="dynamic"` da el $\nu_g$ propio de Sun y Abraham para $g$ = los períodos post-tratamiento. `att_overall_se`, `att_overall_lo` y `att_overall_hi` dan su error estándar bootstrap conjunto y su banda:
 
 ```python
 from puremacro.did import sun_abraham
@@ -153,12 +179,39 @@ print(res_cdh.to_markdown())   # columnas [estimand, horizon, att, se]
 ## 5. Diferencias en diferencias sintéticas (SDID)
 
 Arkhangelsky et al. (2021) unifican el control sintético y las diferencias en diferencias:
-- A diferencia del control sintético tradicional, SDID es invariante a desplazamientos aditivos de nivel entre unidades y a lo largo del tiempo: ambos problemas de pesos incluyen los interceptos $\omega_0$, $\lambda_0$ del artículo, de modo que sumar una constante a la trayectoria de cualquier unidad (o una constante común a cualquier período) no altera $\hat\tau$.
+- A diferencia del control sintético tradicional, SDID es invariante a desplazamientos aditivos de nivel entre unidades: ambos problemas de pesos incluyen los interceptos $\omega_0$, $\lambda_0$ del artículo, de modo que sumar una constante a la trayectoria de cualquier unidad no altera $\hat\tau$. Un desplazamiento común de los períodos mueve $\hat\tau$ solo a través del nivel de ruido $\hat\sigma$ que fija la penalización ridge (véase abajo); una tendencia lineal común no altera $\hat\sigma$ y, por tanto, tampoco $\hat\tau$.
 - A diferencia del DiD clásico, no exige tendencias paralelas entre el grupo tratado y todas las unidades de control; en su lugar, optimiza pesos no negativos $\omega_i \ge 0$ para alinear las tendencias previas y pesos temporales $\lambda_t \ge 0$ para ponderar los períodos pre-tratamiento más relevantes:
 
 $$\hat{\tau}^{\text{SDID}} = \arg\min_{\tau, \mu, \alpha, \beta} \sum_{i=1}^N \sum_{t=1}^T \left( y_{it} - \mu - \alpha_i - \beta_t - \tau W_{it} \right)^2 \hat{\omega}_i \hat{\lambda}_t$$
 
-`synthetic_did` maneja una **única cohorte de tratamiento** (un período de adopción común, `treat_time` igual para todas las unidades tratadas y `NaN` para los donantes) y requiere un **panel balanceado**: una celda `(unit, time)` ausente lanza un `ValueError` que la identifica. Los errores estándar provienen de un bootstrap sobre donantes.
+`synthetic_did` maneja una **única cohorte de tratamiento** (un período de adopción común, `treat_time` igual para todas las unidades tratadas y `NaN` para los donantes) y requiere un **panel balanceado**: una celda `(unit, time)` ausente lanza un `ValueError` que la identifica.
+
+**Pesos.** La numeración de ecuaciones y algoritmos es la de arXiv:1812.09970v4. Los pesos de unidad resuelven la ec. (2.1) con penalización ridge $\zeta_\omega^2 T_{pre}\lVert\omega\rVert^2$, $\zeta_\omega = (N_{tr} T_{post})^{1/4}\hat\sigma$; los pesos temporales resuelven la ec. (2.3) con la penalización mínima $\zeta_\lambda = 10^{-6}\hat\sigma$ de la nota 3. $\hat\sigma$ (ec. 2.2) es la desviación estándar de las primeras diferencias pre-tratamiento de los controles, $Y_{i,t+1} - Y_{it}$, en torno a su media global, como en el paquete de R `synthdid`; `noise_level=` permite fijarla. Cada problema de pesos se resuelve en unidades de la raíz del cuadrado medio de los datos y se comprueba contra sus condiciones de optimalidad (KKT), de modo que $\hat\tau(c\,y) = c\,\hat\tau(y)$ para cualquier cambio de escala del resultado. Si el optimizador no alcanza el óptimo, emite una advertencia y devuelve los mejores pesos factibles que encontró. Hasta la versión 4.3.0, una resolución de pesos que SLSQP marcaba como fallida devolvía pesos uniformes sin avisar, lo que convertía SDID en un DiD simple cuando el resultado se medía en unidades grandes; con los datos de California del artículo devolvía la estimación DiD, −27.35.
+
+**Inferencia.** El estimador de varianza se elige con `se_method=` (sección 5 del artículo). Los intervalos son gaussianos, $\hat\tau \pm z_{1-\alpha/2}\,\text{se}$ (ec. 5.1). `n_boot` es el número de réplicas $B$; cada réplica reutiliza los $\zeta_\omega$, $\zeta_\lambda$ de la muestra completa, como hace `synthdid`.
+
+| `se_method=` | Algoritmo | Cuándo |
+|---|---|---|
+| `"placebo"` | 4 | Por defecto con **una o dos unidades tratadas**. Reasigna el tratamiento a $N_{tr}$ controles extraídos sin reemplazo y reestima SDID solo con los controles. Supone que las unidades comparten una misma distribución del ruido (homocedasticidad); requiere más controles que unidades tratadas. |
+| `"bootstrap"` | 2 | Por defecto con **tres o más unidades tratadas**. Remuestrea todas las unidades, tratadas y de control, y vuelve a extraer las muestras que carecen de alguno de los dos grupos. Con una sola unidad tratada no está bien definido (no puede remuestrear el ruido de la unidad tratada) y con dos subcubre; en ambos casos emite una advertencia. |
+| `"jackknife"` | 3 | Deja fuera una unidad cada vez, con $\hat\omega$, $\hat\lambda$ fijos. Rápido y conservador; NaN con una sola unidad tratada. |
+
+`"auto"` (el valor por defecto) elige el estimador placebo con una o dos unidades tratadas (si hay más controles que unidades tratadas) y el bootstrap en otro caso. Hasta la versión 4.3.0 la única opción era un bootstrap sobre los donantes que mantenía fijas las unidades tratadas, con un intervalo percentil. Con una sola unidad tratada, su intervalo nominal del 90% cubría el valor verdadero entre el 50% y el 67% de las veces.
+
+Cobertura de Monte Carlo de los nuevos intervalos nominales del 90%:
+
+| Diseño | $N_{tr}$ | Por defecto | Cobertura (e.e. MC) | se medio / desviación verdadera |
+|---|---|---|---|---|
+| Notebook 29 (15 donantes, modelo de factores, ruido con desviación 0.4), 400 réplicas | 1 | placebo | 0.892 (0.015) | 0.244 / 0.234 |
+| Efectos fijos bidireccionales, iid N(0,1), 30 controles, $T = 20$, $T_{pre} = 15$, 400 réplicas | 1 | placebo | 0.905 (0.015) | 0.598 / 0.563 |
+| Igual, 200 réplicas | 2 | placebo | 0.885 (0.023) | 0.425 / 0.422 |
+| Igual, 200 réplicas | 3 | bootstrap | 0.885 (0.023) | 0.356 / 0.340 |
+| Igual, 200 réplicas | 5 | bootstrap | 0.910 (0.020) | 0.304 / 0.279 |
+| Ejemplo de abajo (8 de 40 tratadas), 200 réplicas | 8 | bootstrap | 0.910 (0.020) | 0.062 / 0.057 |
+
+Con dos unidades tratadas el bootstrap cubrió solo 0.790 (0.029); por eso `"auto"` cambia a partir de tres.
+
+**Proposición 99 de California.** La tabla 1 del artículo (p. 8) da SDID −15.6 (error estándar placebo 8.4), SC −19.6 y DID −27.3. Con el mismo panel (los datos `california_prop99` del paquete de R `synthdid`), `synthetic_did` devuelve $\hat\tau = -15.61$. Los pesos temporales recaen en 1986–1988 (0.366, 0.206, 0.427), y Nevada, New Hampshire y Connecticut reciben los mayores pesos de unidad. El error estándar placebo es una cantidad de Monte Carlo: con $B = 200$ vale 10.3 con `seed=0` y va de 7.96 a 10.91 con las semillas 0–19, en torno a su límite de 9.37 cuando $B \to \infty$; el 8.4 del artículo es una de esas extracciones. El óptimo exacto de SC con la configuración del artículo es −19.51. El −19.6 del artículo sale del optimizador Frank–Wolfe de `synthdid`, que se detiene antes del óptimo; SDID no se ve afectado (Frank–Wolfe −15.60).
 
 ```python
 from puremacro.did import synthetic_did
@@ -194,7 +247,7 @@ print(res_sdid.lambda_w.round(3))
 fig = res_sdid.plot()   # media tratada vs trayectoria sintética ponderada por omega
 ```
 
-Para adopción escalonada en varias cohortes, use `sdid_multi_cohort`. Ejecuta `synthetic_did` una vez por cohorte de adopción y promedia las estimaciones con pesos por tamaño de cohorte. El grupo de donantes de cada cohorte permanece no tratado durante toda su ventana SDID: `control="never_treated"` usa las unidades nunca tratadas sobre el panel completo, `control="not_yet_treated"` admite también unidades tratadas más tarde pero trunca la ventana en su primera fecha de adopción, y el valor por defecto `"auto"` elige donantes nunca tratados cuando hay al menos dos. Como `cdh_did`, usa la forma de cuatro arrays:
+Para adopción escalonada en varias cohortes, use `sdid_multi_cohort`. Ejecuta `synthetic_did` una vez por cohorte de adopción y promedia las estimaciones con pesos por tamaño de cohorte. El grupo de donantes de cada cohorte permanece no tratado durante toda su ventana SDID: `control="never_treated"` usa las unidades nunca tratadas sobre el panel completo, `control="not_yet_treated"` admite también unidades tratadas más tarde pero trunca la ventana en su primera fecha de adopción, y el valor por defecto `"auto"` elige donantes nunca tratados cuando hay al menos dos. Su `se` sale de un bootstrap sobre unidades, tratadas y de control, que repite todo el procedimiento en cada réplica. Como el algoritmo 2, necesita varias unidades tratadas y emite una advertencia cuando el diseño solo tiene una o dos (en ese caso use `synthetic_did` y su estimador placebo). Como `cdh_did`, usa la forma de cuatro arrays:
 
 ```python
 from puremacro.did import sdid_multi_cohort

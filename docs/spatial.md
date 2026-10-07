@@ -139,9 +139,9 @@ print(irf.round(3))
 
 A shift-share instrument combines pre-period exposure shares `sᵢₖ` with sector-level shocks `gₖ`: `zᵢ = Σₖ sᵢₖ gₖ`. Adão, Kolesár and Morales (2019) show that units with similar share vectors have correlated residuals even when they are far apart, so heteroskedasticity-robust or geographically clustered errors under-cover. Their estimator aggregates the residuals to the sector level:
 
-$$\widehat{\text{se}}_{\text{AKM}}(\hat\beta) = \frac{\sqrt{\sum_k \tilde g_k^2 \Big(\sum_i w_i s_{ik} \hat\varepsilon_i\Big)^2}}{\big|\sum_i w_i \tilde z_i \tilde x_i\big|},$$
+$$\widehat{\text{se}}_{\text{AKM}}(\hat\beta)=\frac{\sqrt{\sum_c\big(\sum_{k\in c}\hat{\mathcal X}_k \hat R_k\big)^2}}{\big|\sum_i w_i \ddot z_i \ddot x_i\big|},\quad \hat R_k=\sum_i w_i s_{ik}\hat\varepsilon_i,\quad \hat{\mathcal X}=\big(S'\operatorname{diag}(w)\,S\big)^{-1}S'\operatorname{diag}(w)\,\ddot z,$$
 
-where tildes denote residuals from the controls (and, for the shocks, from the share-weighted `shock_controls`). `shift_share_iv` returns the 2SLS estimate, both standard errors, the robust first-stage F and the Rotemberg weights of Goldsmith-Pinkham, Sorkin and Swift (2020), which tell you which sectors drive the estimate.
+where double dots denote residuals from the controls, $S$ is the matrix of shares $s_{ik}$, $w_i$ are the unit weights (one by default), $\hat\varepsilon_i$ are the 2SLS residuals, $\hat{\mathcal X}$ regresses the partialled instrument on the shares (AKM 2019, Remark 5, eq. 28; equation numbers of arXiv:1806.07928v5), and $c$ runs over sector clusters (`sector_clusters=`, eq. 40; each sector is its own cluster by default, which is eq. 39). `akm_shocks="residualized"` with `shock_controls` gives the sector-level alternative of the ShiftShareSE vignette (Section 3.2, valid when every control has shift-share structure); `instrument=` takes an externally built $z$. On the ADH data shipped with R's ShiftShareSE (version 1.1.0), clustering by 3-digit SIC reproduces its estimate −0.7742267 and AKM s.e. 0.2403730. `shift_share_iv` returns the 2SLS estimate, both standard errors, the robust first-stage F and the Rotemberg weights of Goldsmith-Pinkham, Sorkin and Swift (2020), which tell you which sectors drive the estimate.
 
 ```python
 import numpy as np
@@ -163,7 +163,7 @@ print(res.summary())
 print(res.rotemberg_weights.sort_values(ascending=False).head())
 ```
 
-Pass `se="robust"` to report the conventional error as the headline, `weights=` for population weights, and `controls=` for unit-level covariates. Shares must be non-negative and are aligned to `df` by index when given as a DataFrame.
+Pass `se="robust"` to report the conventional error as the headline, `weights=` for population weights, and `controls=` for unit-level covariates. Shares must be non-negative and are aligned to `df` by index when given as a DataFrame. $\hat{\mathcal X}$ needs a share matrix of full column rank: a sector whose share column is a linear combination of the columns before it is dropped from the projection with a `RuntimeWarning`, as ShiftShareSE does, so the AKM error then depends on the order of the sectors.
 
 ---
 

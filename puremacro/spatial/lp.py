@@ -662,11 +662,15 @@ class SpatialLPResult(LPResult):
         identification, dropped rows); also printed by :meth:`summary`.
     """
 
+    # Spatial attributes appended to LPResult's, each listed once (LPResult
+    # already carries "n_lags"; the filter keeps it if that ever changes).
     _metadata = LPResult._metadata + [
-        "spillover", "cumulative", "coef", "coef_names", "horizon_values",
-        "total_scale", "spillover_orders", "weights_info", "cov_type",
-        "cov_options", "alpha", "n_lags", "n_entities_panel", "n_periods_panel",
-        "spec", "notes",
+        name for name in (
+            "spillover", "cumulative", "coef", "coef_names", "horizon_values",
+            "total_scale", "spillover_orders", "weights_info", "cov_type",
+            "cov_options", "alpha", "n_lags", "n_entities_panel", "n_periods_panel",
+            "spec", "notes",
+        ) if name not in LPResult._metadata
     ]
 
     @property

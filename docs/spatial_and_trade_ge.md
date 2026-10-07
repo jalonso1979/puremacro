@@ -376,15 +376,22 @@ AllenArkolakisModel.simulate_climate_shock(
 
 ## 7. Bundled calibration data and attribution
 
-Since 4.0.0 the OECD Inter-Country Input-Output matrix ships inside the
-package, so `load_icio_data()` needs no argument and no file outside your
-installation:
+Two 77-country, 11-sector OECD Inter-Country Input-Output tables ship inside
+the package, so `load_icio_data` needs no file outside your installation.
+Since 4.6.0, `source="oecd2020"` is the clean OECD ICIO 2023-edition 2020 table
+(aggregated by `tools/build_icio_77c_11s.py`, provenance in
+`OECD2020_ICIO_PROVENANCE`, world value added 7.97e7 USD million); use it for
+anything empirical. `source="legacy"` is the MATLAB-parity regression fixture
+built from a corrupted export (see the 2026-09-22 and 2026-10-03 advisories);
+it is what a call without `source=` still returns, with a `FutureWarning`, until
+the default switches to `"oecd2020"` in 5.0.
 
 ```python
 from puremacro.trade.data import load_icio_data, bundled_icio_path
 
-matrix = load_icio_data()          # (850, 1078) float64, 77 countries x 11 sectors
-print(bundled_icio_path().name)    # icio_77c_11s.npz
+clean = load_icio_data(source="oecd2020")   # (850, 1078) float64, 77 countries x 11 sectors
+legacy = load_icio_data(source="legacy")    # the MATLAB-parity fixture, same shape
+print(bundled_icio_path("oecd2020").name)   # icio_77c_11s_oecd2020.npz
 ```
 
 The matrix is redistributed under the OECD terms of use, which permit reuse
@@ -398,6 +405,15 @@ it, reachable through `load_reference_solution(scenario)`,
 `available_reference_scenarios()` and `load_reference_workbook_sheet(sheet)`.
 They are verbatim copies, so those comparisons remain an external check rather
 than puremacro grading its own output.
+
+On the clean table the MATLAB references cover the base scenario only. The
+legacy model's US tariff scenarios have no equilibrium connected to the base
+there: the path folds at a tariff of about 0.89% (see "Budgets, foreign saving
+and the numeraire" in [Trade accounting](trade_accounting.md) and
+`reviews/2026-10-04-clean-table-tariff-scenarios/REPORT.md`). To solve
+full-size tables use `solve_trade_equilibrium(calib, method="equilibrated_newton")`.
+It runs Newton on the row/column-equilibrated Jacobian, and on failure its
+`metadata` names the country whose price-level direction has become singular.
 
 The full notice, including each file's provenance and SHA-256, is in
 `puremacro/trade/_datafiles/SOURCES.md`, which is installed with the package.

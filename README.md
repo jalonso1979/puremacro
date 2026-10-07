@@ -8,6 +8,19 @@ core stays importable under Pyodide (iPad / juno.sh, best-effort — see
 "juno.sh / iPad" below). The supported target is a local install on a
 regular workstation.
 
+## Research workflows (unreleased)
+
+[Independent benchmarks, empirical-to-structural estimation, and distributional trade](docs/research_workflows.md)
+now connect full-covariance LP moments to structural models and observed ENIGH 2024
+household baskets to explicit price/income/transfer scenarios. The workflows export
+evidence, assumptions, tables and figures; analytical checks and illustrative policy
+scenarios are distinguished from empirical model replications.
+
+[Real-data studies and published replication](docs/empirical_research.md) add
+conditional SW07 covariance matching on observed U.S. data and the original
+Romer–Romer (2010) distributed-lag baseline, with separate model-fit and
+independent-reference checks.
+
 ## 5-Minute Quickstart (2.0 Unified API)
 
 `puremacro 2.0` standardizes the macro API around common parameter conventions (`lags`, `horizon`, `ci`), frozen-dataclass result objects, rich visualization (`.plot()`), and direct publication export (`.to_latex()`, `.to_typst()`, `.to_markdown()`):
@@ -403,7 +416,7 @@ lines are hardware-specific: with neither framework installed, `has_torch()` and
   heteroskedasticity (Rigobon), non-Gaussian (Lanne-Meitz-Saikkonen).
   All public estimators return frozen-dataclass `…Result` objects.
 - **Local projections** (`lp.*`) — single-country LP-HAC, LP-IV,
-  lag-augmented LP (Plagborg-Møller-Wolf), panel LP with cluster /
+  lag-augmented LP (Montiel Olea-Plagborg-Møller 2021), panel LP with cluster /
   Driscoll-Kraay SE, state-dependent LP, smoothed LP (Barnichon-
   Brownlees B-splines), asymmetric LP (Tenreyro-Thwaites), LP-GARCH-
   state, LP-GARCH-in-mean, mean-group, CCE, quantile LP.
@@ -430,8 +443,9 @@ lines are hardware-specific: with neither framework installed, `has_torch()` and
 
 **Modern macro extensions**
 
-- **Staggered DiD** (`did.*`) — Callaway-Sant'Anna, Sun-Abraham,
-  Borusyak-Jaravel-Spiess, Synthetic-DiD; bootstrap SE throughout.
+- **Staggered DiD** (`did.*`) — Callaway-Sant'Anna, Sun-Abraham and
+  Borusyak-Jaravel-Spiess with panel-bootstrap SEs; Synthetic-DiD with
+  placebo, bootstrap or jackknife SEs (Arkhangelsky et al. 2021, §5).
 - **Dynamic-panel GMM** (`dynpanel.*`) — Arellano-Bond, Blundell-Bond
   two-step Windmeijer + Hansen-J + AR(1)/AR(2) + Roodman collapse.
 - **High-frequency monetary surprises** (`hfi.*`) — Gertler-Karadi 2015,
@@ -471,13 +485,20 @@ lines are hardware-specific: with neither framework installed, `has_torch()` and
 - **Discrete choice EGM** (`vfi.dcegm`) — Iskhakov, Jørgensen, Rust & Schjerning (2017) DC-EGM for models with discrete retirement/labor choices and continuous savings, featuring the fast Upper Envelope algorithm to prune sub-optimal branches, and extreme value taste shocks.
 - **Continuous stationary distributions & GE** (`vfi.continuous_distribution`) — Young (2010) non-stochastic continuous density simulation preserving mass conservation to machine precision ($\sum \mu^* = 1.0 \pm 10^{-15}$), power iteration / sparse linear solvers, and Aiyagari continuous general equilibrium factor price root-finding ($K^s(r^*) = K^d(r^*)$).
 - **Continuous transition dynamics under MIT shocks** (`vfi.continuous_transition`) — Non-linear transition paths coupling backward continuous EGM with forward time-dependent Young distribution operators ($\mu_{t+1} = T_t^* \mu_t$), solved via sequence-space Broyden Quasi-Newton.
-- **Exact analytic IFT gradients** (`vfi.analytic_gradients`) — Machine-precision parameter sensitivities $\nabla_\theta c^*$ computed via the Implicit Function Theorem in a single linear solve, delivering $60\times+$ speedups over finite differences for structural estimation (GMM / SMM).
+- **Parameter gradients via the IFT** (`vfi.analytic_gradients`) — Semi-analytic parameter sensitivities $\nabla_\theta c^*$ of representative-agent projection solutions via the Implicit Function Theorem in a single linear solve with central-difference residual Jacobians, for structural estimation (GMM / SMM); heterogeneous-agent distribution/GE sensitivities are not implemented.
 - **Deep Macro & PINNs** (`vfi.deep_macro`) — Physics-Informed Neural Networks in pure NumPy for ultra-high-dimensional dynamic models (10+ continuous states), bounded activations guaranteeing physical resource feasibility ($c > 0, k' > 0, c < W$), and Maliar et al. (2021) ergodic trajectory sampling.
 
 **Quantitative spatial economics & trade general equilibrium (puremacro 3.3)**
 
 - **Caliendo-Parro (2015) exact hat algebra** (`trade.caliendo_parro`, `spatial.caliendo_parro`) — Multi-country, multi-sector trade general equilibrium with input-output linkages, intermediate goods, and tariffs solved without estimating unobserved fundamentals (`CaliendoParroModel`).
 - **Allen-Arkolakis (2014) spatial equilibrium** (`spatial.allen_arkolakis`, `trade.allen_arkolakis`) — Continuous geographic general equilibrium with bilateral iceberg trade costs, mobile labor, Marshallian agglomeration ($\alpha$), and amenity congestion ($\beta$) (`AllenArkolakisModel`).
+
+**Consistent trade accounting, Hicksian welfare and audited tariff policy (puremacro 4.3)**
+
+- **Producer/purchaser accounting** (`trade.solve_trade_equilibrium(..., accounting="consistent")`) — Homogeneous factor costs, duties valued at exporter prices and rebated once, output-revenue production taxes, fixed baseline foreign saving and an explicit numeraire. Convergence also checks the omitted goods equation and the realized foreign balances (`metadata["account_residuals"]`); the default `accounting="legacy"` keeps the historical MATLAB conventions. See `docs/trade_accounting.md`.
+- **Hicksian consumption welfare** (`trade.compute_hicksian_welfare`, `HicksianWelfareResult`) — Expenditure-function EV/CV between two consistent-accounting equilibria with declared consumption categories, plus an exact Shapley endpoint attribution to purchaser prices, factor income and fiscal transfers. Conditional consumption welfare: investment is excluded and native OECD C includes government consumption. See `docs/trade_welfare.md`.
+- **Audited tariff policy** (`trade.solve_policy_equilibrium`, `PolicyEquilibriumError`; `metric="hicksian_ev"` in `compute_unilateral_optimal_tariff`, `solve_multilateral_nash_tariffs` and `compute_welfare_payoff_matrix`) — One fixed zero-tariff baseline, consumption-normalized regret, and Newton → SciPy hybrid → Keller continuation recovery that never relaxes the requested tolerance; a failed deviation raises instead of producing a payoff. See `docs/trade_policy.md`.
+- **Validation status** — `docs/STRUCTURAL_VALIDATION_STATUS.md` states, surface by surface, the supported calculation, the acceptance contract and the remaining limits (including native OECD ICIO ingestion by labels and the MRIO productivity certificates).
 
 **Macroeconomic Policy Simulators & Browser Laboratories (puremacro 4.1)**
 
@@ -978,9 +999,9 @@ If you are transitioning from Stata, MATLAB/Dynare, or statsmodels:
 | **Local Projections (HAC)** | `jorda` / manual OLS | Jordà (2005) code | `OLS(y_h, X).fit(cov_type='HAC')` | `lp.lp_hac(df, y="y", x="shock", horizon=20, lags=4)` |
 | **State-Dep LP-IV (Ramey-Zubairy)** | manual 2SLS interaction | — | — | `lp.lp_state_dep_iv(df, y="y", x="g", z="news", state="u")` |
 | **Panel LP (Driscoll–Kraay)** | `xtscc` | Panel LP toolbox | `PanelOLS(..., cov_type='driscoll-kraay')` | `lp.panel_lp_dk(df, y="y", x="z", unit_col="id", time_col="t")` |
-| **Dynamic Panel GMM** | `xtabond2 y L.y, gmm(y) two robust` | Arellano–Bond MATLAB | — | `dynpanel.ab_gmm(y, panel_id, time_id, two_step=True, windmeijer=True)` |
+| **Dynamic Panel GMM** | `xtabond y x, lags(p) twostep vce(robust) noconstant` | Arellano–Bond MATLAB | — | `dynpanel.ab_gmm(y, panel_id, time_id, lag_dep_var=p, X_exog=X, collapse=False)` |
 | **Staggered DiD** | `csdid y, ivar(id) time(t) gvar(g)` | — | — | `did.callaway_santanna(df, unit="id", time="t", outcome="y", treat_time="g")` |
-| **Synthetic DiD** | `sdid y id t d` | synthdid R package | — | `did.synthetic_did(df, unit="id", time="t", outcome="y", treat_time="g")` |
+| **Synthetic DiD** | `sdid y id t d, vce(placebo)` | synthdid R package | — | `did.synthetic_did(df, unit="id", time="t", outcome="y", treat_time="g", se_method="placebo")` |
 | **Factor-Augmented VAR (FAVAR)**| — | BBE (2005) MATLAB | — | `var.favar(panel_df, policy_series, n_factors=3, horizon=20)` |
 | **Value Function Iteration** | — | VFIToolkit `ValueFnIter_Case1` | — | `vfi.VFIProblem(a_grid, z_grid, P_z, return_fn, beta).solve()` |
 | **Linear DSGE (QZ / BK)** | — | Dynare `stoch_simul` / Klein `solab` | — | `dsge.klein.klein_solve(A, B, C, n_pre=...)` |
@@ -1000,8 +1021,10 @@ If you are transitioning from Stata, MATLAB/Dynare, or statsmodels:
 
 End-to-end replications of canonical papers and pedagogical showcases live under `notebooks/`
 and `puremacro/examples/`:
+- **Replications of published results**: Clarida–Galí–Gertler (1999) optimal discretion, simple-rule and timeless commitment checked formula by formula, with the unconditional-versus-conditional loss caveat (`66`), Huggett (1993) and Aiyagari (1994) tables re-solved, with numerical-error bounds, an independent solver and the Markov chain's effect (`67`), and third-order perturbation checked tensor by tensor against closed forms and live Dynare 7.0 (`68`).
+- **Regional nowcasting, causal ML and trade policy**: synthetic Latin American nowcasting with vintage news attribution (`59`), interactive Double ML IRM and DML-IV (`60`), trade and HANK policy simulators (`61`), flexible trade CGE building blocks (`62`), Hicksian tariff games with audited equilibrium recovery (`63`), spectral bounds and Keller continuation (`64`), and GVC cost cascades with Hicksian EV/CV attribution (`65`).
 - **Causal ML, continuous-time HJB & regional real time**: implicit HJB with the adjoint KFE and Aiyagari GE (`56`), multi-constraint OccBin coupled with DML (`57`), and Latin American real-time macro vintages (`58`).
-- **Continuous DP, Deep Macro & Spatial GE**: Chebyshev vs FEM Galerkin (`51`), continuous transition dynamics under MIT shocks (`52`), exact analytic IFT parameter sensitivities & GMM estimation (`53`), 10-state Deep Macro PINNs (`54`), and quantitative spatial trade & infrastructure GE (`55`).
+- **Continuous DP, Deep Macro & Spatial GE**: Chebyshev vs FEM Galerkin (`51`), continuous transition dynamics under MIT shocks (`52`), IFT parameter sensitivities & GMM estimation (`53`), 10-state Deep Macro PINNs (`54`), and quantitative spatial trade & infrastructure GE (`55`).
 - **Applied Policy Showcases**: Central bank policy stance & fan charts (`47`), real-time DFM nowcasting & news decomposition (`48`), macroprudential GaR & systemic connectedness (`49`), and tri-method fiscal multipliers & sovereign DSA (`50`).
 - **Frontier DSGE & HANK**: Exact analytic Kalman score recursion (`43`), HANK sequence-space bridge from `.mod` (`44`), optimal discretionary policy vs commitment & news shocks (`45`), and particle filtering with MS-DSGE (`46`).
 - **Canonical Replications**: Smets-Wouters 2007 (`41`, `42`), Bloom 2009 (`bloom2009.py`), Mertens-Ravn narrative SVAR (`svariv_mertens_ravn.py`), Romer-Romer monetary narrative (`romer_romer_*.py`), and ~75 more.
@@ -1015,11 +1038,23 @@ All notebooks strictly adhere to the Pyodide contract and the 7-section pedagogi
 - **`docs/dcegm.md`** — Discrete Choice Endogenous Grid Method (DC-EGM) with fast Upper Envelope filtering for non-convex dynamic programming.
 - **`docs/vfi_continuous_equilibrium.md`** — Young (2010) continuous stationary wealth distributions, mass conservation, and Aiyagari general equilibrium factor market clearing.
 - **`docs/vfi_continuous_transition.md`** — Non-linear continuous transition dynamics under unexpected MIT shocks and sequence-space Broyden solvers.
-- **`docs/vfi_analytic_gradients.md`** — Exact analytic gradients and Jacobians via the Implicit Function Theorem (IFT) for high-performance structural GMM/SMM estimation.
+- **`docs/vfi_analytic_gradients.md`** — Parameter gradients and Jacobians via the Implicit Function Theorem (IFT) for structural GMM/SMM estimation (representative-agent scope).
 - **`docs/deep_macro.md`** — Deep Macro & Physics-Informed Neural Networks (PINNs) in pure NumPy for ultra-high-dimensional dynamic models (10+ continuous states) via ergodic sampling.
 - **`docs/spatial_and_trade_ge.md`** — Quantitative spatial economics and international trade general equilibrium: Caliendo-Parro (2015) exact hat algebra and Allen-Arkolakis (2014) economic geography.
+- **`docs/trade_accounting.md`** — Consistent producer/purchaser accounting for the multi-country trade model (`accounting="consistent"`): tariff valuation, fiscal receipts, the fixed-foreign-saving closure, the numeraire and the independent two-country check (Spanish twin under `docs/es/`).
+- **`docs/trade_welfare.md`** — Hicksian consumption welfare (`compute_hicksian_welfare`): expenditure-function EV/CV between two consistent-accounting equilibria and the exact endpoint attribution to prices, factor income and fiscal transfers (Spanish twin under `docs/es/`).
+- **`docs/trade_policy.md`** — Hicksian tariff policy (`metric="hicksian_ev"`) and audited equilibrium recovery (`solve_policy_equilibrium`): one comparison baseline, what convergence establishes and the Newton → hybrid → continuation chain (Spanish twin under `docs/es/`).
+- **`docs/STRUCTURAL_VALIDATION_STATUS.md`** — Structural solver validation status: per-surface acceptance contracts, evidence and remaining limits for the trade, DSGE, VFI and MRIO solvers (Spanish twin under `docs/es/`).
+- **`docs/trade_mrio.md`** — Native MRIO tables with provenance (`puremacro.trade.mrio`): OECD ICIO, FIGARO and EXIOBASE readers with checksums, the balanced-table contract, exact sector/region aggregation, coarse tariff rules, calibration bridges, and the provenance of the bundled 77x11 table (Spanish twin under `docs/es/`).
+- **`docs/trade_condensed.md`** — Condensed one-factor Leontief tariff model (`puremacro.trade.condensed`): exact 2N elimination, fold monitors, the ten-block raw-flow certificate and numeraire-free measures (Spanish twin under `docs/es/`).
+- **`docs/trade_ces_newton.md`** — Exact nested-CES block Newton on consistent accounting (`puremacro.trade.ces_newton`): derivation, certified tariff homotopy and evidence (Spanish twin under `docs/es/`).
+- **`docs/trade_household.md`** — Household demand systems and exact EV/CV (`puremacro.trade.household`): LES calibration from Engel targets, Slutsky matrices and bridges to trade equilibria (Spanish twin under `docs/es/`).
+- **`docs/trade_continuation.md`** — Audited parameter continuation and exact-target multistart (`puremacro.trade.continuation`), with what the IO helpers did not achieve (Spanish twin under `docs/es/`).
+- **`docs/trade_stability.md`** — Reduced local-stability diagnostic of a relative-factor-price tatonnement (`puremacro.trade.stability`, experimental) (Spanish twin under `docs/es/`).
+- **`docs/trade_dynamic.md`** — Perfect-foresight dynamic MRIO with sector-specific capital (`puremacro.trade.dynamic`, experimental): calibration ledger, stacked Newton-Krylov transitions, horizon acceptance, welfare and the determinacy report (Spanish twin under `docs/es/`).
+- **`docs/dsge_stacked_newton.md`** — Matrix-free stacked-time Newton-Krylov for perfect-foresight systems (`puremacro.dsge.stacked_newton`): preconditioners, acceptance rule, horizon comparison and IO parity (Spanish twin under `docs/es/`).
 - **`docs/data_ecosystem.md`** — Global macro data ecosystem: emissions, energy transitions, commodity benchmark suites, international financial stability, and modular panel builders (`build_climate_panel`, `build_financial_panel`).
-- **`docs/notebooks.md`** — Complete showcase catalog (notebooks 00–58), pedagogical 7-section architecture, and applied policy suites.
+- **`docs/notebooks.md`** — Complete showcase catalog (notebooks 00–68), pedagogical 7-section architecture, and applied policy suites.
 - **`docs/dsge_build.md`** — DSGE models from equations, native Dynare `.mod` loader, 2nd-order pruning, `puremacro-dynare` CLI, OccBin ZLB, non-linear relaxation, and Bayesian MCMC.
 - **`docs/models.md`** — Structural models: Sequence-Space HANK, Fake News algorithm, targeted transfers, and DMP search-and-matching.
 - **`docs/policy_simulators.md`** — Macroeconomic policy simulators & interactive browser labs: Caliendo-Parro (2015) quantitative trade general equilibrium, HANK vs. RANK monetary transmission, and client-side WebAssembly laboratories (Spanish twin under `docs/es/`).
@@ -1072,7 +1107,7 @@ The full notice, with each file's provenance and SHA-256, ships as
 
 ## Status
 
-Production release, shipping **4.3.0**. `docs/1.0_path.md` § 5 lists which
+Production release, shipping **4.6.0**. `docs/1.0_path.md` § 5 lists which
 subpackages are inside the release-gate promise and which are
 research-experimental.
 

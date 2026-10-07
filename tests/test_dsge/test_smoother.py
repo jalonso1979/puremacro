@@ -72,7 +72,8 @@ def _simulate(model, u, obs):
 # would remove the platform dependence, but it changes `kalman_smoother` for
 # every caller and belongs in its own change.
 # ---------------------------------------------------------------------------
-_INTERIOR = dict(rtol=0, atol=1e-8)
+# 1e-8 was exceeded by 1.4e-8 in one of 79 entries on Windows CI (BLAS rounding).
+_INTERIOR = dict(rtol=0, atol=1e-7)
 _FIRST_PERIOD = dict(rtol=0, atol=1e-4)
 
 def test_smoother_recovers_the_simulated_shocks(rbc):

@@ -247,12 +247,17 @@ class TestEffectiveSampleSize:
         assert ess > 0
 
     def test_iid_chain_ess_near_n(self):
-        """For i.i.d. draws, ESS should be close to n (within 30%)."""
+        """For i.i.d. draws, ESS should be close to n.
+
+        Geyer's initial monotone sequence (Vehtari et al. 2021, as in arviz)
+        can exceed n: on this chain it gives 2089.95, the value arviz 0.21
+        ``_ess`` returns (2089.953847162269). Its hard cap is n log10(n).
+        """
         n = 2000
         chain = _iid_normal_chain(n, seed=2)
         ess = effective_sample_size(chain)
-        assert ess >= 0.7 * n, f"ESS={ess:.1f} too small for i.i.d. chain of length {n}"
-        assert ess <= n + 1.0, f"ESS={ess:.1f} exceeds n={n}"
+        assert abs(ess / n - 1.0) < 0.15, f"ESS={ess:.1f} not within 15% of n={n} for an i.i.d. chain"
+        assert ess <= n * np.log10(n), f"ESS={ess:.1f} exceeds the cap n log10(n)={n * np.log10(n):.1f}"
 
     def test_ar1_chain_ess_less_than_n(self):
         """Autocorrelated chain (phi=0.9) must have ESS < n."""
@@ -277,12 +282,13 @@ class TestEffectiveSampleSize:
         assert ess > 0
 
     def test_constant_chain_ess_equals_n(self):
-        """Constant chain: pair_sums all go negative immediately -> tau=1 -> ESS=n."""
+        """Constant chain: no autocorrelation to estimate -> ESS = n."""
         n = 100
         chain = np.ones(n)
         ess = effective_sample_size(chain)
-        # With zero variance, rho[k]=0 for all k>=1 (from autocorrelations),
-        # so pair_sums is empty -> tau=1.0 -> ESS = n.
+        # A chain whose range is zero up to rounding has no variance to
+        # decompose; effective_sample_size returns n before estimating any
+        # autocorrelation.
         assert abs(ess - float(n)) < 1e-9, f"ESS={ess}, expected {n}"
 
 

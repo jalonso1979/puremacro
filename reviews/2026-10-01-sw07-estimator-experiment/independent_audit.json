@@ -1,0 +1,119 @@
+{
+  "passed": true,
+  "no_puremacro_imports": true,
+  "recalculation_source_sha256": "b2b6d9e21821215386d112793f2f0a243b6217ee97b3de81fcdaa6142ee2e600",
+  "phase_audits": [
+    {
+      "phase": "calibration",
+      "manifest_sha256": "ebd1296ce70b7a579486b7c230f141058ac06dc9d1e0439bb375a76a0f85261a",
+      "sample_count": 399,
+      "variant_fit_count": 1596,
+      "source_hashes_checked": 11,
+      "artifact_hashes_checked": 7,
+      "minimum_hac_eigenvalue": 1.4679291773503504e-06,
+      "total_starts": 6384,
+      "failed_starts": 0,
+      "nonstationary_selected": 16,
+      "start_disagreement_fits": 0,
+      "unresolved_from_records": 16,
+      "missing_sample_draws": 0,
+      "summary_max_absolute_errors": {
+        "replications": 0.0,
+        "usable_fits": 0.0,
+        "unresolved_draws": 0.0,
+        "boundary_fits": 0.0,
+        "regular_fits": 0.0,
+        "criterion_median": 0.0,
+        "criterion_q95": 0.0,
+        "naive_events_lower": 0.0,
+        "naive_events_upper": 0.0,
+        "naive_rate_lower": 5.551115123125783e-17,
+        "naive_rate_upper": 5.551115123125783e-17,
+        "naive_mc95_lower": 6.938893903907228e-18,
+        "naive_mc95_upper": 8.326672684688674e-17,
+        "bias_crr": 8.413408858487514e-17,
+        "rmse_crr": 9.71445146547012e-17,
+        "bias_em": 1.3097162243624894e-16,
+        "rmse_em": 9.020562075079397e-17
+      },
+      "paired_max_absolute_errors": {
+        "paired_usable": 0.0,
+        "total_pairs": 0.0,
+        "mean_squared_error_difference_crr": 9.540979117872439e-17,
+        "paired_mc_se_crr": 3.903127820947816e-17,
+        "mean_squared_error_difference_em": 5.789639601072594e-17,
+        "paired_mc_se_em": 8.852510738344144e-17
+      }
+    },
+    {
+      "phase": "validation",
+      "manifest_sha256": "1c3132113f9dc0a24797a28f829784440e44a0055551d52d0cc2788e59199559",
+      "sample_count": 999,
+      "variant_fit_count": 3996,
+      "source_hashes_checked": 11,
+      "artifact_hashes_checked": 7,
+      "minimum_hac_eigenvalue": 1.4627554182821124e-06,
+      "total_starts": 15984,
+      "failed_starts": 0,
+      "nonstationary_selected": 30,
+      "start_disagreement_fits": 0,
+      "unresolved_from_records": 30,
+      "missing_sample_draws": 0,
+      "summary_max_absolute_errors": {
+        "replications": 0.0,
+        "usable_fits": 0.0,
+        "unresolved_draws": 0.0,
+        "boundary_fits": 0.0,
+        "regular_fits": 0.0,
+        "criterion_median": 0.0,
+        "criterion_q95": 1.4210854715202004e-14,
+        "naive_events_lower": 0.0,
+        "naive_events_upper": 0.0,
+        "naive_rate_lower": 8.326672684688674e-17,
+        "naive_rate_upper": 8.326672684688674e-17,
+        "naive_mc95_lower": 8.326672684688674e-17,
+        "naive_mc95_upper": 6.938893903907228e-17,
+        "bias_crr": 9.020562075079397e-17,
+        "rmse_crr": 5.551115123125783e-17,
+        "bias_em": 1.240327285323417e-16,
+        "rmse_em": 4.85722573273506e-17
+      },
+      "paired_max_absolute_errors": {
+        "paired_usable": 0.0,
+        "total_pairs": 0.0,
+        "mean_squared_error_difference_crr": 4.469623456071492e-17,
+        "paired_mc_se_crr": 8.456776945386935e-17,
+        "mean_squared_error_difference_em": 8.782037597132586e-17,
+        "paired_mc_se_em": 6.216544206488761e-17
+      }
+    }
+  ],
+  "disjoint_phase_seeds_and_sample_hashes": true,
+  "same_draw_four_variant_array_mapping": true,
+  "calibration_rank": 380,
+  "calibrated_validation_max_absolute_errors": null,
+  "frozen_calibration_reference_sha256": "d262b417e13c5cfb6c9bd7e8dd5e72e64d644e8b642ec08656bb075e40f866d0",
+  "frozen_reference_created_utc": "2026-10-01T21:53:48.308347+00:00",
+  "frozen_reference_max_absolute_errors": {
+    "calibration_draws": 0.0,
+    "calibration_unresolved": 0.0,
+    "critical_rank": 0.0,
+    "critical_lower": 0.0,
+    "critical_upper": 0.0,
+    "critical_lower_unbounded": 0.0,
+    "critical_upper_unbounded": 0.0
+  },
+  "observed_anchor_phase_max_absolute_errors": {
+    "crr": 0.0,
+    "em": 0.0,
+    "objective": 0.0,
+    "boundary": 0.0,
+    "unresolved": 0.0
+  },
+  "limitations": [
+    "Raw simulated time series are not in phase artifacts; hashes/seeds and shared array references are authenticated, not independently resimulated",
+    "Start-record classifications are rechecked; first-order stationarity diagnostics are not rederived from unsaved objective gradients",
+    "Monte Carlo envelopes are conditional on the realized calibration pool, not parameter confidence intervals",
+    "Exact covariance at known DGP is an oracle control, not an estimated feasible weighting procedure"
+  ]
+}

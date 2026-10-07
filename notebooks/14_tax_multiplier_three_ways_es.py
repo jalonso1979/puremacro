@@ -14,17 +14,20 @@
 # # El multiplicador de impuestos, de tres maneras
 #
 # **¿Qué le pasa al PIB de EE.UU. tras un aumento legislado de impuestos de 1%
-# del PIB?** Las tres respuestas canónicas de la literatura difieren por un
-# factor de tres: alrededor de **−1** (Blanchard-Perotti 2002 QJE), alrededor
-# de **−3** (Romer-Romer 2010 AER), y algo intermedio cuando la información
-# narrativa se usa como *instrumento* (Mertens-Ravn 2013 AER, 2014 JME). El
-# mismo país, las mismas cuentas nacionales. Este notebook ejecuta las tres
+# del PIB?** Las respuestas canónicas de la literatura están muy separadas.
+# Blanchard y Perotti (2002) encuentran multiplicadores fiscales modestos
+# (mínimos de −0.78 y −1.33 bajo sus dos supuestos de tendencia, en la versión
+# NBER WP 7269); Romer y Romer (2010) encuentran que el producto cae casi tres
+# por ciento en tres años; y Mertens y Ravn (2014), usando la serie narrativa
+# como *instrumento*, defienden el extremo alto: alrededor de dos en el
+# impacto y hasta tres a los seis trimestres, en valor absoluto. El mismo
+# país, las mismas cuentas nacionales. Este notebook ejecuta las tres
 # filosofías de identificación sobre **un único conjunto de datos trimestral
-# congelado** — de modo que cada diferencia que veas es identificación, no
-# datos.
+# congelado**, de modo que cada diferencia que veas viene de la
+# identificación, no de los datos.
 
 # %% [markdown]
-# ## Las tres identificaciones en matemáticas
+# ## El método en matemáticas
 #
 # Las tres parten del mismo VAR en forma reducida en $x_t = (\tau_t, g_t, y_t)'$
 # — log de la recaudación federal real, log del gasto federal real, log del PIB real:
@@ -55,6 +58,19 @@
 # logarítmicos. Entonces la respuesta del log-PIB en por ciento *es* el
 # multiplicador acumulado dólar por dólar: el cambio en el nivel del PIB en el
 # horizonte $h$ por dólar inicial de impuestos.
+#
+# ### Parametrización base
+#
+# | Símbolo | Descripción del parámetro | Calibración base | Unidades / Convención contable |
+# |---|---|---|---|
+# | $\theta$ | Elasticidad institucional recaudación-PIB de Blanchard–Perotti | $2.08$ | Elasticidad adimensional ($d \ln T / d \ln Y$) |
+# | $\theta_{\text{alt}}$ | Estimación de Mertens–Ravn (2014) de la elasticidad de la recaudación al producto | $3.13$ | Elasticidad adimensional |
+# | $T_{\text{sample}}$ | Longitud efectiva de la muestra (1950Q1 a 2006Q4) | $228$ | Trimestres de observación |
+# | $p$ | Orden de rezagos del VAR en forma reducida; rezagos de la LP antes de aumentar | $4$ | Trimestres (1 año de rezagos) |
+# | $p_{\text{aug}}$ | Rezagos en la LP de Romer–Romer: $p$ más un rezago de aumento (Montiel Olea–Plagborg-Møller 2021) | $5$ | Trimestres |
+# | $H$ | Horizonte de respuesta al impulso del SVAR | $16$ | Trimestres ($4$ años post-choque) |
+# | $H_{\text{LP}}$ | Horizontes de la proyección local $h = 0, \dots, H_{\text{LP}}$ | $20$ | Trimestres ($5$ años post-choque) |
+# | $F_{\text{eff}}$ | Estadístico $F$ efectivo de primera etapa Montiel Olea–Pflueger (resultado de la sección 3) | $1.38$ | Relevancia de instrumentos de primera etapa |
 
 # %% [markdown]
 # **Intuición.** La correlación en forma reducida entre impuestos y producto
@@ -67,6 +83,14 @@
 # magnitudes mal medidas). Ninguno de los tres estima con más datos que los
 # otros — *suponen distinto*. Por eso sus respuestas difieren, y por eso el
 # producto honesto es el menú completo, no un solo número.
+#
+# ### Referencias bibliográficas seminales
+#
+# - Blanchard, O., & Perotti, R. (2002). An empirical characterization of the dynamic effects of changes in government spending and taxes on output. *Quarterly Journal of Economics*, 117(4), 1329–1368.
+# - Mertens, K., & Ravn, M. O. (2013). The dynamic effects of personal and corporate income tax changes in the United States. *American Economic Review*, 103(4), 1212–1247.
+# - Mertens, K., & Ravn, M. O. (2014). A reconciliation of SVAR and narrative estimates of tax multipliers. *Journal of Monetary Economics*, 68, S1–S19.
+# - Montiel Olea, J. L., & Plagborg-Møller, M. (2021). Local projection inference is simpler and more robust than you think. *Econometrica*, 89(4), 1789–1823.
+# - Romer, C. D., & Romer, D. H. (2010). The macroeconomic effects of tax changes: Estimates based on a new measure of fiscal shocks. *American Economic Review*, 100(3), 763–801.
 
 # %% [markdown]
 # ## Preparación — un único conjunto de datos congelado
@@ -233,9 +257,12 @@ assert -2.2 < m_bp[8] < -0.6                   # ...builds toward ~ -1
 assert -2.6 < bp_peak < -0.9                   # BP's published ballpark
 
 # %% [markdown]
-# **Lee el resultado.** El multiplicador de BP arranca cerca de cero y crece
-# despacio hasta cerca de **−1.2 a los dos años** (pico ≈ −1.5) — el famoso
-# "casi un dólar por dólar" de Blanchard y Perotti. La respuesta de impacto es
+# **Lectura de los resultados.** El multiplicador de BP arranca cerca de cero
+# (−0.18 en el impacto) y crece despacio hasta **−1.21 a los dos años** (pico
+# −1.51 en h=12). Ese es el terreno que Blanchard y Perotti reportan para su
+# choque fiscal: mínimos de −0.78 y −1.33 bajo sus dos especificaciones de
+# tendencia, multiplicadores "a menudo cercanos a uno" (NBER WP 7269,
+# secciones 5.1 y 10). La respuesta de impacto es
 # pequeña por construcción: tras purgar el componente automático $\theta u^y$,
 # lo que queda del residuo fiscal apenas covaría con el producto dentro del
 # trimestre. Todo descansa en que $\theta$ sea el número externo *correcto* —
@@ -248,31 +275,42 @@ assert -2.6 < bp_peak < -0.9                   # BP's published ballpark
 # una proyección local aumentada con rezagos. Nota que el lado izquierdo de la
 # LP es la *forma en cambios* $y_{t+h}-y_{t-1}$, de modo que el coeficiente es
 # la respuesta del **nivel** del PIB en $t+h$ — con nuestras unidades de 1%
-# del PIB, el multiplicador mismo. Sin ecuación de recaudación, sin
+# del PIB, el multiplicador mismo. El aumento con rezagos (Montiel Olea y
+# Plagborg-Møller 2021) añade un rezago más allá de los cuatro que necesita la
+# proyección, el mismo en todos los horizontes: cinco rezagos del PIB y de la
+# serie narrativa. Con ese rezago extra, los errores estándar robustos a
+# heterocedasticidad (Eicker-Huber-White) son válidos sin corrección HAC por
+# el traslape de los residuos. Sin ecuación de recaudación, sin
 # elasticidad: el supuesto de identificación es que la lectura de archivo de
 # verdad aisló cambios impositivos independientes del ciclo.
 
 # %%
-H_LP = 20      # LP horizons; lag augmentation p_aug = 4 + 20 (PMW 2021 default)
+H_LP = 20      # LP horizons 0..20 (quarters)
+# la_lp default: p_aug = n_lags + 1 lags at every horizon (Montiel Olea-Plagborg-Moller
+# 2021). puremacro <= 4.3.0 used n_lags + max(h) = 24 here; see docs/ADVISORY.md.
 lp_rr = la_lp(d, y="y", x="rr", horizons=range(0, H_LP + 1), n_lags=4, alpha=0.10)
 m_rr, m_rr_lo, m_rr_hi = (lp_rr["beta"].to_numpy(), lp_rr["lo"].to_numpy(),
                           lp_rr["hi"].to_numpy())
 rr_peak = m_rr[:13].min()
 rr_peak_h = int(m_rr[:13].argmin())
 print(f"RR multiplier: impact {m_rr[0]:+.2f} | 2yr {m_rr[8]:+.2f} | "
-      f"peak {rr_peak:+.2f} at h={rr_peak_h}")
-assert -4.5 < rr_peak < -1.8                       # RR's published -2.5..-3 zone
+      f"peak {rr_peak:+.2f} at h={rr_peak_h}   (p_aug = {lp_rr.attrs['p_aug']} lags)")
+print(f"two-year multiplier, RR / BP = {m_rr[8] / m_bp[8]:.1f}")
+assert lp_rr.attrs["p_aug"] == 5                   # 4 lags + one augmentation lag
+assert -4.5 < rr_peak < -1.8                       # RR (2010, Fig. 4): -3.08 at ten quarters
 assert 4 <= rr_peak_h <= 12
 assert abs(rr_peak) > abs(bp_peak) + 0.5           # narrative >> SVAR, same data
 
 # %% [markdown]
-# **Lee el resultado.** El mismo aumento de impuestos de 1% del PIB ahora
-# cuesta alrededor de **−3% del PIB a los dos años** — más o menos el *triple*
-# de la respuesta de BP, sobre el conjunto de datos idéntico. Este es el
-# titular de Romer-Romer (su Figura 4 toca fondo apenas pasado −3% a los diez
-# trimestres). Nada del estimador explica la brecha; la serie narrativa
-# simplemente encarna una afirmación distinta sobre qué cambios impositivos
-# son exógenos.
+# **Lectura de los resultados.** El mismo aumento de impuestos de 1% del PIB
+# ahora cuesta **−2.86% del PIB a los dos años** (pico −2.87 en h=10), 2.4
+# veces el valor a dos años de BP sobre el conjunto de datos idéntico. La
+# propia Figura 4 de Romer y Romer (una sola ecuación, 12 rezagos de la serie
+# impositiva, sin otros controles, 1950–2007) toca fondo en −3.08% a los diez
+# trimestres (AER 2010, p. 781), así que la LP aumentada con rezagos queda
+# cerca de su titular. Nada del estimador explica la brecha con BP; la serie
+# narrativa simplemente encarna una afirmación distinta sobre qué cambios
+# impositivos son exógenos.
 
 # %% [markdown]
 # ## 3. Mertens-Ravn (2013): lo narrativo se encuentra con el SVAR
@@ -317,24 +355,26 @@ assert prox.first_stage_F < 5.0                   # la primera etapa débil es e
 assert abs(m_prox[8]) > 1.0                       # y la senda puntual no es creíble
 
 # %% [markdown]
-# **Lee el resultado.** El titular honesto aquí es el **estadístico F, no el
+# **Lectura de los resultados.** El titular honesto aquí es el **estadístico F, no el
 # multiplicador**. Sobre los ingresos federales agregados el proxy de MR es
-# *débil* (F efectiva ≈ 1.4, muy por debajo de la zona de confort de
-# Olea-Pflueger; incluso la serie completa de RR apenas llega a ≈ 5). Con una
+# *débil* (F efectiva = 1.38, muy por debajo de la zona de confort de
+# Olea-Pflueger; incluso la serie completa de RR apenas llega a 5.34). Con una
 # primera etapa débil, la normalización unitaria divide entre una respuesta de
-# recaudación ruidosa y cercana a cero, así que la senda puntual (≈ −2.5 en el
-# impacto, derivando hacia ≈ −4.5) no es interpretable — exactamente la
+# recaudación ruidosa y cercana a cero, así que la senda puntual (−2.47 en el
+# impacto, −4.32 a los dos años, −4.54 a los tres) no es interpretable, la
 # fragilidad que Jentsch-Lunsford (2019 AER) documentaron para el montaje de
 # MR. Los resultados fuertes de MR usan tasas medias *específicas por
 # impuesto* (personal, corporativo), no un solo agregado de recaudación; la
-# F ≈ 0 de la serie anticipada confirma su lógica de previsión fiscal a la
-# perfección.
+# F de 0.06 de la serie anticipada encaja con su lógica de previsión fiscal:
+# un cambio anunciado de antemano no trae sorpresa cuando entra en vigor.
 #
 # Entonces, ¿dónde deja lo narrativo-como-instrumento al multiplicador? La
-# reconciliación de Mertens-Ravn (2014 JME) extrae la respuesta por otra vía:
-# la información narrativa implica que la verdadera elasticidad producto de la
-# recaudación es **3.13**, no 2.08 — el número de BP es demasiado bajo porque
-# omite parte de la respuesta intra-trimestral de la recaudación. Impón
+# reconciliación de Mertens y Ravn (2014 JME) extrae la respuesta por otra
+# vía: su proxy narrativo da una elasticidad estimada de la recaudación al
+# producto de **3.13** (intervalo bootstrap al 95% de 2.73 a 3.55; fila de
+# referencia de la Tabla A-1 de su apéndice en línea), muy por encima del 2.08
+# que impone BP, y argumentan que ese valor impuesto bajo es lo que hace
+# pequeños los multiplicadores fiscales del SVAR. Impón
 # $\theta = 3.13$ en la *misma* maquinaria de BP:
 
 # %%
@@ -348,17 +388,20 @@ m_mr, m_mr_lo, m_mr_hi = pt2[:, 2, 0] * c_mr, lo2[:, 2, 0] * c_mr, hi2[:, 2, 0] 
 mr_peak = m_mr[:13].min()
 print(f"MR (theta=3.13) multiplier: impact {m_mr[0]:+.2f} | 2yr {m_mr[8]:+.2f} | "
       f"peak {mr_peak:+.2f} at h={int(m_mr[:13].argmin())}")
-# The reconciliation lands between BP and RR — the task's 'three ways' ordering:
+# On this dataset the reconciliation lands between BP and RR:
 assert m_rr[8] < m_mr[8] < m_bp[8] < 0
 assert abs(bp_peak) < abs(mr_peak) < abs(rr_peak)
 
 # %% [markdown]
-# **Lee el resultado.** Con la elasticidad implicada por lo narrativo, el VAR
-# idéntico entrega ahora un multiplicador a dos años de alrededor de **−2.1**
-# (pico ≈ −2.4) — justo *entre* el −1 de BP y el −3 de RR, que es exactamente
-# la reconciliación de Mertens-Ravn: la disputa BP-vs-RR no es SVAR-vs-LP, es
-# una disputa sobre una elasticidad, y el registro narrativo vota por el valor
-# más alto.
+# **Lectura de los resultados.** Con la elasticidad implicada por lo
+# narrativo, el VAR idéntico entrega ahora un multiplicador a dos años de
+# **−2.11** (pico −2.39 en h=12), entre el −1.21 de BP y el −2.86 de RR en
+# estos datos. La disputa BP-vs-RR es, por tanto, sobre todo una disputa sobre
+# una elasticidad, no sobre SVAR frente a LP, y el registro narrativo vota por
+# el valor más alto. Las estimaciones propias de Mertens y Ravn van más lejos,
+# alrededor de dos en el impacto y hasta tres a los seis trimestres en valor
+# absoluto; nuestro VAR simplificado de ingresos (sin transferencias, sin
+# tendencias) se queda corto, sobre todo en el impacto (−0.84 aquí).
 
 # %% [markdown]
 # ### Figura principal — una pregunta, tres respuestas
@@ -389,7 +432,8 @@ ax.set_xlabel("Quarters after a tax increase of 1% of GDP")
 ax.set_ylabel("GDP response (% of GDP) = dollar multiplier")
 ax.set_title("The US tax multiplier under three identification schemes\n"
              "(one dataset: 1950Q1-2006Q4)")
-ax.legend(loc="lower left", fontsize=8)
+# Legend below the axes, so it does not hide the weak-proxy line.
+ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=2, fontsize=8)
 
 # %% [markdown]
 # ## 4. La curva de especificaciones — ¿de verdad es la identificación?
@@ -451,11 +495,14 @@ assert med["MR 3.13"] < med["BP 2.08"] - 0.25
 # es la lección de esta fila. Véase docs/es/ADVISORY.md.
 assert abs(med["MR proxy"]) > abs(med["BP 2.08"])  # el proxy débil es el atípico
 spread_ident = med.max() - med.min()
+spread_credible = med.drop("MR proxy").max() - med.drop("MR proxy").min()
 spread_defl = curve.groupby(["identification", "sample"])["sigma_hat"] \
                    .agg(lambda s: s.max() - s.min()).median()
 print(f"\nspread across identifications (medians): {spread_ident:.2f} "
+      f"| without the weak proxy: {spread_credible:.2f} "
       f"| median spread across deflators, all else fixed: {spread_defl:.2f}")
 assert spread_ident > 3 * spread_defl
+assert spread_credible > 3 * spread_defl          # the gap survives dropping the outlier
 
 # %%
 order = curve.sort_values("sigma_hat").reset_index(drop=True)
@@ -492,9 +539,14 @@ ax2.set_xlabel("Specification (sorted)")
 # %% [markdown]
 # **La moraleja.** Lee el panel inferior contra el superior: la curva ordenada
 # está *segmentada por esquema de identificación*, no por muestra ni por
-# deflactor. Cambiar el deflactor mueve el multiplicador a dos años en ~0.2;
-# cambiar la identificación lo mueve en ~2 (medianas: BP ≈ −1.2, MR ≈ −2.1,
-# RR ≈ −2.3, proxy débil ≈ 0). Con un solo conjunto de datos y un solo
+# deflactor. Cambiar el deflactor mueve el multiplicador a dos años en 0.27
+# (mediana sobre las celdas identificación × muestra). Cambiar la
+# identificación mueve la mediana en 1.42 entre los tres esquemas creíbles
+# (BP 2.08 −1.22, MR 3.13 −2.15, RR LP −2.64) y en 3.05 al incluir el proxy
+# débil. El proxy débil (mediana −4.27, F de primera etapa 1.38 en la muestra
+# completa) no es una cuarta respuesta: es el valor atípico, porque un
+# instrumento débil desestabiliza la estimación puntual en vez de encogerla
+# hacia cero. Con un solo conjunto de datos y un solo
 # estimando, **la identificación — no la estimación — determina la
 # respuesta.** Cuando alguien te cite "el" multiplicador de impuestos, la
 # primera pregunta no es "¿con qué datos?" sino "¿qué supusieron para volver
@@ -522,21 +574,25 @@ print(f"theta = {THETA_TRY:.2f}  ->  two-year multiplier m(8) = {path_try[8]:+.2
 theta0_m8 = var_irf(est_try.A_list, make_bp_impact(0.0)(est_try.A_list, est_try.Sigma, est_try.resid), H)[:, 2, 0]
 theta0_m8 = theta0_m8[8] * (SCALE / make_bp_impact(0.0)(est_try.A_list, est_try.Sigma, est_try.resid)[0, 0])
 assert path_try[8] <= theta0_m8 + 1e-6
+# Predict the direction first: relative to BP's 2.08, a larger theta gives a more
+# negative m(8) and a smaller theta a less negative one (checked for theta in [-1, 6]).
+assert (path_try[8] - m_bp[8]) * (THETA_TRY - THETA_BP) <= 1e-9
 
 # %% [markdown]
-# **Ejercicios.** (1) *Básico*: pon `THETA_TRY = 0.0` y compáralo con la
-# lección del notebook 06 — un ordenamiento de Cholesky con los impuestos
-# primero casi no encuentra multiplicador. ¿Por qué tratar el residuo fiscal
+# **Ejercicios.** (1) *Básico*: pon `THETA_TRY = 0.0`, un ordenamiento de
+# Cholesky puro con los impuestos primero (el notebook 06 mostró que un
+# choque recursivo depende del ordenamiento). Predice el signo de m(8) antes
+# de correrlo. ¿Por qué tratar el residuo fiscal
 # crudo como el choque sesga la respuesta hacia cero? (Piensa hacia dónde corre
 # la elasticidad automática.) (2) *Intermedio*: vuelve a correr la tabla de F
 # de la sección 3 con la muestra `1954-2006` (reconstruye `d`) — ¿cambia el
 # veredicto de instrumento débil? (3) *Avanzado*: pásale `d["mta"]` (cambios
 # anticipados) a `proxy_svar` e interpreta la senda resultante a la luz de su
-# F ≈ 0 — ¿por qué los cambios impositivos preanunciados casi no informan
+# F de primera etapa de 0.06 — ¿por qué los cambios impositivos preanunciados casi no informan
 # sobre las *sorpresas* fiscales, y qué necesitaría un VAR con "previsión
 # fiscal" para arreglarlo?
 #
-# **¿Qué tan completa es la biblioteca?** Todas las piezas son reutilizables:
+# **¿Qué tan exhaustivo es esto?** Todas las piezas son reutilizables:
 # `puremacro.var.identify` añade restricciones de signo, Blanchard-Quah,
 # max-share e identificación por heterocedasticidad al proxy-SVAR usado aquí;
 # `puremacro.lp` tiene LPs dependientes del estado, con IV, de panel, suaves y

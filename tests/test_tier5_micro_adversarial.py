@@ -67,7 +67,7 @@ from puremacro.trade.flexible import (
 @pytest.fixture(scope="module")
 def empirical_calib() -> TradeCalibrationResult:
     """Calibrate empirical 77-country 11-sector OECD ICIO benchmark model."""
-    data = load_icio_data()
+    data = load_icio_data(source="legacy")
     return calibrate_trade_model(data)
 
 

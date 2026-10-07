@@ -1,0 +1,135 @@
+{
+  "archive_sha256": "c6c3b4888f3de596abf56bc136e2175ec5a4aa0dab137e79e261984a0a84701c",
+  "archive_source": "https://eml.berkeley.edu/~dromer/papers/DataSet.zip",
+  "workbook_sha256": "e0803df2b6a541041ef80c9dee050fc65bd75ea5ac57926f67483d1ee94dadd3",
+  "rats_format_reference": "https://github.com/gretl-project/gretl/blob/master/lib/src/foreign_db.c",
+  "source_databanks": {
+    "GDP": {
+      "member": "DataSet/RATS Programs and Databanks/GDP.DED",
+      "year": 1947,
+      "frequency": 4,
+      "source_observations": 244,
+      "selected_observations": 244,
+      "member_sha256": "c345d7ba71032d091a9e52caae1bee586eba79dc90e93dc3bafc49609d207ade"
+    },
+    "NOMGDP": {
+      "member": "DataSet/RATS Programs and Databanks/NOMGDP.DED",
+      "year": 1947,
+      "frequency": 4,
+      "source_observations": 244,
+      "selected_observations": 244,
+      "member_sha256": "d7d4784741a690a9be7035a8b7ef2f0f6a51df34452f7e07382b31ac79c000ff"
+    },
+    "DEFIC": {
+      "member": "DataSet/RATS Programs and Databanks/TAXNR.DED",
+      "year": 1945,
+      "frequency": 4,
+      "source_observations": 252,
+      "selected_observations": 244,
+      "member_sha256": "21b491245767919b08eb715f3f1c4738a4e2045707215ec71f2dd4331a0041c8"
+    },
+    "LONGR": {
+      "member": "DataSet/RATS Programs and Databanks/TAXNR.DED",
+      "year": 1945,
+      "frequency": 4,
+      "source_observations": 252,
+      "selected_observations": 244,
+      "member_sha256": "21b491245767919b08eb715f3f1c4738a4e2045707215ec71f2dd4331a0041c8"
+    }
+  },
+  "source_max_absolute_differences": {
+    "GDP": 0.0,
+    "NOMGDP": 1.8189894035458565e-12,
+    "DEFIC": 3.552713678800501e-15,
+    "LONGR": 7.105427357601002e-15
+  },
+  "source_nonidentical_float_counts": {
+    "GDP": 0,
+    "NOMGDP": 46,
+    "DEFIC": 2,
+    "LONGR": 4
+  },
+  "packaged_csv_max_abs_difference_from_raw_workbook": {
+    "GDP": 0.0,
+    "NOMGDP": 0.0,
+    "DEFIC": 0.0,
+    "LONGR": 0.0
+  },
+  "frozen_statsmodels_max_abs_difference_from_workbook_svd": {
+    "coefficients": 8.881784197001252e-16,
+    "coefficient_covariance": 2.7755575615628914e-17,
+    "irf": 1.3322676295501878e-15,
+    "irf_covariance": 7.771561172376096e-16,
+    "standard_errors": 4.440892098500626e-16,
+    "t_statistics": 2.1649348980190553e-15
+  },
+  "nobs": 232,
+  "regressors": 14,
+  "residual_df": 218,
+  "sample": "1950Q1--2007Q4; primitive inputs 1947Q1--2007Q4",
+  "specification": "100*dlog(GDP) on constant and 100*(DEFIC+LONGR)/NOMGDP at lags0--12",
+  "results": {
+    "workbook_svd": {
+      "response_h10": -3.0808127630878372,
+      "se_h10": 0.8739904095035419,
+      "t_h10": -3.5249960750002396,
+      "trough_horizon": 10,
+      "max_abs_difference_vs_workbook_svd": {
+        "coefficients": 0.0,
+        "coefficient_covariance": 0.0,
+        "irf": 0.0,
+        "irf_covariance": 0.0,
+        "standard_errors": 0.0,
+        "t_statistics": 0.0
+      }
+    },
+    "workbook_qr": {
+      "response_h10": -3.0808127630878386,
+      "se_h10": 0.8739904095035419,
+      "t_h10": -3.524996075000241,
+      "trough_horizon": 10,
+      "max_abs_difference_vs_workbook_svd": {
+        "coefficients": 8.881784197001252e-16,
+        "coefficient_covariance": 0.0,
+        "irf": 1.3322676295501878e-15,
+        "irf_covariance": 0.0,
+        "standard_errors": 0.0,
+        "t_statistics": 2.220446049250313e-15
+      }
+    },
+    "rats_svd": {
+      "response_h10": -3.08081276308784,
+      "se_h10": 0.8739904095035419,
+      "t_h10": -3.5249960750002427,
+      "trough_horizon": 10,
+      "max_abs_difference_vs_workbook_svd": {
+        "coefficients": 7.771561172376096e-16,
+        "coefficient_covariance": 2.7755575615628914e-17,
+        "irf": 2.6645352591003757e-15,
+        "irf_covariance": 2.220446049250313e-16,
+        "standard_errors": 1.1102230246251565e-16,
+        "t_statistics": 3.1086244689504383e-15
+      }
+    },
+    "rats_qr": {
+      "response_h10": -3.0808127630878386,
+      "se_h10": 0.8739904095035419,
+      "t_h10": -3.524996075000241,
+      "trough_horizon": 10,
+      "max_abs_difference_vs_workbook_svd": {
+        "coefficients": 1.0547118733938987e-15,
+        "coefficient_covariance": 2.7755575615628914e-17,
+        "irf": 1.3322676295501878e-15,
+        "irf_covariance": 2.220446049250313e-16,
+        "standard_errors": 1.1102230246251565e-16,
+        "t_statistics": 2.3314683517128287e-15
+      }
+    }
+  },
+  "published_response": -3.08,
+  "published_t": -3.53,
+  "rounding_half_width": 0.005,
+  "t_excess_beyond_rounding_interval": 3.924999760211885e-06,
+  "conclusion": "Response and trough reproduce published rounding; t statistic narrowly fails. No tolerance widening. Original RATS databanks and XLSX yield the same discrepancy; SVD/QR numerical differences are orders of magnitude smaller.",
+  "limitations": "RATS executable was not run. This establishes equivalence of original source inputs and independent linear algebra, not why the printed paper differs."
+}

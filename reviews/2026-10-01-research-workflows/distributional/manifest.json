@@ -1,0 +1,99 @@
+{
+  "package_version": "4.3.0",
+  "application": "ENIGH 2024 conditional distributional trade scenarios",
+  "observed_data": {
+    "source": "INEGI ENIGH 2024, Tabulados basicos, Cuadros 3.2 and 4.2",
+    "source_url": "https://www.inegi.org.mx/contenidos/programas/enigh/nc/2024/tabulados/enigh2024_ns_basicos_tabulados.xlsx",
+    "source_sha256": "7af7850495255fb1e6a9cb139cf531e5a62c7fd2a9a1de5ba0503f03aa82490b",
+    "accessed": "2026-10-01",
+    "survey_year": 2024,
+    "monetary_unit": "MXN",
+    "period": "quarter",
+    "population_unit": "households",
+    "value_semantics": "MXN per household per quarter, averaged over ALL households in each income decile",
+    "decile_definition": "National household deciles ordered by total current quarterly income",
+    "population_source": "Cuadro 3.2, HOGARES under INGRESO CORRIENTE (38,830,230 households)",
+    "national_monetary_expenditure_mxn": 1851206621945.59,
+    "national_food_expenditure_mxn": 698246718791.5,
+    "categories": {
+      "food": "ALIMENTOS, BEBIDAS Y TABACO",
+      "clothing": "VESTIDO Y CALZADO",
+      "housing": "VIVIENDA Y SERVICIOS DE CONSERVACIÓN",
+      "household_goods": "ARTÍCULOS Y SERVICIOS PARA LA LIMPIEZA",
+      "health": "CUIDADOS DE LA SALUD",
+      "transport": "TRANSPORTE; ADQUISICIÓN",
+      "education_recreation": "SERVICIOS DE EDUCACIÓN",
+      "personal": "CUIDADOS PERSONALES"
+    },
+    "source_rows_1based": {
+      "food": 11,
+      "clothing": 65,
+      "housing": 86,
+      "household_goods": 101,
+      "health": 113,
+      "transport": 140,
+      "education_recreation": 158,
+      "personal": 170
+    },
+    "cash_wage_rows_1based": [
+      17,
+      20,
+      23,
+      26,
+      29,
+      32
+    ],
+    "transformations": [
+      "Multiply published totals in thousands of MXN by 1000, divide by all-household decile expansion counts",
+      "Exclude outward expenditure transfers from the eight-category consumption basket; retain separately",
+      "Sum six monetary subordinate-employment remuneration categories for cash_wages; exclude in-kind remuneration"
+    ],
+    "limitations": [
+      "Group means do not recover within-decile heterogeneity or survey sampling covariance",
+      "Broad consumption categories are not an industry concordance or measured import shares",
+      "Monetary consumption excludes imputed rent, own production and other nonmonetary consumption",
+      "No trade elasticity, pass-through, policy shock, or factor-price response is identified by these tables",
+      "Applying income changes to consumption assumes the user-specified spending response; the example spends all incremental cash wages"
+    ],
+    "is_synthetic": false,
+    "csv_sha256": "7755bf36cae08e37174705cb0dd048020930d569917fc6f826b7b2c46c15a606"
+  },
+  "assumptions": {
+    "tariff_rate": 0.1,
+    "food_import_share": 0.25,
+    "pass_through": 1.0,
+    "cash_wage_change": 0.0,
+    "transfer_budget_share_of_baseline_consumption": 0.005,
+    "transfer_pool_mxn_per_quarter": 9008298079.23928,
+    "prices": {
+      "food": 1.025,
+      "clothing": 1.0,
+      "housing": 1.0,
+      "household_goods": 1.0,
+      "health": 1.0,
+      "transport": 1.0,
+      "education_recreation": 1.0,
+      "personal": 1.0
+    },
+    "baseline_prices": {
+      "food": 1.0,
+      "clothing": 1.0,
+      "housing": 1.0,
+      "household_goods": 1.0,
+      "health": 1.0,
+      "transport": 1.0,
+      "education_recreation": 1.0,
+      "personal": 1.0
+    }
+  },
+  "price_mapping": "food purchaser-price ratio = 1 + assumed tariff * assumed import exposure * assumed pass-through",
+  "scope": "observed group baskets with illustrative partial-equilibrium policy assumptions",
+  "limitations": [
+    "transfer pool is externally financed and is NOT inferred tariff revenue",
+    "no estimated sector concordance, import shares, elasticities or GE price responses",
+    "fixed baskets and Cobb-Douglas are alternative preference assumptions",
+    "all incremental cash wages are spent; no saving response",
+    "no sampling confidence intervals are available from group means",
+    "aggregate monetary EV sums do not define a social welfare function"
+  ]
+}

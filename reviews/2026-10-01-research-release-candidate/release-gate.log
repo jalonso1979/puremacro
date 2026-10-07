@@ -1,0 +1,15 @@
+release_check — puremacro pre-tag gate
+  repo root: /Users/jalonso/Documents/RESEARCH/puremacro
+    pytest: 14 failed, 18438 passed, 139 skipped, 202 deselected, 276 xfailed, 331 warnings in 2096.77s (0:34:56)
+/Users/jalonso/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/importlib/__init__.py:90: FutureWarning: puremacro.lp.garch_utils is private and deprecated, will be removed in a future major release (5.0.0); use puremacro.lp._garch_utils or high-level LP functions instead.
+  return _bootstrap._gcd_import(name[level:], package, level)
+  Gate 1 (test baseline): FAIL — 3 new failure(s)
+    NEW: tests/test_m3_challenger_verification.py::test_all_notebooks_residual_styling_and_syntax
+    NEW: tests/test_notebooks/test_e2e_doc_elevation.py::TestTier3CrossFeature::test_interaction_section_sequence_monotonicity[10_staggered_did]
+    NEW: tests/test_v260_showcase_replication_e2e.py::TestTier4RealWorldScenarios::test_t4_s5_notebook_suite_bilingual_and_purity_integrity
+  Gate 2 (Pyodide contract): PASS
+  Gate 3 (public API snapshot): PASS
+  Gate 4 (version sync): PASS — all read 4.3.0
+  Gate 7 (min-Python 3.11 syntax): PASS — 1653 files parse (ast.parse(feature_version=3.11); PEP 701 f-string scan)
+
+4/5 gates passed; FAIL: test_baseline

@@ -1,0 +1,15 @@
+{
+  "command": [
+    "/tmp/puremacro-research-candidate-venv/bin/python",
+    "-m",
+    "mkdocs",
+    "build",
+    "--strict",
+    "--site-dir",
+    "/tmp/puremacro-research-candidate-20261001T214014Z/site"
+  ],
+  "cwd": "/tmp/puremacro-research-candidate-20261001T214014Z/docs-source-cqrnx6s7",
+  "returncode": 0,
+  "started_at_utc": "2026-10-01T22:13:04.128635+00:00",
+  "completed_at_utc": "2026-10-01T22:13:12.371429+00:00"
+}

@@ -29,7 +29,7 @@ def sha256(path):
 
 def freeze(export_dir, fixtures=FIXTURES):
     """Normalize only documented row ordering; unfolded tensors have no scaling."""
-    complete = json.loads((Path(export_dir) / "export_complete.json").read_text())
+    complete = json.loads((Path(export_dir) / "export_complete.json").read_text(encoding="utf-8"))
     manifest = {"origin": "Live Dynare execution; not puremacro-generated",
                 "run_id": complete["run_id"],
                 "burn": BURN, "periods": 2500, "atol": ATOL, "rtol": RTOL, "cases": {}}
@@ -42,7 +42,7 @@ def freeze(export_dir, fixtures=FIXTURES):
                 raise ValueError(f"Wrong approximation order in {name}")
             if ref["run_id"] != complete["run_id"] or name not in complete["cases"]:
                 raise ValueError(f"Stale or incomplete export {name}")
-            if str(ref["model_source"]) != model.read_text():
+            if str(ref["model_source"]) != model.read_text(encoding="utf-8"):
                 raise ValueError(f"Model differs from the source Dynare executed: {name}")
             variables = np.atleast_1d(ref["variable_names"]).astype(str)
             shocks = np.atleast_1d(ref["shock_names"]).astype(str)
@@ -73,7 +73,7 @@ def freeze(export_dir, fixtures=FIXTURES):
                 "innovations_sha256": sha256(fixtures / f"{model.stem}_innovations.csv"),
                 "raw_mat_sha256": sha256(source), "reference_sha256": sha256(target),
             }
-    (fixtures / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    (fixtures / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
 
 def sample_moments(path):
@@ -83,7 +83,7 @@ def sample_moments(path):
 
 
 def compare_case(name, fixtures=FIXTURES):
-    manifest = json.loads((fixtures / "manifest.json").read_text())
+    manifest = json.loads((fixtures / "manifest.json").read_text(encoding="utf-8"))
     info = manifest["cases"][name]
     model = fixtures / info["model"]
     reference = fixtures / f"{name}.npz"
@@ -91,7 +91,7 @@ def compare_case(name, fixtures=FIXTURES):
     if (sha256(model) != info["model_sha256"] or sha256(reference) != info["reference_sha256"]
             or sha256(innovations) != info["innovations_sha256"]):
         raise ValueError(f"Fixture provenance mismatch: {name}")
-    sol = load_mod(model.read_text(), order=info["order"])
+    sol = load_mod(model.read_text(encoding="utf-8"), order=info["order"])
     dr = sol.decision_rules()
     details = {}
 
@@ -131,12 +131,12 @@ def main():
     args = parser.parse_args()
     if args.freeze:
         freeze(args.freeze)
-    manifest = json.loads((FIXTURES / "manifest.json").read_text())
+    manifest = json.loads((FIXTURES / "manifest.json").read_text(encoding="utf-8"))
     results = {name: compare_case(name) for name in manifest["cases"]}
     report = {"passed": all(r["passed"] for r in results.values()), "cases": results}
     content = json.dumps(report, indent=2) + "\n"
     if args.output:
-        args.output.write_text(content)
+        args.output.write_text(content, encoding="utf-8")
     print(content)
     return 0 if report["passed"] else 1
 

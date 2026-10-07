@@ -50,7 +50,31 @@ res_chol.plot(target_idx=0, shock_idx=0)
 ### Blanchard–Quah (`bq_svar`)
 Identificación por restricciones de largo plazo (Blanchard y Quah 1989), imponiendo que perturbaciones transitorias (ej. choques de demanda) no tengan impacto acumulado sobre variables no estacionarias en el largo plazo (ej. PIB):
 $$C(1) = (I - A_1 - \dots - A_p)^{-1} B_0$$
-donde $C(1)$ se restringe a ser triangular inferior.
+donde $C(1)$ se restringe a ser triangular inferior una vez que la variable `permanent_var_idx` se coloca primero.
+
+**Qué respuestas se devuelven acumuladas depende de cómo entró cada columna, y lo indica `cumulate=`.** El VAR debe ser estacionario: una variable con raíz unitaria entra en primeras diferencias y una estacionaria puede entrar en niveles. Acumular a lo largo del horizonte la respuesta de una variable diferenciada da la respuesta de su nivel. Acumular una variable que ya está en niveles da la suma corrida de su respuesta, que converge a $((I - \sum A_i)^{-1} B_0)_{i\cdot}$ en lugar de volver a cero: un efecto permanente que la identificación descarta.
+
+| especificación | columnas de `Y` | `cumulate` | `irf_point[h, i, j]` |
+|---|---|---|---|
+| Blanchard–Quah (1989) | `[100·Δlog PNB, tasa de desempleo]` | `[0]` | fila 0: % de desviación del nivel del PNB; fila 1: desviación de la tasa de desempleo, en puntos |
+| Galí (1999), horas en diferencias | `[100·Δlog productividad, 100·Δlog horas]` | `True` (por defecto) | ambas filas: % de desviación del nivel |
+| horas en niveles (la crítica CEV) | `[100·Δlog productividad, log horas]` | `[0]` | fila 1: desviación del log de las horas, sin acumular |
+| respuestas brutas de las columnas tal como entraron | cualquiera | `False` | ninguna fila acumulada |
+
+Blanchard y Quah definen $X = (\Delta Y, U)'$ con $Y$ el logaritmo del PNB y $U$ el *nivel* de la tasa de desempleo, y obtienen el efecto sobre el nivel de $Y$ tras $k$ periodos como la suma parcial de las respuestas de $\Delta Y$ (NBER WP 2737, 1988, p. 3); sus gráficas muestran el log del producto y la propia tasa de desempleo. Para su sistema:
+
+```python
+import numpy as np
+from puremacro.var.identify import bq_svar
+
+# pnb, desempleo: sus series trimestrales de PNB real y tasa de desempleo (%)
+Y = np.column_stack([100 * np.diff(np.log(pnb)), desempleo[1:]])   # (Δ log PNB, U)
+res = bq_svar(Y, p=4, horizon=40, permanent_var_idx=0, cumulate=[0])
+res.irf_point[:, 0, 1]   # log PNB (%) tras el choque de demanda: vuelve a 0
+res.irf_point[:, 1, 1]   # tasa de desempleo (puntos) tras el choque de demanda: vuelve a 0
+```
+
+`cumulate=True` es el valor por defecto y el comportamiento de todas las versiones anteriores (todas las filas acumuladas), correcto cuando todas las columnas están diferenciadas; es incorrecto para el propio sistema $(\Delta y, u)$ de BQ. Una lista de índices, o una máscara booleana de longitud `n`, acumula solo esas filas. La misma transformación se aplica a cada réplica bootstrap antes de tomar los percentiles, de modo que `irf_lower` e `irf_upper` son bandas del objeto pedido. No aplique `cumsum` de nuevo a una fila acumulada, ni `np.diff` a bandas acumuladas para recuperar una variable en niveles (la diferencia de dos cuantiles no es un cuantil): use `cumulate=`.
 
 ### Restricciones de signo (`sign_restrictions`)
 Implementa el algoritmo de rotación ortogonal QR de Rubio-Ramírez, Waggoner y Zha (2010):
@@ -82,6 +106,9 @@ print("Estadístico F de primera etapa:", res_proxy.first_stage_F)
 
 ### Máxima participación espectral / News (`max_share_svar`)
 Identifica choques que maximizan la contribución a la varianza del error de pronóstico de una variable objetivo en horizontes específicos (Barsky y Sims 2011, Francis et al. 2014).
+
+### BVAR con a priori de Minnesota (`puremacro.var.bvar`)
+Hay dos posteriores, y difieren en lo que puede hacer el factor de contracción cruzada λ₂. `minnesota_posterior` resuelve una regresión mixta de Theil–Goldberger por ecuación, de modo que respeta λ₂ (0,5 por defecto); devuelve solo la media posterior. `minnesota_gibbs`, `minnesota_optimal_lambda` y la verosimilitud marginal que usa este último emplean la a priori conjugada Normal–Wishart inversa, construida con las observaciones ficticias de Bańbura, Giannone y Reichlin (2010, ec. 5): primeros rezagos propios centrados en 1, desviación típica a priori $\lambda_1 \sigma_i / (k^{\lambda_3} \sigma_j)$. Su covarianza $\Psi \otimes \Omega_0$ da a todas las ecuaciones la misma forma a priori, así que solo admite λ₂ = 1: el artículo impone la a priori "bajo la condición de que ϑ = 1" (ECB WP 966, p. 11). Estas funciones usan λ₂ = 1 por defecto y, si se pide otro valor, emiten un aviso y usan 1; con λ₂ = 1 la media posterior exacta de Gibbs (`A_mean`) coincide con la de `minnesota_posterior`. En puremacro 4.3.0 y anteriores su bloque de observaciones ficticias centraba el primer rezago propio de todas las variables salvo la última en λ₂ (0,5 por defecto) en lugar de 1, de modo que la posterior dependía del orden de las columnas.
 
 ---
 

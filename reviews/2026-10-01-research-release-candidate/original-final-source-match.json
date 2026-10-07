@@ -1,0 +1,52 @@
+{
+  "all_frozen_gate_sources_match": false,
+  "changed_since_freeze": [
+    "puremacro/examples/output/dsge_markov_switching.png",
+    "puremacro/examples/output/dsge_news_shocks.png",
+    "puremacro/examples/output/dsge_optimal_discretion.png",
+    "puremacro/examples/output/dsge_particle_filter_sv.png",
+    "puremacro/examples/output/dsge_var_estimation.png",
+    "docs/es/research_workflows.md",
+    "docs/es/sw07_estimator_experiment.md",
+    "docs/es/sw07_finite_sample.md",
+    "docs/research_workflows.md",
+    "docs/sw07_estimator_experiment.md",
+    "docs/sw07_finite_sample.md"
+  ],
+  "added_since_freeze": [],
+  "all_frozen_package_test_tool_sources_match": true,
+  "changed_non_documentation_sources": [],
+  "added_non_documentation_sources": [],
+  "final_strict_docs_match": true,
+  "docs_changed_after_strict_build": [],
+  "docs_added_after_strict_build": [],
+  "generated_unshipped_example_output_changes": {
+    "puremacro/examples/output/dsge_markov_switching.png": {
+      "frozen_sha256": "641970a4f424940d816d11c6eb60614b2b61aa84404bb1c4407e098eb2aa0333",
+      "current_sha256": "4b8139538a613b0c06e83e32253b5959824ddb5347c9c62c37ce6491f792b067",
+      "in_wheel": false
+    },
+    "puremacro/examples/output/dsge_news_shocks.png": {
+      "frozen_sha256": "fd5729d92ae5057f45b5d1d30551faa6b68a8956ad339f55015d4273437147f6",
+      "current_sha256": "3d13b46bfa029402d8f4e106cb67b237c16ff2c5b180fc6ba45ed241e4b70045",
+      "in_wheel": false
+    },
+    "puremacro/examples/output/dsge_optimal_discretion.png": {
+      "frozen_sha256": "c4e607d5aad095579676446364d92f246742d622a987f98b277ce20fd7d0a6c3",
+      "current_sha256": "0547277c9f4b2a4d3a70413d54eb6dd10cd283ef3de5f268b6129d17c31de833",
+      "in_wheel": false
+    },
+    "puremacro/examples/output/dsge_particle_filter_sv.png": {
+      "frozen_sha256": "24c590d31ddb1283e7019f6b54b41bed300c7ea07f3c5da321e3511df584cdb7",
+      "current_sha256": "d5e3f20baea960e41986c36aed72ed31649322065fff388da55cf04c7c75c1f5",
+      "in_wheel": false
+    },
+    "puremacro/examples/output/dsge_var_estimation.png": {
+      "frozen_sha256": "5372c429f4ea24d24877ac11a24e74433aafa50c172796139974bb67f6e45fdf",
+      "current_sha256": "c227fec95ab0dabe9149cdc84404c46e037e19df535ad6f048d8c64dbd6f5579",
+      "in_wheel": false
+    }
+  },
+  "frozen_file_count": 3295,
+  "note": "Post-freeze prose changes are listed and separately authenticated against the final strict documentation build. Test-regenerated PNGs in examples/output are recorded separately and verified absent from the wheel."
+}

@@ -13,15 +13,16 @@
 # %% [markdown]
 # # Choques agregados en una economía heterogénea
 #
+# **¿Cómo pueden los hogares en una macroeconomía con millones de agentes heterogéneos pronosticar los precios futuros de los factores utilizando únicamente el capital agregado, y por qué surge la agregación aproximada a pesar de las reglas de ahorro individuales no lineales?**
+#
 # Al incorporar choques agregados de PTF a la economía de Aiyagari, la *distribución
 # completa de la riqueza* pasa a ser una variable de estado. Krusell & Smith (1998)
 # demostraron que los hogares pueden pronosticar el futuro con un único momento —
-# el capital medio — con una precisión casi perfecta ("agregación aproximada").
+# el capital medio — con una precisión casi perfecta ("agregación aproximada"; Carroll 1997; Den Haan 1997).
 # Resolvemos ese punto fijo, mostramos luego una transición con previsión perfecta
-# y presentamos el referente de agente representativo.
-
-# %% [markdown]
-# ## El método en ecuaciones
+# (Boppart, Krusell & Mitman 2018) y presentamos el referente de agente representativo.
+#
+# ## El método en matemáticas
 #
 # Al añadir la PTF agregada $Z$ a Aiyagari, la función de valor del hogar incorpora *dos*
 # argumentos agregados — el nivel de capital $K$ y el choque $Z$:
@@ -39,6 +40,21 @@
 # aproximada** es el hallazgo empírico de que la regla ajusta con $R^2\approx 0{,}999$ — un único
 # momento (el capital medio $K$) es un estadístico casi suficiente para toda la distribución.
 #
+# ### Parámetros del modelo base
+#
+# | Parámetro | Símbolo | Interpretación Económica | Valor Base | Unidades |
+# |---|---|---|---|---|
+# | Factor de descuento | $\beta$ | Tasa subjetiva de preferencia temporal | 0.96 | Adimensional (anual) |
+# | Aversión al riesgo | $\gamma$ | Curvatura de aversión relativa al riesgo (utilidad log) | 1.00 | Adimensional |
+# | Participación del capital | $\alpha$ | Elasticidad producto del capital Cobb-Douglas | 0.36 | Fracción adimensional |
+# | Depreciación | $\delta$ | Tasa anual de depreciación de capital físico | 0.08 | Tasa anual |
+# | Estados de PTF agregada | $Z_{\text{low}}, Z_{\text{high}}$ | Productividad agregada en regímenes bajo vs alto | $[0.99, 1.01]$ | Índice normalizado |
+# | Transición agregada | $P_Z$ | Matriz de probabilidades de transición de regímenes | $[[0.875, 0.125], [0.125, 0.875]]$ | Probabilidad |
+# | Horizonte de simulación | $T$ | Períodos para la simulación de punto fijo | 2000 | Períodos anuales |
+# | Período de calentamiento | $T_{\text{burn}}$ | Períodos iniciales descartados | 300 | Períodos anuales |
+# | Puntos de grilla de activos | $n_a$ | Nodos de discretización de activos individuales | 150 | Recuento entero |
+# | Puntos de capital agregado | $n_K$ | Nodos de discretización del capital agregado | 5 | Recuento entero |
+#
 # **Intuición.** Mantener $\mu$ como estado es inviable: es un objeto de dimensión infinita, de
 # modo que la función de valor viviría en un espacio que ninguna computadora puede discretizar.
 # ¿Por qué basta *un solo* momento? Porque la regla de ahorro $a'(a,z)$ es casi **lineal en la
@@ -51,6 +67,14 @@
 # anticipada respecto del estado estacionario) muestra cómo viajan los precios y el capital
 # *entre* estados estacionarios, y el modelo de **agente representativo** elimina por completo la
 # heterogeneidad como referente límite.
+#
+# ### Referencias clave
+#
+# - Boppart, Krusell & Mitman (2018). Exploiting MIT shocks in heterogeneous-agent economies: the impulse response as a numerical tool. *Journal of Economic Dynamics and Control*, 89, 90–102.
+# - Carroll (1997). Buffer-stock saving and the life cycle/permanent income hypothesis. *Quarterly Journal of Economics*, 112(1), 1–55.
+# - Deaton (1991). Saving and liquidity constraints. *Econometrica*, 59(5), 1221–1248.
+# - Den Haan (1997). Solving dynamic models with heterogeneous agents: Macroeconomic implications of reasons for borrowing. *Computational Economics*, 10(3), 253–274.
+# - Krusell & Smith (1998). Income and wealth heterogeneity in the macroeconomy. *Journal of Political Economy*, 106(5), 867–896.
 
 # %%
 import sys
@@ -97,7 +121,7 @@ for t in range(2000):
     s = int(np.searchsorted(cdf[s], rng.random()))
 
 # %% [markdown]
-# **Lea el resultado.** Dos números resumen el hallazgo. Primero, el **$R^2$ del pronóstico por
+# **Lectura de los resultados.** Dos números resumen el hallazgo. Primero, el **$R^2$ del pronóstico por
 # estado agregado** es $\approx 0{,}999$ tanto en el régimen de PTF baja como en el de PTF alta:
 # regresar el $\log K$ del período siguiente sobre el $\log K$ de hoy no deja prácticamente
 # varianza residual, de modo que un hogar que sigue únicamente el capital medio pronostica el
@@ -197,7 +221,7 @@ a2.plot(tp.price_path, **_nbstyle.S1); a2.axhline(r_ss, color=_nbstyle.SPINE, li
 a2.set_xlabel("Time"); a2.set_ylabel("Interest rate r"); a2.set_title("Price transition")
 
 # %% [markdown]
-# **Lea el resultado.** Partimos de una economía con escasez de capital — toda la masa en un
+# **Lectura de los resultados.** Partimos de una economía con escasez de capital — toda la masa en un
 # nodo de activos bajo —, de modo que el capital está por debajo de su estado estacionario y el
 # producto marginal del capital, y por tanto $r$, es elevado. A medida que los hogares
 # reconstruyen sus reservas precautorias, **$K$ aumenta de forma monótona hacia el estado
@@ -226,7 +250,7 @@ ax.set_xlabel("Capital k"); ax.set_ylabel("Ergodic mass")
 ax.set_title("Representative-agent stochastic growth"); ax.legend()
 
 # %% [markdown]
-# ## Su turno — ¿de verdad generaliza la regla de pronóstico?
+# ## Tu turno — ¿de verdad generaliza la regla de pronóstico?
 #
 # El R² anterior es *dentro de muestra*: la regla se ajustó sobre la misma trayectoria con la
 # que se la evalúa, de modo que un R² alto podría, en principio, reflejar sobreajuste. La prueba
@@ -266,7 +290,7 @@ assert r2_test.min() > 0.9, r2_test     # the rule generalizes: held-out fit sta
 # la dispersión de PTF agregada, y verifique que las dos pendientes de pronóstico `b1` se separan
 # mientras el R² de cada estado se mantiene en ≈ 0,999.
 #
-# **¿Qué tan completo es esto?** Esto es apenas un rincón del instrumental de agentes
+# **¿Qué tan exhaustivo es esto?** Esto es apenas un rincón del instrumental de agentes
 # heterogéneos de `puremacro.vfi`. La misma cadena `VFIProblem` → resolución → distribución →
 # vaciado de mercado sustenta el **equilibrio general de Aiyagari** (NB01), el ciclo de vida /
 # **OLG** con mortalidad (NB03), la entrada y salida de empresas de **Hopenhayn** (NB04) y las

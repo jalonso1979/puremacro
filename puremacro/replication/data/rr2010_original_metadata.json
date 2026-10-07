@@ -1,0 +1,168 @@
+{
+  "archive_url": "https://eml.berkeley.edu/~dromer/papers/DataSet.zip",
+  "archive_sha256": "c6c3b4888f3de596abf56bc136e2175ec5a4aa0dab137e79e261984a0a84701c",
+  "workbook_member": "DataSet/Romer&RomerFiscalData.xlsx",
+  "workbook_sha256": "e0803df2b6a541041ef80c9dee050fc65bd75ea5ac57926f67483d1ee94dadd3",
+  "program_member": "DataSet/RATS Programs and Databanks/EXOGERNR.RAT",
+  "program_sha256": "854ec17ed9f0c0ffc5b6eb97ac836987fec9df06650703f1ea69c35e39aa385f",
+  "csv_sha256": "059d7514fb14e5b8a8f2516e23c49b618032236c0b4cf4599082f3637e12fdad",
+  "paper_url": "https://eml.berkeley.edu/~dromer/papers/RomerandRomerAERJune2010.pdf",
+  "sample_start": "1950Q1",
+  "sample_end": "2007Q4",
+  "covariance_type": "conventional OLS, SSR/(n-k)",
+  "coefficient_order": [
+    "constant",
+    "tax_lag_0",
+    "tax_lag_1",
+    "tax_lag_2",
+    "tax_lag_3",
+    "tax_lag_4",
+    "tax_lag_5",
+    "tax_lag_6",
+    "tax_lag_7",
+    "tax_lag_8",
+    "tax_lag_9",
+    "tax_lag_10",
+    "tax_lag_11",
+    "tax_lag_12"
+  ],
+  "irf_horizons": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+  ],
+  "shock_size": 1.0,
+  "shock_unit": "percentage points of nominal GDP",
+  "response_unit": "percent real GDP",
+  "source": "Romer and Romer (2010), original author replication archive",
+  "is_synthetic": false,
+  "extraction": {
+    "sheets": [
+      {
+        "sheet": "Tax Measures",
+        "header_row_1based": 12,
+        "date_column": "A",
+        "source_columns": [
+          "DEFICNR",
+          "LONGRNR"
+        ],
+        "source_rows": 252
+      },
+      {
+        "sheet": "Other Variables",
+        "header_row_1based": 19,
+        "date_column": "A",
+        "source_columns": [
+          "GDP",
+          "NOMGDP"
+        ],
+        "source_rows": 252
+      }
+    ],
+    "join": "one-to-one original quarterly date labels",
+    "rows": 244,
+    "selected_start": "1947Q1",
+    "selected_end": "2007Q4",
+    "column_mapping": {
+      "GDP": "gdp",
+      "NOMGDP": "nomgdp",
+      "DEFICNR": "defic",
+      "LONGRNR": "longr"
+    }
+  },
+  "reference_sha256": "3c915d119158db1f7002efa80fa12812e2c4edaf225569960561fef29b915b8b",
+  "published_comparison": {
+    "rounding_half_width": 0.005,
+    "h10_response": {
+      "observed": -3.0808127630878386,
+      "published": -3.08,
+      "passed": true
+    },
+    "h10_t_statistic": {
+      "observed": -3.5249960750002396,
+      "published": -3.53,
+      "passed": false
+    },
+    "trough_horizon": {
+      "observed": 10,
+      "published": 10,
+      "passed": true
+    },
+    "interpretation": "Point estimate and trough replicate; the t-statistic lies just outside literal two-decimal rounding, retained as a discrepancy without a tolerance adjustment"
+  },
+  "original_program_databank_crosscheck": {
+    "series": [
+      {
+        "member": "DataSet/RATS Programs and Databanks/GDP.DED",
+        "sha256": "c345d7ba71032d091a9e52caae1bee586eba79dc90e93dc3bafc49609d207ade",
+        "variable": "GDP",
+        "start": "1947Q1",
+        "nobs": 244,
+        "maximum_absolute_workbook_difference": 0.0
+      },
+      {
+        "member": "DataSet/RATS Programs and Databanks/NOMGDP.DED",
+        "sha256": "d7d4784741a690a9be7035a8b7ef2f0f6a51df34452f7e07382b31ac79c000ff",
+        "variable": "NOMGDP",
+        "start": "1947Q1",
+        "nobs": 244,
+        "maximum_absolute_workbook_difference": 1.8189894035458565e-12
+      },
+      {
+        "member": "DataSet/RATS Programs and Databanks/TAXNR.DED",
+        "sha256": "21b491245767919b08eb715f3f1c4738a4e2045707215ec71f2dd4331a0041c8",
+        "variable": "DEFIC",
+        "start": "1945Q1",
+        "nobs": 252,
+        "maximum_absolute_workbook_difference": 3.552713678800501e-15
+      },
+      {
+        "member": "DataSet/RATS Programs and Databanks/TAXNR.DED",
+        "sha256": "21b491245767919b08eb715f3f1c4738a4e2045707215ec71f2dd4331a0041c8",
+        "variable": "LONGR",
+        "start": "1945Q1",
+        "nobs": 252,
+        "maximum_absolute_workbook_difference": 7.105427357601002e-15
+      }
+    ],
+    "h10_response": -3.0808127630878386,
+    "h10_t_statistic": -3.524996075000239,
+    "finding": "RATS databank and workbook differ only at floating-point last bits; the published t-statistic rounding discrepancy persists"
+  },
+  "author_regression_excerpt": "SMPL 1950:1 2007:4\nDOFOR TAXTYPE = EXOGER\nLINREG PCGDP1 /\n# CONSTANT TAXTYPE{0 TO 12}",
+  "original_program_location": "The complete original program is retained in the authenticated author archive at program_member",
+  "original_data_start": "1947Q1",
+  "original_data_end": "2007Q4",
+  "vintage": "Authors' original data; real GDP chain-type quantity index downloaded 2008-02-17",
+  "transformations": [
+    "Preserve original workbook numeric values at float64 round-trip precision",
+    "Use nonretroactive deficit and long-run tax changes only",
+    "Exogenous shock=100*DEFICNR/NOMGDP+100*LONGRNR/NOMGDP",
+    "Dependent variable=100*quarterly log change in GDP",
+    "Estimate constant+tax lags0--12 on 1950Q1--2007Q4;232obs,14regressors,218 residual df",
+    "Cumulative response=sum lag coefficients; full covariance via all lag-covariance entries"
+  ],
+  "published_targets": {
+    "location": "p.781, equation (6) / Figure 4",
+    "horizon": 10,
+    "response": -3.08,
+    "t_statistic": -3.53,
+    "rounding_half_width": 0.005
+  },
+  "limitations": [
+    "Conventional OLS inference reproduces original study rather than imposing HAC",
+    "Identification inherits narrative-shock exogeneity; replication is not independent proof of exogeneity",
+    "The paper's -3.53 t-statistic narrowly fails strict rounding; this is recorded rather than tolerance-adjusted",
+    "Frozen statsmodels reference uses original data and a separate estimator, not puremacro-generated numbers"
+  ]
+}

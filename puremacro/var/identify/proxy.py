@@ -99,8 +99,15 @@ def proxy_svar(
     horizon : int
         IRF horizon (returns ``horizon+1`` periods).
     shock_target_idx : int, default 0
-        Index of the structural shock targeted by the proxy. The identified shock
-        is placed in column 0 of ``B`` regardless.
+        Column of ``Y`` whose reduced-form VAR residual enters the proxy's
+        first stage: ``first_stage_F`` is the Olea-Pflueger effective F of
+        ``resid[:, shock_target_idx]`` regressed on the proxy. Set it to the
+        variable the proxy is meant to move (for a monetary proxy, the
+        policy-rate column); with the default 0 and the policy variable in
+        another column, ``first_stage_F`` is the F of the wrong equation.
+        It does not change ``B`` or the impulse responses: the impact column
+        is identified from ``Cov(u, z)`` across all residuals and is placed
+        in column 0 of ``B`` regardless.
     n_boot : int, default 500
         Number of wild-bootstrap draws.
     ci : float, default 0.9
@@ -132,7 +139,8 @@ def proxy_svar(
     A_list, c, Sigma, resid, _ = estimate_var(Y, p)
     T_eff = resid.shape[0]
     z = np.asarray(instrument_series)[-T_eff:]
-    # Olea-Pflueger F is computed on the first VAR residual against the proxy.
+    # Olea-Pflueger effective F of the residual of variable shock_target_idx
+    # regressed on the proxy (the first stage). It only feeds first_stage_F.
     f_eff = olea_pflueger_f(resid[:, shock_target_idx], z.reshape(-1, 1))
 
     impact_fn = _proxy_impact_factory(instrument_series, shock_target_idx)

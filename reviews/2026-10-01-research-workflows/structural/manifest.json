@@ -1,0 +1,45 @@
+{
+  "package_version": "4.3.0",
+  "application": "NK IRF parameter recovery",
+  "evidence_kind": "synthetic_parameter_recovery",
+  "is_empirical_replication": false,
+  "seed": 20261001,
+  "observations": 4000,
+  "true_parameters": {
+    "sigma": 1.5,
+    "kappa": 0.15,
+    "rho": 0.6
+  },
+  "estimated_parameters": {
+    "sigma": 1.4698752383270133,
+    "kappa": 0.15252822637082336,
+    "rho": 0.5944168873530574
+  },
+  "model": "\nvar y pi i v;\nvarexo eps;\nparameters sigma kappa rho beta phi;\nsigma=1.5; kappa=0.15; rho=0.6; beta=0.99; phi=1.5;\nmodel;\n y = y(+1) - (i-pi(+1))/sigma;\n pi = beta*pi(+1) + kappa*y;\n i = phi*pi + v;\n v = rho*v(-1) + eps;\nend;\n",
+  "data_sha256": "3a78610912a330d56a5dded2aaeae4c3230a4e68872f92dd94799a2915fd371c",
+  "covariance": "joint aligned-score Bartlett HAC of LP coefficient estimators; bandwidth 9; no diagonal approximation",
+  "shock_normalization": "0.01 quarterly nominal-rate innovation (one percentage point)",
+  "training_horizons": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "held_out_horizons": [
+    5,
+    6,
+    7,
+    8
+  ],
+  "objective": 7.852757946848911,
+  "identification_rank": 3,
+  "jacobian_condition": 102.65761468947478,
+  "inference_valid": true,
+  "j_pvalue": 0.3457565784117499,
+  "limitations": [
+    "synthetic exogenous shocks, not estimated historical monetary-policy shocks",
+    "local asymptotic uncertainty; no finite-sample coverage claim",
+    "held-out horizons use the same data and are descriptive, not an independent validation sample"
+  ]
+}

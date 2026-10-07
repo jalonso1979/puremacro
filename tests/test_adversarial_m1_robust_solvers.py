@@ -18,7 +18,8 @@ Verifies:
 3. Network Stabilization & Numerical / Memory Leakage:
    - SVD clamping under extreme ill-conditioning (kappa_2 = 1e16, singular modes).
    - Anderson acceleration under collinear and duplicate history matrices.
-   - Cyprus micro-economy manifold 1D secant solver under vanishing scale (1e-6 to 1e-12).
+   - Cyprus micro-economy manifold step under vanishing scale (1e-8 to 1e-10): the clamped
+     step reports its own residual and is not converged; the unclamped direction is exact.
    - 100-iteration memory leak probe verifying bounded memory growth.
 """
 from __future__ import annotations
@@ -30,12 +31,13 @@ import numpy as np
 import scipy.linalg as la
 import pytest
 
+from _timing import budget
 from puremacro.trade import (
     TradeCalibrationResult,
     TradeEquilibriumResult,
     calibrate_trade_model,
 )
-from puremacro.trade.data import load_icio_data
+from puremacro.trade.data import CANONICAL_COUNTRY_CODES, load_icio_data
 from puremacro.trade.solver import (
     anderson_accelerate,
     check_hawkins_simon_viability,
@@ -52,7 +54,7 @@ from puremacro.trade.solver import (
 @pytest.fixture(scope="module")
 def empirical_calib() -> TradeCalibrationResult:
     """Calibrate full 77-country 11-sector empirical model from bundled OECD ICIO data."""
-    raw = load_icio_data()
+    raw = load_icio_data(source="legacy")
     return calibrate_trade_model(raw, ns=11, nc=77, nfd=3, validate=False)
 
 
@@ -109,7 +111,7 @@ class TestAdversarialHawkinsSimon:
         t_elapsed = time.perf_counter() - t_start
 
         # Time constraint: must evaluate in < 0.15s (measured ~0.010s)
-        assert t_elapsed < 0.15, f"Hawkins-Simon check took too long: {t_elapsed:.4f}s >= 0.15s"
+        assert t_elapsed < budget(0.15), f"Hawkins-Simon check took too long: {t_elapsed:.4f}s >= {budget(0.15)}s"
 
         err_msg = str(exc_info.value)
         # A reducible network can leave the lower bound below one even when
@@ -125,10 +127,12 @@ class TestAdversarialHawkinsSimon:
     ) -> None:
         """Verify subcritical tariffs yield valid Collatz-Wielandt bounds and rho < 1.0 in < 0.15s."""
         t_start = time.perf_counter()
-        rho, cw_lower, cw_upper = check_hawkins_simon_viability(empirical_calib, tau=tau_val)
+        res = check_hawkins_simon_viability(empirical_calib, tau=tau_val)
         t_elapsed = time.perf_counter() - t_start
+        # ViabilityResult is a plain 4-field named tuple; read fields by name.
+        rho, cw_lower, cw_upper = res.rho, res.cw_lower, res.cw_upper
 
-        assert t_elapsed < 0.15, f"Execution exceeded 0.15s: {t_elapsed:.4f}s"
+        assert t_elapsed < budget(0.15), f"Execution exceeded {budget(0.15)}s: {t_elapsed:.4f}s"
         assert 0.0 < rho < 1.0, f"Subcritical tariff gave non-viable rho: {rho:.4f}"
         assert cw_lower <= rho <= cw_upper + 1e-10, (
             f"Collatz-Wielandt inclusion violated: lower={cw_lower:.6f}, rho={rho:.6f}, upper={cw_upper:.6f}"
@@ -144,8 +148,7 @@ class TestAdversarialHawkinsSimon:
         tau_grid = [0.0, 1.0, 2.0, 3.0, 3.5, 3.6]
         rhos = []
         for tau in tau_grid:
-            rho, low, high = check_hawkins_simon_viability(empirical_calib, tau=tau)
-            rhos.append(rho)
+            rhos.append(check_hawkins_simon_viability(empirical_calib, tau=tau).rho)
 
         # Monotonicity check: higher tariffs monotonically increase production cost spectral radius
         for i in range(2, len(rhos) - 1):
@@ -161,7 +164,8 @@ class TestAdversarialHawkinsSimon:
     ) -> None:
         """Test import subsidies (tau < 0), heterogeneous national vectors, and extreme matrix tariffs."""
         # 1. Import subsidies (tau = -0.5)
-        rho_sub, low_sub, high_sub = check_hawkins_simon_viability(empirical_calib, tau=-0.5)
+        sub = check_hawkins_simon_viability(empirical_calib, tau=-0.5)
+        rho_sub, low_sub, high_sub = sub.rho, sub.cw_lower, sub.cw_upper
         assert 0.0 < rho_sub < 1.0
         assert low_sub <= rho_sub <= high_sub + 1e-10
 
@@ -169,13 +173,15 @@ class TestAdversarialHawkinsSimon:
         nc = empirical_calib.n_countries
         tau_vec = np.zeros(nc)
         tau_vec[empirical_calib.country_codes.index("USA")] = 50.0
-        rho_usa, low_usa, high_usa = check_hawkins_simon_viability(empirical_calib, tau=tau_vec)
+        rho_usa = check_hawkins_simon_viability(empirical_calib, tau=tau_vec).rho
         assert 0.0 < rho_usa < 1.0
 
-        # 3. Dense 2D matrix tariff with extreme cross-border shock
+        # 3. Dense 2D matrix tariff with extreme cross-border shock. Array
+        # schedules are MULTIPLIERS (1 + rate), exactly as solve_trade_equilibrium
+        # reads them (the former rate-vs-multiplier diagonal heuristic is gone).
         M = empirical_calib.n_sectors * empirical_calib.n_countries
-        tau_mat = np.zeros((M, M))
-        tau_mat[:11, :] = 100.0  # Prohibitive tariffs on all inputs into first country
+        tau_mat = np.ones((M, M))
+        tau_mat[:11, :] = 101.0  # Rate 100 on every purchase of the first country's output
         with pytest.raises(ValueError, match="violates Hawkins-Simon viability condition"):
             check_hawkins_simon_viability(empirical_calib, tau=tau_mat)
 
@@ -371,9 +377,16 @@ class TestAdversarialStabilizationAndLeakage:
         assert np.all(np.isfinite(x_dep_acc)), "Anderson failed on collinear history"
 
     def test_cyprus_secant_vanishing_scale(self) -> None:
-        """Verify Cyprus 1D manifold solver handles vanishing domestic market scale (1e-10)."""
+        """Cyprus block-elimination step under a vanishing domestic market scale (1e-10).
+
+        The exact step is of order 1e9, so the returned step is that direction
+        scaled down to max_disp. Its reported residual is the residual of the
+        returned step (about max|rhs|, not converged); the unclamped direction
+        (return_info=True) is the exact solve.
+        """
         nc = 77
-        idx_cyp = 14
+        idx_cyp = CANONICAL_COUNTRY_CODES.index("CYP")  # 17; index 14 is CMR
+        tol = 2.5e-3
         rng = np.random.default_rng(123)
         A = rng.standard_normal((nc, nc))
         S_ww = A.T @ A + np.eye(nc)
@@ -384,19 +397,30 @@ class TestAdversarialStabilizationAndLeakage:
         S_ww[idx_cyp, idx_cyp] = 1e-10
         rhs_w = rng.standard_normal(nc)
 
-        dw_full, best_res, conv = solve_cyprus_manifold_step(
+        dw_full, best_res, conv, info = solve_cyprus_manifold_step(
             S_ww=S_ww,
             rhs_w=rhs_w,
             eval_cyp_fn=None,
             idx_cyp=idx_cyp,
-            tol=2.5e-3,
+            tol=tol,
             max_disp=0.30,
+            return_info=True,
         )
 
-        assert conv is True
-        assert best_res < 2.5e-3
         assert np.all(np.isfinite(dw_full))
         assert np.max(np.abs(dw_full)) <= 0.30 + 1e-12
+
+        # Unclamped direction: the exact solve, converged.
+        exact = la.solve(S_ww, rhs_w)
+        np.testing.assert_allclose(info["unclamped_step"], exact, rtol=0, atol=1e-9 * np.max(np.abs(exact)))
+        assert info["direction_converged"] is True and info["direction_residual"] < tol
+
+        # Returned step: the same direction, scaled; its own residual; not converged.
+        assert info["clamped"] is True and 0.0 < info["clamp_scale"] < 1e-8
+        np.testing.assert_allclose(dw_full, info["clamp_scale"] * info["unclamped_step"], rtol=1e-12, atol=0.0)
+        assert best_res == pytest.approx(float(np.max(np.abs(S_ww @ dw_full - rhs_w))), rel=1e-12)
+        assert best_res > tol
+        assert conv is False
 
     def test_memory_leak_and_stability_100_runs(
         self, synthetic_2c_2s_calib: TradeCalibrationResult
@@ -409,7 +433,7 @@ class TestAdversarialStabilizationAndLeakage:
         calib = synthetic_2c_2s_calib
         for i in range(100):
             # 1. Hawkins-Simon
-            rho, l, u = check_hawkins_simon_viability(calib, tau=0.2)
+            rho = check_hawkins_simon_viability(calib, tau=0.2).rho
             # 2. SVD Clamping
             J = np.diag([1.0, 1e-10])
             f = np.array([1.0, 1.0])

@@ -1,0 +1,3 @@
+parameter,estimate,se,ci_lower,ci_upper,boundary
+crr,0.98,,,,True
+em,0.010000000000000009,,,,True

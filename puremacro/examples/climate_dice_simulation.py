@@ -1,7 +1,7 @@
 """DICE Climate-Macroeconomic Simulation & Policy Analysis.
 
 Demonstrates simulating the Dynamic Integrated Climate-Economy (DICE) model
-following Nordhaus (2018, *PNAS*) and Golosov et al. (2014, *Econometrica*):
+in its DICE-2016R calibration (Nordhaus 2017, *PNAS*); nothing is optimised:
 - 150-year macroeconomic and climate trajectory projections (2020-2170).
 - Atmospheric carbon accumulation across 3 oceanic/atmospheric reservoirs.
 - Surface warming anomaly and output damage shares.

@@ -18,6 +18,12 @@ import pandas as pd
 SOURCE_URL = "https://www.oecd.org/en/data/datasets/inter-country-input-output-tables.html"
 README_URL = "https://webfs-sti.oecd.org/files/STI-PIE/ICIO/2023/ReadMe_ICIO_small.xlsx"
 FD_GROUPS = {"C": ("HFCE", "NPISH", "GGFC"), "I": ("GFCF", "INVNT"), "Cx": ("DPABR",)}
+FD_SEMANTICS = {
+    "C": "final consumption expenditure (households, NPISH, government)",
+    "I": ("gross capital formation (gross fixed capital formation plus signed changes in inventories); "
+          "receives the foreign-balance closure"),
+    "Cx": "residents' direct purchases abroad (DPABR)",
+}
 
 
 def _parse_frame(frame, *, countries, sectors, year, metadata=None):
@@ -111,17 +117,33 @@ def read_native(path: str | Path, year: int):
 def condense_final_demand(raw):
     """Map the native final uses to the model's C, I, Cx closure, conserving sums.
 
-    The solver applies the foreign balance to final-use index 1 (investment).
+    ``C = HFCE + NPISH + GGFC``, ``I = GFCF + INVNT``, ``Cx = DPABR``. The
+    solver applies the foreign balance to final-use index 1 (investment).
+    The meaning of each slot is recorded in ``metadata["final_use_semantics"]``.
     Passing six OECD categories directly would apply it to NPISH instead.
-    Negative inventory changes are preserved in I; nothing is clipped.
+    Negative inventory changes are preserved in I; nothing is clipped, so a
+    cell with ``GFCF + INVNT < 0`` stays negative. Such cells are counted per
+    condensed category in ``metadata["negative_final_demand_cells"]``: the
+    ``accounting="consistent"`` path rejects any negative final-use cell (the
+    native 2019 table has 90 of them in I although every country's I total
+    is positive), so a native table needs aggregation or an explicit
+    inventory treatment before that path can run.
+
+    A missing ``taxes_less_subsidies_fd`` (synthetic tables) stays ``None``.
     """
     indices = [[list(raw.fd_categories).index(f) for f in group] for group in FD_GROUPS.values()]
     F = raw.F.reshape(raw.M, raw.C, raw.K_F)
     grouped = np.stack([F[:, :, idx].sum(axis=2) for idx in indices], axis=2)
-    tfd = np.asarray(raw.taxes_less_subsidies_fd).reshape(raw.C, raw.K_F)
-    taxes = np.stack([tfd[:, idx].sum(axis=1) for idx in indices], axis=1)
+    taxes = None
+    if raw.taxes_less_subsidies_fd is not None:
+        tfd = np.asarray(raw.taxes_less_subsidies_fd, dtype=float).reshape(raw.C, raw.K_F)
+        taxes = np.stack([tfd[:, idx].sum(axis=1) for idx in indices], axis=1).ravel()
+    mapping = {k: list(v) for k, v in FD_GROUPS.items()}
+    negative = {k: int(np.count_nonzero(grouped[:, :, j] < 0)) for j, k in enumerate(FD_GROUPS)}
     return replace(raw, final_demand_matrix=grouped.reshape(raw.M, -1),
-                   fd_categories=list(FD_GROUPS), taxes_less_subsidies_fd=taxes.ravel(),
+                   fd_categories=list(FD_GROUPS), taxes_less_subsidies_fd=taxes,
                    metadata={**raw.metadata, "source_fd_categories": list(raw.fd_categories),
-                             "final_demand_mapping": {k: list(v) for k, v in FD_GROUPS.items()},
+                             "final_demand_mapping": mapping, "final_use_mapping": mapping,
+                             "negative_final_demand_cells": negative,
+                             "final_use_semantics": dict(FD_SEMANTICS),
                              "inventory_treatment": "signed INVNT added to GFCF; no clipping"})

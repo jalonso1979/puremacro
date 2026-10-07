@@ -14,10 +14,11 @@ def test_hfi_end_to_end():
     T_macro = 240
     Y = np.cumsum(0.3 * rng.standard_normal((T_macro, 3)), axis=0)
 
-    # Synthetic announcement series: 1 per month, with monthly-aggregated
-    # surprise correlated with the first VAR residual
+    # Synthetic announcement series: 1 per month. The surprise is pure noise,
+    # unrelated to Y: this test checks the plumbing (shapes, finiteness), not
+    # identification. Inputs are futures-implied rates (default quote="rate").
     n_announce = T_macro
-    rate_pre = 95.0 * np.ones(n_announce)
+    rate_pre = 5.0 * np.ones(n_announce)
     rate_post = rate_pre + 0.05 * rng.standard_normal(n_announce)
     days_remaining = rng.integers(5, 28, size=n_announce)
     surprise = gk2015_surprise(rate_pre, rate_post, days_remaining,
@@ -25,7 +26,8 @@ def test_hfi_end_to_end():
     dates = pd.date_range("2000-01-15", periods=n_announce, freq="MS")
     monthly = aggregate_to_period(surprise, dates, freq="M")
 
-    # Align: drop the first VAR observation count to match VAR sample
+    # proxy_svar aligns the instrument with the VAR sample itself, keeping its
+    # last T - p entries.
     z = monthly.values
 
     res = proxy_svar(Y, p=2, horizon=12, instrument_series=z,

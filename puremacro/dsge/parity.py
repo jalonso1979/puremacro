@@ -57,11 +57,92 @@ def _resolve_tolerances(tol: float | Mapping[str, float] | None) -> dict[str, fl
     return tols
 
 
+def _call_theoretical_moments(model: Any, lags: int, pruning: bool = False) -> Any:
+    """Call ``model.theoretical_moments`` requesting ``lags`` autocorrelation lags.
+
+    With ``pruning=True`` the exact moments of the pruned solution are
+    requested (``PrunedDSGESolution.theoretical_moments(pruning=True)``);
+    an object without that option raises ``TypeError``.
+
+    :class:`~puremacro.dsge.build.LinearModel` spells the lag count ``ar=``
+    while the pruned higher-order solutions
+    (:class:`~puremacro.dsge.pruning.PrunedDSGESolution`) spell it ``lags=``.
+    4.3.0 always passed ``ar=``, so every order-2 comparison with supplied
+    moments ended ``UNAVAILABLE`` on a swallowed ``TypeError``. Objects whose
+    signature accepts ``**kwargs`` keep receiving ``ar=``.
+    """
+    import inspect
+
+    try:
+        params = inspect.signature(model.theoretical_moments).parameters
+    except (TypeError, ValueError):  # builtins or callables without a signature
+        params = {}
+    accepts_any = any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
+    if pruning:
+        if "pruning" not in params:
+            raise TypeError(f"{type(model).__name__}.theoretical_moments has no pruned-moment option")
+        return model.theoretical_moments(lags=lags, pruning=True)
+    if "ar" in params or accepts_any:
+        return model.theoretical_moments(ar=lags)
+    if "lags" in params:
+        return model.theoretical_moments(lags=lags)
+    return model.theoretical_moments()
+
+
+def _resolve_shock_covariance(model: Any) -> np.ndarray | None:
+    """Innovation covariance a puremacro object declares, or ``None``.
+
+    * :class:`~puremacro.dsge.build.LinearModel` (it has ``_shock_cov``):
+      the covariance declared through the ``shocks`` block of the ``.mod``
+      file or ``shock_cov=``, symmetrised as its moment routine
+      (``_shock_covariance(None)``) does. A model that declares none resolves
+      to ``None``: its moment routines then assume the identity, but that is
+      a convention rather than a declaration, so it is not compared with
+      ``M_.Sigma_e`` (the order-1 decision rules do not depend on it).
+    * Pruned higher-order solutions: the public ``shock_cov`` field, which
+      their moments and risk correction use (the declared covariance, or the
+      identity a solution built without one fills in at construction).
+    * Other objects: a ``shock_cov`` or ``Sigma`` attribute.
+
+    A decision-rule-only object resolves to ``None``. ``None`` makes the
+    harness report ``covariance_status == "UNAVAILABLE"``, not counted as a
+    check.
+    """
+    if hasattr(model, "_shock_cov") and not hasattr(model, "shock_cov"):
+        if getattr(model, "_shock_cov", None) is None:
+            return None
+        resolver = getattr(model, "_shock_covariance", None)
+        cov = resolver(None) if callable(resolver) else model._shock_cov
+    else:
+        cov = getattr(model, "shock_cov", None)
+        if cov is None:
+            cov = getattr(model, "Sigma", None)
+    if cov is None:
+        return None
+    try:
+        return np.asarray(cov, dtype=float)
+    except (TypeError, ValueError):
+        return None
+
+
+def _zero_variance_rows(th: Any, pm_vars: Sequence[str]) -> np.ndarray | None:
+    """Boolean mask of variables whose puremacro theoretical variance is exactly zero."""
+    try:
+        if hasattr(th, "covariance"):
+            var = np.diag(th.covariance.loc[list(pm_vars), list(pm_vars)].to_numpy(dtype=float))
+        else:
+            var = np.asarray(th.variance, dtype=float).reshape(len(pm_vars))
+    except (AttributeError, KeyError, TypeError, ValueError):
+        return None
+    return ~(var > 0.0)
+
+
 def verify_dynare_parity(
     puremacro_model: Any,
     dynare_output: Any,
     order: int = 1,
     tol: float | Mapping[str, float] | None = None,
+    pruning: bool = False,
 ) -> ParityDashboardResult:
     """Verify puremacro DSGE model solution against Dynare output.
 
@@ -77,11 +158,52 @@ def verify_dynare_parity(
     tol : float | dict[str, float], optional
         Tolerance thresholds. Defaults: 1e-6 for (ghx, ghu), 1e-4 for (ghxx, ghs2),
         1e-5 for moments.
+    pruning : bool, default False
+        At order 2, compare supplied moments with the exact moments of the
+        pruned solution, the convention of Dynare's
+        ``stoch_simul(order=2, pruning)``. Ignored at order 1.
 
     Returns
     -------
     ParityDashboardResult
         Consolidated scorecard with per-variable deviations and overall parity score.
+
+    Notes
+    -----
+    * Supplied ``oo_.mean`` / ``oo_.var`` / ``oo_.autocorr`` are compared with
+      the theoretical moments of the object solved at the compared order: at
+      order 2 that is ``LinearModel.solve(order=2)`` (or the pruned solution
+      passed in), so the reference mean is compared with the risk-corrected
+      second-order mean and the second moments with the pruned solution's
+      first-order second moments. That is the convention of Dynare's
+      ``stoch_simul(order=2)`` *without* the ``pruning`` option. With
+      ``pruning``, Dynare reports ``oo_.var`` and ``oo_.autocorr`` of the
+      pruned second-order system (``disp_th_moments_pruned_state_space``),
+      which include O(sigma^4) terms: compare such a reference with
+      ``pruning=True``. The lag count follows the supplied autocorrelation
+      array.
+    * A variable whose puremacro theoretical variance is exactly zero has
+      undefined (NaN) autocorrelations, and so does a Dynare reference for
+      it. Rows that are non-finite on both sides for such variables are
+      treated as matching and listed in ``details["moments_excluded"]``; a
+      non-finite value on one side only still makes the moment block
+      ``UNAVAILABLE``.
+    * ``M_.Sigma_e``, when supplied, is compared with the innovation
+      covariance the puremacro object declares: the covariance of a
+      ``LinearModel``'s ``shocks`` block / ``shock_cov=``, or ``shock_cov``
+      of a pruned solution (always set; the identity when it was built
+      without one). The comparison is a counted check with tolerance
+      ``tol["shock_cov"]`` (default 1e-10) and is reported in
+      ``details["covariance_status"]``. A ``LinearModel`` that declares no
+      covariance, or a decision-rule-only object, cannot be compared and
+      yields ``covariance_status == "UNAVAILABLE"``, which is not counted as
+      a check.
+    * An ``oo_`` or ``oo_.dr`` that is present but empty (Dynare initialises
+      ``oo_.dr = []`` and only ``stoch_simul``/``check`` populate it; scipy
+      loads that as an empty array), or an ``oo_`` loaded as a numpy record
+      array (``scipy.io.loadmat`` with its default ``struct_as_record=True``),
+      returns status ``UNAVAILABLE`` with a message naming the cause instead
+      of raising. Missing or malformed comparisons never pass.
     """
     if order not in (1, 2):
         raise ValueError("Parity supports orders 1 and 2 only")
@@ -103,6 +225,7 @@ def verify_dynare_parity(
             model_name = str(pm_model.name)
 
     # Extract puremacro decision rules
+    pm_sol = None
     if order >= 2:
         if hasattr(pm_model, "solve"):
             pm_sol = pm_model.solve(order=order)
@@ -123,6 +246,10 @@ def verify_dynare_parity(
             pm_dr = pm_model
         else:
             raise TypeError(f"Cannot extract decision rules from {type(pm_model)}")
+    # Moments and the innovation covariance come from the object solved at the
+    # compared order (a first-order model's moments lack the order-2 risk
+    # correction that Dynare's oo_.mean carries).
+    moment_model = pm_sol if (pm_sol is not None and hasattr(pm_sol, "theoretical_moments")) else pm_model
 
     def unavailable(message, **details):
         return ParityDashboardResult(
@@ -144,10 +271,32 @@ def verify_dynare_parity(
         dyn_dr = dynare_output
     elif isinstance(dynare_output, dict):
         raw = _to_plain_dict(dynare_output)
-        fields = raw.get("oo_", {}).get("dr", {})
+        oo = raw.get("oo_")
+        if oo is not None and not isinstance(oo, dict):
+            if getattr(getattr(oo, "dtype", None), "names", None):
+                return unavailable(
+                    "oo_ is a numpy record array, not a struct/dict: load Dynare .mat files with "
+                    "scipy.io.loadmat(path, squeeze_me=True, struct_as_record=False)",
+                    order2_missing=order == 2,
+                )
+            return unavailable(
+                f"oo_ is present but empty or not a results structure (got {type(oo).__name__})",
+                order2_missing=order == 2,
+            )
+        oo = oo if isinstance(oo, dict) else {}
+        fields = oo.get("dr")
+        if fields is not None and not isinstance(fields, dict):
+            # Dynare initialises ``oo_.dr = []`` (an empty ndarray once loaded
+            # with scipy) and only stoch_simul/check fill it: not a reference.
+            return unavailable(
+                "oo_.dr is present but empty or not a decision-rule structure "
+                f"(got {type(fields).__name__}); the Dynare run never populated it",
+                order2_missing=order == 2,
+            )
+        fields = fields if isinstance(fields, dict) else {}
         required = ["ghx", "ghu"] + (["ghxx", "ghxu", "ghuu", "ghs2"] if order == 2 else [])
         missing = [k for k in required if fields.get(k) is None]
-        if fields.get("ys") is None and raw.get("oo_", {}).get("steady_state") is None:
+        if fields.get("ys") is None and oo.get("steady_state") is None:
             missing.append("ys")
         if missing:
             return unavailable(f"Missing decision-rule fields: {missing}", order2_missing=order == 2)
@@ -157,7 +306,7 @@ def verify_dynare_parity(
             # Only actual supplied moments are requested; deterministic steady
             # states are not a substitute for unconditional means at order two.
             dyn_moments = {k: parsed[k] for k in ("mean", "var", "autocorr")
-                           if k in raw["oo_"] and raw["oo_"][k] is not None}
+                           if oo.get(k) is not None}
         except (KeyError, TypeError, ValueError) as exc:
             return unavailable(str(exc), order2_missing=order == 2)
     else:
@@ -208,12 +357,14 @@ def verify_dynare_parity(
     passed_checks, total_checks = int(flags.sum()), flags.size
     moment_rows = []
     unavailable_moments = False
+    excluded: dict[str, list[str]] = {}
     if dyn_moments:
         try:
-            if not hasattr(pm_model, "theoretical_moments"):
+            if not hasattr(moment_model, "theoretical_moments"):
                 raise ValueError("Supplied reference moments cannot be compared to a decision-rule-only object")
-            ar = np.asarray(dyn_moments.get("autocorr", np.empty((0, 5)))).shape[-1]
-            th = pm_model.theoretical_moments(ar=ar)
+            lags = int(np.asarray(dyn_moments.get("autocorr", np.empty((0, 5)))).shape[-1])
+            th = _call_theoretical_moments(moment_model, lags, pruning=pruning and order == 2)
+            zero_var = _zero_variance_rows(th, pm_vars)
             perm = [dyn_vars.index(v) for v in pm_vars]
             for key, expected in dyn_moments.items():
                 expected = np.asarray(expected, dtype=float)
@@ -232,7 +383,17 @@ def verify_dynare_parity(
                     if expected.ndim == 3:
                         expected = np.stack([np.diag(expected[:, :, j]) for j in range(expected.shape[-1])], axis=1)
                     expected = expected.reshape(n_v, -1)[perm]
-                if actual.shape != expected.shape or not np.all(np.isfinite(expected)) or not np.all(np.isfinite(actual)):
+                if actual.shape != expected.shape:
+                    raise ValueError(f"{key}: moment shape mismatch or non-finite values")
+                if key == "autocorr" and zero_var is not None and actual.ndim == 2:
+                    # Zero-variance variables have undefined autocorrelations on
+                    # both sides (0/0): matching all-NaN rows are not a mismatch.
+                    undefined = (zero_var & ~np.isfinite(actual).any(axis=1)
+                                 & ~np.isfinite(expected).any(axis=1))
+                    if undefined.any():
+                        excluded[key] = [v for v, u in zip(pm_vars, undefined) if u]
+                        actual, expected = actual[~undefined], expected[~undefined]
+                if not np.all(np.isfinite(expected)) or not np.all(np.isfinite(actual)):
                     raise ValueError(f"{key}: moment shape mismatch or non-finite values")
                 dev = float(np.max(np.abs(actual - expected), initial=0.0))
                 ok = dev <= tolerances[key]
@@ -248,8 +409,12 @@ def verify_dynare_parity(
     # Compare shock covariance when supplied on both models; otherwise record
     # its unavailability without claiming a moments/innovation-distribution test.
     covariance_status = "UNAVAILABLE"
-    dyn_cov = raw.get("M_", {}).get("Sigma_e") if raw is not None else None
-    pm_cov = getattr(pm_model, "shock_cov", getattr(pm_model, "Sigma", None))
+    M_ = raw.get("M_") if raw is not None else None
+    dyn_cov = M_.get("Sigma_e") if isinstance(M_, dict) else None
+    # A LinearModel's declaration decides (its order-2 solution fills in the
+    # identity when nothing was declared); otherwise the object compared.
+    cov_source = pm_model if (hasattr(pm_model, "_shock_cov") and not hasattr(pm_model, "shock_cov")) else moment_model
+    pm_cov = _resolve_shock_covariance(cov_source)
     if dyn_cov is not None and pm_cov is not None:
         try:
             a, b = np.asarray(pm_cov, dtype=float), np.asarray(dyn_cov, dtype=float)
@@ -275,7 +440,8 @@ def verify_dynare_parity(
         details={"order": order, "status": "UNAVAILABLE" if unavailable_moments else ("PASS" if passed else "FAIL"),
                  "runtime_sec": time.perf_counter() - t0, "n_vars": n_v, "n_states": n_x, "n_shocks": n_u,
                  "order2_missing": False, "moments_status": "NOT_REQUESTED" if not dyn_moments else ("UNAVAILABLE" if unavailable_moments else "COMPARED"),
-                 "covariance_status": covariance_status, "max_deviations": maxima},
+                 "covariance_status": covariance_status, "max_deviations": maxima,
+                 "moments_excluded": excluded},
     )
 
 

@@ -9,6 +9,14 @@ ROOT = Path(__file__).resolve().parents[1]  # package root (README.md, docs/, no
 
 # User-facing docs that get a docs/es/<same-name> Spanish version (exact case).
 _USER_DOCS = [
+    "sw07_estimator_experiment.md",
+    "distributional_trade_ge.md",
+    "empirical_research.md",
+    "sw07_finite_sample.md",
+    "research_workflows.md",
+    "research_benchmarks.md",
+    "structural_bridge.md",
+    "trade_distributional.md",
     "index.md",
     "quickstart.md",
     "dsge_build.md",
@@ -64,6 +72,20 @@ _USER_DOCS = [
     "real_time_latam.md",
     "trade_gpu.md",
     "policy_simulators.md",
+    # 4.3.0 trade guides and the validation status page (Spanish mirrors added 2026-09-22).
+    "trade_accounting.md",
+    "trade_welfare.md",
+    "trade_policy.md",
+    "STRUCTURAL_VALIDATION_STATUS.md",
+    # MRIO engines ported from the IO research workspace and the stacked Newton-Krylov.
+    "trade_mrio.md",
+    "trade_condensed.md",
+    "trade_ces_newton.md",
+    "trade_household.md",
+    "trade_continuation.md",
+    "trade_stability.md",
+    "trade_dynamic.md",
+    "dsge_stacked_newton.md",
 ]
 
 
@@ -109,4 +131,3 @@ def test_language_switcher_in_english_readme():
 def test_language_switcher_in_spanish_readme():
     txt = (ROOT / "README.es.md").read_text(encoding="utf-8")
     assert "English" in txt[:600], "language switcher missing from the top of README.es.md"
-

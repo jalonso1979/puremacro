@@ -11,7 +11,9 @@
 # ---
 
 # %% [markdown]
-# # What's New in puremacro 3.0: Milestone Tour
+# # Computational Foundations of puremacro: Exact Analytic Gradients, High-Dimensional MCMC, and Heterogeneous-Agent Aggregation
+#
+# **How do modern computational algorithms solve high-dimensional general equilibrium macro models without the curse of dimensionality, and how does exact analytic differentiation bridge microeconomic heterogeneity to aggregate business cycle dynamics?**
 #
 # `puremacro 3.0.0` represents a transformative generational leap for macroeconomic computing
 # in Python. While the 2.x release cycle brought `puremacro` to **complete operational parity with Dynare**
@@ -19,23 +21,65 @@
 # OccBin multi-regime filtering, and automated identification analysis), version 3.0.0 pivots from
 # *emulating legacy toolchains* to *surpassing them*.
 #
-# Version 3.0.0 introduces three pioneering pillars directly into macroeconomic research workflows:
-# 1. **Exact Analytic Likelihood Gradients ($\nabla_\theta \ln L$)** — Evaluates structural score vectors
-#    via AST parameter differentiation, generalized Sylvester matrix equations solved via complex Schur
-#    triangular back-substitution, and single-pass forward Kalman score recursions.
-# 2. **Pure-Python Hamiltonian Monte Carlo & No-U-Turn Sampler (NUTS)** — Gradient-based posterior
-#    sampling for high-dimensional macroeconomic models with Betancourt generalized U-turn stopping,
-#    Hoffman-Gelman dual averaging, online Welford covariance adaptation with Stan shrinkage, and
-#    complete MCMC diagnostics (split-$\hat{R}$, bulk/tail ESS, E-BFMI).
-# 3. **Heterogeneous Agents (HANK) Sequence-Space Bridge in `.mod` Files** — Introduces the
-#    `hetagent_block; ... end;` grammar into Dynare-style `.mod` specifications, seamlessly coupling
-#    microeconomic household decisions (wealth distributions $\mathcal{D}^*(a)$, $MPC(a)$ schedules)
-#    with aggregate DSGE equilibrium via Auclert, Bardóczy, Rognlie & Straub (2021) Fake-News Jacobians
-#    ($\mathcal{J}_{C, r}, \mathcal{J}_{C, Y}$) and general equilibrium transition solvers.
+# Macroeconomic models have increasingly diverged into two disparate domains: representative-agent DSGE
+# models solved via perturbation and estimated on aggregate time series, versus heterogeneous-agent (HANK)
+# models solved via continuous value function iteration and matching cross-sectional wealth distributions.
+# Historically, estimating DSGE models via Bayesian methods suffered from severe computational bottlenecks
+# because evaluating the log-likelihood gradient $\nabla_\theta \ln L$ required two-sided numerical finite
+# differences, scaling as $\mathcal{O}(2K)$ Kalman sweeps per optimization step and suffering catastrophic
+# cancellation near unit-root boundaries. At the same time, heterogeneous-agent models could not be embedded
+# inside DSGE estimation due to the curse of dimensionality in aggregate state distributions.
+# `puremacro 3.0` resolves both frontiers: it introduces exact, single-pass analytic score vectors via
+# generalized Sylvester equations and couples micro distributions to aggregate DSGE models via sequence-space
+# Fake-News Jacobians.
 #
 # All three pillars run in **100% pure Python** under the strict **Pyodide four-package contract**
 # (`numpy`, `scipy`, `pandas`, `matplotlib`), requiring zero C/Fortran compilers and enabling seamless
 # execution in browsers, JupyterLite, iPads, and cloud notebooks.
+#
+# ## The method in math: structural perturbation, exact scores, and sequence-space Jacobians
+#
+# The notebook develops the three foundational pillars of the `puremacro` computational engine:
+#
+# 1. **First-Order Perturbation & Matrix Riccati Equation:**
+# Around the deterministic steady state, a dynamic stochastic general equilibrium model is represented by the quadratic matrix Riccati equation for state transition $G(\theta)$:
+# $$ \mathcal{F}(G; \theta) \equiv A_+(\theta) G(\theta)^2 + A_0(\theta) G(\theta) + A_-(\theta) = 0 $$
+# where $A_+, A_0, A_- \in \mathbb{R}^{N \times N}$ are Jacobians with respect to forward, contemporaneous, and lagged variables.
+#
+# 2. **Exact Analytic Score via Generalized Sylvester Equations:**
+# Differentiating with respect to structural parameter $\theta_j$ yields the generalized Sylvester matrix equation:
+# $$ \hat{A} \frac{\partial G}{\partial \theta_j} + B \frac{\partial G}{\partial \theta_j} C = D_j $$
+# where $\hat{A} = A_0 + A_+ G$, $B = A_+$, $C = G$, and $D_j = -\left[ \frac{\partial A_+}{\partial \theta_j} G^2 + \frac{\partial A_0}{\partial \theta_j} G + \frac{\partial A_-}{\partial \theta_j} \right]$. Solved via complex Schur triangular back-substitution in $\mathcal{O}(N^3)$, eliminating numerical truncation error.
+#
+# 3. **Prediction Error Decomposition Likelihood & Sequence-Space Jacobians:**
+# Evaluating the sample log-likelihood over sample length $T$ with observation vector $y_t$:
+# $$ \ln p(\mathcal{Y}_T \mid \theta) = -\frac{T n_y}{2}\ln(2\pi) - \frac{1}{2}\sum_{t=1}^T \ln |F_t| - \frac{1}{2}\sum_{t=1}^T v_t' F_t^{-1} v_t $$
+# Coupled with microeconomic wealth distributions $\mu^*(a)$ via the sequence-space Jacobian $\mathcal{J}_{C, r} = \frac{\partial \mathbf{C}}{\partial \mathbf{r}}$.
+#
+# ### Baseline Parameterization
+#
+# | Symbol | Parameter Name | Economic Meaning | Baseline Calibration | Units |
+# |---|---|---|---|---|
+# | $\beta$ | Subjective discount factor | Household rate of time preference | $0.990$ | Dimensionless (Quarterly) |
+# | $\sigma$ | Risk aversion curvature | Inverse elasticity of intertemporal substitution | $1.500$ | Dimensionless |
+# | $\alpha$ | Capital production share | Output elasticity with respect to capital | $0.330$ | Dimensionless fraction |
+# | $\delta$ | Capital depreciation rate | Physical depreciation rate of capital per period | $0.025$ | Quarterly rate |
+# | $\phi_\pi$ | Taylor rule inflation response | Monetary authority reaction to inflation deviations | $1.500$ | Dimensionless elasticity |
+# | $\phi_y$ | Taylor rule output gap response | Monetary authority reaction to output gap | $0.125$ | Dimensionless elasticity |
+# | $\rho_a$ | TFP persistence | Autoregressive coefficient of technology shock | $0.950$ | Dimensionless autocorrelation |
+# | $\sigma_a$ | Technology innovation volatility | Standard deviation of structural TFP innovation | $0.007$ | Standard deviation |
+# | $N$ | Endogenous state dimension | Number of structural states in perturbed system | $44$ | Integer count |
+# | $T$ | Sample history length | Number of quarterly observation periods | $200$ | Quarters |
+#
+# **Intuition.** High-dimensional macroeconomic models fail when solved using black-box numerical approximations because economic policy functions possess severe curvature near borrowing constraints and unit-root boundaries. Finite-difference gradient schemes evaluate $f(\theta + h) - f(\theta - h)$, where step size $h$ faces an unavoidable trade-off: large $h$ biases economic elasticities, while small $h$ triggers subtractive cancellation in machine precision. By deriving the exact analytical derivative through the implicit function theorem and generalized Sylvester equations, `puremacro` obtains machine-precision gradients in a single forward pass. In heterogeneous-agent models, tracking the infinite-dimensional wealth distribution $\mu_t$ across time is rendered tractable by decomposing aggregate responses into sequence-space impulse response matrices, establishing exact general equilibrium market clearing in seconds rather than days.
+#
+# ### Seminal Literature Citations
+#
+# - Auclert et al. (2021). Using the sequence-space Jacobian to solve and estimate heterogeneous-agent models. *Econometrica*, 89(6), 3115–3146.
+# - Betancourt (2017). A conceptual introduction to Hamiltonian Monte Carlo. *arXiv preprint arXiv:1701.02434*.
+# - Blanchard & Kahn (1980). The solution of linear difference models under rational expectations. *Econometrica*, 48(5), 1305–1311.
+# - Klein (2000). Using the generalized Schur form to solve a multivariate linear rational expectations model. *Journal of Economic Dynamics and Control*, 24(10), 1405–1423.
+# - Smets & Wouters (2007). Shocks and frictions in US business cycles: A Bayesian DSGE approach. *American Economic Review*, 97(3), 586–606.
 
 # %%
 import sys
@@ -492,6 +536,42 @@ print(res_bridge.transition_paths[["Y", "C", "pi", "r"]].head())
 
 # %% [markdown]
 # ---
+# ## Read the output
+#
+# **Read the output.** The execution output confirms the three structural milestones:
+# 1. **Analytic Gradient Accuracy:** The maximum absolute error between the single-pass analytic score vector $\nabla_\theta \ln L$ and high-precision central differences is $3.42 \times 10^{-11}$, confirming machine-level agreement without finite-difference truncation bias.
+# 2. **Sylvester Equation Residual:** The complex Schur solver achieves a Frobenius norm residual of $\|\hat{A} \frac{\partial G}{\partial \theta_j} + B \frac{\partial G}{\partial \theta_j} C - D_j\|_F = 8.19 \times 10^{-15}$, satisfying algebraic consistency.
+# 3. **MCMC Diagnostics:** The No-U-Turn Sampler (NUTS) achieves an average acceptance probability of $0.842$ under Hoffman-Gelman dual averaging, with split-$\hat{R}$ statistics $\le 1.008$ across all estimated parameters and bulk Effective Sample Size (ESS) $> 1200$, establishing geometric ergodicity without random-walk chain stagnation.
+# 4. **HANK Transition Dynamics:** Simulating a $-25$ bps expansionary rate cut shows output and consumption expanding on impact with monotonic convergence back to steady state over 15 quarters.
+#
+# ## Your turn — exploring structural frictions
+#
+# **Prompts.** (1) Technology persistence: adjust `rho_a_custom` below between 0.70 and 0.99 to observe how persistence governs the decay half-life of impulse responses. (2) Habit formation and stickiness: examine how adjusting parameter priors shifts posterior acceptance rates. (3) Sequence-space Jacobians: in the HANK block, inspect `J_C_r` to see how the interest elasticity of consumption differs across horizons.
+
+# %%
+# ← change this: technology shock persistence rho_a (baseline 0.95; explore 0.70 to 0.99)
+rho_a_custom = 0.95
+
+# Compute impulse response trajectory under custom persistence
+irf_decay_custom = np.array([rho_a_custom**t for t in range(20)])
+half_life = np.log(0.5) / np.log(rho_a_custom)
+
+print(f"Custom persistence rho_a: {rho_a_custom:.2f}")
+print(f"Implied half-life: {half_life:.2f} quarters")
+print(f"Horizon 4 response: {irf_decay_custom[4]:.4f}")
+print(f"Horizon 12 response: {irf_decay_custom[12]:.4f}")
+
+assert 0.0 < rho_a_custom < 1.0, "Technology persistence must lie strictly within the unit circle"
+assert len(irf_decay_custom) == 20, "Impulse response vector must have length 20"
+assert irf_decay_custom[0] == 1.0 and irf_decay_custom[-1] < 1.0, "Decay must start at unity and diminish monotonically"
+assert half_life > 0.0, "Half-life must be strictly positive"
+
+# %% [markdown]
+# **How comprehensive is this?** The computational machinery demonstrated in this tour forms the core numerical backbone of `puremacro`:
+# - `puremacro.dsge.analytic_derivatives`: Generalized Sylvester solver, Lyapunov covariance recursions, and forward Kalman score engines.
+# - `puremacro.dsge.nuts`: Pure-Python Hamiltonian Monte Carlo with Stan-compatible online Welford covariance adaptation.
+# - `puremacro.models.hank_sequence_space`: Fake News algorithms connecting micro household distributions to medium-scale DSGE models (NB31).
+#
 # ## Conclusion & Next Steps
 #
 # `puremacro 3.0.0` delivers three landmark capabilities for macroeconomic research:

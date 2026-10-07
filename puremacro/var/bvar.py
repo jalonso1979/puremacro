@@ -11,17 +11,51 @@ Prior structure (Litterman 1986, with Doan-Litterman-Sims 1984 lag decay):
 - Intercept: diffuse prior (very large variance).
 - σ_i estimated from a univariate AR(p) on each y_i.
 
-Full posterior sampling (Gibbs) is deferred to v2. This function returns
-the posterior MEAN coefficients only.
+Two posteriors are offered, and they differ in what λ₂ can do:
+
+- :func:`minnesota_posterior` solves one Theil-Goldberger mixed regression
+  per equation, so the own/cross factor λ₂ is honoured exactly. It returns
+  the posterior MEAN only.
+- :func:`minnesota_gibbs`, :func:`minnesota_optimal_lambda` (and the private
+  ``_minnesota_log_marginal_likelihood``) use the conjugate
+  Normal-inverse-Wishart (NIW) prior ``vec(B) | Ψ ~ N(vec(B₀), Ψ ⊗ Ω₀)``.
+  Its Kronecker structure gives every equation the same prior covariance up
+  to the scale Ψ_ii, so a cross-variable factor cannot be represented:
+  BGR impose the Minnesota prior on the NIW "under the condition that
+  θ = 1" (ECB WP 966, 2008, p. 11), i.e. λ₂ = 1. These paths default to
+  λ₂ = 1 and warn, then use 1, when another value is requested. Their
+  dummy block is BGR eq. (5) with lag decay ``k^λ₃`` in place of ``k``.
 """
 from __future__ import annotations
 
+import warnings
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
 from .._linalg import inv_xtx, safe_cholesky
+
+
+def _niw_lambda2(lambda2: float, caller: str, stacklevel: int = 3) -> float:
+    """Return the only λ₂ the conjugate NIW prior can encode (1.0).
+
+    Warns when the caller asked for anything else. BGR (2010) impose the
+    Minnesota prior on the Normal-inverse-Wishart "under the condition that
+    θ = 1" because ``Ψ ⊗ Ω₀`` has no own-vs-cross factor per equation.
+    """
+    if not np.isclose(float(lambda2), 1.0, rtol=0.0, atol=1e-12):
+        warnings.warn(
+            f"{caller}: lambda2={lambda2!r} cannot be represented by the "
+            "conjugate Normal-inverse-Wishart Minnesota prior, whose Kronecker "
+            "covariance has no own-vs-cross factor (Banbura, Giannone and "
+            "Reichlin 2010 require theta = 1). Using lambda2=1.0. For a "
+            "cross-variable shrinkage factor use minnesota_posterior, which "
+            "solves each equation separately.",
+            UserWarning,
+            stacklevel=stacklevel,
+        )
+    return 1.0
 
 
 def _univariate_sigma(y: np.ndarray, p: int) -> float:
@@ -60,6 +94,11 @@ def minnesota_posterior(
         Overall prior tightness. Smaller = tighter (more shrinkage to RW).
     lambda2 : float
         Cross-variable shrinkage. Smaller = more shrinkage to AR(1).
+        Honoured exactly: each equation is a separate Theil-Goldberger
+        mixed regression, so the own and cross prior sds can differ. (The
+        NIW paths, :func:`minnesota_gibbs` and :func:`minnesota_optimal_lambda`,
+        can only use ``lambda2 = 1``; at that value their posterior mean
+        equals this function's.)
     lambda3 : float
         Lag-decay exponent. Larger = faster decay of prior std with k.
     intercept_prior_std : float
@@ -201,14 +240,33 @@ def _build_minnesota_dummies(
     lambda3: float,
     intercept_prior_std: float,
 ):
-    """Construct the (Y_d, X_d) Banbura-Giannone-Reichlin dummy block.
+    """Construct the Banbura-Giannone-Reichlin (2010) eq. (5) dummy block
+    for the conjugate Normal-inverse-Wishart Minnesota prior.
 
-    The augmented system
-        [Y; Y_d] = [X; X_d] @ B + [u; u_d]
-    has Normal-Inverse-Wishart conjugate posterior. Returns the augmented
-    OLS posterior moments needed by both ``minnesota_posterior`` and
-    ``minnesota_gibbs``.
+    The augmented system ``[Y; Y_d] = [X; X_d] B + [u; u_d]`` has the NIW
+    posterior used by :func:`minnesota_gibbs` and by the marginal
+    likelihood. (:func:`minnesota_posterior` does not use this block; it
+    builds its own per-equation dummies so that it can honour λ₂.)
+
+    Rows, in order (``n`` variables, ``p`` lags, ``k_reg = 1 + n p``):
+
+    * ``n p`` lag rows, one per (lag ``k``, variable ``j``), row
+      ``(k-1) n + j``: ``X_d[row, 1+(k-1)n+j] = σ_j k^λ₃ / λ₁`` and
+      ``Y_d[row, j] = σ_j / λ₁`` if ``k = 1`` else 0. The implied prior mean
+      ``B₀ = (X_d'X_d)⁻¹ X_d'Y_d`` is 1 on every own first lag and 0
+      elsewhere; the implied prior sd of coefficient (i, j, k) is
+      ``λ₁ σ_i / (k^λ₃ σ_j)`` — the Minnesota moments with λ₂ = 1.
+      With λ₃ = 1 this is BGR eq. (5), ``J_p ⊗ diag(σ)/λ``.
+    * ``n`` rows ``Y_d = diag(σ)``, ``X_d = 0`` for the residual covariance.
+    * 1 intercept row ``X_d[:, 0] = 1 / intercept_prior_std``.
+
+    ``lambda2`` is accepted for signature compatibility and ignored: the
+    Kronecker prior covariance ``Ψ ⊗ Ω₀`` cannot scale a coefficient
+    differently in its own equation and in the others, so BGR impose
+    θ = λ₂ = 1 (ECB WP 966, p. 11). The public NIW callers warn when
+    λ₂ ≠ 1 is requested.
     """
+    del lambda2  # not representable under NIW; see docstring
     T, n = Y_arr.shape
     k_reg = 1 + n * p
     Y_dep = Y_arr[p:]
@@ -220,47 +278,25 @@ def _build_minnesota_dummies(
         X_rows.append(row)
     X = np.array(X_rows)
 
-    # Build dummy block: prior on coefficients + sigma + intercept.
-    Yd_rows: list[Any] = []
-    Xd_rows: list[Any] = []
+    n_rows = n * p + n + 1
+    Yd = np.zeros((n_rows, n))
+    Xd = np.zeros((n_rows, k_reg))
+    # Lag rows: one per (k, j), a single non-zero regressor each.
     for k in range(1, p + 1):
         for j in range(n):
-            xd_row = np.zeros(k_reg)
-            for eq in range(n):
-                if eq != j:
-                    continue
-                # Per-equation own-vs-cross scale (we encode the diagonal
-                # of the prior precision; off-diagonal uses lambda1*lambda2).
-                pass
-    # We build dummies in a *stacked* form so the same X_d / Y_d feed
-    # all n equations simultaneously (BGR equation-by-equation: extend
-    # X_d with one block per coefficient slot).
-    Yd = np.zeros((n * p * n + n + 1, n))
-    Xd = np.zeros((n * p * n + n + 1, k_reg))
-    row_idx: int = 0
-    for k in range(1, p + 1):
-        for j in range(n):
+            row_idx = (k - 1) * n + j
             xd_coeff = sigmas[j] * (k ** lambda3) / lambda1
-            cross_coeff = sigmas[j] * (k ** lambda3) / (lambda1 * lambda2)
-            for eq in range(n):
-                # Coefficient of y_j at lag k in equation eq:
-                # diagonal slot in the regressor row; prior mean = 1 if k==1 and j==eq else 0.
-                if eq == j:
-                    Xd[row_idx, 1 + (k - 1) * n + j] = xd_coeff
-                    Yd[row_idx, eq] = (1.0 if k == 1 else 0.0) * xd_coeff
-                else:
-                    Xd[row_idx, 1 + (k - 1) * n + j] = cross_coeff
-                    Yd[row_idx, eq] = 0.0
-            row_idx += 1
+            Xd[row_idx, 1 + (k - 1) * n + j] = xd_coeff
+            if k == 1:
+                # prior mean δ_j = 1 (random walk) on the own first lag
+                Yd[row_idx, j] = xd_coeff
     # Sigma dummies: one per equation.
     for eq in range(n):
-        Yd[row_idx, eq] = sigmas[eq]
-        row_idx += 1
+        Yd[n * p + eq, eq] = sigmas[eq]
     # Intercept dummy.
-    Xd[row_idx, 0] = 1.0 / intercept_prior_std
-    row_idx += 1
+    Xd[n_rows - 1, 0] = 1.0 / intercept_prior_std
 
-    return Y_dep, X, Yd[:row_idx], Xd[:row_idx]
+    return Y_dep, X, Yd, Xd
 
 
 def minnesota_gibbs(
@@ -271,7 +307,7 @@ def minnesota_gibbs(
     n_draws: int = 1000,
     burn: int = 500,
     lambda1: float = 0.2,
-    lambda2: float = 0.5,
+    lambda2: float = 1.0,
     lambda3: float = 1.0,
     intercept_prior_std: float = 1e3,
     rng: np.random.Generator | None = None,
@@ -279,17 +315,38 @@ def minnesota_gibbs(
     """Posterior draws from a Minnesota-prior BVAR via the Normal-Inverse-
     Wishart conjugate posterior (Banbura-Giannone-Reichlin 2010).
 
-    The Minnesota prior is encoded as dummy observations; the augmented
-    OLS system has a closed-form NIW posterior:
+    The Minnesota prior is encoded as the BGR eq. (5) dummy observations
+    (see ``_build_minnesota_dummies``); the augmented OLS system has a
+    closed-form NIW posterior:
 
-        Sigma | Y ~ IW(S_post, nu_post)
+        Sigma | Y ~ IW(S_post, nu_post),  nu_post = T_d + 2 + T - k
         vec(B) | Sigma, Y ~ N(vec(B_post), Sigma kron (X*'X*)^{-1})
 
+    (BGR eq. 7; ``T_d`` dummy rows, ``T`` observations after the ``p``
+    initial lags, ``k = 1 + n p``; the ``+ 2`` comes from the improper prior
+    ``|Sigma|^{-(n+3)/2}``. puremacro 4.4.0 and earlier used
+    ``T_d + T - k``.)
 
-    where (Y*, X*) stack data and dummies.
+    where (Y*, X*) stack data and dummies, ``B`` is ``(1 + n p, n)`` with the
+    intercept in row 0 and ``A_k[i, j]`` (coefficient of ``y_j`` at lag ``k``
+    in equation ``i``) in row ``1 + (k-1) n + j``, column ``i``.
+
+    Prior moments (Minnesota with θ = λ₂ = 1): mean 1 on every own first
+    lag and 0 elsewhere; sd ``λ₁ σ_i / (k^λ₃ σ_j)`` for the coefficient of
+    ``y_j`` at lag ``k`` in equation ``i``; ``σ_i`` is the residual sd of a
+    univariate AR(p) on ``y_i``, in the units of ``Y``.
 
     Parameters
     ----------
+    lambda1 : float — overall tightness λ₁ (smaller = closer to a random walk).
+    lambda2 : float — cross-variable factor. The NIW prior can only encode
+              λ₂ = 1 (BGR 2010, "under the condition that θ = 1"); any other
+              value raises a ``UserWarning`` and 1.0 is used. Use
+              :func:`minnesota_posterior` for λ₂ ≠ 1 (posterior mean only).
+              In puremacro 4.3.0 and earlier the default was 0.5 and a bug
+              in the dummy block centred the own first lag of every variable
+              but the last on λ₂ instead of 1.
+    lambda3 : float — lag-decay exponent λ₃.
     n_draws : int — number of post-burn-in draws.
     burn    : int — burn-in (kept for interface symmetry; the conjugate
               posterior does not require it but burning improves
@@ -302,7 +359,10 @@ def minnesota_gibbs(
         A_draws       : (n_draws, p, n, n)
         Sigma_draws   : (n_draws, n, n)
         intercept_draws : (n_draws, n)
-        nu_post       : posterior degrees of freedom
+        A_mean        : (p, n, n) exact posterior mean of the A_k (B_post)
+        intercept_mean : (n,) exact posterior mean of the intercept
+        nu_post       : posterior degrees of freedom of Sigma, T_d + 2 + T - k
+        lambda1, lambda2, lambda3 : hyperparameters actually used
     """
     if lags is not None:
         if p is not None and p != lags:
@@ -311,6 +371,7 @@ def minnesota_gibbs(
     if p is None:
         raise ValueError("Must specify lag order via positional `p` or keyword `lags=...`")
 
+    lambda2 = _niw_lambda2(lambda2, "minnesota_gibbs")
     if rng is None:
         rng = np.random.default_rng()
     Y_arr = np.asarray(Y, dtype=float)
@@ -325,7 +386,10 @@ def minnesota_gibbs(
     B_post = XtX_inv @ X_aug.T @ Y_aug                       # (k, n)
     resid = Y_aug - X_aug @ B_post
     S_post = resid.T @ resid                                  # (n, n)
-    nu_post = Y_aug.shape[0] - X_aug.shape[1]
+    # BGR (2010) eq. (7): with the improper prior |Psi|^-(n+3)/2 that makes the
+    # prior mean of Psi exist, Psi | Y ~ iW(S_post, T_d + 2 + T - k). Up to
+    # 4.4.0 the "+ 2" was missing (docs/ADVISORY.md).
+    nu_post = Y_aug.shape[0] + 2 - X_aug.shape[1]
 
     # Pre-Cholesky once with scale-invariant relative jitter; redraw each iter
     diag_kron = np.diag(XtX_inv)
@@ -351,11 +415,14 @@ def minnesota_gibbs(
     A_draws = np.empty((n_draws, p, n, n))
     for k in range(p):
         A_draws[:, k] = B_draws[:, 1 + k * n : 1 + (k + 1) * n, :].transpose(0, 2, 1)
+    A_mean = np.stack([B_post[1 + k * n: 1 + (k + 1) * n, :].T for k in range(p)])
 
     return {
         "A_draws": A_draws,
         "Sigma_draws": Sigma_draws,
         "intercept_draws": intercept_draws,
+        "A_mean": A_mean,
+        "intercept_mean": B_post[0, :].copy(),
         "nu_post": int(nu_post),
         "lambda1": float(lambda1),
         "lambda2": float(lambda2),
@@ -396,24 +463,27 @@ def _minnesota_log_marginal_likelihood(
     Y_arr: np.ndarray,
     p: int,
     lambda1: float,
-    lambda2: float,
-    lambda3: float,
-    intercept_prior_std: float,
+    lambda2: float = 1.0,
+    lambda3: float = 1.0,
+    intercept_prior_std: float = 1e3,
 ) -> float:
     """Compute the log marginal likelihood of a Minnesota-prior BVAR
     via the dummy-observation representation (Banbura-Giannone-Reichlin
     2010 / Giannone-Lenza-Primiceri 2015 eq. 3).
 
     For the conjugate Normal-Inverse-Wishart prior implied by the
-    Minnesota dummy observations, the marginal likelihood is
+    BGR eq. (5) dummies (``T_d`` rows, ``k = 1 + n p`` regressors;
+    ``*`` marks data stacked on dummies, ``ν = rows - k``), the value is
 
-        log p(Y | λ) = const + (T_d - k)/2 * log|S_post| - (T - k)/2 * log|S_aug|
-                       + log Γ_n((T_aug - k)/2) - log Γ_n((T_d - k)/2)
-                       + ...
+        log p(Y | λ) = log Γ_n(ν*/2) - log Γ_n(ν_d/2)
+                       - n/2 (log|X*'X*| - log|X_d'X_d|)
+                       - ν*/2 log|S*| + ν_d/2 log|S_d| - n T/2 log π
 
-    Up to an additive constant we collect the data-dependent terms; the
-    relative argmax over hyperparameters is what we need.
+    with ``S`` the residual cross-product of each OLS. Only the argmax
+    over hyperparameters is used. ``lambda2`` must be 1 (the NIW prior
+    cannot encode another value; a ``UserWarning`` is raised and 1 used).
     """
+    _niw_lambda2(lambda2, "_minnesota_log_marginal_likelihood")
     T, n = Y_arr.shape
     sigmas = np.array([_univariate_sigma(Y_arr[:, i], p) for i in range(n)])
     Y_dep, X, Yd, Xd = _build_minnesota_dummies(
@@ -471,16 +541,24 @@ def minnesota_optimal_lambda(
     lags: int | None = None,
     intercept_prior_std: float = 1e3,
     lambda1_grid=(0.05, 0.1, 0.2, 0.3, 0.5, 1.0, 2.0),
-    lambda2_grid=(0.5, 1.0),
+    lambda2_grid=(1.0,),
     lambda3_grid=(1.0, 2.0),
 ) -> dict:
     """Empirical-Bayes choice of Minnesota hyperparameters via marginal
     likelihood maximisation (Giannone-Lenza-Primiceri 2015).
 
-    Grids over ``λ_1, λ_2, λ_3`` and returns the triple maximising the
-    log marginal likelihood. This is the cheap "good default" version
-    of GLP 2015; their full hierarchical procedure also optimises over
-    a Sum-of-Coefficients prior tightness, which we omit for brevity.
+    Grids over ``λ_1`` and ``λ_3`` and returns the pair maximising the
+    log marginal likelihood of the conjugate NIW Minnesota prior. This is
+    the cheap "good default" version of GLP 2015; their full hierarchical
+    procedure also optimises over a Sum-of-Coefficients prior tightness,
+    which we omit for brevity.
+
+    ``λ_2`` is fixed at 1: the NIW prior cannot encode a cross-variable
+    factor (BGR 2010 impose θ = 1), so the marginal likelihood does not
+    depend on it. ``lambda2_grid`` is kept for backward compatibility;
+    values other than 1.0 are dropped with a ``UserWarning`` (in
+    puremacro 4.3.0 and earlier the default grid was ``(0.5, 1.0)`` and
+    the 0.5 entry evaluated a prior mis-centred by a dummy-block bug).
     """
     if lags is not None:
         if p is not None and p != lags:
@@ -488,6 +566,19 @@ def minnesota_optimal_lambda(
         p = lags
     if p is None:
         raise ValueError("Must specify lag order via positional `p` or keyword `lags=...`")
+
+    dropped = [l2 for l2 in lambda2_grid
+               if not np.isclose(float(l2), 1.0, rtol=0.0, atol=1e-12)]
+    if dropped:
+        warnings.warn(
+            f"minnesota_optimal_lambda: lambda2_grid values {dropped} dropped; "
+            "the conjugate Normal-inverse-Wishart Minnesota prior can only "
+            "encode lambda2 = 1 (Banbura, Giannone and Reichlin 2010 require "
+            "theta = 1), so the grid over lambda2 is (1.0,).",
+            UserWarning,
+            stacklevel=2,
+        )
+    lambda2_grid = (1.0,)
 
     Y_arr = np.asarray(Y, dtype=float)
     best: tuple[float, Any] = (-np.inf, None)

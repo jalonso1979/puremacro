@@ -271,8 +271,9 @@ def test_event_study_path_close_to_callaway_santanna():
     es = cs.att_event_study.set_index("event_time")
     lp_path = lp.post.set_index("h")["beta"]
     for h in range(0, 6):
-        # Loose tolerance: CS uses never-treated controls and an unweighted
-        # cohort mean; LP-DiD pools not-yet + never-treated with event weights.
+        # Loose tolerance: CS uses never-treated controls and cohort-size
+        # weights (eq. 3.4); LP-DiD pools not-yet + never-treated with event
+        # weights.
         assert abs(lp_path.loc[h] - es.loc[h, "att"]) < 0.25, h
 
 

@@ -181,12 +181,13 @@ CASES: list[ValidationCase] = [
         reference="lp:jorda_hac_se_vs_statsmodels",  # frozen golden
         tol=Tol.TIGHT,  # HAC SE agrees to ~1e-15; NUMERIC (1e-2) would accept a 1%-wrong SE
         citation=(
-            "Newey & West (1987, Econometrica 55(3):703-708); Plagborg-Møller & "
-            "Wolf (2021, Econometrica 89(2):955-980) bandwidth L=h+1. Reference: "
+            "Newey & West (1987, Econometrica 55(3):703-708). Truncation lag "
+            "L=h+1 is a rule-of-thumb convention (the h-step residual is "
+            "MA(h)); no published source is claimed for it. Reference: "
             "statsmodels 0.14.6 OLS.fit(cov_type='HAC', maxlags=h+1, "
             "use_correction=False) — raw Bartlett sandwich."
         ),
-        notes="HAC SE compared at NUMERIC tier (cross-package sandwich arithmetic).",
+        notes="HAC SE compared at TIGHT tier (cross-package sandwich arithmetic agrees to ~1e-15).",
     ),
     ValidationCase(
         id="lp.iv_beta_vs_linearmodels_iv2sls",

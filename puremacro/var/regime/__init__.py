@@ -1,6 +1,7 @@
 """Regime-switching extensions of the VAR.
 
-- ``ms_var_fit`` : Markov-switching VAR (Hamilton filter + Kim smoother + EM).
+- ``ms_var_fit`` : MSIH Markov-switching VAR with shared AR matrix (Hamilton
+  filter + Kim smoother + ECM).
 - ``tvar_fit``    : self-exciting threshold VAR (Tsay 1998).
 - ``tvecm_fit``   : threshold VECM (Hansen-Seo 2002, simplified).
 - ``girf``        : Koop-Pesaran-Potter (1996) generalized IRF for all three.

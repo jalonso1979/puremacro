@@ -11,46 +11,35 @@
 # ---
 
 # %% [markdown]
-# # Applied Real-Time Nowcasting and News Release Decomposition
+# # Applied Nowcasting: A Held-Out GDP Target and Release Diagnostics
 #
-# **How can statistical agencies and central banks nowcast quarterly GDP growth in real time from asynchronous, mixed-frequency monthly indicators with ragged edges, and systematically decompose nowcast revisions into the unexpected "news" content of incoming data releases?**
+# **How can monthly indicators with publication delays help estimate GDP before its quarterly release?**
 #
-# Official National Accounts statistics and quarterly Gross Domestic Product (GDP) reports are published with substantial reporting delays—often four to eight weeks after the close of the reference quarter. However, central bank monetary policy committees, fiscal authorities, and financial market participants require timely and continuous assessments of prevailing macroeconomic conditions to make informed decisions. Dynamic Factor Models (DFMs; Giannone, Reichlin & Small 2008, *Journal of Monetary Economics*) provide the econometric workhorse used at institutions like the Federal Reserve Board, the European Central Bank, and the Bank of England to solve this real-time information friction.
+# This offline example generates six monthly indicators and quarterly GDP from a fixed seed. The series names are illustrative: none of the values or release dates are official observations. We remove the target-quarter GDP observation before fitting the bridge and retain it only to evaluate the nowcast.
 #
-# By exploiting the high-dimensional co-movement across dozens of monthly economic indicators (industrial production, payroll employment, retail sales, capacity utilization, business sentiment surveys), DFMs synthesize disparate data flows into a small number of latent business cycle factors, bridge monthly indicators to quarterly national accounts, handle asynchronous "ragged edges" caused by publication lags, and decompose forecast revisions into the unexpected surprise (news) of each release multiplied by its structural econometric weight. Finally, the Mankiw-Shapiro (1986) test formally evaluates whether historical data revisions represent efficient information updating (*news*) or noisy measurement error (*noise*).
-#
-# With **puremacro**, this entire state-space nowcasting and real-time news decomposition suite runs in **100% pure Python / Pyodide** using only the four-package core (`numpy`, `scipy`, `pandas`, `matplotlib`), ensuring instant in-browser execution with zero external dependencies.
+# `nowcast_gdp` combines iterative PCA, a factor VAR, and a quarterly bridge. Its latest-month `news_decomposition` table reports projection residuals within one vintage; it does not compare two information sets. We distinguish that diagnostic from exact vintage news accounting.
 
 # %% [markdown]
-# ## The method in math — Mixed-Frequency Dynamic Factor Models, Bridge Equations, and News Accounting
+# ## The method in math
 #
-# **Dynamic Factor Model (Giannone, Reichlin & Small 2008).** A high-dimensional panel of $N$ monthly macroeconomic indicators $x_{t, m} = (x_{1, t, m}, \dots, x_{N, t, m})'$ observed at month $m$ of quarter $t$ decomposes into common business cycle factors $F_{t, m} \in \mathbb{R}^K$ and idiosyncratic disturbances $\xi_{t, m}$:
-# $$ x_{t, m} = \Lambda F_{t, m} + \xi_{t, m}, \quad \xi_{t, m} \sim \mathcal{N}(0, \operatorname{diag}(\psi_1^2, \dots, \psi_N^2)) $$
-# where $\Lambda \in \mathbb{R}^{N \times K}$ denotes the factor loadings matrix with $K \ll N$. The latent factors evolve as a VAR(p) process:
-# $$ F_{t, m} = A_1 F_{t, m-1} + \dots + A_p F_{t, m-p} + u_{t, m}, \quad u_{t, m} \sim \mathcal{N}(0, Q) $$
+# The monthly panel follows $x_m = \Lambda F_m + \xi_m$, with persistent latent factors. Iterative PCA fills missing entries using the low-rank reconstruction. A factor VAR supplies forecasts when whole months are missing; the bridge uses the quarterly average $\bar F_q = (F_{3q-2}+F_{3q-1}+F_{3q})/3$:
+# $$y_q = \beta_0 + \beta'\bar F_q + e_q, \qquad \widehat y_{q^*} = \widehat\beta_0 + \widehat\beta'\bar F_{q^*}.$$
+# Only GDP observations with $q<q^*$ enter the regression. Monthly indicators observed at the decision date may enter factor extraction, including those from the target quarter.
 #
-# **Iterative EM-PCA with Ragged-Edge Missing Values (Stock & Watson 2002).** Real-time data panels possess an asynchronous "ragged edge" because indicators are released on different days of the month. The Expectation-Maximization Principal Components Analysis (EM-PCA) algorithm resolves missing observations iteratively. At iteration $k$, missing elements are imputed from the rank-$K$ factor reconstruction:
-# $$ \hat{x}_{i, t, m}^{(k)} = \begin{cases} x_{i, t, m} & \text{if observed} \\ \Lambda_i^{(k-1)} F_{t, m}^{(k-1)} & \text{if missing (ragged edge)} \end{cases} $$
-# Singular value decomposition (SVD) of the completed standardized data matrix $X^{(k)} = U_K S_K V_K'$ updates factors $F^{(k)} = \sqrt{T} U_K$ and loadings $\Lambda^{(k)} = V_K S_K / \sqrt{T}$ until convergence: $\|F^{(k)} - F^{(k-1)}\|_\infty < 10^{-4}$.
+# For a series observed in the latest month, this API reports
+# $$s_j = x_j - (\widehat\mu_j + \widehat\sigma_j\widehat\Lambda_j\widehat F_m),\qquad w_j = \frac{\widehat\beta'(\widehat\Lambda'\widehat\Lambda)^{-1}\widehat\Lambda_j'}{3\widehat\sigma_j},\qquad c_j = w_js_j.$$
+# The fitted factors already incorporate the release. Therefore $s_j$ is a reconstruction residual, not an innovation against an earlier information set, and $\sum_j c_j$ is not an independently measured nowcast revision. Exact two-vintage attribution is a separate API: `puremacro.nowcast.news.banbura_modugno_news`.
 #
-# **Quarterly Bridge Regression to GDP Growth.** Quarterly GDP growth $y_t^Q$ is bridged to the quarterly average of the monthly latent factors $\bar{F}_t^Q = \frac{1}{3}\sum_{m=1}^3 F_{t, m}$:
-# $$ y_t^Q = \beta_0 + \beta_1' \bar{F}_t^Q + \varepsilon_t^Q $$
-# The point nowcast for the target quarter is $\hat{y}_{\text{target}}^Q = \hat{\beta}_0 + \hat{\beta}_1' \bar{F}_{\text{target}}^Q$.
-#
-# **The News Decomposition Identity (Bańbura, Giannone & Reichlin 2011).** When vintage $v_2$ updates vintage $v_1$ with newly released indicators $\{x_j\}$, the nowcast revision decomposes additively into model weight times unexpected release surprise:
-# $$ \text{Nowcast}_{v_2} - \text{Nowcast}_{v_1} = \sum_{j \in \text{new}} \underbrace{\frac{\partial \hat{y}^Q}{\partial x_j}}_{\text{Weight}_j} \times \underbrace{\left( x_j^{\text{actual}} - \mathbb{E}[x_j \mid \mathcal{I}_{v_1}] \right)}_{\text{Surprise}_j} = \sum_{j \in \text{new}} \text{Contribution}_j $$
-# where $\text{Weight}_j = \frac{1}{3 \sigma_j} \beta_1' (\Lambda' \Lambda)^{-1} \Lambda_j'$. The sum of contributions matches the net nowcast revision to machine precision.
-#
-# **Mankiw-Shapiro (1986) News vs. Noise Hypothesis Testing.** For historical revisions $r_t = y_t^{\text{final}} - y_t^{\text{prelim}}$, we estimate the test regressions:
-# $$ r_t = \alpha_p + \beta_p y_t^{\text{prelim}} + \nu_{p, t}, \qquad r_t = \alpha_f + \beta_f y_t^{\text{final}} + \nu_{f, t} $$
-# Under the **News hypothesis** (rational expectations), preliminary estimates efficiently incorporate all available information, so subsequent revisions are orthogonal to preliminary releases ($\beta_p = 0$). Under the **Noise hypothesis** (classical errors-in-variables), preliminary releases measure true GDP with noise, implying $\beta_p = -1$ and $\beta_f = 0$.
+# For revision $r=y^{final}-y^{prelim}$, the news null is $\operatorname{Cov}(r,y^{prelim})=0$; the noise null is $\operatorname{Cov}(r,y^{final})=0$. In our classical-noise simulation, $y^{prelim}=y^{final}+\eta$ with independent $\eta$, so the population slope on preliminary GDP is
+# $$\beta_p=-\frac{\operatorname{Var}(\eta)}{\operatorname{Var}(y^{final})+\operatorname{Var}(\eta)},\qquad \beta_f=0.$$
+# A slope of $-1$ is not the generic noise null. See [Mankiw and Shapiro (1986)](https://www.nber.org/papers/w1939) for the news/noise framework.
 
 # %% [markdown]
 # ## Intuition
 #
-# **Intuition.** Macroeconomic forecasting in real time differs fundamentally from classical out-of-sample econometric forecasting. In real time, the primary challenge is not peering into the distant future, but deciphering what is happening *right now*. Data arrive asynchronously like an incomplete jigsaw puzzle: qualitative soft surveys (such as the PMI and consumer confidence) appear at the close of the reference month, whereas hard quantitative statistics (industrial production, payroll employment, retail sales) arrive with reporting lags of two to six weeks.
+# **Intuition.** A nowcast uses the indicators already available for a quarter whose GDP has not yet been published. Holding out target GDP makes the information boundary explicit. A high bridge $R^2$ describes historical fit; the held-out error answers a different question, and a single quarter is insufficient to establish forecasting performance.
 #
-# Dynamic factor models capitalize on the fact that individual monthly series share common business cycle drivers. When a new statistical indicator is published, its value only updates the GDP nowcast to the extent that it deviates from what the latent factor already anticipated. A high number that was already fully predicted yields zero surprise and zero nowcast revision; an unexpected drop in retail trade moves the nowcast downward according to its structural model weight. Finally, analyzing historical data revisions via the Mankiw-Shapiro test confirms whether statistical releases provide efficient, unbiased rational expectations (*news*) or noisy measurements (*noise*).
+# Estimated PCA factors are identified up to sign and rotation, so their numbering does not establish an economic interpretation. Inspect the loadings before naming a factor. Likewise, failing to reject a revision-test null in a short sample does not prove efficient reporting.
 
 # %%
 import sys
@@ -125,6 +114,11 @@ gdp_true_growth = (
     + rng.normal(0, 0.35, size=len(df_q_agg))
 )
 s_gdp = pd.Series(gdp_true_growth.values, index=df_q_agg.index.to_period("Q"))
+# The target GDP release is unavailable at the simulated decision date.
+# Retain its realization only for evaluation after constructing the nowcast.
+target_quarter = str(s_gdp.index[-1])
+s_gdp_available = s_gdp.iloc[:-1].copy()
+assert s_gdp_available.index.max() < pd.Period(target_quarter, freq="Q")
 
 print(f"[1] Monthly Panel Generated: {df_monthly.shape[0]} months x {df_monthly.shape[1]} series")
 print(f"    Quarterly GDP Series   : {len(s_gdp)} quarters ({s_gdp.index[0]} to {s_gdp.index[-1]})")
@@ -157,8 +151,8 @@ assert not pd.isna(df_ragged.iloc[-1]["pmi_mfg"]), "Survey PMI must be available
 # Run DFM nowcast using EM-PCA factor extraction and quarterly bridge regression
 res_nowcast = nowcast_gdp(
     df_ragged,
-    s_gdp,
-    target_quarter=str(s_gdp.index[-1]),
+    s_gdp_available,
+    target_quarter=target_quarter,
     n_factors=2,
     p_factor_lags=1,
     max_em_iter=50,
@@ -169,6 +163,8 @@ print(f"\n[3] Dynamic Factor Model Nowcast Output ({res_nowcast.target_quarter})
 print(f"  Target Quarter Nowcast : {res_nowcast.nowcast:.4f}%")
 print(f"  Bridge Regression R²   : {res_nowcast.model_r2:.4f}")
 print(f"  Bridge Coefficients    :\n{res_nowcast.bridge_coefficients}")
+print(f"  Held-out GDP realization: {s_gdp.iloc[-1]:.4f}%")
+print(f"  Held-out nowcast error  : {res_nowcast.nowcast - s_gdp.iloc[-1]:+.4f} pp")
 
 # Non-trivial assertions verifying nowcast results
 assert isinstance(res_nowcast, NowcastResult), "Result must be an instance of NowcastResult"
@@ -180,25 +176,26 @@ assert res_nowcast.loadings.shape == (N_indicators, 2), "Factor loadings shape m
 
 # %%
 # ---------------------------------------------------------------------------
-# 4. Decompose Forecast Revisions into News Surprises and Model Weights
+# 4. Inspect Latest-Month Projection Residuals and Weights
 # ---------------------------------------------------------------------------
 news_df = res_nowcast.news_decomposition
-print("\n[4] Real-Time News Release Decomposition Table:")
+print("\n[4] Latest-Month Projection Diagnostics (one vintage):")
 print(news_df.to_string(index=False))
 
-# Verify accounting identity: sum(contributions) == total news revision to machine precision
-total_news_revision = float(news_df["contribution"].sum())
-print(f"\n  Cumulative News Revision: {total_news_revision * 100:+.4f} basis points")
+# These residuals use factors fitted to the same vintage, not old-vintage forecasts.
+total_projected_contribution = float(news_df["contribution"].sum())
+print(f"\n  Sum of Projected Contributions: {total_projected_contribution * 100:+.4f} basis points")
 
-# Assertions verifying news accounting identity
+# Verify the implemented projection algebra against the fitted bridge/loadings.
 assert all(c in news_df.columns for c in ["series", "actual", "forecast", "surprise", "weight", "contribution"])
 assert len(news_df) > 0, "News decomposition must contain evaluated releases"
-np.testing.assert_allclose(
-    news_df["contribution"].sum(),
-    total_news_revision,
-    atol=1e-6,
-    err_msg="News contributions must sum to the net nowcast revision exactly",
+projection_weights = (
+    res_nowcast.bridge_coefficients.iloc[1:].to_numpy()
+    @ np.linalg.pinv(res_nowcast.loadings.to_numpy())
+    / (3.0 * df_ragged.std(ddof=1).to_numpy())
 )
+expected_weights = pd.Series(projection_weights, index=df_ragged.columns)
+np.testing.assert_allclose(news_df["weight"], expected_weights.loc[news_df["series"]], atol=1e-10)
 for _, row in news_df.iterrows():
     np.testing.assert_allclose(
         row["contribution"],
@@ -214,7 +211,7 @@ for _, row in news_df.iterrows():
 # Generate historical preliminary nowcasts and final GDP growth releases
 n_q = len(s_gdp)
 gdp_final = s_gdp.to_numpy(dtype=float)
-# Under realistic statistical reporting: preliminary has small noise/news revision
+# Classical measurement-noise DGP: preliminary = final + independent noise.
 rev_noise = rng.normal(0, 0.4, size=n_q)
 gdp_prelim = gdp_final - rev_noise
 
@@ -222,6 +219,7 @@ gdp_prelim = gdp_final - rev_noise
 ms_test = mankiw_shapiro(gdp_prelim, gdp_final)
 
 print("\n[5] Mankiw-Shapiro (1986) Revision Properties Test:")
+print("  Known Simulation DGP   : NOISE (preliminary = final + independent error)")
 print(f"  Test Verdict           : {ms_test.verdict.upper()}")
 print(f"  Beta on Preliminary (News): {ms_test.beta_on_preliminary:.4f} (p-value: {ms_test.p_beta_on_preliminary:.4f})")
 print(f"  Beta on Final (Noise)     : {ms_test.beta_on_final:.4f} (p-value: {ms_test.p_beta_on_final:.4f})")
@@ -238,7 +236,7 @@ assert ms_test.verdict in ["news", "noise", "indeterminate", "neither"], "Invali
 # ---------------------------------------------------------------------------
 fig, axes = _nbstyle.figura(2, 2, figsize=(13.0, 9.5))
 
-# (1) Realized GDP vs DFM Nowcast Tracking
+# (1) In-sample fitted values and a genuinely held-out target GDP observation
 ax1 = axes[0, 0]
 q_idx = np.arange(len(s_gdp))
 ax1.plot(q_idx, s_gdp.values, color=_nbstyle.TINTA, linewidth=1.8, label="Realized GDP Growth")
@@ -265,14 +263,14 @@ ax1.set_xticks(q_idx[::6])
 ax1.set_xticklabels([str(s_gdp.index[i]) for i in q_idx[::6]], rotation=25)
 ax1.set_xlabel("Quarterly Periods")
 ax1.set_ylabel("Annualized Growth (%)")
-ax1.set_title("(a) Realized GDP Growth vs. DFM Nowcast In-Sample Tracking")
+ax1.set_title("(a) Bridge Fit and Held-Out Target Nowcast")
 ax1.legend(loc="upper right", fontsize=8)
 
 # (2) Monthly Latent Factors with Business Cycle Expansion / Contraction Bands
 ax2 = axes[0, 1]
 m_idx = np.arange(T_months)
-ax2.plot(m_idx, res_nowcast.factors["Factor_1"], color=_nbstyle.S1["color"], linewidth=1.5, label="Factor 1: Real Activity")
-ax2.plot(m_idx, res_nowcast.factors["Factor_2"], color=_nbstyle.S2["color"], linestyle="--", linewidth=1.4, label="Factor 2: Demand / Sentiment")
+ax2.plot(m_idx, res_nowcast.factors["Factor_1"], color=_nbstyle.S1["color"], linewidth=1.5, label="Estimated Factor 1")
+ax2.plot(m_idx, res_nowcast.factors["Factor_2"], color=_nbstyle.S2["color"], linestyle="--", linewidth=1.4, label="Estimated Factor 2")
 ax2.axhline(0, color=_nbstyle.SPINE, linestyle=":", linewidth=0.8)
 f1_vals = res_nowcast.factors["Factor_1"].values
 ax2.fill_between(
@@ -282,7 +280,7 @@ ax2.fill_between(
     where=(f1_vals < -1.0),
     color=_nbstyle.RECESION_HEX,
     alpha=_nbstyle.RECESION_ALPHA,
-    label="Contractionary Business Cycle Band",
+    label="Factor 1 < -1 (arbitrary PCA sign)",
 )
 ax2.set_xticks(m_idx[::24])
 ax2.set_xticklabels([str(dates_m[i])[:7] for i in m_idx[::24]], rotation=25)
@@ -302,7 +300,7 @@ ax3.axhline(0, color=_nbstyle.SPINE, linestyle="--", linewidth=0.8)
 ax3.set_xticks(x_pos)
 ax3.set_xticklabels(series_names, rotation=20)
 ax3.set_ylabel("Contribution to GDP Nowcast (bps)")
-ax3.set_title(f"(c) News Release Decomposition (Net Revision: {total_news_revision * 100:+.2f} bps)")
+ax3.set_title(f"(c) Projection Diagnostics (Sum: {total_projected_contribution * 100:+.2f} bps)")
 ax3.legend(loc="upper left", fontsize=8)
 
 # (4) Mankiw-Shapiro Revision Scatter with News/Noise Regression Slopes
@@ -319,14 +317,15 @@ ax4.plot(
     linewidth=1.6,
     label="News Null Hypothesis (β=0)",
 )
-# Noise line (beta = -1)
+# Noise DGP slope is a variance ratio, not -1; plug in the simulated signal variance.
+beta_noise_reference = -0.4**2 / (np.var(gdp_final, ddof=0) + 0.4**2)
 ax4.plot(
     x_grid,
-    -1.0 * (x_grid - gdp_prelim.mean()),
+    revisions.mean() + beta_noise_reference * (x_grid - gdp_prelim.mean()),
     color=_nbstyle.NOTA,
     linestyle=":",
     linewidth=1.4,
-    label="Noise Null Hypothesis (β=-1)",
+    label=f"Noise DGP Reference (β≈{beta_noise_reference:.2f})",
 )
 # Empirical OLS fit
 ax4.plot(
@@ -345,11 +344,11 @@ ax4.legend(loc="lower left", fontsize=8)
 # %% [markdown]
 # ## Read the output
 #
-# **Read the output.**
-# 1. **High-Fidelity In-Sample Bridge Tracking (Panel a)**: The bridge regression of quarterly GDP onto the quarterly factor averages achieves an in-sample $R^2 = 0.922$, confirming that two common latent factors extract the overwhelming majority of aggregate output variation from noisy monthly series. The point nowcast for the target quarter ($0.81\%$) smoothly integrates incoming monthly data while remaining robust to temporary idiosyncratic spikes.
-# 2. **Economic Factor Interpretability (Panel b)**: Factor 1 captures broad-based industrial production and capacity utilization comovement, dipping below $-1.0$ standard deviations during cyclical contractions. Factor 2 loads heavily on forward-looking manufacturing sentiment (PMI) and consumption retail sales, providing early-warning signals before hard production figures are released.
-# 3. **News Decomposition Accounting (Panel c)**: Incoming monthly data modify the nowcast strictly through their surprise relative to model expectations. In the latest release, nonfarm payrolls registered a slight negative surprise ($\text{Surprise} = -0.0044$), subtracting $0.054 \text{ bps}$ from the target nowcast. Concurrently, manufacturing PMI beat model expectations ($\text{Surprise} = +0.0031$), adding $+0.052 \text{ bps}$. The exact arithmetic identity $\sum \text{contributions} \equiv \Delta \text{Nowcast}$ guarantees transparent and auditable reporting for policymaking bodies.
-# 4. **Mankiw-Shapiro Revision Hypothesis (Panel d)**: Regressing historical revisions onto preliminary releases yields an empirical slope coefficient $\hat{\beta}_p = -0.142$ with a $p$-value of $0.699$. Because we fail to reject the null hypothesis $\beta_p = 0$, the empirical evidence classifies initial releases as pure *news* (unbiased rational expectations) rather than contaminated measurement *noise*.
+# **Read the output.** Panel (a) combines fitted historical values with one held-out GDP nowcast. The printed nowcast error uses the simulated target realization only after estimation. Historical fit is not an out-of-sample accuracy score.
+#
+# Panel (b) shows estimated factors with arbitrary PCA signs; the shaded region is a numerical threshold, not a dated recession. Panel (c) checks projection weights and weight-times-residual arithmetic. Its total is not a vintage revision and may be close to zero because the factors were fitted to the same observations.
+#
+# Panel (d) uses a known measurement-noise DGP. With this seed and only 40 quarters, the test reports NEWS despite the planted NOISE process: a sample classification can be wrong. Read both slope tests and the mean-revision test; do not infer that a large p-value proves the news hypothesis.
 
 # %%
 # ---------------------------------------------------------------------------
@@ -357,13 +356,13 @@ ax4.legend(loc="lower left", fontsize=8)
 # ---------------------------------------------------------------------------
 # ← change this: try n_factors_try = 1, 2, or 3
 n_factors_try = 2
-# ← change this: try p_factor_lags_try = 1, 2, or 3
+# ← change this: factor VAR lags (affects only entirely missing or future months)
 p_factor_lags_try = 1
 
 # Re-estimate DFM nowcast under user-specified factor configuration
 res_try = nowcast_gdp(
     df_ragged,
-    s_gdp,
+    s_gdp_available,
     n_factors=n_factors_try,
     p_factor_lags=p_factor_lags_try,
     max_em_iter=50,
@@ -382,14 +381,10 @@ assert res_try.model_r2 > 0.60, "Model must maintain substantial explanatory pow
 
 # %% [markdown]
 # **Prompts.**
-# 1. *Basic*: Set `n_factors_try = 1` and examine the drop in bridge regression $R^2$. What aspect of the business cycle does a single factor fail to capture (think about the distinction between industrial production and retail sales)?
-# 2. *Intermediate*: Inject an artificial negative shock into the observed December PMI release (`df_ragged.iloc[-1, 4] -= 1.5`). How does this surprise transmit through the factor loadings into the news decomposition table and pull down the final GDP nowcast?
-# 3. *Stretch*: Using `puremacro.vintages.revision_triangle`, construct a real-time revision triangle across multiple publication editions. Does the magnitude of revisions decline monotonically as the vintage age increases?
+# 1. *Basic*: Set `n_factors_try = 1`. Compare the in-sample $R^2$ and held-out error; need they improve together?
+# 2. *Intermediate*: Change the observed December PMI value, rerun the estimation, and compare the two point nowcasts. Re-estimating the model can move its parameters, so this difference need not equal the sum of the one-vintage projection contributions.
+# 3. *Stretch*: Repeat the holdout exercise across successive quarters, truncating both monthly and quarterly data at each decision date, and compare RMSE against a historical-mean forecast.
 #
 # ## How comprehensive is this?
 #
-# `puremacro` delivers an end-to-end framework for real-time macroeconometric nowcasting and vintage intelligence:
-# - `puremacro.nowcast.dfm_nowcast`: Production-grade Dynamic Factor Model nowcasting engine with automated EM-PCA missing value imputation, factor VAR forecasting, and news decomposition.
-# - `puremacro.vintages`: Complete real-time vintage lifecycle management including point-in-time reconstruction (`as_of`), vintage alignment (`align_vintages`), revision triangles, and the Mankiw-Shapiro (1986) news vs noise test.
-# - `puremacro.nowcast.mf_var`: Mixed-frequency Vector Autoregression with exact state-space Kalman filtering for mixed monthly-quarterly systems.
-# - `puremacro.nowcast.combine`: Ensemble forecast combination and Model Confidence Set (MCS) algorithms for multi-model nowcast aggregation.
+# `puremacro.nowcast.dfm_nowcast` supplies this PCA/VAR/bridge workflow. `puremacro.nowcast.news.banbura_modugno_news` handles exact news attribution across two vintages under a fixed state-space model. `puremacro.vintages` provides point-in-time reconstruction, revision triangles, and the revision tests used here.

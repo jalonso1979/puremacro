@@ -29,11 +29,18 @@ common applied case of staggered adoption. The procedure is:
        and average of event-times >= 0 is identical to the cohort
        ATT).
 
-  4. Standard errors via cluster bootstrap (resampling panel units
-     with replacement). The full pipeline (cohort identification +
-     per-cohort SDID + aggregation) is repeated on each bootstrap
-     replicate so that uncertainty in the cohort weights is reflected
-     in the SE.
+  4. Standard errors via cluster bootstrap (resampling panel units,
+     treated and control, with replacement — Algorithm 2 of Arkhangelsky
+     et al. applied to the whole pipeline). The full pipeline (cohort
+     identification + per-cohort SDID + aggregation) is repeated on each
+     bootstrap replicate so that uncertainty in the cohort weights is
+     reflected in the SE. Like Algorithm 2 it needs several treated units;
+     with one or two treated units in total it warns (use
+     :func:`synthetic_did`, whose default there is the placebo estimator).
+
+Per-cohort point estimates use the weight solver of
+:mod:`puremacro.did.synthetic_did`, so they are scale-equivariant
+(ATT(c·y) = c·ATT(y)) and never fall back silently to uniform weights.
 
 References
 ----------
@@ -149,13 +156,9 @@ def _sdid_per_cohort(
         sub_treat_time = np.where(sub["unit"].isin(cohort_members), g, np.nan)
         sub["treat_time"] = sub_treat_time
         try:
-            with warnings.catch_warnings():
-                # n_boot=0 inside synthetic_did triggers harmless
-                # "empty slice / ddof <= 0" warnings from nanstd /
-                # nanpercentile; we don't use SE/CI from the inner
-                # call so suppress them.
-                warnings.simplefilter("ignore", RuntimeWarning)
-                res = synthetic_did(sub, n_boot=0, seed=seed)
+            # Point estimate only (n_boot=0: no inner inference). Solver
+            # warnings from synthetic_did are deliberately not suppressed.
+            res = synthetic_did(sub, n_boot=0, seed=seed)
         except ValueError:
             # Too few pre / post periods or donors inside the window.
             continue
@@ -204,7 +207,9 @@ def sdid_multi_cohort(
         window; ``"auto"`` picks ``"never_treated"`` when at least two
         never-treated units exist and ``"not_yet_treated"`` otherwise.
     n_boot : int, default 500
-        Cluster-bootstrap replications.
+        Cluster-bootstrap replications (units resampled with replacement;
+        ``se`` is the standard deviation of the replicated ATT, in the
+        outcome's units). ``0`` skips the bootstrap (``se`` is NaN).
     seed : int | None
         RNG seed for the bootstrap.
 
@@ -275,6 +280,18 @@ def sdid_multi_cohort(
     att_point = float(np.sum(weights * cohort_atts))
 
     # ---------------- Bootstrap ----------------
+    n_treated_total = int(cohort_sizes.sum())
+    if n_boot > 0 and n_treated_total <= 2:
+        warnings.warn(
+            f"sdid_multi_cohort: the design has only {n_treated_total} treated "
+            + ("unit, for which the unit bootstrap is not well-defined"
+               if n_treated_total == 1 else
+               "units, for which the unit bootstrap under-covers")
+            + " (Arkhangelsky et al. 2021, Section 5). Use synthetic_did on each "
+            "cohort, whose default for one or two treated units is the placebo "
+            "variance estimator (Algorithm 4).",
+            UserWarning, stacklevel=2,
+        )
     rng = np.random.default_rng(seed)
     boot_atts = np.full(n_boot, np.nan)
     n_units = len(units)
@@ -297,11 +314,12 @@ def sdid_multi_cohort(
                 _, b_atts, b_sizes = _sdid_per_cohort(
                     boot_df, seed=point_seed + b + 1, control=control,
                 )
-                if len(b_atts) > 0 and b_sizes.sum() > 0:
-                    w_b = b_sizes / b_sizes.sum()
-                    boot_atts[b] = float(np.sum(w_b * b_atts))
-            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+            except (ValueError, np.linalg.LinAlgError):
+                # A resample in which no cohort is estimable.
                 continue
+            if len(b_atts) > 0 and b_sizes.sum() > 0:
+                w_b = b_sizes / b_sizes.sum()
+                boot_atts[b] = float(np.sum(w_b * b_atts))
     if n_boot > 0 and np.isfinite(boot_atts).any():
         se = float(np.nanstd(boot_atts, ddof=0))
     else:

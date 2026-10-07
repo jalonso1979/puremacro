@@ -266,6 +266,8 @@ Two Jacobians, both by finite differences over θ at the measured 0.057 s per re
 
 Run at the prior mean by default, optionally over a Monte Carlo sample of prior draws (Dynare's `prior_mc`).
 
+> **As implemented** (note added 2026-09-30): the default point is each estimated parameter's `start` — its `INITVAL` when the `estimated_params` block declares one, else its prior mean — which is also where `estimate()` starts and where the `check_identification` pre-flight runs. It therefore matches Dynare's `identification` default, `parameter_set = prior_mean`, only when no `INITVAL` is declared; pass `params={name: value}` to choose the point explicitly. See docs/dsge_estimation.md, "Where the Jacobians are evaluated".
+
 ### C2. `osr()` — optimal simple rules
 
 The cheapest genuinely new capability in the tier, because the objective is already analytic:

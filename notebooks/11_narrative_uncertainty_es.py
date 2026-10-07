@@ -16,7 +16,7 @@
 # **¿Cómo pueden los investigadores y las autoridades de política cuantificar la incertidumbre de política económica en tiempo real a partir de noticias en bruto sin depender de fuentes propietarias ni de costosos modelos de lenguaje de caja negra?** `puremacro.narrative` construye **índices de incertidumbre basados en texto** de calidad investigadora a partir de cualquier corpus que se suministre, empleando únicamente puntuación mediante diccionario en pure-numpy — sin red, sin clave API, sin modelo de lenguaje. Aquí plantamos un choque de incertidumbre conocido en un corpus sintético de noticias y lo recuperamos con los índices **EPU** de Baker-Bloom-Davis y **MPU** de política monetaria.
 
 # %% [markdown]
-# ## El índice en una ecuación
+# ## El método en matemáticas
 #
 # El EPU de Baker-Bloom-Davis marca un documento $d$ como *incierto* únicamente cuando
 # activa los **tres** grupos de términos a la vez:
@@ -29,6 +29,18 @@
 # y `normalize="bbd_100"` lo reescala a las unidades publicadas (media muestral 100, d.e. 50):
 # $\mathrm{EPU}_\tau = 100 + 50\cdot(\mathrm{EPU}^{\mathrm{raw}}_\tau - \overline{\mathrm{EPU}^{\mathrm{raw}}})/\mathrm{sd}(\mathrm{EPU}^{\mathrm{raw}})$.
 #
+# ### Parametrización base
+#
+# | Símbolo | Significado económico / lingüístico | Especificación base | Unidades |
+# |---|---|---|---|
+# | $\mathcal{E}$ | Léxico de términos económicos | `{"economic", "economy", "recession", ...}` | Conjunto léxico |
+# | $\mathcal{P}$ | Léxico de términos de política | `{"policy", "regulation", "deficit", "tax", ...}` | Conjunto léxico |
+# | $\mathcal{U}$ | Léxico de términos de incertidumbre | `{"uncertain", "uncertainty", "ambiguous", ...}` | Conjunto léxico |
+# | $\mathcal{M}$ | Conjunto de términos de política monetaria | `{"federal reserve", "interest rate", "fomc", ...}` | Conjunto léxico |
+# | $N_\tau$ | Volumen total de noticias en el trimestre $\tau$ | $12$ artículos/trimestre ($288$ total) | Recuento de documentos |
+# | $\text{EPU}_\tau$ | Índice estandarizado de Incertidumbre de Política Económica | Media muestral $100$, d.e. $50$ | Puntos de índice |
+# | $\text{MPU}_\tau$ | Índice estandarizado de Incertidumbre de Política Monetaria | Media cero, varianza unitaria | Desviaciones estándar (unidades z) |
+#
 # **Intuición.** La *co-ocurrencia* de los tres grupos es lo que confiere especificidad al
 # índice. Un artículo sobre "crecimiento económico" (sin política, sin incertidumbre) o una
 # crónica deportiva que mencione "incierto" nunca dispara el marcador; solo cuentan los
@@ -36,6 +48,13 @@
 # prescinde del requisito de co-ocurrencia y se limita a contar palabras clave de política
 # monetaria para luego tipificarlas — menos restrictivo, pero suficiente cuando el vocabulario
 # ya es estrecho.
+#
+# ### Referencias bibliográficas seminales
+#
+# - Ahir, H., Bloom, N., & Furceri, D. (2022). The world uncertainty index. *NBER Working Paper*, No. 29763.
+# - Baker, S. R., Bloom, N., & Davis, S. J. (2016). Measuring economic policy uncertainty. *Quarterly Journal of Economics*, 131(4), 1593–1636.
+# - Bloom, N. (2009). The impact of uncertainty shocks. *Econometrica*, 77(3), 623–685.
+# - Husted, L., Rogers, J., & Sun, B. (2020). Monetary policy uncertainty. *Journal of Monetary Economics*, 115, 20–36.
 
 # %% [markdown]
 # ## Preparación — importaciones y estilo
@@ -227,9 +246,9 @@ assert mpu_in > mpu_out + 0.40, (
 )
  
 # %% [markdown]
-# ## Lectura del resultado
+# ## Lectura de los resultados
 #
-# **Lectura del resultado.** Las estadísticas de resumen y las series temporales validan el
+# **Lectura de los resultados.** Las estadísticas de resumen y las series temporales validan el
 # motor de puntuación por diccionario frente al proceso generador de datos plantado:
 #
 # 1. **Momentos de normalización BBD 100/50**: Sobre la muestra completa 2018–2023, la normalización
@@ -333,7 +352,7 @@ ax2.set_title("Average MPU keyword density per document")
 # y vuelve a ejecutar el cuaderno.
 
 # %%
-# ← Replace these three groups with your own domain vocabulary.
+# ← change this: replace these three groups with your own domain vocabulary.
 my_lexicon = {
     "economy": frozenset({"climate", "emissions", "carbon", "warming", "greenhouse"}),
     "policy": frozenset({"policy", "regulation", "treaty", "tax", "subsidy", "mandate"}),
@@ -368,7 +387,7 @@ assert clim_gap > 20, "your climate lexicon should fire in the injected window"
 # (3) Construye el mismo índice en otro idioma traduciendo los tres frozensets y pasando
 # `language="es"`.
 #
-# **¿Qué tan completa es la biblioteca?** Las mismas 4-tuplas `(date, text, url, metadata)`
+# **¿Qué tan exhaustivo es esto?** Las mismas 4-tuplas `(date, text, url, metadata)`
 # alimentan todos los índices narrativos de puremacro: `mpu` (incertidumbre de política
 # monetaria), `lui`/`lwui` (incertidumbre del mercado laboral y salarial), y `tone`
 # (tono restrictivo/acomodaticio de los bancos centrales). La biblioteca incluye ~70

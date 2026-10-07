@@ -1,0 +1,5 @@
+Using CPython 3.12.13 interpreter at: /tmp/puremacro-research-candidate-venv/bin/python
+Resolved 1 package in 2ms
+Prepared 1 package in 60ms
+Installed 1 package in 8ms
+ + puremacro==4.3.0 (from file:///tmp/puremacro-research-candidate-20261001T214014Z/dist/puremacro-4.3.0-py3-none-any.whl)

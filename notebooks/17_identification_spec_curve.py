@@ -26,7 +26,7 @@
 # samples and detrendings.
 
 # %% [markdown]
-# ## The identification problem in one equation
+# ## The method in math: the identification problem
 #
 # Every scheme starts from the same reduced-form VAR in
 # $x_t = (u_t, ip_t, emp_t, ffr_t)'$:
@@ -43,6 +43,17 @@
 # | **Narrative (Type II)** | as Type I, plus: the shock was the *most important driver* of $u$ itself in Sep-2008 and Mar-2020 — and draws are reweighted by how easily they satisfy this |
 # | **Max-share** | the uncertainty shock is whatever explains the largest share of $u$'s forecast-error variance at 12 months (no exclusion restrictions at all) |
 # | **Proxy SVAR** | a *second* uncertainty measure (JLN) is correlated with the true shock and uncorrelated with all others (Stock-Watson 2018; Mertens-Ravn 2013) |
+#
+# ### Baseline Model Parameters
+#
+# | Symbol | Parameter Description | Baseline Value | Units / Accounting Convention |
+# | :--- | :--- | :--- | :--- |
+# | $T_{\text{sample}}$ | Monthly observation count (1954-07 to 2025-11) | $857$ | Monthly observations ($71$ years) |
+# | $p$ | VAR lag order | $6$ | Months ($0.5$ year) |
+# | $H$ | Forecast / impulse response horizon | $24$ | Months ($2$ years post-shock) |
+# | $N_{\text{draws}}$ | Number of Haar-measure orthogonal rotation draws | $600$ | Random rotation matrices $Q \in O(n)$ |
+# | $\text{CI}$ | Confidence interval coverage level | $0.90$ | Posterior / bootstrap band coverage |
+# | $F_{\text{proxy}}$ | First-stage $F$-statistic for JLN proxy instrument | $6.00$ | External instrument relevance test |
 
 # %% [markdown]
 # **Intuition.** None of these schemes uses more data than the others — they
@@ -56,6 +67,14 @@
 # admissible and others comfortably so, and ESS starts measuring that.
 # Max-share and proxy identification replace institutional beliefs with
 # statistical ones. Keep score of what each buys and what it costs.
+#
+# ### Key References
+#
+# - **Bloom, N. (2009).** *The impact of uncertainty shocks.* Econometrica, 77(3), 623–685.
+# - **Simonsohn, U., Simmons, J. P., & Nelson, L. D. (2020).** *Specification curve analysis.* Nature Human Behaviour, 4(11), 1208–1214.
+# - **Antolín-Díaz, J., & Rubio-Ramírez, J. F. (2018).** *Narrative sign restrictions for SVARs.* American Economic Review, 108(10), 2802–2829.
+# - **Stock, J. H., & Watson, M. W. (2018).** *Identification and estimation of dynamic causal effects in macroeconomics using external instruments.* The Economic Journal, 128(610), 917–948.
+# - **Mertens, K., & Ravn, M. O. (2013).** *The dynamic effects of personal and corporate income tax changes in the United States.* American Economic Review, 103(4), 1212–1247.
 
 # %% [markdown]
 # ## Setup — one frozen dataset
@@ -243,7 +262,7 @@ print({k: round(v, 2) for k, v in h12.items()})
 assert all(v < 0 for v in h12.values()), "all six h=12 responses negative"
 
 # %% [markdown]
-# **Reading the figure.** All six schemes agree on the *sign* — industrial
+# **Read the output.** All six schemes agree on the *sign* — industrial
 # production is lower a year after an uncertainty shock — but the magnitude
 # spans roughly a factor of four, and the bands range from a tight Cholesky
 # ribbon (bought with the timing dogma) to the wide sign-restriction set
@@ -272,7 +291,7 @@ assert all(v < 0 for v in h12.values()), "all six h=12 responses negative"
 # literature argues about.
 
 # %%
-# ← Change this: which months was the uncertainty shock POSITIVE in?
+# ← change this: which months was the uncertainty shock POSITIVE in?
 EVENTS_TRY = ["1987-10-01", "2008-09-01", "2020-03-01"]
 
 r_try = narrative_sign_svar(Y, p=P, horizon=H, sign_matrix=SIGN_PATTERN,

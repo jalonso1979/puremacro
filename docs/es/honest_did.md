@@ -150,9 +150,9 @@ honest_did(
 ```
 
 #### Parámetros:
-- `b_hat` / `result`: Vector de coeficientes del estudio de eventos, o un objeto de resultados procedente de `puremacro.did.callaway_santanna` o `puremacro.did.sun_abraham`.
-- `sigma`: Matriz asintótica de varianzas y covarianzas $(T, T)$ de los coeficientes de eventos.
-- `se`: Vector de errores estándar individuales (empleado si no se suministra la matriz completa).
+- `b_hat` / `result`: Vector de coeficientes del estudio de eventos, o un objeto de resultados procedente de `puremacro.did.callaway_santanna` o `puremacro.did.sun_abraham`. Un objeto de resultados pasado por sí solo aporta las columnas `att` y `se` de su `att_event_study`, de modo que los coeficientes se tratan como incorrelacionados, $\hat\Sigma = \text{diag}(\text{se}^2)$. Ambos resultados incluyen además `event_study_vcov`, la matriz de covarianzas bootstrap de los coeficientes del estudio de eventos, indexada por tiempo de evento en el mismo orden de filas que `att_event_study`. Pásela para usar la covarianza completa: `honest_did(res, sigma=res.event_study_vcov)`. Los coeficientes se estiman con las mismas unidades y están correlacionados, algo que la forma diagonal ignora.
+- `sigma`: Matriz asintótica de varianzas y covarianzas $(T, T)$ de los coeficientes de eventos (para un resultado de `callaway_santanna` o `sun_abraham`, `res.event_study_vcov`).
+- `se`: Vector de errores estándar individuales; si no se suministra `sigma`, $\hat\Sigma = \text{diag}(\text{se}^2)$.
 - `method`: Familia de restricciones de sensibilidad:
   - `'smoothness'`: Segundas diferencias acotadas ($\Delta^{SD}(M)$).
   - `'relative_magnitude'`: Desviaciones proporcionales a las tendencias previas ($\Delta^{RM}(\bar{M})$).

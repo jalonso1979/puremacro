@@ -1,0 +1,5 @@
+state,country,reconstructed_duties,reported_tariffs,government_revenue,duty_reconciliation_residual,government_reconciliation_residual
+baseline,HOME,0.0,0.0,0.0,0.0,0.0
+baseline,REST,0.0,0.0,0.0,0.0,0.0
+counterfactual,HOME,0.0,0.0,0.0,0.0,0.0
+counterfactual,REST,0.0,0.0,0.0,0.0,0.0

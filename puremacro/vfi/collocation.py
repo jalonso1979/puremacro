@@ -15,7 +15,7 @@ from __future__ import annotations
 import inspect
 import time
 from dataclasses import dataclass, field
-from typing import Any, Callable, Sequence, Tuple, Union
+from typing import Any, Callable, Mapping, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -610,7 +610,17 @@ class CollocationProblem:
     beta : float, default 0.96
         Subjective discount factor in (0, 1).
     params : dict, optional
-        Structural economic parameters (e.g. {'alpha': 0.36, 'delta': 1.0}).
+        Structural economic parameters of the built-in neoclassical growth
+        model (used when no ``euler_residual_fn``/``return_fn`` is given):
+        ``'alpha'`` (capital share, default 0.36), ``'delta'`` (depreciation,
+        default 1.0), ``'z'`` or ``'A'`` (productivity, default 1.0) and the
+        CRRA curvature ``'sigma'`` (default 1.0 = log utility). ``'gamma'`` is
+        accepted as an alias for the curvature when ``'sigma'`` is absent
+        (the spelling ``FEMProblem``, ``egm`` and ``deep_macro`` use); when
+        both are present ``'sigma'`` wins. One curvature value feeds the
+        Euler residual, the Coleman warm start, the Bellman objective and the
+        auxiliary value coefficients, so policy and value are always
+        evaluated under the same preferences.
     options : dict, optional
         Algorithmic options: 'tol', 'max_iter', 'solver', 'n_howard', 'verbose'.
     """
@@ -733,6 +743,39 @@ class CollocationProblem:
 # Solver Implementations: Euler Projection & Bellman Value Collocation
 # ---------------------------------------------------------------------------
 
+def _crra_curvature(params: Mapping[str, Any] | dict | None) -> float:
+    """CRRA curvature of the built-in growth model: ``sigma``, else ``gamma``, else 1.0.
+
+    ``sigma`` is the canonical key of :class:`CollocationProblem`; ``gamma``
+    is honoured as an alias so that the spelling used by ``FEMProblem`` and
+    the discrete VFI engines does not silently fall back to log utility.
+    Every consumer of the built-in model (Euler residual, Coleman warm start,
+    Bellman objective, value coefficients) reads the curvature through this
+    helper so that policy and value are consistent. It is called only on the
+    built-in branches: a user ``return_fn`` / ``euler_residual_fn`` receives
+    ``params`` untouched and may use ``sigma``/``gamma`` for anything.
+    """
+    if params is None:
+        return 1.0
+    for key in ("sigma", "gamma"):
+        if key in params and params[key] is not None:
+            value = params[key]
+            if np.ndim(value) != 0:
+                raise TypeError(
+                    f"params[{key!r}] is the CRRA curvature of the built-in growth model and must "
+                    f"be a scalar, got an array of shape {np.shape(value)}"
+                )
+            return float(value)
+    return 1.0
+
+
+def _crra_utility(c: np.ndarray | float, sigma: float) -> np.ndarray | float:
+    """Period utility ``log(c)`` for ``sigma == 1`` else ``(c^(1-sigma) - 1) / (1 - sigma)``."""
+    if sigma == 1.0:
+        return np.log(c)
+    return (c ** (1.0 - sigma) - 1.0) / (1.0 - sigma)
+
+
 def _evaluate_euler_residual(
     problem: CollocationProblem,
     basis: CollocationBasis,
@@ -775,7 +818,7 @@ def _evaluate_euler_residual(
     # Default: Canonical Neoclassical Growth Model
     alpha = problem.params.get("alpha", 0.36)
     delta = problem.params.get("delta", 1.0)
-    sigma = problem.params.get("sigma", 1.0)
+    sigma = _crra_curvature(problem.params)
     z = float(problem.params.get("z", problem.params.get("A", 1.0)))
 
     kp = policy_cand(s)
@@ -830,6 +873,10 @@ def _solve_collocation_euler(
             # Euler time iteration warm-up (Coleman operator) to provide a contractive,
             # physically consistent starting point for the nonlinear root-finder
             z = float(problem.params.get("z", problem.params.get("A", 1.0)))
+            # Built-in residual: warm start under its own curvature. A user
+            # euler_residual_fn keeps the 4.3.0 log-utility warm start (an initial
+            # guess only) and its params are not interpreted here.
+            sigma_wu = _crra_curvature(problem.params) if problem.euler_residual_fn is None else 1.0
             theta_curr = theta_0.copy()
             for it in range(20):
                 theta_prev = theta_curr.copy()
@@ -841,7 +888,10 @@ def _solve_collocation_euler(
                         c = max(f_ki - kp, 1e-12)
                         kpp = float(np.clip(basis.interpolate(theta_prev, kp, backend=backend), 1e-6, z * (kp**alpha) - 1e-6))
                         cp = max(z * (kp**alpha) + (1.0 - delta) * kp - kpp, 1e-12)
-                        return 1.0 / c - problem.beta * (1.0 / cp) * (z * alpha * (kp ** (alpha - 1.0)) + 1.0 - delta)
+                        gross_return = z * alpha * (kp ** (alpha - 1.0)) + 1.0 - delta
+                        if sigma_wu == 1.0:  # log utility: identical to the 4.3.0 warm start
+                            return 1.0 / c - problem.beta * (1.0 / cp) * gross_return
+                        return c ** (-sigma_wu) - problem.beta * (cp ** (-sigma_wu)) * gross_return
 
                     low = min(1e-5, 0.01 * f_ki)
                     high = max(f_ki - 1e-5, 0.99 * f_ki)
@@ -888,11 +938,10 @@ def _solve_collocation_euler(
             u_nodes = np.asarray(problem.return_fn(kp_nodes_clamped, s, **problem.params))
         elif "alpha" in problem.params:
             z = float(problem.params.get("z", problem.params.get("A", 1.0)))
-            gamma = float(problem.params.get("sigma", problem.params.get("gamma", 1.0)))
             c_nodes = z * s**alpha + (1.0 - delta) * s - kp_nodes_clamped
             if np.any(c_nodes <= 0):
                 raise ValueError("Policy implies nonpositive consumption")
-            u_nodes = np.log(c_nodes) if gamma == 1.0 else (c_nodes ** (1.0 - gamma) - 1.0) / (1.0 - gamma)
+            u_nodes = _crra_utility(c_nodes, _crra_curvature(problem.params))
         else:
             u_nodes = None
 
@@ -941,6 +990,9 @@ def _solve_collocation_bellman(
     # Initial guess for value coefficients
     alpha = problem.params.get("alpha", 0.36)
     delta = problem.params.get("delta", 1.0)
+    # Same curvature as the Euler path, read only when the built-in utility is used
+    # (a user return_fn receives params untouched).
+    sigma = _crra_curvature(problem.params) if problem.return_fn is None else None
     c_v = np.zeros(basis.n_nodes)
 
     def val_fn(cv, state):
@@ -967,7 +1019,7 @@ def _solve_collocation_bellman(
                 else:
                     z = float(problem.params.get("z", problem.params.get("A", 1.0)))
                     c = max(z * (ki**alpha) + (1.0 - delta) * ki - kp, 1e-12)
-                    u_val = np.log(c)
+                    u_val = _crra_utility(c, sigma)
                 v_cont = val_fn(c_v_old, kp)
                 return -(u_val + problem.beta * v_cont)
 
@@ -984,7 +1036,7 @@ def _solve_collocation_bellman(
             else:
                 z = float(problem.params.get("z", problem.params.get("A", 1.0)))
                 c_howard = np.maximum(z * (s**alpha) + (1.0 - delta) * s - kp_opt, 1e-12)
-                u_howard = np.log(c_howard)
+                u_howard = _crra_utility(c_howard, sigma)
 
             kp_clamped = np.clip(kp_opt, basis.domain[0][0], basis.domain[0][1])
             Phi_kp = basis.evaluate(kp_clamped, backend=backend)

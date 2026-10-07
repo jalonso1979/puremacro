@@ -1,0 +1,6 @@
+Conditional household incidence (fixed_baskets)
+  groups: 10; represented households: 3.88302e+07
+  total EV: -1.90152e+07 MXN per quarter (-0.001055% of baseline spending)
+  static partial-equilibrium incidence; no household feedback into GE
+
+Saved six conditional scenarios, solved-flow evidence and fiscal reconciliation to reviews/2026-10-01-ge-distributional/application

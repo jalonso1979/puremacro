@@ -19,7 +19,17 @@ faked.  Instead every reference here is one of:
 * a **construction property** of the model (differencing manufactures AR(1)
   but not AR(2); valid instruments leave the Hansen J non-rejecting);
 * a **closed-form GMM identity** (the overidentification statistic vanishes
-  under exact identification).
+  under exact identification);
+* a **cross-method evaluation**: the Windmeijer (2005) WC-robust standard
+  errors recomputed by a self-contained numpy implementation that takes the
+  derivative of the two-step estimator by finite differences.
+
+The published Stata [XT] xtabond results on ``abdata`` (Examples 1, 2 and 4,
+reproduced to every printed digit) are checked in
+``tests/test_dynpanel/test_ab_1991_replication.py`` and
+``tests/test_dynpanel/test_fix_dynpanel_stata_xtabond.py``; the data are
+third-party and not bundled, so those checks run only where a copy of
+``abdata`` is supplied (``PUREMACRO_ABDATA``) and are not gallery cases.
 
 None of these references calls any ``puremacro`` function, so there is no
 risk of the circular-reference trap.  Estimator imports live INSIDE the
@@ -89,6 +99,7 @@ _RECOVER: dict[str, Any] = dict(rho=0.5, N=800, T=15, seed=4)   # point recovery
 _BAND: dict[str, Any] = dict(rho=0.8, N=800, T=12, seed=4)      # sampling band (high persistence)
 _DIAG: dict[str, Any] = dict(rho=0.5, N=600, T=12, seed=1)      # AR + Hansen diagnostics
 _EXACTID: dict[str, Any] = dict(rho=0.5, N=300, T=6, seed=1)    # exact identification (J == 0)
+_WC: dict[str, Any] = dict(rho=0.5, N=200, T=7, seed=1)         # Windmeijer vs finite differences
 
 
 # ---------------------------------------------------------------------
@@ -177,13 +188,84 @@ def _hansen_exact_id() -> dict:
     return {"J": float(r.hansen_j), "df": float(r.hansen_j_df)}
 
 
-def _windmeijer_ratio() -> dict:
+def _windmeijer_wc_se() -> dict:
+    """Two-step WC-robust SEs on the Stata-default uncollapsed layout.
+
+    ``lags(2)`` with uncollapsed GMM instruments L(2/.).y (Stata
+    ``xtabond y, lags(2) twostep vce(robust) noconstant``). Exercises both
+    the dead-instrument pruning (the (lag 2, t=2) column is empty once the
+    rows lost to the second lag are dropped) and the Windmeijer derivative.
+    """
     from puremacro.dynpanel import ab_gmm
 
-    d = dynpanel_demo_data(**_EXACTID)
-    r_wm = ab_gmm(d["y"], d["panel_id"], d["time_id"], two_step=True, windmeijer=True)
-    r_no = ab_gmm(d["y"], d["panel_id"], d["time_id"], two_step=True, windmeijer=False)
-    return {"se_ratio": float(r_wm.se[0] / r_no.se[0])}
+    d = dynpanel_demo_data(**_WC)
+    r = ab_gmm(
+        d["y"], d["panel_id"], d["time_id"],
+        lag_dep_var=2, collapse=False, two_step=True, windmeijer=True,
+    )
+    return {"se": [float(s) for s in r.se], "n_instruments": float(r.n_instruments)}
+
+
+def _windmeijer_fd_reference() -> dict:
+    """Independent numpy reference (no puremacro call) for ``_windmeijer_wc_se``.
+
+    Builds the Arellano-Bond (1991) difference-GMM arrays of a balanced
+    panel from scratch -- rows t = 3..T-1, regressors (dy_{t-1}, dy_{t-2}),
+    one instrument column per (t, s) holding the level y_s for s <= t-2 --
+    then runs one-step GMM with the AB H matrix, the two-step estimator
+    ``beta_2(b) = (X'Z S(b)^-1 Z'X)^-1 X'Z S(b)^-1 Z'y`` with
+    ``S(b) = sum_i Z_i'u_i(b)u_i(b)'Z_i``, and Windmeijer's
+
+        Var_c = V_2 + D V_2 + V_2 D' + D V_1 D',   D = d beta_2(b)/db' at b = beta_1,
+
+    with D obtained by CENTRAL FINITE DIFFERENCES of beta_2(b) rather than
+    the analytic derivative used by puremacro (Windmeijer 2000, IFS WP00/19,
+    eqs. (3.2)-(3.3)). The instrument count is the closed form
+    ``sum_{t=3}^{T-1} (t-1)``.
+    """
+    d = dynpanel_demo_data(**_WC)
+    N, T = int(_WC["N"]), int(_WC["T"])
+    Y = np.empty((N, T))
+    Y[d["panel_id"], d["time_id"]] = d["y"]
+    P = 2
+    ts = list(range(P + 1, T))
+    cols = [(t, s) for t in ts for s in range(0, t - 1)]
+    Zs, Xs, ys = [], [], []
+    for i in range(N):
+        Zi = np.zeros((len(ts), len(cols)))
+        for j, (t, s) in enumerate(cols):
+            Zi[ts.index(t), j] = Y[i, s]
+        Zs.append(Zi)
+        Xs.append(np.array([[Y[i, t - p] - Y[i, t - p - 1] for p in (1, 2)] for t in ts]))
+        ys.append(np.array([Y[i, t] - Y[i, t - 1] for t in ts]))
+    n_i = len(ts)
+    H = 2.0 * np.eye(n_i) - np.eye(n_i, k=1) - np.eye(n_i, k=-1)
+    ZX = sum(Z.T @ X for Z, X in zip(Zs, Xs))
+    Zy = sum(Z.T @ y for Z, y in zip(Zs, ys))
+
+    def gmm(W):
+        A = ZX.T @ W @ ZX
+        return np.linalg.solve(A, ZX.T @ W @ Zy), np.linalg.inv(A)
+
+    def S(b):
+        g = [Z.T @ (y - X @ b) for Z, X, y in zip(Zs, Xs, ys)]
+        return sum(np.outer(gi, gi) for gi in g)
+
+    W1 = np.linalg.inv(sum(Z.T @ H @ Z for Z in Zs))
+    b1, A1inv = gmm(W1)
+    V1 = A1inv @ ZX.T @ W1 @ S(b1) @ W1 @ ZX @ A1inv
+    _b2, V2 = gmm(np.linalg.inv(S(b1)))
+    D = np.zeros((P, P))
+    for j in range(P):
+        h = 1e-5 * max(1.0, abs(b1[j]))
+        e = np.zeros(P)
+        e[j] = h
+        D[:, j] = (gmm(np.linalg.inv(S(b1 + e)))[0] - gmm(np.linalg.inv(S(b1 - e)))[0]) / (2 * h)
+    Vc = V2 + D @ V2 + V2 @ D.T + D @ V1 @ D.T
+    return {
+        "se": [float(s) for s in np.sqrt(np.diag(Vc))],
+        "n_instruments": float(sum(t - 1 for t in ts)),
+    }
 
 
 # ---------------------------------------------------------------------
@@ -305,18 +387,35 @@ CASES: list[ValidationCase] = [
         ),
     ),
     ValidationCase(
-        id="dynpanel.windmeijer_corrects_finite_sample_variance",
+        id="dynpanel.windmeijer_matches_finite_difference",
         subsystem="dynpanel",
-        title="Windmeijer finite-sample correction inflates downward-biased two-step variance",
-        title_es="La corrección de muestras finitas de Windmeijer infla la varianza sesgada hacia abajo en dos etapas",
+        title=(
+            "Windmeijer WC-robust two-step SEs equal an independent finite-difference "
+            "evaluation (uncollapsed lags(2) layout)"
+        ),
+        title_es=(
+            "Los errores estandar WC-robustos de Windmeijer en dos etapas coinciden con una "
+            "evaluacion independiente por diferencias finitas (instrumentos sin colapsar, lags(2))"
+        ),
         mechanism=Mechanism.INTERNAL,
-        compute=_windmeijer_ratio,
-        reference=lambda: {"se_ratio": 1.0},
-        tol=Tol.QUALITATIVE,
+        compute=_windmeijer_wc_se,
+        reference=_windmeijer_fd_reference,
+        tol=Tol.TIGHT,
         citation=(
-            "Windmeijer, F. (2005, J. Econometrics 126, 25-51): uncorrected two-step "
-            "GMM standard errors are severely downward-biased in finite samples; "
-            "the correction accounts for weight-matrix estimation, yielding se_wm >= se_uncorrected."
+            "Windmeijer (2000, IFS WP00/19, eqs. (3.2)-(3.3); 2005, J. Econometrics 126, 25-51): "
+            "Var_c = V2 + D V2 + V2 D' + D V1 D' with D = d beta_2(W(b))/db' at the one-step "
+            "estimate. Reference: numpy-only AB (1991) GMM with D by central finite differences, "
+            "on y_it = 0.5*y_{i,t-1} + a_i + e_it (N=200, T=7, seed=1). Stata [XT] xtabond "
+            "Example 4 (abdata) is reproduced to every printed digit by the same code "
+            "(tests/test_dynpanel/test_fix_dynpanel_stata_xtabond.py, data not bundled)."
+        ),
+        notes=(
+            "TIGHT rtol 1e-6 on both SEs and on the instrument count (14 = sum_{t=3}^{6}(t-1); "
+            "the empty (lag 2, t=2) column is pruned). Observed agreement ~1e-11. "
+            "Discriminating: evaluating dS/db at the step-2 residuals (puremacro <= 4.3.0) "
+            "misses by 2.1e-3 relative, and the unpruned layout raised LinAlgError. "
+            "The WC correction need not inflate the SE (it can shrink it), so no "
+            "'se_wc >= se' check is made."
         ),
     ),
 ]

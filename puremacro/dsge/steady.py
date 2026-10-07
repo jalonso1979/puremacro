@@ -10,17 +10,87 @@ Pyodide runtime contract:
   vector root (hybr / lm / df-sane) for coupled blocks.
 - solve_algo menu: "block" (default), "hybr", "lm", "df-sane".
 - Homotopy continuation across parameter paths with adaptive step bisection on solver failure.
+
+Structural singularity contract (``solve_algo="block"``)
+-------------------------------------------------------
+When the numeric incidence matrix admits no complete equation-variable matching, the
+static system is structurally singular: its Jacobian is rank deficient for every value
+of the variables, so a steady state, if one exists, is not locally unique. :func:`steady`
+then runs one full-system MINPACK ``hybr`` solve from the guess, re-checks the matching
+at the point it reaches, and decides as follows.
+
+1. Complete matching at that point: the singularity was an artefact of the guess
+   neighbourhood (for example a kink that is flat near the guess). The root is
+   returned as a regular steady state, ``info["fallback_reason"] ==
+   "incomplete_matching_at_guess"``.
+2. Identity rows only (``info["singularity_kind"] == "identity_rows"``): every
+   over-determined equation involves no variable at all, i.e. it reads ``0 = 0`` in
+   the steady state. This is the static form of a unit-root law of motion
+   (``z = z(-1) + e``), which leaves the level of ``z`` (and of whatever depends on
+   it) free. The ``hybr`` point is returned by default with a
+   :class:`StructuralSingularityWarning` naming the free variables and
+   ``info["structurally_singular"] = True``; ``allow_singular=False`` raises instead.
+3. Any other structure (structurally duplicated equations, i.e. a subset of equations
+   that involves fewer variables than equations, such as ``x = 1`` and ``2x = 2``; a
+   variable that enters no equation; inconsistent equations):
+   :class:`StructuralSingularityError` naming the Dulmage-Mendelsohn over- and
+   under-determined sets, unless the caller opts in: with
+   ``steady(..., allow_singular=True)``; with the same keyword on
+   :func:`~puremacro.dsge.build`, :func:`~puremacro.dsge.build_dynare` and
+   :func:`~puremacro.dsge.load_mod`, which forward it to this solver and keep it on
+   the model, so every later re-solve at other parameter values (``osr``, widgets,
+   estimation, SMC, gradients) honours it too; or inside
+   ``with allow_structural_singularity():``, which applies to every solve in the
+   block. ``allow_structural_singularity``, :class:`StructuralSingularityWarning` and
+   :class:`StructuralSingularityError` are exported from :mod:`puremacro.dsge` as
+   well as from this module. Under the opt-in the ``hybr`` point is returned with
+   the warning. An inconsistent system, where ``hybr`` does not converge, raises in
+   every mode.
+
+In cases 2 and 3 the returned point is one element of a continuum of steady states and
+depends on the guess (``hybr`` moves the free variables as well: in a random walk
+``y = y(-1) + e`` with ``c = 2y``, the guess ``(y, c) = (4, 3)`` returns ``(1.5, 3)``).
+
+What the check does not catch: it is structural (it looks only at which variables
+enter which equation). Equations that are numerically collinear but have a complete
+incidence, such as ``x + y = 2`` and ``2x + 2y = 4``, have a complete matching, so
+they are solved as one coupled block by ``hybr``; the returned point is again one
+member of a continuum (from the guess ``(0.3, 5)`` this system returns
+``(122.067..., -120.067...)``), with ``info["structurally_singular"] = False`` and no
+warning. Dynare's check has the same scope: ``dmperm`` works on the sparsity pattern
+of the Jacobian.
+
+Dynare's ``dynare_solve`` (``solve_algo`` 2 or 4, ``matlab/optimization/dynare_solve.m``
+in the Dynare 8 sources) also takes a Dulmage-Mendelsohn decomposition of the static
+Jacobian: it skips a non-square block whose equations already hold at the initial
+value, solves under-determined blocks, and errors only on an over-determined block
+that does not hold. Case 2 is therefore Dynare's behaviour for unit-root models, plus
+a warning.
+
+Import note: ``puremacro.dsge`` re-exports the function :func:`steady` under the name
+``steady``, which hides this submodule as an attribute of the package. Import the
+names of this module with ``from puremacro.dsge.steady import ...``. For
+convenience the function also carries :func:`allow_structural_singularity`,
+:class:`StructuralSingularityWarning` and :class:`StructuralSingularityError` as
+attributes, so ``puremacro.dsge.steady.allow_structural_singularity()`` works too.
 """
 from __future__ import annotations
 
-import inspect
+import contextlib
+import contextvars
+import logging
+import os
+import sys
+import warnings
 from collections import deque
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any, Callable, Iterator, Mapping, Sequence
 
 import numpy as np
 import scipy.optimize
 
 from .build import SteadyStateError
+
+_LOG = logging.getLogger(__name__)
 
 
 class StructuralSingularityError(SteadyStateError):
@@ -46,6 +116,11 @@ class StructuralSingularityError(SteadyStateError):
         Total number of equations.
     n_variables : int
         Total number of variables.
+    hybr_point : numpy.ndarray or None
+        The point a full-system ``hybr`` solve reached, where the matching was
+        re-checked and found incomplete (a root of the static system, in the order
+        of the variables), or ``None`` when that solve did not converge and the
+        diagnosis is the one at the guess.
     """
 
     def __init__(
@@ -61,8 +136,10 @@ class StructuralSingularityError(SteadyStateError):
         matching_size: int = 0,
         n_equations: int = 0,
         n_variables: int = 0,
+        hybr_point: np.ndarray | None = None,
     ):
         super().__init__(message)
+        self.hybr_point = None if hybr_point is None else np.asarray(hybr_point, dtype=float).copy()
         self.overdetermined_equations = tuple(overdetermined_equations)
         self.overdetermined_variables = tuple(overdetermined_variables)
         self.underdetermined_equations = tuple(underdetermined_equations)
@@ -72,6 +149,78 @@ class StructuralSingularityError(SteadyStateError):
         self.matching_size = int(matching_size)
         self.n_equations = int(n_equations)
         self.n_variables = int(n_variables)
+
+
+class StructuralSingularityWarning(RuntimeWarning):
+    """Emitted when :func:`steady` returns a point of a structurally singular model.
+
+    Raised by default for the identity-row (unit-root) case and under the opt-in
+    (``allow_singular=True`` or :func:`allow_structural_singularity`) for any other
+    structure; see the module docstring. The returned steady state is one point of a
+    continuum and depends on the guess; ``info`` carries the Dulmage-Mendelsohn sets
+    under the same keys as :class:`StructuralSingularityError`.
+    """
+
+
+# The puremacro package directory (``.../puremacro/``), used to attribute the
+# structural-singularity warning to the caller's frame.
+_PACKAGE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + os.sep
+
+# Ambient default for ``steady(allow_singular=None)``: None (identity rows only),
+# True (any structure hybr can satisfy) or False (always raise). A ContextVar rather
+# than a module global so that the setting is scoped to one ``with`` block, thread
+# and task.
+_ALLOW_SINGULAR: contextvars.ContextVar[bool | None] = contextvars.ContextVar(
+    "puremacro_dsge_allow_structural_singularity", default=None
+)
+
+
+@contextlib.contextmanager
+def allow_structural_singularity(allow: bool | None = True) -> Iterator[None]:
+    """Scope in which :func:`steady` accepts (or refuses) structurally singular models.
+
+    Sets the default of ``steady(allow_singular=None)`` for every call made inside
+    the ``with`` block, including the calls that :func:`~puremacro.dsge.build`,
+    :func:`~puremacro.dsge.build_dynare` and :func:`~puremacro.dsge.load_mod` make
+    without forwarding the keyword. An explicit ``allow_singular=True/False`` passed
+    to :func:`steady` still wins.
+
+    Parameters
+    ----------
+    allow : bool or None, default True
+        ``True`` accepts the full-system ``hybr`` point of any structurally singular
+        model it can solve (with a :class:`StructuralSingularityWarning`);
+        ``False`` raises :class:`StructuralSingularityError` for every structurally
+        singular model, the unit-root identity case included; ``None`` restores the
+        default (accept identity rows with a warning, raise otherwise).
+
+    Examples
+    --------
+    >>> import puremacro.dsge as dsge                                   # doctest: +SKIP
+    >>> from puremacro.dsge.steady import allow_structural_singularity  # doctest: +SKIP
+    >>> with allow_structural_singularity():                            # doctest: +SKIP
+    ...     m = dsge.build(eqs, variables=..., states=..., shocks=..., guess=...)
+    >>> with allow_structural_singularity(False):                       # doctest: +SKIP
+    ...     m = dsge.load_mod("model.mod")   # strict: unit roots raise too
+
+    Notes
+    -----
+    Import it with ``from puremacro.dsge.steady import allow_structural_singularity``
+    (``puremacro.dsge.steady`` is also the function :func:`steady`, which carries
+    this context manager as an attribute).
+
+    The setting lives in a :class:`contextvars.ContextVar`, so it applies to the
+    current thread or asyncio task only. Threads and processes started inside the
+    ``with`` block (``threading.Thread``, ``concurrent.futures`` pools,
+    ``multiprocessing``) do not see it, unless the interpreter is configured to
+    let new threads inherit the context; there, pass ``allow_singular=True``
+    explicitly or enter the context manager inside the worker.
+    """
+    token = _ALLOW_SINGULAR.set(None if allow is None else bool(allow))
+    try:
+        yield
+    finally:
+        _ALLOW_SINGULAR.reset(token)
 
 
 class _Vec:
@@ -513,6 +662,190 @@ def _solve_coupled_block(
     return np.asarray(sol.x, dtype=float)
 
 
+def _structure_at(
+    residual_fn: Callable[[np.ndarray], np.ndarray],
+    x: np.ndarray,
+    n_vars: int,
+) -> tuple[list[list[int]], dict[int, int | None], dict[int, int | None], int]:
+    """Numeric incidence (5-point union) and maximum matching at ``x``."""
+    inc = numeric_incidence_matrix(residual_fn, x, n_points=5)
+    adj = [[j for j in range(n_vars) if inc[i, j]] for i in range(n_vars)]
+    pair_u, pair_v = hopcroft_karp(n_vars, n_vars, adj)
+    matching_size = sum(1 for u in pair_u if pair_u[u] is not None)
+    return adj, pair_u, pair_v, matching_size
+
+
+def _singularity_report(
+    adj: list[list[int]],
+    pair_u: dict[int, int | None],
+    pair_v: dict[int, int | None],
+    matching_size: int,
+    variables: Sequence[str],
+    eq_names: Sequence[str],
+) -> tuple[dict[str, Any], str]:
+    """Dulmage-Mendelsohn sets by name, plus the human-readable diagnosis."""
+    n_vars = len(variables)
+    dm = dulmage_mendelsohn(n_vars, n_vars, adj, pair_u, pair_v)
+    report: dict[str, Any] = {
+        "overdetermined_equations": [eq_names[i] for i in dm["overdetermined_equations"]],
+        "overdetermined_variables": [variables[j] for j in dm["overdetermined_variables"]],
+        "underdetermined_equations": [eq_names[i] for i in dm["underdetermined_equations"]],
+        "underdetermined_variables": [variables[j] for j in dm["underdetermined_variables"]],
+        "well_determined_equations": [eq_names[i] for i in dm["well_determined_equations"]],
+        "well_determined_variables": [variables[j] for j in dm["well_determined_variables"]],
+        "matching_size": int(matching_size),
+    }
+    over_eqs, over_vars = report["overdetermined_equations"], report["overdetermined_variables"]
+    under_eqs, under_vars = report["underdetermined_equations"], report["underdetermined_variables"]
+    well_eqs, well_vars = report["well_determined_equations"], report["well_determined_variables"]
+
+    lines = [
+        f"Model is structurally singular in steady state (maximum bipartite matching size: {matching_size} / {n_vars})."
+    ]
+    if over_eqs:
+        lines.append(
+            f"- Over-determined block ({len(over_eqs)} equations constrain {len(over_vars)} variables):"
+        )
+        lines.append(f"  Equations: {over_eqs}")
+        lines.append(f"  Variables: {over_vars}")
+    if under_vars:
+        lines.append(
+            f"- Under-determined block ({len(under_vars)} variables appear in only {len(under_eqs)} equations):"
+        )
+        lines.append(f"  Variables: {under_vars}")
+        lines.append(f"  Equations: {under_eqs}")
+    if well_eqs:
+        lines.append(
+            f"- Well-determined core: {len(well_eqs)} equations in {len(well_vars)} variables."
+        )
+    return report, "\n".join(lines)
+
+
+# Every backticked snippet here must run as written (a test executes them).
+_OPT_IN_HINT = (
+    "The steady state is not locally unique. To accept the point a full-system hybr "
+    "solve reaches from the guess (it depends on the guess), pass allow_singular=True "
+    "to steady(), build(), build_dynare() or load_mod(), or import "
+    "`from puremacro.dsge import allow_structural_singularity` and wrap the call in "
+    "`with allow_structural_singularity():`; "
+    "alternatively supply steady_state= explicitly."
+)
+
+
+def _is_identity_rows_only(report: Mapping[str, Any]) -> bool:
+    """True when every over-determined equation involves no variable (``0 = 0``).
+
+    That is the static image of a unit-root law of motion: the equation carries
+    no steady-state information and leaves the under-determined levels free.
+    """
+    return bool(report["overdetermined_equations"]) and not report["overdetermined_variables"]
+
+
+def _resolve_incomplete_matching(
+    residual_fn: Callable[[np.ndarray], np.ndarray],
+    x_init: np.ndarray,
+    variables: Sequence[str],
+    eq_names: Sequence[str],
+    tol: float,
+    allow_singular: bool | None,
+    structure_at_guess: tuple | None,
+    reason: str,
+) -> tuple[np.ndarray, dict]:
+    """Full-system hybr solve when the block decomposition cannot be used.
+
+    ``reason`` is ``"structural_singularity"`` (no complete matching at the guess)
+    or ``"nonfinite_initial_residual"`` (no incidence can be computed at the guess).
+    The structure is re-checked at the hybr point: a complete matching there
+    returns the root as a regular steady state; an incomplete one is accepted
+    (``info["structurally_singular"] = True``) when ``allow_singular`` is True, or
+    when it is None and the singularity is identity rows only; otherwise
+    :class:`StructuralSingularityError` is raised.
+    """
+    n_vars = len(variables)
+    x_fb: np.ndarray | None = None
+    info_fb: dict | None = None
+    fb_error: BaseException | None = None
+    try:
+        x_fb, info_fb = _solve_direct_system(residual_fn, x_init, method="hybr", tol=tol)
+    except (SteadyStateError, ValueError, ArithmeticError, np.linalg.LinAlgError, Exception) as exc:
+        fb_error = exc
+
+    if x_fb is None:
+        if structure_at_guess is None:
+            # Non-finite residual at the guess and hybr did not converge: nothing
+            # structural can be said, keep the solver's own error.
+            assert fb_error is not None
+            raise fb_error
+        report, diagnosis = _singularity_report(*structure_at_guess, variables, eq_names)
+        raise StructuralSingularityError(
+            diagnosis
+            + "\n(A full-system hybr solve from the guess did not converge either.)",
+            n_equations=n_vars,
+            n_variables=n_vars,
+            hybr_point=None,
+            **report,
+        ) from fb_error
+
+    assert info_fb is not None
+    structure_at_root = _structure_at(residual_fn, x_fb, n_vars)
+    matching_at_root = structure_at_root[3]
+    info_fb["fallback_from_block"] = True
+    info_fb["fallback_reason"] = reason
+    if structure_at_guess is not None:
+        info_fb["matching_size_at_guess"] = int(structure_at_guess[3])
+
+    if matching_at_root == n_vars:
+        # Regular at the root: the incomplete matching was local to the guess
+        # (or the guess could not be evaluated). The root is structurally regular.
+        info_fb["structurally_singular"] = False
+        info_fb["matching_size"] = int(matching_at_root)
+        if reason == "structural_singularity":
+            info_fb["fallback_reason"] = "incomplete_matching_at_guess"
+        _LOG.info(
+            "steady: block decomposition not used (%s); a full-system hybr solve found a "
+            "root with a complete matching (max residual %.3e).",
+            info_fb["fallback_reason"], float(info_fb["max_residual"]),
+        )
+        return x_fb, info_fb
+
+    report, diagnosis = _singularity_report(*structure_at_root, variables, eq_names)
+    identity_rows = _is_identity_rows_only(report)
+    kind = "identity_rows" if identity_rows else "general"
+    if identity_rows:
+        diagnosis += (
+            "\nEvery over-determined equation involves no variable (0 = 0 in the steady "
+            "state), the static form of a unit-root law of motion such as z = z(-1) + e: "
+            "the levels of the under-determined variables are free."
+        )
+    accept = allow_singular is True or (allow_singular is None and identity_rows)
+    if not accept:
+        raise StructuralSingularityError(
+            diagnosis
+            + f"\nA full-system hybr solve from the guess reached a point with max residual "
+            f"{float(info_fb['max_residual']):.3e}, where the matching is still incomplete. "
+            + _OPT_IN_HINT,
+            n_equations=n_vars,
+            n_variables=n_vars,
+            hybr_point=x_fb,
+            **report,
+        )
+
+    info_fb["structurally_singular"] = True
+    info_fb["singularity_kind"] = kind
+    info_fb.update(report)
+    info_fb["singularity_diagnosis"] = (
+        diagnosis
+        + "\nThe steady state is not unique: the returned point is the one a full-system "
+        "hybr solve reached from the guess, and it depends on the guess."
+        + ("" if allow_singular is True else
+           " Pass allow_singular=False to steady(), build(), build_dynare() or "
+           "load_mod(), or wrap the call in "
+           "`with allow_structural_singularity(False):` "
+           "(from puremacro.dsge), to raise instead.")
+    )
+    return x_fb, info_fb
+
+
 def _solve_block_system(
     residual_fn: Callable[[np.ndarray], np.ndarray],
     x_init: np.ndarray,
@@ -520,78 +853,44 @@ def _solve_block_system(
     equation_names: Sequence[str] | None,
     tol: float,
     max_iter: int = 100,
+    allow_singular: bool | None = None,
 ) -> tuple[np.ndarray, dict]:
-    """Execute Hopcroft-Karp + Tarjan block-triangular steady-state solve."""
+    """Execute Hopcroft-Karp + Tarjan block-triangular steady-state solve.
+
+    See the module docstring for the structural-singularity contract. The
+    returned ``info`` always has ``structurally_singular`` and
+    ``fallback_from_block``; ``full_system_polish`` is ``True`` when the block
+    pass left a residual above ``tol`` and a full-system ``hybr`` polish
+    (Dynare's "Call solver on the full nonlinear problem.") produced the answer;
+    that polish, and a fallback that finds a structurally regular root, are also
+    logged at ``INFO`` level on the ``puremacro.dsge.steady`` logger.
+    """
     n_vars = len(variables)
     eq_names = list(equation_names) if equation_names else [f"eq_{i+1}" for i in range(n_vars)]
 
-    # 0. Check initial residual finiteness
+    # 0. Check initial residual finiteness: no incidence can be built from a
+    #    non-finite point, so solve the full system and check the structure there.
     try:
         r_init = np.asarray(residual_fn(x_init), dtype=float)
-        if not np.all(np.isfinite(r_init)):
-            return _solve_direct_system(residual_fn, x_init, method="hybr", tol=tol)
+        finite_init = bool(np.all(np.isfinite(r_init)))
     except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
-        return _solve_direct_system(residual_fn, x_init, method="hybr", tol=tol)
+        finite_init = False
+    if not finite_init:
+        return _resolve_incomplete_matching(
+            residual_fn, x_init, variables, eq_names, tol, allow_singular,
+            structure_at_guess=None, reason="nonfinite_initial_residual",
+        )
 
-    # 1. Build 5-point numeric incidence matrix
-    inc = numeric_incidence_matrix(residual_fn, x_init, n_points=5)
-    adj = [[j for j in range(n_vars) if inc[i, j]] for i in range(n_vars)]
+    # 1-2. 5-point numeric incidence matrix and Hopcroft-Karp maximum matching
+    adj, pair_u, pair_v, matching_size = _structure_at(residual_fn, x_init, n_vars)
 
-    # 2. Hopcroft-Karp maximum bipartite matching
-    pair_u, pair_v = hopcroft_karp(n_vars, n_vars, adj)
-    matching_size = sum(1 for u in pair_u if pair_u[u] is not None)
-
-    # 3. Check for structural singularity
+    # 3. Structural singularity: raise, or return the full-system hybr point with
+    #    the diagnosis recorded in info (see the module docstring for which).
     if matching_size < n_vars:
-        # Fallback to direct solver (e.g. hybr) if system can be solved directly
-        # (for instance, models with unit roots whose steady state level is pinned by guess).
-        try:
-            sol_direct, info_direct = _solve_direct_system(residual_fn, x_init, method="hybr", tol=tol)
-            if info_direct.get("converged", False) and float(info_direct.get("max_residual", 1.0)) <= tol:
-                info_direct["fallback_from_block"] = True
-                return sol_direct, info_direct
-        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
-            pass
-
-        dm = dulmage_mendelsohn(n_vars, n_vars, adj, pair_u, pair_v)
-        over_eqs = [eq_names[i] for i in dm["overdetermined_equations"]]
-        over_vars = [variables[j] for j in dm["overdetermined_variables"]]
-        under_eqs = [eq_names[i] for i in dm["underdetermined_equations"]]
-        under_vars = [variables[j] for j in dm["underdetermined_variables"]]
-        well_eqs = [eq_names[i] for i in dm["well_determined_equations"]]
-        well_vars = [variables[j] for j in dm["well_determined_variables"]]
-
-        lines = [
-            f"Model is structurally singular in steady state (maximum bipartite matching size: {matching_size} / {n_vars})."
-        ]
-        if over_eqs:
-            lines.append(
-                f"- Over-determined block ({len(over_eqs)} equations constrain {len(over_vars)} variables):"
-            )
-            lines.append(f"  Equations: {over_eqs}")
-            lines.append(f"  Variables: {over_vars}")
-        if under_vars:
-            lines.append(
-                f"- Under-determined block ({len(under_vars)} variables appear in only {len(under_eqs)} equations):"
-            )
-            lines.append(f"  Variables: {under_vars}")
-            lines.append(f"  Equations: {under_eqs}")
-        if well_eqs:
-            lines.append(
-                f"- Well-determined core: {len(well_eqs)} equations in {len(well_vars)} variables."
-            )
-
-        raise StructuralSingularityError(
-            "\n".join(lines),
-            overdetermined_equations=over_eqs,
-            overdetermined_variables=over_vars,
-            underdetermined_equations=under_eqs,
-            underdetermined_variables=under_vars,
-            well_determined_equations=well_eqs,
-            well_determined_variables=well_vars,
-            matching_size=matching_size,
-            n_equations=n_vars,
-            n_variables=n_vars,
+        return _resolve_incomplete_matching(
+            residual_fn, x_init, variables, eq_names, tol, allow_singular,
+            structure_at_guess=(adj, pair_u, pair_v, matching_size),
+            reason="structural_singularity",
         )
 
     # 4. Dependency graph on variables: variable j depends on variable k if k enters pair_v[j]
@@ -626,13 +925,22 @@ def _solve_block_system(
     # Final residual check
     r_final = residual_fn(x_curr)
     max_res = float(np.max(np.abs(r_final)))
+    polished = False
     if max_res > tol:
-        # Full-system polish attempt
+        # Full-system polish attempt (Dynare dynare_solve.m, solve_algo 2|4:
+        # "Call solver on the full nonlinear problem."). The matching is complete,
+        # so a root found here is structurally regular; it is flagged in info.
         polish = scipy.optimize.root(residual_fn, x_curr, method="hybr", tol=tol)
         if polish.success and np.max(np.abs(polish.fun)) <= tol:
+            _LOG.info(
+                "steady: the block pass left max residual %.3e > tol %.3e; "
+                "called hybr on the full nonlinear problem (max residual %.3e).",
+                max_res, tol, float(np.max(np.abs(polish.fun))),
+            )
             x_curr = np.asarray(polish.x, dtype=float)
             r_final = polish.fun
             max_res = float(np.max(np.abs(r_final)))
+            polished = True
 
     if max_res > tol:
         raise SteadyStateError(
@@ -647,6 +955,10 @@ def _solve_block_system(
         "blocks": blocks_info,
         "n_blocks": len(sccs),
         "matching": {eq_names[i]: variables[j] for i, j in pair_u.items() if j is not None},
+        "matching_size": int(matching_size),
+        "structurally_singular": False,
+        "fallback_from_block": False,
+        "full_system_polish": polished,
     }
     return x_curr, info
 
@@ -696,8 +1008,125 @@ def steady(
     tol: float = 1e-8,
     max_iter: int = 100,
     equation_names: Sequence[str] | None = None,
+    allow_singular: bool | None = None,
 ) -> tuple[np.ndarray, dict]:
-    """Solve for the deterministic steady state of a DSGE model."""
+    """Solve for the deterministic steady state of a DSGE model.
+
+    Finds ``x`` with ``f(x, x, x, 0, p) = 0`` (all leads and lags at the same
+    value, shocks at zero), to ``max|f| <= tol`` in the units of the residuals.
+
+    Parameters
+    ----------
+    equations : callable
+        Residual function. Accepted signatures: Dynare-style
+        ``(lead, curr, lag, shocks, p)``, :func:`~puremacro.dsge.build`-style
+        ``(xp, x, e, p)``, ``(x_array, params_dict)`` or ``(x_array)``.
+    variables : sequence of str
+        Variable names, one per equation.
+    guess : sequence, mapping or ndarray
+        Starting point, in the order of ``variables`` or keyed by name.
+    params : mapping, optional
+        Parameter values.
+    shocks : sequence of str, optional
+        Shock names (set to zero in the steady state).
+    solve_algo : {"block", "hybr", "lm", "df-sane"}, default "block"
+        ``"block"``: Hopcroft-Karp matching, Tarjan block-triangular ordering and
+        a block-by-block solve, with the structural-singularity contract below.
+        The others call :func:`scipy.optimize.root` on the full system with no
+        structural analysis and return whatever root that solver reaches.
+    homotopy : mapping, optional
+        ``{param: (start, target)}``; walk the parameters linearly from start to
+        target, warm-starting each solve, with adaptive step bisection.
+    homotopy_steps : int, default 10
+        Initial number of homotopy steps.
+    tol : float, default 1e-8
+        Acceptance tolerance on ``max|f|``.
+    max_iter : int, default 100
+        Kept for API compatibility; unused.
+    equation_names : sequence of str, optional
+        Names used in diagnoses (default ``eq_1``, ``eq_2``, ...).
+    allow_singular : bool or None, default None
+        What to do when ``solve_algo="block"`` finds no complete matching between
+        equations and variables (a structurally singular static system, whose
+        steady state is not locally unique); see the module docstring.
+        ``True`` returns the point a full-system ``hybr`` solve reaches from the
+        guess for any structure, emits a :class:`StructuralSingularityWarning`
+        and records the diagnosis in ``info``. ``False`` raises
+        :class:`StructuralSingularityError` for every structurally singular
+        model. ``None`` (default) uses the ambient setting of
+        :func:`allow_structural_singularity` (``from puremacro.dsge.steady
+        import allow_structural_singularity``); outside such a block it accepts,
+        with the warning, only the identity-row case (every over-determined
+        equation reads ``0 = 0``: a unit-root law of motion) and raises for any
+        other structure. In every mode an incomplete matching that is an
+        artefact of the guess neighbourhood (complete at the root ``hybr``
+        finds) is not an error.
+
+    Returns
+    -------
+    x : ndarray
+        The steady state, in the order of ``variables``.
+    info : dict
+        ``solve_algo``, ``converged``, ``max_residual`` and, for the block solver:
+
+        - ``structurally_singular`` (bool): the matching is incomplete at the
+          returned point. When ``True`` (identity rows by default, anything
+          under ``allow_singular=True``) there are also ``singularity_kind``
+          (``"identity_rows"`` or ``"general"``),
+          ``underdetermined_variables``, ``underdetermined_equations``,
+          ``overdetermined_equations``, ``overdetermined_variables``,
+          ``well_determined_equations``, ``well_determined_variables``,
+          ``matching_size`` and ``singularity_diagnosis`` (the warning text).
+        - ``fallback_from_block`` (bool): the answer came from a full-system
+          ``hybr`` solve instead of the block pass; ``fallback_reason`` is then
+          ``"structural_singularity"``, ``"incomplete_matching_at_guess"`` or
+          ``"nonfinite_initial_residual"`` (with ``solve_algo == "hybr"``).
+        - ``full_system_polish`` (bool): the block pass left ``max|f| > tol`` and
+          a full-system ``hybr`` polish from its end point produced the answer
+          (Dynare's "Call solver on the full nonlinear problem."). The matching
+          is complete, so the answer is a structurally regular root within
+          ``tol``; the polish is recorded here and in an ``INFO`` record on the
+          ``puremacro.dsge.steady`` logger, with no warning.
+        - ``blocks``, ``n_blocks``, ``matching``: the block decomposition, when
+          it was used.
+
+        With ``homotopy``, also ``homotopy_steps`` and ``bisections``. If an
+        intermediate point of the path was accepted as structurally singular but
+        the target is not, ``structurally_singular_on_path = True`` and the
+        diagnosis of that point is under ``path_singularity``.
+
+    Raises
+    ------
+    StructuralSingularityError
+        Structurally singular model under ``solve_algo="block"`` that the
+        ``allow_singular`` policy does not accept, or any structurally singular
+        model whose full-system ``hybr`` solve does not converge (inconsistent
+        equations). Carries the Dulmage-Mendelsohn sets as attributes. Under
+        ``homotopy`` it is raised as is when the start (``s = 0``) or the target
+        (``s = 1``) is singular at a ``hybr`` root, which bisection cannot avoid;
+        when continuation stalls on an intermediate singular point, the error is
+        raised with the stall position prepended to its message.
+    SteadyStateError
+        No root within ``tol`` from the guess (or along the homotopy path).
+    ValueError
+        Unknown ``solve_algo`` or wrong ``equation_names`` length.
+
+    Notes
+    -----
+    Structural singularity is judged on the numeric incidence matrix (union
+    over the point and four random neighbours), as in
+    :func:`numeric_incidence_matrix`. The check is structural only: collinear
+    equations with a complete incidence (``x + y = 2`` and ``2x + 2y = 4``) have
+    a complete matching, are solved as one coupled block by ``hybr``, and return
+    a guess-dependent point without a warning. Dynare's ``dynare_solve``
+    (``solve_algo`` 2 or 4) skips non-square Dulmage-Mendelsohn blocks that
+    hold at the initial value and solves under-determined ones, so it too
+    returns a guess-dependent point for unit-root models; here that point
+    comes with a warning, and any other singular structure requires the
+    opt-in. For unit-root models the usual way to pin the level is to supply
+    the steady state (``steady_state=`` in ``build`` or a
+    ``steady_state_model`` block).
+    """
     valid_algos = ("block", "hybr", "lm", "df-sane")
     if solve_algo not in valid_algos:
         raise ValueError(
@@ -711,6 +1140,8 @@ def steady(
         raise ValueError(
             f"equation_names length {len(equation_names)} does not match number of variables {n_vars}"
         )
+
+    allow: bool | None = _ALLOW_SINGULAR.get() if allow_singular is None else bool(allow_singular)
 
     # Initial guess array
     if isinstance(guess, Mapping):
@@ -737,6 +1168,7 @@ def steady(
                 equation_names=equation_names,
                 tol=tol,
                 max_iter=max_iter,
+                allow_singular=allow,
             )
         else:
             return _solve_direct_system(
@@ -746,9 +1178,26 @@ def steady(
                 tol=tol,
             )
 
+    def _warn_if_singular(info: dict) -> None:
+        # Attribute the warning to the first frame outside the puremacro package
+        # (the user's steady()/build()/load_mod() call), so the default filter
+        # shows it once per call site rather than once per library line.
+        if info.get("structurally_singular"):
+            frame = sys._getframe(0)
+            level = 1
+            while frame is not None and frame.f_code.co_filename.startswith(_PACKAGE_DIR):
+                frame = frame.f_back
+                level += 1
+            warnings.warn(
+                StructuralSingularityWarning(info.get("singularity_diagnosis", "structurally singular")),
+                stacklevel=level,
+            )
+
     # Path 1: Direct solve (no homotopy)
     if not homotopy:
-        return _solve_at_p(params, x0)
+        x_out, info_out = _solve_at_p(params, x0)
+        _warn_if_singular(info_out)
+        return x_out, info_out
 
     # Path 2: Homotopy continuation with adaptive step bisection
     p_base = _params_to_dict(params)
@@ -761,12 +1210,21 @@ def steady(
     for k, (v_start, _) in homotopy.items():
         p_start[k] = float(v_start)
 
+    def _params_note(p: Mapping[str, float]) -> str:
+        return ", ".join(f"{k}={p[k]:.6g}" for k in homotopy)
+
     try:
-        x_curr, info_start = _solve_at_p(p_start, x0)
+        x_curr, info_last = _solve_at_p(p_start, x0)
+    except StructuralSingularityError as exc:
+        # A structural diagnosis is not a homotopy failure: pass it through intact.
+        exc.add_note(f"(raised by steady() at the homotopy start s=0: {_params_note(p_start)})")
+        raise
     except SteadyStateError as e:
         raise SteadyStateError(
             f"Homotopy initialization failed at s=0.0: {e}"
         ) from e
+
+    singular_info: dict | None = info_last if info_last.get("structurally_singular") else None
 
     s = 0.0
     step = 1.0 / max(1, int(homotopy_steps))
@@ -774,6 +1232,8 @@ def steady(
     max_step = 0.5
     bisections = 0
     total_steps = 0
+    last_error: SteadyStateError | None = None
+    last_error_s = 0.0
 
     while s < 1.0 - 1e-12:
         s_try = min(1.0, s + step)
@@ -782,24 +1242,58 @@ def steady(
             p_try[k] = float((1.0 - s_try) * v_start + s_try * v_target)
 
         try:
-            x_new, _ = _solve_at_p(p_try, x_curr)
+            x_new, info_new = _solve_at_p(p_try, x_curr)
             success = True
-        except SteadyStateError:
+        except StructuralSingularityError as exc:
+            if s_try >= 1.0 - 1e-12 and exc.hybr_point is not None:
+                # The target itself has a root at which the matching is incomplete:
+                # no step size can avoid it, so report the structure, not a stall.
+                exc.add_note(
+                    f"(raised by steady() at the homotopy target s=1: {_params_note(p_try)})"
+                )
+                raise
+            # An intermediate singular point (or a target where hybr did not
+            # converge from this warm start) may be stepped around: bisect.
+            last_error, last_error_s = exc, s_try
+            success = False
+        except SteadyStateError as exc:
+            last_error, last_error_s = exc, s_try
             success = False
 
         if success:
             s = s_try
             x_curr = x_new
+            info_last = info_new
+            if info_new.get("structurally_singular"):
+                singular_info = info_new
             total_steps += 1
             step = min(step * 2.0, max_step, 1.0 - s)
         else:
             step /= 2.0
             bisections += 1
             if step < min_step:
-                raise SteadyStateError(
-                    f"Homotopy continuation stalled at s={s:.4f} with step size {step:.2e} < min_step {min_step:.2e}. "
-                    f"Failed to reach target parameters."
+                stall = (
+                    f"Homotopy continuation stalled at s={s:.4f} with step size {step:.2e} < "
+                    f"min_step {min_step:.2e}. Failed to reach target parameters."
                 )
+                if isinstance(last_error, StructuralSingularityError):
+                    # Keep the structural diagnosis of the last failed step visible.
+                    err = last_error
+                    raise StructuralSingularityError(
+                        f"{stall} The last failed step, s={last_error_s:.4f}, is "
+                        f"structurally singular:\n{err}",
+                        overdetermined_equations=err.overdetermined_equations,
+                        overdetermined_variables=err.overdetermined_variables,
+                        underdetermined_equations=err.underdetermined_equations,
+                        underdetermined_variables=err.underdetermined_variables,
+                        well_determined_equations=err.well_determined_equations,
+                        well_determined_variables=err.well_determined_variables,
+                        matching_size=err.matching_size,
+                        n_equations=err.n_equations,
+                        n_variables=err.n_variables,
+                        hybr_point=err.hybr_point,
+                    ) from last_error
+                raise SteadyStateError(stall) from last_error
 
     # Verify at target parameters
     p_target = dict(p_base)
@@ -816,4 +1310,41 @@ def steady(
         "homotopy_steps": total_steps,
         "bisections": bisections,
     }
+    if solve_algo == "block":
+        info["structurally_singular"] = bool(info_last.get("structurally_singular", False))
+        info["fallback_from_block"] = bool(info_last.get("fallback_from_block", False))
+        info["full_system_polish"] = bool(info_last.get("full_system_polish", False))
+        if info_last.get("fallback_reason"):
+            info["fallback_reason"] = info_last["fallback_reason"]
+        if "matching_size" in info_last:
+            info["matching_size"] = info_last["matching_size"]
+        diag_keys = (
+            "overdetermined_equations", "overdetermined_variables",
+            "underdetermined_equations", "underdetermined_variables",
+            "well_determined_equations", "well_determined_variables",
+            "matching_size", "singularity_kind", "singularity_diagnosis",
+        )
+        if info["structurally_singular"]:
+            # The target point itself is singular: its diagnosis at top level.
+            for key in diag_keys:
+                if key in info_last:
+                    info[key] = info_last[key]
+        if singular_info is not None:
+            info["structurally_singular_on_path"] = True
+            if not info["structurally_singular"]:
+                # Only an intermediate point was singular: keep its diagnosis
+                # apart, so the top-level keys describe the returned point.
+                info["path_singularity"] = {
+                    key: singular_info[key] for key in diag_keys if key in singular_info
+                }
+    _warn_if_singular(info)
     return x_curr, info
+
+
+# ``puremacro.dsge`` re-exports the function ``steady`` under the submodule's own
+# name, so ``puremacro.dsge.steady`` resolves to the function, not to this module.
+# Hang the public names of this module on the function as well, so that the dotted
+# path ``puremacro.dsge.steady.allow_structural_singularity()`` works either way.
+steady.allow_structural_singularity = allow_structural_singularity  # type: ignore[attr-defined]
+steady.StructuralSingularityWarning = StructuralSingularityWarning  # type: ignore[attr-defined]
+steady.StructuralSingularityError = StructuralSingularityError  # type: ignore[attr-defined]

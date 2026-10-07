@@ -788,13 +788,12 @@ def estimate_dsge_bayesian(
     gewekes = []
 
     for i, name in enumerate(param_names):
-        # Split-Rhat
+        # Split-Rhat (Gelman et al. BDA3; Vehtari et al. 2021, p.6): every
+        # chain is split in half and the classic statistic computed on the 2M
+        # halves; with an odd number of draws the middle draw is dropped, as
+        # in arviz and Stan.
         if half >= 4:
-            split_chains = np.empty((2 * n_chains, half), dtype=float)
-            for c_idx in range(n_chains):
-                split_chains[2 * c_idx] = chains[c_idx, :half, i]
-                split_chains[2 * c_idx + 1] = chains[c_idx, half : 2 * half, i]
-            gr = gelman_rubin(split_chains)
+            gr = gelman_rubin(chains[:, :, i], split=True)
             r_hat_val = float(gr["R_hat"])
         else:
             r_hat_val = 1.0
@@ -828,64 +827,53 @@ def _resolve_model_with_params(
     p_dict: Mapping[str, float],
     qz_criterium: float = 1.0 + 1e-8,
 ) -> Any:
-    """Re-solve DSGE model with new parameter values and specified QZ criterium."""
+    """Re-solve DSGE model with new parameter values and specified QZ criterium.
+
+    ``build_dynare`` / ``load_mod`` and ``build`` models go through the shared
+    re-solves (:func:`puremacro.dsge.dynare._resolve_dynare_model`,
+    :func:`puremacro.dsge.build._resolve_build_model`), so a draw keeps the
+    model's declared shock covariance (up to 4.3.0 it fell back to the
+    identity: SW07 sd(y) 28.894 instead of 21.695 at unchanged parameters),
+    its steady state follows the parameters, and a lag calibrated to 0 stays
+    a state. A parsed model (:class:`~puremacro.dsge._parser.ParsedModelDAG`)
+    goes through :func:`puremacro.dsge.dynare._resolve_parsed_dag_model`: the
+    draw is merged with the file's calibration, the ``steady_state_model``
+    block is re-evaluated at the merged values and the ``shocks;`` block is
+    kept (it used to be solved at the calibration's steady state, with the
+    draw alone as its parameters and an identity covariance).
+
+    Draws of shock standard deviations and correlations (``SE_<shock>``,
+    ``CORR_<s1>_<s2>``, the ``stderr``/``corr`` entries of an
+    ``estimated_params`` block) are written into the shock covariance
+    (:func:`puremacro.dsge.dynare._shock_scale_overrides`) rather than passed
+    to the equations as parameters, where they changed nothing.
+    """
+    from puremacro.dsge.dynare import _shock_scale_overrides
+
+    structural, cov = _shock_scale_overrides(model, p_dict)
     # 1. Lead-lag Dynare model
     if getattr(model, "_dynare_equations", None) is not None:
-        new_params = dict(getattr(model, "_params", {}) or {})
-        new_params.update(p_dict)
-        from puremacro.dsge.dynare import build_dynare
+        from puremacro.dsge.dynare import _resolve_dynare_model
 
-        ss = getattr(model, "_steady_state_dict", None)
-        if ss is None and hasattr(model, "steady_state"):
-            ss = model.steady_state.to_dict() if hasattr(model.steady_state, "to_dict") else dict(model.steady_state)
-
-        return build_dynare(
-            model._dynare_equations,
-            variables=list(model.variables),
-            shocks=list(model.shocks),
-            params=new_params,
-            steady_state=ss,
-            check_steady_state=False,
-            strict=True,
-            qz_criterium=qz_criterium,
+        return _resolve_dynare_model(
+            model, dict(structural), strict=True, qz_criterium=qz_criterium,
+            shock_cov=cov,
         )
     # 2. Parsed Model DAG / AST equations
     elif hasattr(model, "compile_equations") and hasattr(model, "variables"):
-        from puremacro.dsge.dynare import build_dynare
+        from puremacro.dsge.dynare import _resolve_parsed_dag_model
 
-        new_params = dict(getattr(model, "parameter_values", {}) or {})
-        new_params.update(p_dict)
-        eq_fn = model.compile_equations()
-        ss = getattr(model, "steady_state", {v: 0.0 for v in model.variables})
-        return build_dynare(
-            eq_fn,
-            variables=list(model.variables),
-            shocks=list(model.shocks),
-            params=new_params,
-            steady_state=ss,
-            check_steady_state=False,
-            strict=True,
-            qz_criterium=qz_criterium,
+        return _resolve_parsed_dag_model(
+            model, dict(structural), strict=True, qz_criterium=qz_criterium,
+            shock_cov=cov,
         )
     # 3. Klein timing build() model
     elif getattr(model, "_equations", None) is not None:
-        from puremacro.dsge.build import build
+        from puremacro.dsge.build import _resolve_build_model
 
-        new_params = dict(getattr(model, "_params", {}) or {})
-        new_params.update(p_dict)
-        ss = getattr(model, "_steady_state_dict", None)
-        if ss is None and hasattr(model, "steady_state"):
-            ss = model.steady_state.to_dict() if hasattr(model.steady_state, "to_dict") else dict(model.steady_state)
-
-        return build(
-            model._equations,
-            variables=list(model.variables),
-            states=list(model.states),
-            shocks=list(model.shocks),
-            params=new_params,
-            steady_state=ss,
-            strict=True,
-            qz_criterium=qz_criterium,
+        return _resolve_build_model(
+            model, dict(structural), strict=True, qz_criterium=qz_criterium,
+            shock_cov=cov,
         )
     else:
         raise ValueError(f"Cannot re-solve model of type {type(model).__name__} with updated parameters.")
@@ -1180,12 +1168,21 @@ def prior_predictive(
         total_draws = len(param_draws)
     else:
         total_draws = int(n_draws)
+        declared = getattr(model, "_estimated_params", None)
+        if declared is None:
+            declared = getattr(model, "estimated_params", None)
         if priors is not None:
             resolved_priors = dict(priors)
-        elif getattr(model, "_estimated_params", None) is not None:
-            resolved_priors = dict(model._estimated_params.get("priors", {}))
-        elif hasattr(model, "estimated_params") and model.estimated_params is not None:
-            resolved_priors = dict(getattr(model.estimated_params, "priors", {}))
+        elif declared is not None:
+            # A .mod file's estimated_params block (EstimatedParams). It used
+            # to be read with ``.get("priors")``, which EstimatedParams does
+            # not have: AttributeError.
+            if callable(getattr(declared, "priors", None)):
+                resolved_priors = dict(declared.priors())
+            elif isinstance(declared, Mapping):
+                resolved_priors = dict(declared.get("priors", {}) or {})
+            else:
+                resolved_priors = dict(getattr(declared, "priors", {}) or {})
         else:
             base_params = dict(getattr(model, "_params", {}) or getattr(model, "parameter_values", {}) or {})
             for p_name, p_val in base_params.items():

@@ -11,13 +11,21 @@ Includes:
 - Smets-Wouters (2007) reference model + bundled US dataset.
 - Fertility DSGE (Alonso-Ortiz adjustment-costs variant) — solver only;
   Bayesian estimation queued for 0.55.0.
+- Matrix-free stacked-time Newton-Krylov for perfect-foresight systems
+  (``solve_stacked_newton_krylov``; opt-in, separate from
+  ``solve_perfect_foresight``).
 
 For likelihood-based estimation, pair the state-space form returned by
 ``make_state_space`` (model-specific) with ``puremacro.dsge.estimate_dsge``.
 """
 from .klein import BlanchardKahnError, KleinSolution, klein_solve
 from .build import LinearModel, ModelError, SteadyStateError, build
-from .steady import StructuralSingularityError, steady
+from .steady import (
+    StructuralSingularityError,
+    StructuralSingularityWarning,
+    allow_structural_singularity,
+    steady,
+)
 from ._moments import one_sided_hp_filter
 from ._results import (
     DSGEPosteriorResult, SW07PosteriorResult, NUTSResult, HANKResult,
@@ -51,6 +59,8 @@ from .nuts import nuts_sample
 from ._gradients import ScoreDiagnosticsResult
 from .bayesian import BayesianEstimationResult, estimate_dsge_bayesian
 from .sw07_estimate import estimate_sw07
+from .sw07_data import load_sw07_data
+from .sw07_marginal import SW07MarginalLikelihoodResult, sw07_laplace_mdd, sw07_log_posterior
 from .fertility_adj_costs import solve_bgp, solve_fertility
 from .pruning import (
     PrunedDSGESolution,
@@ -67,6 +77,17 @@ import functools as _functools
 LinearModel.stoch_simul = _functools.wraps(_orig_stoch_simul)(_linear_model_stoch_simul)
 from .perfect_foresight import PerfectForesightResult, solve_perfect_foresight
 from .extended_path import extended_path
+from .stacked_newton import (
+    BlockTridiagonalPreconditioner,
+    HorizonComparison,
+    StackedNewtonError,
+    StackedNewtonResult,
+    StackedProblem,
+    StructuredBlockTridiagonalPreconditioner,
+    compare_stacked_horizons,
+    preconditioned_lgmres,
+    solve_stacked_newton_krylov,
+)
 from .occbin import (
     OccBinConstraint,
     OccBinResult,
@@ -151,16 +172,22 @@ from . import marginal, mode, observation, smoother, news
 __all__ = [
     "klein_solve", "KleinSolution", "BlanchardKahnError",
     "build", "LinearModel", "ModelError", "SteadyStateError",
-    "steady", "StructuralSingularityError",
+    "steady", "StructuralSingularityError", "StructuralSingularityWarning",
+    "allow_structural_singularity",
     "DSGEPosteriorResult", "SW07PosteriorResult", "NUTSResult", "BayesianEstimationResult", "FertilitySolution",
     "ScoreDiagnosticsResult", "nuts_sample",
     "DynareDR", "Dynare2ndDR", "TheoreticalMomentsResult", "StochSimulResult",
     "build_dynare", "parse_mod", "load_mod", "load_dynare_mod", "solve_dynare_2nd_order",
     "DynareFeatureError",
     "PerfectForesightResult", "solve_perfect_foresight",
+    # --- Stacked-time Newton-Krylov (opt-in perfect-foresight core) ---------
+    "StackedProblem", "BlockTridiagonalPreconditioner", "StructuredBlockTridiagonalPreconditioner",
+    "preconditioned_lgmres", "solve_stacked_newton_krylov", "compare_stacked_horizons",
+    "StackedNewtonResult", "HorizonComparison", "StackedNewtonError",
     "OccBinConstraint", "OccBinResult", "solve_occbin", "solve_multiconstraint_occbin",
     "solve_gertler_karadi", "GertlerKaradiResult", "GK2011_PARAMS", "solve_steady_state", "build_gertler_karadi_model",
     "estimate_dsge", "estimate_dsge_bayesian", "estimate_sw07",
+    "load_sw07_data", "sw07_laplace_mdd", "sw07_log_posterior", "SW07MarginalLikelihoodResult",
     "solve_bgp", "solve_fertility",
     "PrunedDSGESolution", "PrunedSimulationResult", "canonical_growth_2nd_order",
     "FEVDResult", "ShockDecompResult", "compute_fevd", "compute_shock_decomposition",

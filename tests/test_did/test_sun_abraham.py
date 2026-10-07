@@ -6,18 +6,20 @@
 def test_event_study_band_agrees_with_its_own_standard_error():
     """`lo`/`hi` must be built from the aggregated `se`, not averaged.
 
-    `se` is aggregated correctly as sqrt(sum_i w_i^2 se_i^2) — the standard
-    error of a weighted sum. The band used to be `sum_i w_i lo_i` and
-    `sum_i w_i hi_i`, a weighted mean of the per-cohort interval edges. A
-    weighted mean of standard errors is not the standard error of a weighted
-    mean: with K equally weighted cohorts of equal precision the half-width
-    comes out sqrt(K) times too large.
+    The band used to be `sum_i w_i lo_i` and `sum_i w_i hi_i`, a weighted
+    mean of the per-cohort interval edges. A weighted mean of standard errors
+    is not the standard error of a weighted mean: with K equally weighted
+    cohorts of equal precision the half-width comes out sqrt(K) times too
+    large. That is exactly what was measured on this design — the ratio of
+    the reported half-width to `z * se` was 1.73 where three cohorts
+    contributed (sqrt(3) = 1.732) and 1.37 where two did (sqrt(2) = 1.414).
 
-    That is exactly what was measured on this design — the ratio of the
-    reported half-width to `z * se` was 1.73 where three cohorts contributed
-    (sqrt(3) = 1.732) and 1.37 where two did (sqrt(2) = 1.414). Every affected
-    row contradicted the `se` printed beside it, so the defect is visible
-    without any external reference: the row is inconsistent with itself.
+    This test only checks that each row agrees with itself. Whether `se` is
+    the right number is tested in test_fix_did_aggregation.py and
+    test_fix_did_coverage.py: it is now the bootstrap SD of the aggregate
+    over joint unit-level draws. The sqrt(sum_i w_i^2 se_i^2) of puremacro
+    4.3.0 and earlier treated cohorts that share control units as
+    independent, and was 0.6-1.4x the Monte Carlo truth.
     """
     import numpy as np
     import pandas as pd

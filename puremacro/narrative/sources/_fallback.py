@@ -18,7 +18,7 @@ a one-line addition to ``SUPPORTED_STAGES`` + a branch in
 from __future__ import annotations
 
 import socket
-import ssl
+from puremacro._optional_stdlib import ssl
 import urllib.error
 
 from ._http import safe_get_text

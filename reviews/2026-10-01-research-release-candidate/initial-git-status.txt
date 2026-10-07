@@ -1,0 +1,541 @@
+ M ARCHITECTURE.md
+ M CHANGELOG.md
+ M README.es.md
+ M README.md
+ M curso/notebooks/T04_A_tax_multiplier_three_ways.ipynb
+ M curso/notebooks/T04_A_tax_multiplier_three_ways_es.ipynb
+ M curso/notebooks/T05_B_local_projections.ipynb
+ M curso/notebooks/T05_B_local_projections_es.ipynb
+ M curso/notebooks/T05_C_staggered_did.ipynb
+ M curso/notebooks/T05_C_staggered_did_es.ipynb
+ M curso/notebooks/T05_D_lp_did.ipynb
+ M curso/notebooks/T05_D_lp_did_es.ipynb
+ M curso/notebooks/T05_E_regime_girf.ipynb
+ M curso/notebooks/T05_E_regime_girf_es.ipynb
+ M data/raw/_manifest.json
+ M docs/ADVISORY.md
+ M docs/STRUCTURAL_VALIDATION_STATUS.md
+ M docs/VALIDATION.md
+ M docs/did.md
+ M docs/dsge_build.md
+ M docs/dsge_estimation.md
+ M docs/dsge_higher_order.md
+ M docs/dsge_parity_surface.md
+ M docs/dsge_phase_c.md
+ M docs/dsge_v3.md
+ M docs/es/ADVISORY.md
+ M docs/es/VALIDATION.md
+ M docs/es/did.md
+ M docs/es/dsge_build.md
+ M docs/es/dsge_estimation.md
+ M docs/es/dsge_higher_order.md
+ M docs/es/dsge_parity_surface.md
+ M docs/es/dsge_phase_c.md
+ M docs/es/dsge_v3.md
+ M docs/es/gertler_karadi.md
+ M docs/es/honest_did.md
+ M docs/es/index.md
+ M docs/es/lp.md
+ M docs/es/notebooks.md
+ M docs/es/replication.md
+ M docs/es/spatial.md
+ M docs/es/trade_gpu.md
+ M docs/es/var.md
+ M docs/es/vfi_analytic_gradients.md
+ M docs/es/vfi_continuous_equilibrium.md
+ M docs/es/vfi_continuous_transition.md
+ M docs/gertler_karadi.md
+ M docs/honest_did.md
+ M docs/index.md
+ M docs/lp.md
+ M docs/notebooks.md
+ M docs/replication.md
+ M docs/spatial.md
+ M docs/specs/2026-09-05-puremacro-spatial-design.md
+ M docs/specs/2026-09-07-puremacro-dsge-tier1-design.md
+ M docs/trade_accounting.md
+ M docs/trade_gpu.md
+ M docs/trade_policy.md
+ M docs/trade_welfare.md
+ M docs/var.md
+ M docs/vfi_analytic_gradients.md
+ M docs/vfi_continuous_equilibrium.md
+ M docs/vfi_continuous_transition.md
+ M mkdocs.yml
+ M notebooks/00_whats_new_in_puremacro_3_0.ipynb
+ M notebooks/00_whats_new_in_puremacro_3_0.py
+ M notebooks/00_whats_new_in_puremacro_3_0_es.ipynb
+ M notebooks/00_whats_new_in_puremacro_3_0_es.py
+ M notebooks/01_wealth_inequality.ipynb
+ M notebooks/01_wealth_inequality.py
+ M notebooks/01_wealth_inequality_es.ipynb
+ M notebooks/01_wealth_inequality_es.py
+ M notebooks/02_aggregate_shocks.ipynb
+ M notebooks/02_aggregate_shocks.py
+ M notebooks/02_aggregate_shocks_es.ipynb
+ M notebooks/02_aggregate_shocks_es.py
+ M notebooks/03_life_cycle_and_demographics.ipynb
+ M notebooks/03_life_cycle_and_demographics.py
+ M notebooks/03_life_cycle_and_demographics_es.ipynb
+ M notebooks/03_life_cycle_and_demographics_es.py
+ M notebooks/04_firm_dynamics.ipynb
+ M notebooks/04_firm_dynamics.py
+ M notebooks/04_firm_dynamics_es.ipynb
+ M notebooks/04_firm_dynamics_es.py
+ M notebooks/05_portfolios_and_preferences.ipynb
+ M notebooks/05_portfolios_and_preferences.py
+ M notebooks/05_portfolios_and_preferences_es.ipynb
+ M notebooks/05_portfolios_and_preferences_es.py
+ M notebooks/06_svar_identification.ipynb
+ M notebooks/06_svar_identification.py
+ M notebooks/06_svar_identification_es.ipynb
+ M notebooks/06_svar_identification_es.py
+ M notebooks/07_local_projections.ipynb
+ M notebooks/07_local_projections.py
+ M notebooks/07_local_projections_es.ipynb
+ M notebooks/07_local_projections_es.py
+ M notebooks/08_garch_volatility.ipynb
+ M notebooks/08_garch_volatility.py
+ M notebooks/08_garch_volatility_es.ipynb
+ M notebooks/08_garch_volatility_es.py
+ M notebooks/09_growth_at_risk.ipynb
+ M notebooks/09_growth_at_risk.py
+ M notebooks/09_growth_at_risk_es.ipynb
+ M notebooks/09_growth_at_risk_es.py
+ M notebooks/10_staggered_did.ipynb
+ M notebooks/10_staggered_did.py
+ M notebooks/10_staggered_did_es.ipynb
+ M notebooks/10_staggered_did_es.py
+ M notebooks/11_narrative_uncertainty.ipynb
+ M notebooks/11_narrative_uncertainty.py
+ M notebooks/11_narrative_uncertainty_es.ipynb
+ M notebooks/11_narrative_uncertainty_es.py
+ M notebooks/12_validation_gallery.ipynb
+ M notebooks/12_validation_gallery.py
+ M notebooks/12_validation_gallery_es.ipynb
+ M notebooks/12_validation_gallery_es.py
+ M notebooks/13_build_your_own_index.ipynb
+ M notebooks/13_build_your_own_index.py
+ M notebooks/13_build_your_own_index_es.ipynb
+ M notebooks/13_build_your_own_index_es.py
+ M notebooks/14_tax_multiplier_three_ways.ipynb
+ M notebooks/14_tax_multiplier_three_ways.py
+ M notebooks/14_tax_multiplier_three_ways_es.ipynb
+ M notebooks/14_tax_multiplier_three_ways_es.py
+ M notebooks/15_lp_did.ipynb
+ M notebooks/15_lp_did.py
+ M notebooks/15_lp_did_es.ipynb
+ M notebooks/15_lp_did_es.py
+ M notebooks/16_regime_girf.ipynb
+ M notebooks/16_regime_girf.py
+ M notebooks/16_regime_girf_es.ipynb
+ M notebooks/16_regime_girf_es.py
+ M notebooks/17_identification_spec_curve.ipynb
+ M notebooks/17_identification_spec_curve.py
+ M notebooks/17_identification_spec_curve_es.ipynb
+ M notebooks/17_identification_spec_curve_es.py
+ M notebooks/18_beveridge_curve.ipynb
+ M notebooks/18_beveridge_curve.py
+ M notebooks/18_beveridge_curve_es.ipynb
+ M notebooks/18_beveridge_curve_es.py
+ M notebooks/19_model_confidence_set_es.ipynb
+ M notebooks/23_aiyagari_endogenous_labor.ipynb
+ M notebooks/29_synthetic_did.ipynb
+ M notebooks/29_synthetic_did.py
+ M notebooks/29_synthetic_did_es.ipynb
+ M notebooks/29_synthetic_did_es.py
+ M notebooks/31_sequence_space_hank.ipynb
+ M notebooks/31_sequence_space_hank.py
+ M notebooks/31_sequence_space_hank_es.ipynb
+ M notebooks/31_sequence_space_hank_es.py
+ M notebooks/32_climate_macro_dice.ipynb
+ M notebooks/34_penalized_macro_forecasting.ipynb
+ M notebooks/34_penalized_macro_forecasting.py
+ M notebooks/34_penalized_macro_forecasting_es.ipynb
+ M notebooks/34_penalized_macro_forecasting_es.py
+ M notebooks/38_real_time_vintages_and_revisions.ipynb
+ M notebooks/38_real_time_vintages_and_revisions.py
+ M notebooks/38_real_time_vintages_and_revisions_es.ipynb
+ M notebooks/38_real_time_vintages_and_revisions_es.py
+ M notebooks/45_dsge_discretion_dsge_var_and_news_shocks.ipynb
+ M notebooks/45_dsge_discretion_dsge_var_and_news_shocks.py
+ M notebooks/45_dsge_discretion_dsge_var_and_news_shocks_es.ipynb
+ M notebooks/45_dsge_discretion_dsge_var_and_news_shocks_es.py
+ M notebooks/48_applied_realtime_nowcasting_and_news.ipynb
+ M notebooks/48_applied_realtime_nowcasting_and_news.py
+ M notebooks/48_applied_realtime_nowcasting_and_news_es.ipynb
+ M notebooks/48_applied_realtime_nowcasting_and_news_es.py
+ M notebooks/50_applied_fiscal_multipliers_and_debt_sustainability.ipynb
+ M notebooks/50_applied_fiscal_multipliers_and_debt_sustainability.py
+ M notebooks/50_applied_fiscal_multipliers_and_debt_sustainability_es.ipynb
+ M notebooks/50_applied_fiscal_multipliers_and_debt_sustainability_es.py
+ M notebooks/52_continuous_transition_mit_shocks.ipynb
+ M notebooks/52_continuous_transition_mit_shocks.py
+ M notebooks/52_continuous_transition_mit_shocks_es.ipynb
+ M notebooks/52_continuous_transition_mit_shocks_es.py
+ M notebooks/53_exact_analytic_ift_gradients.ipynb
+ M notebooks/53_exact_analytic_ift_gradients.py
+ M notebooks/53_exact_analytic_ift_gradients_es.ipynb
+ M notebooks/53_exact_analytic_ift_gradients_es.py
+ M notebooks/59_latam_realtime_nowcast_and_news.ipynb
+ M notebooks/59_latam_realtime_nowcast_and_news.py
+ M notebooks/59_latam_realtime_nowcast_and_news_es.ipynb
+ M notebooks/59_latam_realtime_nowcast_and_news_es.py
+ M notebooks/61_quantitative_policy_simulators.ipynb
+ M notebooks/61_quantitative_policy_simulators.py
+ M notebooks/61_quantitative_policy_simulators_es.ipynb
+ M notebooks/61_quantitative_policy_simulators_es.py
+ M notebooks/62_flexible_trade_cge.ipynb
+ M notebooks/62_flexible_trade_cge.py
+ M notebooks/62_flexible_trade_cge_es.ipynb
+ M notebooks/62_flexible_trade_cge_es.py
+ M notebooks/63_trade_wars_and_nash_tariffs.ipynb
+ M notebooks/63_trade_wars_and_nash_tariffs.py
+ M notebooks/63_trade_wars_and_nash_tariffs_es.ipynb
+ M notebooks/63_trade_wars_and_nash_tariffs_es.py
+ M notebooks/64_singularities_and_keller_pac.ipynb
+ M notebooks/64_singularities_and_keller_pac.py
+ M notebooks/64_singularities_and_keller_pac_es.ipynb
+ M notebooks/64_singularities_and_keller_pac_es.py
+ M notebooks/65_gvc_cascades_and_welfare_decomposition.ipynb
+ M notebooks/65_gvc_cascades_and_welfare_decomposition.py
+ M notebooks/65_gvc_cascades_and_welfare_decomposition_es.ipynb
+ M notebooks/65_gvc_cascades_and_welfare_decomposition_es.py
+ M notebooks/README.md
+ M notebooks/_TEMPLATE.md
+ M notebooks/course/02_neoclasico_scb_es.ipynb
+ M notebooks/course/02_neoclasico_scb_es.py
+ M notebooks/course/04_rbc_momentos_es.py
+ M notebooks/course/05_svar_identificacion_es.ipynb
+ M notebooks/course/05_svar_identificacion_es.py
+ M notebooks/course/06_lp_narrativa_es.ipynb
+ M notebooks/course/06_lp_narrativa_es.py
+ M notebooks/course/10_b1_capital_ajuste_es.ipynb
+ M notebooks/course/10_b1_capital_ajuste_es.py
+ D notebooks/macro_history_and_climate/N08_puremacro_cycles_and_wavelets.ipynb
+ D notebooks/macro_history_and_climate/N08_puremacro_cycles_and_wavelets.py
+ D notebooks/macro_history_and_climate/N09_puremacro_svar_and_bvar.ipynb
+ D notebooks/macro_history_and_climate/N09_puremacro_svar_and_bvar.py
+ D notebooks/macro_history_and_climate/N10_puremacro_modern_did_and_sdid.ipynb
+ D notebooks/macro_history_and_climate/N10_puremacro_modern_did_and_sdid.py
+ D notebooks/macro_history_and_climate/N12_paleoclimate_eiv_and_simex.ipynb
+ D notebooks/macro_history_and_climate/N12_paleoclimate_eiv_and_simex.py
+ D notebooks/macro_history_and_climate/N13_structural_malthus_boserup_dsge.ipynb
+ D notebooks/macro_history_and_climate/N13_structural_malthus_boserup_dsge.py
+ M puremacro/bartik/akm.py
+ M puremacro/datasets/__init__.py
+ M puremacro/did/__init__.py
+ M puremacro/did/_results.py
+ M puremacro/did/callaway_santanna.py
+ M puremacro/did/sdid_multi.py
+ M puremacro/did/sun_abraham.py
+ M puremacro/did/synthetic_did.py
+ M puremacro/dsge/__init__.py
+ M puremacro/dsge/_ast.py
+ M puremacro/dsge/_gradients.py
+ M puremacro/dsge/_parser.py
+ M puremacro/dsge/_references/hank_two_asset.mod
+ M puremacro/dsge/_results.py
+ M puremacro/dsge/_sw07_data.csv
+ M puremacro/dsge/bayesian.py
+ M puremacro/dsge/build.py
+ M puremacro/dsge/dynare.py
+ M puremacro/dsge/estimate.py
+ M puremacro/dsge/gertler_karadi.py
+ M puremacro/dsge/hank.py
+ M puremacro/dsge/identification.py
+ M puremacro/dsge/markov_switching.py
+ M puremacro/dsge/nuts.py
+ M puremacro/dsge/occbin.py
+ M puremacro/dsge/parity.py
+ M puremacro/dsge/particle_filter.py
+ M puremacro/dsge/policy.py
+ M puremacro/dsge/pruning.py
+ M puremacro/dsge/ramsey.py
+ M puremacro/dsge/smc.py
+ M puremacro/dsge/smets_wouters.py
+ M puremacro/dsge/steady.py
+ M puremacro/dsge/sw07_estimate.py
+ M puremacro/dsge/sw07_observation.py
+ M puremacro/dsge/widgets.py
+ M puremacro/dynpanel/_results.py
+ M puremacro/dynpanel/ab_gmm.py
+ M puremacro/dynpanel/bb_gmm.py
+ M puremacro/dynpanel/diagnostics.py
+ M puremacro/dynpanel/instruments.py
+ M puremacro/examples/EXAMPLES_CATALOG.md
+ M puremacro/examples/dsge_optimal_discretion.py
+ M puremacro/examples/hfi_gertler_karadi.py
+ M puremacro/examples/la_lp_pmw_demo.py
+ M puremacro/examples/mcmc_diagnostics.py
+ M puremacro/examples/ms_var_business_cycle.py
+ M puremacro/examples/synthetic_did_california_prop99.py
+ M puremacro/fetch/qna_vintages.py
+ M puremacro/hfi/README.md
+ M puremacro/hfi/surprises.py
+ M puremacro/inference/hac_fixed_b.py
+ M puremacro/instruments/_catalog.py
+ M puremacro/lp/__init__.py
+ M puremacro/lp/_results.py
+ M puremacro/lp/garch_utils.py
+ M puremacro/lp/jorda.py
+ M puremacro/lp/la_lp.py
+ M puremacro/mcmc.py
+ M puremacro/models/hank_sequence_space.py
+ M puremacro/nowcast/dfm.py
+ M puremacro/nowcast/evaluation.py
+ M puremacro/nowcast/news.py
+ M puremacro/nowcast/realtime_nowcast.py
+ M puremacro/replication/__init__.py
+ M puremacro/replication/cases_dsge_estimation.py
+ M puremacro/replication/cases_regression.py
+ M puremacro/sigma/sigma_numpy.py
+ M puremacro/spatial/lp.py
+ M puremacro/teaching/bq_canonical.py
+ M puremacro/teaching/lp_sm.py
+ M puremacro/teaching/svar_panel.py
+ M puremacro/trade/__init__.py
+ M puremacro/trade/_accounting.py
+ M puremacro/trade/_datafiles/SOURCES.md
+ M puremacro/trade/_hicksian_policy.py
+ M puremacro/trade/_oecd_icio.py
+ M puremacro/trade/data.py
+ M puremacro/trade/equilibrium.py
+ M puremacro/trade/flexible.py
+ M puremacro/trade/gpu/backend.py
+ M puremacro/trade/optimal_tariffs.py
+ M puremacro/trade/policy_solver.py
+ M puremacro/trade/postprocessing.py
+ M puremacro/trade/regularize.py
+ M puremacro/trade/solver.py
+ M puremacro/trade/welfare.py
+ M puremacro/validation/__init__.py
+ M puremacro/validation/cases_did.py
+ M puremacro/validation/cases_dynpanel.py
+ M puremacro/validation/cases_inference.py
+ M puremacro/validation/cases_lp.py
+ M puremacro/validation/cases_var.py
+ M puremacro/var/bvar.py
+ M puremacro/var/identify/_results.py
+ M puremacro/var/identify/bq.py
+ M puremacro/var/identify/panel.py
+ M puremacro/var/identify/proxy.py
+ M puremacro/var/panel.py
+ M puremacro/var/regime/__init__.py
+ M puremacro/var/regime/girf.py
+ M puremacro/var/regime/ms_var.py
+ M puremacro/vfi/analytic_gradients.py
+ M puremacro/vfi/collocation.py
+ M puremacro/vfi/continuous_distribution.py
+ M puremacro/vfi/continuous_transition.py
+ M pyproject.toml
+ M techreport/puremacro_technical_report.md
+ M tests/fixtures/abdata.README.md
+ M tests/fixtures/public_api_snapshot.json
+ D tests/fixtures/sw07_parity_seed0_200draws.npz
+ M tests/test_adversarial_m1_robust_solvers.py
+ M tests/test_bilingual_docs.py
+ M tests/test_challenger_m1_backward_compat.py
+ M tests/test_did/test_audit_regressions.py
+ M tests/test_did/test_sun_abraham.py
+ M tests/test_docs_code_blocks.py
+ M tests/test_dsge/test_ast_parser.py
+ M tests/test_dsge/test_policy.py
+ M tests/test_dsge/test_sw07_estimate_replication.py
+ M tests/test_dsge/test_sw07_wrapper.py
+ M tests/test_dsge_pruning.py
+ M tests/test_dynare_decomposition.py
+ M tests/test_dynpanel/conftest.py
+ M tests/test_dynpanel/test_ab_1991_replication.py
+ M tests/test_e2e_frontier_engines.py
+ M tests/test_gpu_acceleration.py
+ M tests/test_hank_two_asset.py
+ M tests/test_hfi/test_end_to_end.py
+ M tests/test_hfi/test_surprises.py
+ M tests/test_inference/test_hac_fixed_b.py
+ M tests/test_lp_did_coverage.py
+ M tests/test_m5_empirical_challenger2_icio.py
+ M tests/test_mcmc_coverage.py
+ M tests/test_no_machine_specific_paths.py
+ M tests/test_notebooks/test_m4_challenger_schema_and_outputs.py
+ M tests/test_notebooks_trade_tutorials.py
+ M tests/test_numerical_hardening.py
+ M tests/test_result_parity.py
+ M tests/test_trade_34fixes.py
+ M tests/test_trade_e2e_full.py
+ M tests/test_trade_flexible_extensions.py
+ M tests/test_trade_mrio_infrastructure.py
+ M tests/test_trade_solvers_robust.py
+ M tests/test_trade_stabilization_empirical_stress.py
+ M tests/test_trade_tier5_adversarial_probing.py
+ M tests/test_trade_tier5_adversarial_solvers_mrio.py
+ M tests/test_v260_showcase_replication_e2e.py
+ M tests/test_var_bvar_coverage.py
+ M tests/test_var_regime_girf_coverage.py
+ M tests/test_vfi/test_analytic_gradients.py
+ M tests/test_vfi/test_challenger_vfi_frontier_adversarial.py
+ M tools/build_sw07_data.py
+ M tools/generate_es_notebooks.py
+ M tools/run_uncertainty_ident_spec_curve.py
+?? data/raw/api.worldbank.org/v2_country_all_indicator_GC.REV.SOCL.ZS_format_json_date_2000_2026_per_page_15000
+?? data/raw/api.worldbank.org/v2_country_all_indicator_IC.TAX.LABR.CP.ZS_format_json_date_2000_2026_per_page_15000
+?? data/raw/api.worldbank.org/v2_country_all_indicator_NY.GDP.PCAP.PP.KD_format_json_date_2000_2026_per_page_15000
+?? data/raw/api.worldbank.org/v2_country_all_indicator_SL.AGR.EMPL.ZS_format_json_date_2000_2026_per_page_15000
+?? data/raw/api.worldbank.org/v2_country_all_indicator_SL.EMP.SELF.ZS_format_json_date_2000_2026_per_page_15000
+?? data/raw/api.worldbank.org/v2_country_all_indicator_SL.EMP.WORK.ZS_format_json_date_2000_2026_per_page_15000
+?? data/raw/api.worldbank.org/v2_country_all_indicator_SL.GDP.PCAP.EM.KD_format_json_date_2000_2026_per_page_15000
+?? data/raw/api.worldbank.org/v2_country_all_indicator_SL.TLF.CACT.FE.ZS_format_json_date_2000_2026_per_page_15000
+?? docs/dsge_stacked_newton.md
+?? docs/empirical_research.md
+?? docs/es/STRUCTURAL_VALIDATION_STATUS.md
+?? docs/es/dsge_stacked_newton.md
+?? docs/es/empirical_research.md
+?? docs/es/research_benchmarks.md
+?? docs/es/research_workflows.md
+?? docs/es/structural_bridge.md
+?? docs/es/sw07_finite_sample.md
+?? docs/es/trade_accounting.md
+?? docs/es/trade_ces_newton.md
+?? docs/es/trade_condensed.md
+?? docs/es/trade_continuation.md
+?? docs/es/trade_distributional.md
+?? docs/es/trade_dynamic.md
+?? docs/es/trade_household.md
+?? docs/es/trade_mrio.md
+?? docs/es/trade_policy.md
+?? docs/es/trade_stability.md
+?? docs/es/trade_welfare.md
+?? docs/research_benchmarks.md
+?? docs/research_workflows.md
+?? docs/structural_bridge.md
+?? docs/sw07_finite_sample.md
+?? docs/trade_ces_newton.md
+?? docs/trade_condensed.md
+?? docs/trade_continuation.md
+?? docs/trade_distributional.md
+?? docs/trade_dynamic.md
+?? docs/trade_household.md
+?? docs/trade_mrio.md
+?? docs/trade_stability.md
+?? notebooks/66_optimal_policy_cgg1999_replication.ipynb
+?? notebooks/66_optimal_policy_cgg1999_replication.py
+?? notebooks/66_optimal_policy_cgg1999_replication_es.ipynb
+?? notebooks/66_optimal_policy_cgg1999_replication_es.py
+?? notebooks/67_bewley_classics_replication.ipynb
+?? notebooks/67_bewley_classics_replication.py
+?? notebooks/67_bewley_classics_replication_es.ipynb
+?? notebooks/67_bewley_classics_replication_es.py
+?? notebooks/68_third_order_perturbation_trust.ipynb
+?? notebooks/68_third_order_perturbation_trust.py
+?? notebooks/68_third_order_perturbation_trust_es.ipynb
+?? notebooks/68_third_order_perturbation_trust_es.py
+?? puremacro/datasets/data/enigh2024_deciles.csv
+?? puremacro/datasets/data/enigh2024_deciles_metadata.json
+?? puremacro/datasets/enigh.py
+?? puremacro/dsge/_pruned_moments.py
+?? puremacro/dsge/_references/DYNARE_FIXTURES.md
+?? puremacro/dsge/_references/dynare_live/
+?? puremacro/dsge/_references/dynare_order3_pruned_moments.json
+?? puremacro/dsge/stacked_newton.py
+?? puremacro/examples/distributional_trade_enigh.py
+?? puremacro/examples/empirical_sw07_matching.py
+?? puremacro/examples/romer_romer_2010_replication.py
+?? puremacro/examples/structural_irf_matching.py
+?? puremacro/examples/sw07_finite_sample.py
+?? puremacro/replication/data/rr2010_original.csv
+?? puremacro/replication/data/rr2010_original_metadata.json
+?? puremacro/replication/data/rr2010_statsmodels_reference.json
+?? puremacro/replication/data/sw07_parity_seed0_200draws.npz
+?? puremacro/replication/romer_romer_2010.py
+?? puremacro/structural/
+?? puremacro/trade/ces_newton.py
+?? puremacro/trade/condensed/
+?? puremacro/trade/continuation.py
+?? puremacro/trade/distributional.py
+?? puremacro/trade/dynamic/
+?? puremacro/trade/household.py
+?? puremacro/trade/mrio.py
+?? puremacro/trade/stability.py
+?? puremacro/validation/research.py
+?? research_output/
+?? reviews/2026-09-20-notebook-review/
+?? reviews/2026-09-23-notebook-catalog-plan/
+?? reviews/2026-09-30-notebook-review/
+?? reviews/2026-10-01-empirical-replication/
+?? reviews/2026-10-01-research-release-candidate/
+?? reviews/2026-10-01-research-workflows/
+?? reviews/2026-10-01-sw07-finite-sample/
+?? tests/fixtures/dynare_order2_pruned_moments.json
+?? tests/fixtures/dynare_order3_pruned_moments.json
+?? tests/fixtures/trade/ces_newton/
+?? tests/fixtures/trade/mrio/
+?? tests/test_did/test_fix_SDID_inference_and_weights.py
+?? tests/test_did/test_fix_did_aggregation.py
+?? tests/test_did/test_fix_did_coverage.py
+?? tests/test_docs_hygiene_audit_fixes.py
+?? tests/test_dsge_audit_fixes.py
+?? tests/test_dsge_order2_pruned_moments.py
+?? tests/test_dsge_order3_moments.py
+?? tests/test_dsge_policy_conditional_loss.py
+?? tests/test_dsge_stacked_newton.py
+?? tests/test_dynpanel/test_fix_dynpanel_instruments.py
+?? tests/test_dynpanel/test_fix_dynpanel_stata_xtabond.py
+?? tests/test_dynpanel/test_fix_dynpanel_windmeijer.py
+?? tests/test_empirical_moment_audit.py
+?? tests/test_enigh_distributional_data.py
+?? tests/test_fix_AIYCONT_solve_aiyagari_continuous.py
+?? tests/test_fix_AKM_shift_share_projection.py
+?? tests/test_fix_FIXB_fixed_b_cv.py
+?? tests/test_fix_FU_DSGE_resolve_follow_up.py
+?? tests/test_fix_GK_units_and_signs.py
+?? tests/test_fix_I1_dsge_core.py
+?? tests/test_fix_I3_var_lp_ms.py
+?? tests/test_fix_I6_continuous_transition.py
+?? tests/test_fix_IDENT_identification_point.py
+?? tests/test_fix_IDENT_state_set_and_edges.py
+?? tests/test_fix_LALP_la_lp.py
+?? tests/test_fix_LOCALS_model_locals.py
+?? tests/test_fix_MCMC_diagnostics.py
+?? tests/test_fix_MITSHOCK_continuous_mit_shock.py
+?? tests/test_fix_MSAR_ms_var_em.py
+?? tests/test_fix_NOWCAST_plots_and_revision_stats.py
+?? tests/test_fix_POLICY_policy_solvers.py
+?? tests/test_fix_RTNOW_realtime_asof.py
+?? tests/test_fix_STEADY_structural_singularity.py
+?? tests/test_fix_SW07_markup_and_replication.py
+?? tests/test_fix_TRADE_solvers_policy.py
+?? tests/test_fix_VAR_bq_cumulate.py
+?? tests/test_fix_VAR_minnesota_niw.py
+?? tests/test_fix_pruning_risky_steady_state.py
+?? tests/test_fu_misc_followups.py
+?? tests/test_notebooks/test_e2e_doc_elevation.py
+?? tests/test_notebooks/test_m1_challenger_schema_and_outputs.py
+?? tests/test_res_pmw_hac_attribution.py
+?? tests/test_research_applications.py
+?? tests/test_research_benchmarks.py
+?? tests/test_rr2010_application.py
+?? tests/test_rr2010_published_replication.py
+?? tests/test_rr2010_replication_audit.py
+?? tests/test_structural_bridge.py
+?? tests/test_structural_empirical_sw07.py
+?? tests/test_structural_lp_bridge.py
+?? tests/test_sw07_expectations.py
+?? tests/test_sw07_finite_sample.py
+?? tests/test_sw07_finite_sample_application.py
+?? tests/test_sw07_finite_sample_audit.py
+?? tests/test_sw07_finite_sample_failure_gate.py
+?? tests/test_sw07_sampling.py
+?? tests/test_trade_ces_newton.py
+?? tests/test_trade_condensed.py
+?? tests/test_trade_continuation.py
+?? tests/test_trade_distributional.py
+?? tests/test_trade_dynamic.py
+?? tests/test_trade_household.py
+?? tests/test_trade_ingestion_audit_fixes.py
+?? tests/test_trade_mrio.py
+?? tests/test_trade_solver_audit_fixes.py
+?? tests/test_trade_stability.py
+?? tests/test_vfi/test_aiyagari_continuous_negative_rates.py
+?? tools/build_enigh_distributional_data.py
+?? tools/reference_validation/export_rr2010.py
+?? tools/run_research_benchmarks.py

@@ -1,0 +1,49 @@
+--- a/matlab/+pruned_SS/pruned_state_space_system.m
++++ b/matlab/+pruned_SS/pruned_state_space_system.m
+@@ -807,11 +807,14 @@
+ 
+         E_xrd = zeros(x_nbr,1);%due to gaussianity
+ 
+-        E_inovzlag1 = zeros(inov_nbr,z_nbr); % Attention: E[inov*z(-1)'] is not equal to zero for a third-order approximation due to kron(kron(xf(-1),u),u)
+-        E_inovzlag1(id_inov6_xf_u_u , id_z1_xf       ) = kron(E_xfxf,E_uu(:));
+-        E_inovzlag1(id_inov6_xf_u_u , id_z4_xrd      ) = kron(E_xrdxf',E_uu(:));
+-        E_inovzlag1(id_inov6_xf_u_u , id_z5_xf_xs    ) = kron(reshape(K_xx_x*vec(E_xsxf_xf),x_nbr,x_nbr^2),vec(E_uu)) ;
+-        E_inovzlag1(id_inov6_xf_u_u , id_z6_xf_xf_xf ) = kron(reshape(E_xf_xfxf_xf,x_nbr,x_nbr^3),E_uu(:));
++        % Centre inov6 = kron(kron(xf(-1),u),u) on its conditional mean kron(xf(-1),E_uu(:)).
++        % The mean moves into A and C, every innovation becomes a martingale difference
++        % (uncorrelated with z(-1) and with earlier innovations), and E[inov*z(-1)'] = 0.
++        xf_to_uu_mean = kron(eye(x_nbr),E_uu(:)); % kron(xf(-1),E_uu(:)) = xf_to_uu_mean*xf(-1)
++        A(:,id_z1_xf) = A(:,id_z1_xf) + B(:,id_inov6_xf_u_u)*xf_to_uu_mean;
++        C(:,id_z1_xf) = C(:,id_z1_xf) + D(:,id_inov6_xf_u_u)*xf_to_uu_mean;
++        Varinov(id_inov6_xf_u_u , id_inov6_xf_u_u ) = kron(E_xfxf,reshape(QPu*E_u_u_u_u,u_nbr^2,u_nbr^2)-E_uu(:)*E_uu(:)');
++        E_inovzlag1 = zeros(inov_nbr,z_nbr);
+ 
+         Binovzlag1A= B*E_inovzlag1*transpose(A);
+         Om_z = B*Varinov*transpose(B) + Binovzlag1A + transpose(Binovzlag1A);
+@@ -1086,24 +1089,9 @@
+ hxi = eye(x_nbr);
+ E_inovzlagi = E_inovzlag1;
+ Var_zi = Var_z;
+-if order <= 2
+-    tmp = A*Var_z*C(stationary_vars,:)' + B*Varinov*D(stationary_vars,:)';
+-else
+-    tmp = A*E_inovzlag1'*D(stationary_vars,:)' + B*Varinov*D(stationary_vars,:)';
+-end
++tmp = A*Var_z*C(stationary_vars,:)' + B*Varinov*D(stationary_vars,:)';
+ for i = 1:nlags
+-    if order <= 2
+-        Var_yi(stationary_vars,stationary_vars,i) = C(stationary_vars,:)*Ai*tmp;
+-    else
+-        Var_zi = A*Var_zi + B*E_inovzlagi;
+-        hxi = hx*hxi;
+-        E_inovzlagi = zeros(inov_nbr,z_nbr);
+-        E_inovzlagi(id_inov6_xf_u_u , id_z1_xf       ) = kron(hxi*E_xfxf,E_uu(:));
+-        E_inovzlagi(id_inov6_xf_u_u , id_z4_xrd      ) = kron(hxi*E_xrdxf',E_uu(:));
+-        E_inovzlagi(id_inov6_xf_u_u , id_z5_xf_xs    ) = kron(hxi*reshape(K_xx_x*vec(E_xsxf_xf),x_nbr,x_nbr^2),vec(E_uu));
+-        E_inovzlagi(id_inov6_xf_u_u , id_z6_xf_xf_xf ) = kron(hxi*reshape(E_xf_xfxf_xf,x_nbr,x_nbr^3),E_uu(:));
+-        Var_yi(stationary_vars,stationary_vars,i)      = C(stationary_vars,:)*Var_zi*C(stationary_vars,:)' + C(stationary_vars,:)*Ai*tmp + D(stationary_vars,:)*E_inovzlagi*C(stationary_vars,:)';
+-    end
++    Var_yi(stationary_vars,stationary_vars,i) = C(stationary_vars,:)*Ai*tmp;
+     if useautocorr
+         Corr_yi(stationary_vars,stationary_vars,i) = Var_yi(stationary_vars,stationary_vars,i)./sy;
+     end

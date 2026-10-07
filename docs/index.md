@@ -13,6 +13,8 @@
 
 ## What is puremacro?
 
+New research workflows: [independent evidence, structural estimation and household trade incidence](research_workflows.md).
+
 `puremacro` is a unified macroeconomic computing library built entirely in pure Python and NumPy. It eliminates complex Fortran, C++, and MEX toolchains, allowing econometric models to run anywhere: local laptops, high-performance clusters, Google Colab, and **directly inside web browsers via Pyodide / WebAssembly**.
 
 ### Key Subsystems

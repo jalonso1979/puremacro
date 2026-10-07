@@ -1,0 +1,5 @@
+Using CPython 3.13.12 interpreter at: /opt/homebrew/Caskroom/miniconda/base/envs/work/bin/python
+Resolved 1 package in 10ms
+Prepared 1 package in 74ms
+Installed 1 package in 8ms
+ + puremacro==4.3.0 (from file:///tmp/puremacro-empirical-wheel-final/dist/puremacro-4.3.0-py3-none-any.whl)

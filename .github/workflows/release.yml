@@ -11,8 +11,25 @@ on:
     tags: ['v*']
 
 jobs:
+  # The full CI matrix (ci.yml, via workflow_call) on the exact tagged commit.
+  # Publishing waits for it and for the opt-in job: a red suite never reaches PyPI. The publish job
+  # below stays in this file, so the Trusted Publisher (workflow = release.yml,
+  # environment = pypi) is unchanged; do not rename this file or move that job.
+  ci:
+    name: CI on the tagged commit
+    uses: ./.github/workflows/ci.yml
+
+  # The opt-in markers (slow, reference, replication) on the tagged commit:
+  # the frozen goldens they guard are exactly what a release must not ship
+  # red. Its notebook-execution job skips itself inside a call (see the
+  # `if:` there), so this adds roughly an hour, not three.
+  opt-in:
+    name: Opt-in tests on the tagged commit
+    uses: ./.github/workflows/opt-in-tests.yml
+
   build-and-publish:
     name: build + publish (PyPI trusted publishing)
+    needs: [ci, opt-in]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:

@@ -1,0 +1,14 @@
+{
+  "all_frozen_gate_sources_match": true,
+  "changed_since_freeze": [],
+  "added_since_freeze": [],
+  "all_frozen_package_test_tool_sources_match": true,
+  "changed_non_documentation_sources": [],
+  "added_non_documentation_sources": [],
+  "final_strict_docs_match": true,
+  "docs_changed_after_strict_build": [],
+  "docs_added_after_strict_build": [],
+  "generated_unshipped_example_output_changes": {},
+  "frozen_file_count": 3295,
+  "note": "Post-freeze prose changes are listed and separately authenticated against the final strict documentation build. Test-regenerated PNGs in examples/output are recorded separately and verified absent from the wheel."
+}

@@ -530,7 +530,7 @@ def test_sw07_canonical_benchmark_parse_and_residuals():
     """Verify sw07_pfeifer.mod parses completely and residuals evaluate to machine zero."""
     mod_path = Path("puremacro/dsge/_references/sw07_pfeifer.mod")
     assert mod_path.exists()
-    text = mod_path.read_text()
+    text = mod_path.read_text(encoding="utf-8")
 
     dag = parse_mod_to_dag(text)
 
@@ -542,7 +542,7 @@ def test_sw07_canonical_benchmark_parse_and_residuals():
     assert dag.is_linear is True
     assert len(dag.equation_tags) == 38
 
-    # Check that model-local '#' variables were evaluated and inlined
+    # Check that model-local '#' variables were inlined symbolically
     assert len(dag.local_variables) >= 15
     for eq in dag.equations:
         # No equation should reference unresolved _LocalRef

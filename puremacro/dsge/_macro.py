@@ -568,6 +568,9 @@ _TOKEN_RE = re.compile(
 
 
 def _unescape_string(s: str) -> str:
+    # Dynare's macro lexer does no escape processing, so a backslash is literal
+    # (Windows paths such as "C:\Users\runner" must survive @#includepath).
+    # Only an escaped quote or backslash is collapsed.
     content = s[1:-1]
     res = []
     i = 0
@@ -575,20 +578,10 @@ def _unescape_string(s: str) -> str:
     while i < n:
         if content[i] == "\\" and i + 1 < n:
             c = content[i + 1]
-            if c == "n":
-                res.append("\n")
-            elif c == "t":
-                res.append("\t")
-            elif c == "r":
-                res.append("\r")
-            elif c == "\\":
-                res.append("\\")
-            elif c == '"':
-                res.append('"')
-            elif c == "'":
-                res.append("'")
-            else:
+            if c in ("\\", '"', "'"):
                 res.append(c)
+            else:
+                res.append("\\" + c)
             i += 2
         else:
             res.append(content[i])

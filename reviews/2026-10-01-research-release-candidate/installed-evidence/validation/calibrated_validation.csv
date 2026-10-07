@@ -1,0 +1,5 @@
+variant,calibration_draws,validation_draws,calibration_unresolved,validation_unresolved,critical_rank,critical_lower,critical_upper,critical_lower_unbounded,critical_upper_unbounded,calibrated_events_lower,calibrated_events_upper,calibrated_rate_lower,calibrated_rate_upper,calibrated_mc95_lower,calibrated_mc95_upper
+population_hac,2,2,1,0,3,inf,inf,True,True,0,0,0.0,0.0,0.0,0.841886116991581
+finite_hac,2,2,0,0,3,inf,inf,True,True,0,0,0.0,0.0,0.0,0.841886116991581
+population_oracle,2,2,0,0,3,inf,inf,True,True,0,0,0.0,0.0,0.0,0.841886116991581
+finite_oracle,2,2,0,0,3,inf,inf,True,True,0,0,0.0,0.0,0.0,0.841886116991581

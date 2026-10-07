@@ -13,19 +13,20 @@
 # %% [markdown]
 # # Where does wealth inequality come from?
 #
+# **Where does wealth inequality come from, and why do uninsurable idiosyncratic income shocks push the general equilibrium interest rate strictly below the complete-markets rate of time preference?**
+#
 # Idiosyncratic income risk plus a borrowing constraint makes households save
 # for precautionary reasons, producing a non-degenerate wealth distribution even
 # when everyone is *ex-ante* identical. We solve the **Aiyagari (1994)** general
 # equilibrium, contrast it with the **Huggett (1993)** bond economy, and show
-# that adding *ex-ante* heterogeneity in patience (β) fattens the top tail — the
+# that adding *ex-ante* heterogeneity in patience ($\beta$) fattens the top tail — the
 # canonical reason quantitative models need permanent heterogeneity to match the
-# data. All with `puremacro.vfi`.
-
-# %% [markdown]
-# ## The model in three equations
+# data (Bewley 1986; Castañeda, Díaz-Giménez & Ríos-Rull 2003). All with `puremacro.vfi`.
+#
+# ## The method in math
 #
 # **Households.** A continuum of households face idiosyncratic labor-productivity risk $z$
-# (an AR(1), discretized by Tauchen) and cannot borrow. They solve
+# (an AR(1), discretized by Tauchen 1986) and cannot borrow. They solve
 # $$ V(a,z) = \max_{a'\ge 0}\; u(c) + \beta\,\mathbb{E}\!\left[V(a',z')\mid z\right]
 # \quad\text{s.t.}\quad c = w\,e^{z} + (1+r)\,a - a', $$
 # with $u(c)=\log c$ here ($\gamma=1$). The constraint $a'\ge 0$ is the engine of the model.
@@ -38,6 +39,21 @@
 # asset is a bond in zero net supply, so clearing is $\int a\,d\mu = 0$ and the equilibrium
 # rate sits strictly below $1/\beta-1$.
 #
+# ### Baseline Model Parameters
+#
+# | Parameter | Symbol | Economic Interpretation | Baseline Value | Units |
+# |---|---|---|---|---|
+# | Discount factor | $\beta$ | Subjective rate of time preference | 0.96 | Dimensionless (annual) |
+# | Risk aversion | $\gamma$ | Relative risk aversion curvature (log utility) | 1.00 | Dimensionless |
+# | Capital share | $\alpha$ | Cobb-Douglas output elasticity of capital | 0.36 | Dimensionless fraction |
+# | Depreciation | $\delta$ | Annual physical capital depreciation rate | 0.08 | Annual rate |
+# | Income persistence | $\rho_z$ | AR(1) persistence of labor productivity | 0.60 | Dimensionless autocorrelation |
+# | Innovation volatility | $\sigma_z$ | Standard deviation of productivity shock | 0.20 | Standard deviation |
+# | Borrowing limit | $a_{\min}$ | Hard borrowing constraint on net wealth | 0.00 | Capital units |
+# | Asset upper bound | $a_{\max}$ | Upper truncation bound for asset grid | 60.00 | Capital units |
+# | Asset grid points | $n_a$ | Number of discretized asset grid nodes | 120 | Integer count |
+# | Income states | $n_z$ | Number of Tauchen productivity states | 5 | Integer count |
+#
 # **Intuition.** With no borrowing and uninsurable income risk, households self-insure by
 # holding a precautionary buffer of assets. That buffer is why a non-degenerate wealth
 # distribution emerges even though everyone is *ex-ante* identical — and why the clearing
@@ -45,6 +61,14 @@
 # bids the return down. Permanent differences in patience $\beta$ then stretch the
 # distribution further — patient households climb the asset grid, impatient ones pile near
 # the constraint.
+#
+# ### Seminal Literature Citations
+#
+# - Aiyagari (1994). Uninsured idiosyncratic risk and aggregate saving. *Quarterly Journal of Economics*, 109(3), 659–684.
+# - Bewley (1986). Stationary monetary equilibrium with a continuum of independently fluctuating consumers. *Contributions to Mathematical Economics in Honor of Gérard Debreu*, 79–102.
+# - Castañeda, Díaz-Giménez & Ríos-Rull (2003). Accounting for the US earnings and wealth inequality. *Journal of Political Economy*, 111(4), 818–857.
+# - Huggett (1993). The risk-free rate in heterogeneous-agent incomplete-insurance economies. *Journal of Economic Dynamics and Control*, 17(5-6), 953–969.
+# - Tauchen (1986). Finite state markov-chain approximations to univariate and vector autoregressions. *Economics Letters*, 20(2), 177–181.
 
 # %%
 import sys

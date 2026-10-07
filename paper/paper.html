@@ -205,6 +205,14 @@ macroeconomics on the core scientific-Python stack</h1>
 <!-- AUTHOR: the ORCID above is the only "Jorge Alonso Ortiz" (ITAM) record in the
      public ORCID registry (checked 2026-09-13); confirm it is yours. Set `date` to
      the day you submit. -->
+<!-- This draft is NOT pinned to an old release: it tracks the current one, 4.6.0.
+     Every count in the text (modules, lines, tests, swept library modules,
+     validation checks, notebook pairs, commits) was recomputed from the 4.6.0 tree
+     (commit d2634362) on 2026-10-04, and `scorecard.png` was regenerated from
+     `validation.scorecard()` on the same tree: 114 checks, 16 subsystems,
+     21 external (14 package + 5 SciPy + 2 published) / 31 analytical / 62 internal,
+     all passing (4.4.0 had 110: 20 / 31 / 59; 3.4.0 had 107: 19 / 29 / 59). Re-run
+     the commands in RELEASING.md §6.5 before submitting. -->
 <h1 id="summary">Summary</h1>
 <p><code>puremacro</code> is a Python library for empirical
 macroeconomics and for solving quantitative macroeconomic models. It
@@ -371,7 +379,7 @@ SciPy, pandas and Matplotlib (plus requests, in the data layer) at
 module scope; anything else, from Parquet support to optional
 accelerators, is optional and imported only when available. Two tests
 enforce the rule against the packages most likely to leak in. The first
-imports each of the 530 library modules (examples, teaching helpers,
+imports each of the 597 library modules (examples, teaching helpers,
 text-scraping sources and optional Numba kernels are excluded) and fails
 if statsmodels, linearmodels, arch or the scraping packages bs4,
 pdfplumber and pypdf have entered <code>sys.modules</code>. The second
@@ -404,33 +412,46 @@ large heterogeneous-agent problems slower than in JIT-compiled toolkits,
 and derivatives that other libraries obtain by automatic differentiation
 must be coded by hand. The browser is a best-effort target rather than a
 supported one: Parquet and Excel files need engines that not every
-Pyodide distribution provides. Under Pyodide 314.0.5 in Node.js the full
-validation gallery passes, and an opt-in release gate installs the
-package as the playground does and runs a 31-test smoke subset of the
-suite.</p>
-<p><strong>Scale.</strong> Version 3.3.0 comprises about 730 modules and
-220,000 lines of Python, exercised by about 12,700 tests that CI runs on
-Linux, macOS and Windows under Python 3.11–3.13. Before a release is
+Pyodide distribution provides. A headless harness in the repository runs
+the library in Node.js against a pinned Pyodide, and an opt-in release
+gate installs the package there exactly as the playground does and runs
+a 31-test smoke subset of the suite. On 3 October 2026 the same harness
+ran the whole validation gallery inside Pyodide 0.28.3 and 314.0.5 (the
+version the playground pins): all 114 checks passed on both, in about 36
+to 38 seconds against 21 on the desktop, with the same pass flags
+everywhere and four margins differing between WebAssembly and native
+arithmetic by at most
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>5</mn><mo>×</mo><msup><mn>10</mn><mrow><mi>−</mi><mn>4</mn></mrow></msup></mrow><annotation encoding="application/x-tex">5 \times 10^{-4}</annotation></semantics></math>.</p>
+<!-- AUTHOR: re-run `python tools/pyodide_gallery.py` on the submitted commit and
+     update the sentence above if the counts or Pyodide versions changed. -->
+<p><strong>Scale.</strong> Version 4.6.0 comprises about 810 modules and
+282,000 lines of Python, exercised by about 19,100 tests, of which CI
+runs 18,900 on Linux, macOS and Windows under Python 3.11–3.13 on every
+push and the remaining slow, reference and replication tests weekly and
+on every release tag, where they gate publication. Before a release is
 tagged, a script checks the suite against a recorded baseline, the
 import invariant, a snapshot of the public API that must be regenerated
-deliberately when the interface changes, and that the version string
+deliberately when the interface changes, that every shipped file still
+parses on the oldest supported Python, and that the version string
 agrees across the package metadata, changelog and citation file.</p>
 <h2 id="verification">Verification</h2>
 <p>The validation gallery,
-<code>puremacro.validation.scorecard()</code>, runs 107 checks across 15
+<code>puremacro.validation.scorecard()</code>, runs 114 checks across 16
 subsystems in under a minute, with none of the oracle packages
 installed; all pass (<a href="#fig:scorecard"
 data-reference-type="ref+label"
 data-reference="fig:scorecard">[fig:scorecard]</a>). The checks differ
-in strength, and each records its reference. Nineteen compare against an
-external reference: stored outputs of statsmodels, arch, linearmodels
-and esda, SciPy results computed at run time, or a published table.
-Agreement with independent implementations is typically at machine
-precision (median relative difference of order
+in strength, and each records its reference. Twenty-one compare against
+an external reference: stored outputs of statsmodels, arch, linearmodels
+and esda, SciPy results computed at run time, a published table, or, for
+the trade model, the solution of the author’s legacy MATLAB
+implementation on the same input-output table. Agreement with
+independent implementations is typically at machine precision (median
+relative difference of order
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mn>10</mn><mrow><mi>−</mi><mn>15</mn></mrow></msup><annotation encoding="application/x-tex">10^{-15}</annotation></semantics></math>);
 the exception is GARCH, whose estimates differ from arch’s by up to
-0.35% because the two packages use different optimisers. Twenty-nine
-checks compare against analytical results, and 59 test internal
+0.35% because the two packages use different optimisers. Thirty-one
+checks compare against analytical results, and 62 test internal
 consistency, such as agreement between alternative algorithms and
 recovery of parameters from simulated data.</p>
 <p>A separate replication gallery,
@@ -450,13 +471,15 @@ role="doc-biblioref">Aiyagari, 1994</a>; <a href="#ref-huggett1993"
 role="doc-biblioref">Huggett, 1993</a>)</span>: precautionary saving
 holds the interest rate below the rate of time preference, and the rate
 falls as income risk rises. Most model solvers (sequence-space,
-continuous-time, spatial, trade and climate) are covered by unit tests
-but not yet by gallery checks.</p>
+continuous-time, spatial, and climate) are covered by unit tests but not
+yet by gallery checks; the trade model gained its first four checks in
+4.6.0, on a 77-country, 11-sector OECD table rebuilt from a clean
+release.</p>
 <figure>
 <img src="media/scorecard.png" style="width:80.0%"
-alt="The validation gallery of puremacro 3.3.0: 107 checks in 15 subsystems, by kind of reference; all pass. External reference: stored outputs of statsmodels, arch, linearmodels or esda, SciPy computed at run time, or a published table. Analytical result: a closed form, or an effect planted in simulated data. Internal consistency: agreement between alternative algorithms, identities that correct output must satisfy, or recovery of parameters from simulated data. Regenerate with python paper/make_scorecard_fig.py." />
+alt="The validation gallery of puremacro 4.6.0: 114 checks in 16 subsystems, by kind of reference; all pass. External reference: stored outputs of statsmodels, arch, linearmodels or esda, SciPy computed at run time, or a published table. Analytical result: a closed form, or an effect planted in simulated data. Internal consistency: agreement between alternative algorithms, identities that correct output must satisfy, or recovery of parameters from simulated data. Regenerate with python paper/make_scorecard_fig.py." />
 <figcaption aria-hidden="true">The validation gallery of
-<code>puremacro</code> 3.3.0: 107 checks in 15 subsystems, by kind of
+<code>puremacro</code> 4.6.0: 114 checks in 16 subsystems, by kind of
 reference; all pass. <em>External reference</em>: stored outputs of
 statsmodels, arch, linearmodels or esda, SciPy computed at run time, or
 a published table. <em>Analytical result</em>: a closed form, or an
@@ -478,14 +501,14 @@ author’s course <em>Macroeconomía Avanzada</em> at ITAM, whose Fall 2026
 edition builds its computational material on it. The course’s 22 Spanish
 lesson notebooks are in the repository (<code>notebooks/course</code>),
 and 20 of them call <code>puremacro</code> directly.</p>
-<p><em>Reproducible material.</em> The repository contains 58 bilingual
-(English/Spanish) pairs of worked-example notebooks; all but one of
-them, with the lesson notebooks, are also published as a JupyterLite
-<span class="citation" data-cites="jupyterlite">(<a
-href="#ref-jupyterlite" role="doc-biblioref">JupyterLite contributors,
-2021</a>)</span> site that runs them in the browser.</p>
+<p><em>Reproducible material.</em> The repository contains 70 bilingual
+(English/Spanish) pairs of worked-example notebooks; all of them, with
+the lesson notebooks, are also published as a JupyterLite <span
+class="citation" data-cites="jupyterlite">(<a href="#ref-jupyterlite"
+role="doc-biblioref">JupyterLite contributors, 2021</a>)</span> site
+that runs them in the browser.</p>
 <!-- AUTHOR: the live site's install failure (the 3.2.1 wheel required openpyxl
-     while PyPI fallback is disabled) is fixed in 3.3.0. After the next Pages
+     while PyPI fallback is disabled) is fixed since 3.3.0. After the next Pages
      deploy, run the first cell of a notebook in a browser to confirm, then delete
      this comment. -->
 <p><em>Community readiness.</em> The package is released on PyPI under
@@ -496,14 +519,14 @@ guidelines, and CI on three operating systems.</p>
 <h1 id="ai-usage-disclosure">AI usage disclosure</h1>
 <p>Generative AI was used extensively in writing <code>puremacro</code>,
 its documentation and this paper. Anthropic’s Claude models, used
-through the Claude Code agent (Claude Opus 5, Claude Fable 5 and Claude
-Fable 5.1), generated or co-wrote much of the code, tests, documentation
-and notebooks: 109 of the 211 commits in the public repository carry a
-Claude co-author trailer. Google’s Jules coding agent contributed 20
-pull requests (refactoring, performance and test improvements), each
-reviewed and merged by the author. Claude also drafted and revised this
-paper, including checking its claims against the code and its references
-against Crossref.</p>
+through the Claude Code agent (Claude Opus 5, Claude Opus 5.5, Claude
+Fable 5 and Claude Fable 5.1), generated or co-wrote much of the code,
+tests, documentation and notebooks: 205 of the 344 commits in the public
+repository carry a Claude co-author trailer. Google’s Jules coding agent
+contributed 20 pull requests (refactoring, performance and test
+improvements), each reviewed and merged by the author. Claude also
+drafted and revised this paper, including checking its claims against
+the code and its references against Crossref.</p>
 <p>The author set the scope and made the core design decisions (the
 import invariant, validation against stored outputs of reference
 implementations, and the shared interface conventions) and reviewed,
@@ -511,13 +534,31 @@ edited and validated all AI-assisted output before it was merged.
 Correctness does not rest on that review alone: it is checked by the
 test suite, the validation and replication galleries, and CI.</p>
 <!-- AUTHOR, required before submitting (JOSS treats an incomplete or inaccurate
-     disclosure as an ethical breach):
-     (1) confirm that the review assertion in the paragraph above is accurate;
-     (2) add the AI tools used during private development (2026-04-28 to
-         2026-07-20, squashed into the first public commit), and the model and
-         version behind Jules;
-     (3) refresh the counts: `git rev-list --count HEAD` and
-         `git log -i --grep='co-authored-by: claude' --oneline | wc -l`. -->
+     disclosure as an ethical breach). Only you can confirm items 1-4; do not
+     submit with this comment still here.
+     (1) TOOLS AND MODELS, PUBLIC PERIOD (2026-07-20 onward). The commit trailers
+         on origin/main at d2634362 (4.6.0) name: Claude Opus 5 (105 commits),
+         Claude Opus 5.5 (31), Claude Fable 5.1 (29), Claude Opus 5 (1M context)
+         (26) and Claude Fable 5 (14); the sentence above now names all four model
+         families. Confirm that no other assistant (Copilot, ChatGPT, Cursor,
+         Gemini, ...) was used without leaving a trailer.
+     (2) TOOLS AND MODELS, PRIVATE PERIOD (2026-04-28 to 2026-07-20, inside the
+         private `uncertainty_examples` monorepo and squashed into the first
+         public commit, so no trailer records it): list every AI tool and model
+         used then, and say roughly how much of the code it produced. The
+         sentence above currently covers only the public repository.
+     (3) JULES: 20 commits by google-labs-jules[bot], merged through 20 pull
+         requests, are on origin/main. Name the model and version behind Jules
+         (the commits do not record it), and confirm "each reviewed and merged
+         by the author".
+     (4) REVIEW ASSERTION: confirm that "reviewed, edited and validated all
+         AI-assisted output before it was merged" is literally true, including
+         for multi-agent workflow commits; if not, soften it to what is true.
+     (5) COUNTS ("205 of the 344 commits"): recomputed on 2026-10-04 at
+         d2634362 with RELEASING.md §6.5, i.e.
+         `git rev-list --count origin/main` and
+         `git log origin/main -i --grep='co-authored-by: claude' --oneline | wc -l`.
+         Re-run on the submitted commit; commits after 4.6.0 will move both. -->
 <h1 id="acknowledgements">Acknowledgements</h1>
 <p>The author thanks the scientific-Python and Pyodide communities,
 whose work makes a browser-capable macroeconomics library possible.</p>

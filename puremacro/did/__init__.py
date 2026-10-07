@@ -3,12 +3,17 @@
 The headline estimators in the post-2020 literature, all in one place:
 
   ``callaway_santanna``        — Callaway-Sant'Anna 2021 ATT(g, t)
-                                  with not-yet-treated / never-treated controls.
-  ``sun_abraham``              — Sun-Abraham 2021 cohort-share-weighted
-                                  event-study (a CS aggregation).
+                                  with not-yet-treated / never-treated
+                                  controls, aggregated with cohort-size
+                                  weights (event study eq. 3.4; overall
+                                  summaries eqs. 3.10-3.12).
+  ``sun_abraham``              — Sun-Abraham 2021 interaction-weighted
+                                  event study (coincides with CS eq. 3.4;
+                                  joint-bootstrap SEs).
   ``borusyak_jaravel_spiess``  — BJS 2022 imputation estimator.
   ``synthetic_did``            — Arkhangelsky-Athey-Hirshberg-Imbens-
-                                  Wager 2021 SDID (single-cohort).
+                                  Wager 2021 SDID (single-cohort;
+                                  placebo / bootstrap / jackknife SEs).
   ``cdh_did``                  — de Chaisemartin-D'Haultfoeuille 2020
                                   DID_M / DID_M^l (switchers estimator).
   ``sdid_multi_cohort``        — Multi-cohort SDID aggregation

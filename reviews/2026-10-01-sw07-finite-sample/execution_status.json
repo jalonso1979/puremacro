@@ -1,0 +1,13 @@
+{
+  "recorded_from_completed_tool_sessions": true,
+  "scenario_cli_exit_codes": {
+    "baseline_fixed": 1,
+    "published_fixed": 1,
+    "baseline_fitted": 1,
+    "published_fitted": 1
+  },
+  "cli_status_reason": "All requested replications completed and artifacts were exported. Each scenario contains unresolved optimizer diagnostics, for which the CLI intentionally returns 1.",
+  "targeted_tests_exit_code": 0,
+  "targeted_tests_passed": 171,
+  "targeted_tests_warnings": 2
+}

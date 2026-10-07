@@ -65,8 +65,9 @@ Para resolver $\mathbf{H}(\mathbf{r}) = \mathbf{0}$ de forma eficiente sin reeva
    $$J_{t, t}^{\text{init}} \approx -\frac{\partial K_t^d}{\partial r_t} = \frac{1}{1 - \alpha} \frac{K_t^d}{r_t + \delta} > 0, \quad \mathbf{B}_0 = \text{diag}\left( \frac{1}{J_{t, t}^{\text{init}}} \right)$$
 2. **Paso Cuasi-Newton**: En la iteración $k$, la actualización propuesta es:
    $$\Delta \mathbf{r}^{(k)} = - \mathbf{B}_k \mathbf{H}(\mathbf{r}^{(k)})$$
-3. **Búsqueda lineal con retroceso monótono**: Se determina el paso $\lambda \in (0, 1]$ asegurando la contracción estricta de la norma del supremo:
-   $$\|\mathbf{H}(\mathbf{r}^{(k)} + \lambda \Delta \mathbf{r}^{(k)})\|_\infty < \|\mathbf{H}(\mathbf{r}^{(k)})\|_\infty$$
+3. **Búsqueda lineal con retroceso monótono**: Partiendo de $\lambda = 1$, el paso se divide por dos (como mucho 12 veces) hasta que la norma euclídea del residuo baja lo suficiente:
+   $$\|\mathbf{H}(\mathbf{r}^{(k)} + \lambda \Delta \mathbf{r}^{(k)})\|_2 \le (1 - 10^{-4} \lambda)\, \|\mathbf{H}(\mathbf{r}^{(k)})\|_2$$
+   Si ningún paso lo cumple, $\mathbf{B}_k$ se reinicia a $\mathbf{B}_0$ y se da el paso amortiguado $\mathbf{r}^{(k)} - \omega\, \mathbf{B}_0 \mathbf{H}(\mathbf{r}^{(k)})$, con $\omega$ = `damping`. Ese paso de reserva es el único lugar en que Broyden usa `damping`. Con `backtracking=False` todos los pasos son de reserva y se descartan las actualizaciones de rango uno. La búsqueda lineal no falló en ninguna ejecución del cuaderno 52: con el valor por defecto `backtracking=True`, `damping` de 0.2, 0.4 y 0.8 dio trayectorias de Broyden idénticas bit a bit para los choques de $-8\%$, $-5\%$, $+0.1\%$, $+5\%$ y $+8\%$ con persistencia 0.5, 0.8 y 0.92 ($T = 40$). Con `backtracking=False` el mismo choque de $+5\%$ necesitó 31, 14 y 17 iteraciones.
 4. **Actualización de Sherman-Morrison**: Definiendo $\Delta \mathbf{H} = \mathbf{H}^{(k+1)} - \mathbf{H}^{(k)}$ y $\Delta \mathbf{r} = \mathbf{r}^{(k+1)} - \mathbf{r}^{(k)}$:
    $$\mathbf{B}_{k+1} = \mathbf{B}_k + \frac{(\Delta \mathbf{r} - \mathbf{B}_k \Delta \mathbf{H}) (\Delta \mathbf{r}^\top \mathbf{B}_k)}{\Delta \mathbf{r}^\top \mathbf{B}_k \Delta \mathbf{H}}$$
 5. **Criterio de convergencia**: El proceso finaliza cuando $\|\mathbf{H}(\mathbf{r})\|_\infty < \text{tol}$ (típicamente $10^{-4}$).
@@ -79,7 +80,7 @@ Para resolver $\mathbf{H}(\mathbf{r}) = \mathbf{0}$ de forma eficiente sin reeva
 |---|---|---|
 | **Tasa de convergencia** | Superlineal (típicamente 4–8 iteraciones) | Lineal (20–60 iteraciones) |
 | **Mecanismo de paso** | Actualización completa de Sherman-Morrison en rango 1 | Relajación amortiguada: $\mathbf{r}^{(n+1)} = (1 - \omega)\mathbf{r}^{(n)} + \omega \mathbf{r}^{\text{implied}}$ |
-| **Búsqueda lineal** | Búsqueda retrógrada monótona de tipo Armijo | Parámetro fijo de amortiguación $\omega \in (0, 1]$ |
+| **Búsqueda lineal** | Búsqueda retrógrada monótona de tipo Armijo sobre $\|\mathbf{H}\|_2$; `damping` solo escala el paso de reserva (sección 1.4) | Parámetro fijo de amortiguación $\omega$ = `damping` $\in (0, 1]$ en cada paso |
 | **Robustez** | Excepcional ante choques persistentes y de gran tamaño | Contracción garantizada para innovaciones marginales |
 | **Tiempo de cálculo** | $< 0.5$ segundos para $T = 150$ | $1.0$–$2.5$ segundos para $T = 150$ |
 
@@ -87,17 +88,41 @@ Para resolver $\mathbf{H}(\mathbf{r}) = \mathbf{0}$ de forma eficiente sin reeva
 
 ## 3. Calibración canónica y especificación de choques
 
-La dinámica de transición admite tres clases fundamentales de perturbaciones macroeconómicas imprevistas:
+La dinámica de transición admite tres clases de perturbaciones macroeconómicas imprevistas. En lo que sigue, $s_t$ es el elemento de `shock_path` en la fecha $t$; `continuous_mit_shock` construye $s_t = \Delta \cdot \rho^t$ a partir de `shock_size` $\Delta$ y `persistence` $\rho$ ($s_t = \Delta$ en todo $t$ cuando $\rho = 1$). En `continuous_mit_shock`, $\Delta$ es siempre una desviación, nunca un nivel: entrega a `solve_continuous_transition` los niveles $Z_t = 1 + s_t$ o $\beta_t = \beta(1 + s_t)$ siempre que la regla de abajo leería la trayectoria como niveles. Hasta la versión 4.3.0 pasaba siempre $s_t$, de modo que `shock_size=0.6` daba $Z_0 = 0.6$, una caída del 40%, en lugar de $1.6$. Un choque de PTF debe ser mayor que $-1$.
 
 1. **Choque de Productividad Total de los Factores (`shock_var="z"`)**:
-   $$Z_t = 1.0 + \Delta Z \cdot \rho_Z^t$$
-   Permite modelar perturbaciones transitorias ($\rho_Z < 1$) o permanentes ($\rho_Z = 1.0$).
+   $$Z_t = 1 + s_t$$
+   cuando todo $s_t \le 0.5$; si algún elemento supera $0.5$, la trayectoria se lee en niveles, $Z_t = s_t$. Una trayectoria más corta que $T$ se mantiene en su último valor. Permite modelar perturbaciones transitorias ($\rho < 1$) o permanentes ($\rho = 1$); una permanente resuelve el estado estacionario final en $Z_{T-1}$.
 2. **Choque monetario / cuña de tipo de interés (`shock_var="r"`)**:
-   $$r_t^{\text{eff}} = r_t + \Delta r \cdot \rho_r^t$$
-   Simula endurecimiento de la política monetaria o ensanchamiento de diferenciales de crédito.
+   $$r_t^{\text{hh}} = r_t + s_t$$
+   Los hogares obtienen $r_t + s_t$ en la ecuación de Euler y en la restricción presupuestaria, mientras que las empresas pagan $r_t$. Una trayectoria más corta que $T$ se completa con ceros. Simula endurecimiento de la política monetaria o ensanchamiento de diferenciales de crédito. Solo se admiten cuñas transitorias (véase la limitación de la condición terminal más abajo).
 3. **Choque en el factor de descuento / paciencia (`shock_var="beta"`)**:
-   $$\beta_t = \beta_{\text{ss}} + \Delta \beta \cdot \rho_\beta^t$$
-   Modela episodios de preferencia por la liquidez y aumentos repentinos del ahorro precautorio.
+   $$\beta_t = \beta\,(1 + s_t)$$
+   multiplicativo, con $\beta$ el factor de descuento del estado estacionario inicial, cuando todo $s_t \le 0.5$; si algún elemento supera $0.5$, la trayectoria se lee en niveles, $\beta_t = s_t$. $\beta_t$ descuenta la fecha $t+1$ en la ecuación de Euler de la fecha $t$. Una trayectoria más corta que $T$ se completa con $\beta$. Por ejemplo, `shock_size=0.01` con `persistence=0.8` da $\beta_0 = 1.01\,\beta$ y $\beta_1 = 1.008\,\beta$. Un choque permanente resuelve el estado estacionario final en $\beta_{T-1}$. Modela episodios de preferencia por la liquidez y aumentos repentinos del ahorro precautorio.
+
+### 3.1 Condición terminal y su limitación
+
+La trayectoria se resuelve hacia atrás desde un estado estacionario final en la fecha $T$: la política de consumo de continuación $c_T$ y el tipo $r_T$.
+
+**`continuous_mit_shock`** lo elige solo a partir de `persistence`:
+
+- `persistence < 1` (transitorio): siempre el estado estacionario inicial, y el choque se anula a partir de la fecha $T$. Cuando la fracción del impacto que queda en $T-1$, $\rho^{T-1}$, supera `truncation_tol` (por defecto $10^{-3}$), un `RuntimeWarning` indica el horizonte más corto que la lleva por debajo de la tolerancia. `metadata["mit_shock"]` informa del truncamiento en todos los casos (sección 6).
+- `persistence == 1` (permanente, que hay que pedir explícitamente): para choques de PTF y de factor de descuento, un estado estacionario resuelto internamente en $Z = 1 + \Delta$ o $\beta(1 + \Delta)$ con los controles de la sección 5. Para una cuña de tipo de interés, véase más abajo.
+- Un `terminal_steady_state` pasado como palabra clave se usa tal cual, con cualquier persistencia.
+
+Hasta la versión 4.3.0 un choque transitorio seguía la regla de `solve_continuous_transition` de abajo. En cuanto $Z_{T-1}$ se alejaba de 1 más de unos $10^{-5}$, el choque se resolvía en silencio como permanente en $Z_{T-1}$. Con $T = 40$ y $\Delta = 0.05$ el modelo cambiaba en $\rho \approx 0.806$. Con $\rho = 0.92$ la economía de la sección 4 convergía a un estado estacionario con una PTF un 0.19% mayor y un 0.30% más de capital, y su trayectoria de capital se alejaba de la solución transitoria hasta en 0.026.
+
+**`solve_continuous_transition`**, llamada directamente con una trayectoria, usa:
+
+- `terminal_steady_state`, si se pasa uno;
+- si no, cuando $Z_{T-1}$ difiere de 1 o $\beta_{T-1}$ de $\beta$ más de lo que permite `numpy.isclose(..., atol=1e-6)` (unos $10^{-5}$), un estado estacionario resuelto internamente en $Z_{T-1}$ y $\beta_{T-1}$ con los controles de la sección 5;
+- en otro caso, el estado estacionario inicial.
+
+Esa regla no distingue una trayectoria transitoria que decae despacio de una permanente. Para una trayectoria transitoria que no se ha extinguido en $T-1$, pase `terminal_steady_state=` el estado estacionario inicial (como hace `continuous_mit_shock`) o alargue el horizonte.
+
+**Cómo elegir $T$.** El aviso de truncamiento solo mira el choque exógeno, y el capital vuelve más despacio que el choque. En el cuaderno 52 ($\rho = 0.8$, $T = 40$) el choque que queda en $T-1$ es $1.7 \times 10^{-4}$ del impacto, pero $K_{T-1} - K^*$ sigue siendo $0.040$. `metadata["mit_shock"]["capital_gap_last"]` informa de esa brecha; resolver de nuevo con un horizonte más largo mide el error de truncamiento.
+
+**No se admite una cuña de tipo de interés permanente.** Con `shock_var="rate"` y una cuña que sigue siendo distinta de cero en $T-1$ (por ejemplo `persistence=1`), la condición terminal sigue siendo el estado estacionario inicial: $c_T$ es la política en $r^*$ y $r_T = r^*$ no lleva la cuña, aunque los hogares se enfrentan a $r + s$ para siempre. La trayectoria se resuelve entonces contra una condición terminal incoherente, y `converged=True` solo indica que el mercado de capitales se vacía en cada fecha de esa trayectoria. No indica que la trayectoria haya alcanzado el nuevo estado estacionario. `solve_continuous_transition` no emite ningún aviso; `continuous_mit_shock(..., shock_type="rate", persistence=1.0)` emite un `RuntimeWarning` y activa `metadata["mit_shock"]["truncated"]`. En la economía de la sección 4 ($N_k = 100$, $n_z = 3$), una cuña permanente de $+50$ pb devuelve `converged=True` con $r_{T-1} = 0.0332$ para $T = 40$ y $0.0325$ para $T = 80$, frente al tipo final $r_T = r^* = 0.0394$: la trayectoria sigue moviéndose en $T$. `solve_aiyagari_continuous` no tiene argumento de cuña, así que tampoco se puede pasar un estado estacionario final con ella. Use cuñas de tipo de interés que se hayan extinguido en $T-1$ y compruebe que `r_path[-1]` ha vuelto al tipo final.
 
 ---
 
@@ -188,19 +213,36 @@ continuous_mit_shock(
     persistence: float = 0.8,
     horizon: int = 150,
     solver: str = "broyden",
+    *,
+    truncation_tol: float = 1e-3,
     **kwargs: Any,
 ) -> ContinuousTransitionResult
 ```
 
 #### Parámetros:
-- `initial_steady_state`: Objeto de equilibrio general precalculado `AiyagariContinuousEquilibrium` o diccionario de configuración.
-- `terminal_steady_state`: Equilibrio final de destino. Para choques transitorios se asume idéntico al inicial. Para choques permanentes se calcula automáticamente en los valores finales del choque.
-- `shock_path`: Vector unidimensional con la trayectoria del choque de longitud $T$.
-- `shock_var` / `shock_type`: Variable objetivo: `'tfp'` / `'z'`, `'rate'` / `'r'`, o `'beta'` / `'discount'`.
+- `initial_steady_state`: Objeto de equilibrio general precalculado `AiyagariContinuousEquilibrium`, o un diccionario de configuración que se pasa a `solve_aiyagari_continuous` para resolver un nuevo estado estacionario. El diccionario puede contener **solo** palabras clave de `solve_aiyagari_continuous` (`beta`, `gamma`, `alpha`, `delta`, `rho_z`, `sigma_z`, `n_z`, `a_max`, `N_k`, `n_a`, `P_z`, `z_grid`, ...). Cualquier otra clave, como las mallas, la distribución o los precios de un estado estacionario resuelto en otro sitio, lanza `TypeError`. Para partir de un estado estacionario que ya tiene, pase el propio objeto `AiyagariContinuousEquilibrium`.
+- `terminal_steady_state`: Equilibrio final de destino (objeto o diccionario, como arriba). Si se omite, `solve_continuous_transition` usa el estado estacionario inicial para trayectorias extinguidas en $T-1$ y, en otro caso, resuelve internamente un estado estacionario en $Z_{T-1}$ y $\beta_{T-1}$, lo que incluye una trayectoria transitoria que aún no se ha extinguido. `continuous_mit_shock` pasa el estado estacionario inicial para todo choque transitorio (sección 3.1). No se admite una cuña de tipo de interés permanente (sección 3.1).
+- `shock_path`: Vector unidimensional con la trayectoria del choque de longitud $T$, interpretado según `shock_var` como en la sección 3.
+- `shock_var` / `shock_type`: Variable objetivo: `'tfp'` / `'z'` / `'productivity'`, `'rate'` / `'r'` / `'monetary'`, o `'beta'` / `'discount'`.
 - `horizon`: Longitud temporal del horizonte de simulación $T$ (por defecto $150$).
 - `solver`: Solucionador de vaciado: `'broyden'` (Cuasi-Newton) o `'shooting'` (relajación con amortiguación).
-- `damping`: Factor de amortiguación para disparo o retroceso en búsqueda lineal.
+- `damping`: El peso de relajación $\omega$ de `solver='shooting'`, usado en cada paso. Con `solver='broyden'` solo escala el paso de reserva que se da cuando falla la búsqueda lineal (y todos los pasos si `backtracking=False`); véase la sección 1.4. Con el valor por defecto `backtracking=True` no tuvo ningún efecto en las ejecuciones del cuaderno 52.
 - `tol`: Tolerancia de vaciado en el mercado de capitales $\|K^s - K^d\|_\infty$ (por defecto $10^{-4}$).
+
+#### Parámetros de `continuous_mit_shock`:
+- `steady_state`: El estado estacionario inicial (objeto o diccionario de configuración, como `initial_steady_state` arriba).
+- `shock_type`: `'tfp'`, `'rate'` o `'beta'`, o cualquier alias de `shock_var`.
+- `shock_size`: El impacto $\Delta = s_0$, siempre una desviación: $+0.05$ es $+5\%$ de PTF, $+0.01$ es $+100$ pb en el tipo, y en `'beta'` da $\beta_0 = \beta(1 + \Delta)$. Un choque de PTF debe ser mayor que $-1$.
+- `persistence`: $\rho \in [0, 1]$. $\rho = 1$ es un choque permanente; cualquier valor menor que 1, incluido $0.999$, es transitorio y mantiene el estado estacionario inicial como condición terminal (sección 3.1).
+- `truncation_tol`: La mayor fracción $\rho^{T-1}$ del impacto que un choque transitorio puede conservar en $T-1$ sin un `RuntimeWarning` (por defecto $10^{-3}$).
+- `**kwargs`: Se pasan a `solve_continuous_transition` (`damping`, `tol`, `max_iter`, `backtracking`, `backend`, `r_init_path`, `terminal_steady_state` y las palabras clave de abajo).
+
+#### Parámetros estructurales y `**kwargs`:
+- Los parámetros estructurales `beta`, `gamma`, `alpha` y `delta` se leen de `metadata["params"]` del estado estacionario inicial, que `solve_aiyagari_continuous` registra. Pasar uno de ellos como palabra clave con otro valor lanza `ValueError`. Las palabras clave solo se usan cuando el estado estacionario no registra ninguno (uno construido con `continuous_stationary_equilibrium` o a mano); si falta alguno, se usa el valor por defecto de `solve_aiyagari_continuous` con un `UserWarning`.
+- `egm_tol`, `egm_max_iter`, `xtol`, `tol_ge`, `max_evals`, `dist_options`: controles del estado estacionario final resuelto internamente, con el mismo significado que en `solve_aiyagari_continuous`. Si no se dan, los cinco primeros se toman de los metadatos del estado estacionario inicial y, en su defecto, de los valores por defecto de esa función ($10^{-8}$, $10\,000$, $10^{-8}$, $10^{-4}$, $100$); `dist_options` no se lee de los metadatos y vale `None` por defecto.
+- `r_min`, `r_max`: cotas de la trayectoria de prueba del tipo de interés (por defecto $10^{-4}$ y $\max(0.15,\ 1/\beta - 1 + 0.10)$).
+- Cualquier otra palabra clave se ignora con un `FutureWarning`; lanzará `TypeError` en una versión futura.
+- `continuous_mit_shock(..., **kwargs)` transmite estas palabras clave a `solve_continuous_transition`.
 
 ---
 
@@ -219,6 +261,7 @@ continuous_mit_shock(
 - `max_residual`: Residuo máximo de vaciado $\|H\|_\infty$.
 - `converged`: Indicador booleano de convergencia exitosa.
 - `mass_conservation_error`: Desviación absoluta máxima de masa a lo largo de los $T+1$ períodos.
+- `metadata`: Diagnósticos del solucionador: `params`, `relaxation_converged`, `terminal_steady_state` (los diagnósticos de un estado estacionario final resuelto internamente, o `None`) y, salvo que un choque nulo devuelva el estado estacionario de inmediato, `Z_path` y `beta_path`. `continuous_mit_shock` añade `metadata["mit_shock"]`, con `shock_type`, `shock_size`, `persistence`, `permanent`, `terminal_condition` (`'initial_steady_state'`, `'solved_steady_state'` o `'user'`), `shock_at_last_date` ($s_{T-1}$), `remaining_share` ($\rho^{T-1}$), `truncation_tol`, `truncated`, `horizon_needed` (el menor $T$ con $\rho^{T-1} \le$ `truncation_tol`; `None` para un choque permanente) y `capital_gap_last` ($K_{T-1} - K^*$ para un choque transitorio).
 
 ### Métodos de serialización y gráficos
 - `res.summary() -> pd.DataFrame`: Resumen de diagnósticos de convergencia, tiempo de cálculo y agregados iniciales/finales.

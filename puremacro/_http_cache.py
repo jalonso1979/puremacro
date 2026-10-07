@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import hashlib
 import os
-import sqlite3
+from puremacro._optional_stdlib import sqlite3
 import time
 import warnings
 from pathlib import Path

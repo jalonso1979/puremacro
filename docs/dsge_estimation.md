@@ -235,16 +235,25 @@ fig = diag.plot()
 Computing deterministic steady states in medium- and large-scale DSGE models frequently fails under naive multidimensional Newton solvers. Puremacro implements a block-triangular decomposition engine (`puremacro.dsge.steady`):
 
 1. **Hopcroft-Karp Bipartite Matching**: finds a maximum cardinality matching between equations and variables in $O(|E|\sqrt{|V|})$ time.
-2. **Dulmage-Mendelsohn Singularity Decomposition**: when a complete matching does not exist, decomposes the incidence bipartite graph into overdetermined, underdetermined, and well-determined subsets, raising an informative `StructuralSingularityError` that explicitly names the offending equation and variable subsets:
+2. **Dulmage-Mendelsohn Singularity Decomposition**: decomposes the incidence bipartite graph into over-determined, under-determined and well-determined subsets. When a complete matching does not exist at the guess, `steady()` runs one full-system `hybr` solve and checks the matching again at the point it reaches. If the matching is complete there, the gap was local to the guess and the root is returned (`info["fallback_reason"] == "incomplete_matching_at_guess"`). Otherwise the model is structurally singular and its steady state is not locally unique:
+
+   - If every over-determined equation reads `0 = 0` (the static form of a unit-root law of motion such as `z = z(-1) + e`), the point is returned with a `StructuralSingularityWarning` naming the free variables and `info["structurally_singular"] = True`, as Dynare does for unit-root models.
+   - Any other structure (structurally duplicated equations, i.e. a subset of equations involving fewer variables than equations, or a variable that enters no equation) raises `StructuralSingularityError`. The error names the over- and under-determined subsets and carries the checked root as `hybr_point`. To accept the point instead, pass `allow_singular=True` to `steady()`, `build()`, `build_dynare()` or `load_mod()`, or wrap the call in `with allow_structural_singularity():` after `from puremacro.dsge.steady import allow_structural_singularity`. The context manager's setting applies to the current thread (or asyncio task) only.
+   - `allow_singular=False` makes unit roots raise too.
+   - An inconsistent system raises in every mode.
+
+   The check is structural, like Dynare's `dmperm`: numerically collinear equations with a complete incidence (e.g. `x + y = 2` and `2x + 2y = 4`) are not detected. When the block pass leaves a residual above `tol`, a full-system `hybr` polish runs and is recorded in `info["full_system_polish"]`, as well as in an INFO log record. A model built by `build()`, `build_dynare()` or `load_mod()` keeps that `info` dict as `model.steady_state_info` (`None` when the steady state was supplied rather than solved for).
+
    ```python
    # requires: standalone snippet
-   from puremacro.dsge.steady import StructuralSingularityError
+   from puremacro.dsge.steady import StructuralSingularityError, steady
 
    try:
        ss, info = steady(equations, variables, guess, params)
    except StructuralSingularityError as err:
        print("Overdetermined equations :", err.overdetermined_equations)
        print("Underdetermined variables:", err.underdetermined_variables)
+       print("Checked root             :", err.hybr_point)
    ```
 3. **Tarjan Strongly Connected Components (SCC)**: decomposes the matching-directed dependency graph into topological sub-blocks solved in sequence. Singletons are solved with 1D scalar root finders (Brent / secant), while coupled sub-blocks use multidimensional solvers.
 
@@ -300,9 +309,42 @@ The returned `IdentificationResult` reports:
 fig = ident.plot()
 ```
 
+### Where the Jacobians are evaluated
+
+Local identification is a property of the Jacobian at one parameter vector $\theta_0$: the rank condition is $\operatorname{rank} J(\theta_0) = n_\theta$. Every column of $J_1$, $J_2$, $J_H$ and $J_S$ is taken at the same $\theta_0$. The model is re-solved once at $\theta_0$, and column $j$ perturbs $\theta_j$ alone, with every other parameter held at its $\theta_0$ value. $\theta_0$ is the model's calibration and declared shock covariance, overridden by `fixed_params`, and then by the value of each analysed parameter:
+
+| `params` | Value of each analysed parameter |
+|---|---|
+| a mapping `{name: value}` (or `p_dict=`) | the value given |
+| a list of names | its current value: the calibration for a structural parameter, $\sqrt{\Sigma_{u,ii}}$ for `SE_<shock>` (1.0 when no covariance is declared), the declared correlation for `CORR_<s1>_<s2>` (0.0 when none), the `measurement_error` entry for `ME_<obs>` (0.0 when none) |
+| `EstimatedParams` / `EstimatedParamSpec`s | the spec's `start`: its `INITVAL` when declared, else its prior mean |
+| omitted, on a `.mod` model with `estimated_params` | each declared parameter at its `start`, as in the row above |
+| omitted, on any other model | every calibrated parameter at its calibration |
+
+A list of names that the `estimated_params` block declares also takes each spec's `start`.
+
+`fixed_params` (structural values held at $\theta_0$ but not analysed) and `measurement_error` (fixed measurement-error standard deviations by observable) are keywords of both the method `model.identification()` and the function `puremacro.dsge.identification(model, ...)`.
+
+**How this differs from Dynare.** Dynare's `identification` command defaults to `parameter_set = prior_mean`. puremacro's default matches that only when the block declares no `INITVAL`. To pick the point explicitly, pass it:
+
+```python
+# requires: standalone snippet
+ep = model._estimated_params
+at_prior_mean = model.identification(params={s.name: s.prior.mean for s in ep.specs})
+at_calibration = model.identification(params={n: model._params[n] for n in ["kappa", "rho_u"]})
+```
+
+`SE_` values are innovation standard deviations ($Q_{ii} = \sigma_i^2$). `CORR_` values are correlations ($Q_{ij} = \rho_{ij}\sigma_i\sigma_j$, using the standard deviations at $\theta_0$). `ME_` values are measurement-error standard deviations ($H_{ii} = \sigma^2$). This is the same mapping `estimate()` applies to a draw. A declared off-diagonal covariance that no `CORR_` parameter names stays fixed *as a covariance* when an `SE_` moves. Dynare instead keeps a declared correlation fixed as a correlation.
+
+Structural columns are central differences with step $h = \max(10^{-5}, 10^{-4}|\theta_j|)$. The exception is when $\theta_j \pm h$ crosses a declared bound or a solve fails. The column is then a second-order one-sided difference taken on a side whose points stay inside the bounds, away from the active bound. A step never crosses a declared bound. Shock and measurement-error columns are analytic.
+
+**State set of a `.mod` / `build_dynare` model.** `build_dynare` finds the predetermined variables numerically: a variable is a state when its lag has a non-zero coefficient at the calibration. A lag whose coefficient is calibrated to 0, such as SW07's `crhoms`, `crhopinf`, `crhow`, `cmap` and `cmaw`, is therefore not a state of the calibrated model. Every solve in one identification analysis uses the same state set: the model's states, plus the lags that are active at $\theta_0$, plus the lags that any analysed structural parameter switches on when it moves. When that set differs from the model's own, the model is re-solved with it, even at the calibration. The observables' moments and spectra are unchanged by the extra states; their derivatives are not. Models from `build()` keep the states you declared.
+
+`prior_mc=N` repeats the rank analysis at `N` draws of $\theta_0$ from the priors, truncated to the declared bounds. Each draw is analysed at its own full point. Draws the model cannot be solved at are skipped and counted in `prior_mc_results["n_failed"]`; `n_draws` counts the draws that were analysed. If no draw can be solved, the rates are NaN and a `RuntimeWarning` is raised.
+
 ### Pre-Flight Identification Check in Estimation
 
-To prevent launching expensive MCMC chains on unidentifiable models, pass `check_identification=True` to `model.estimate()`:
+To prevent launching expensive MCMC chains on unidentifiable models, pass `check_identification=True` to `model.estimate()`. The check runs at the point the estimation starts from: each estimated parameter at its `start` (its `INITVAL`, else its prior mean), `fixed_params` and `measurement_error` as passed, and the calibration for everything else. A `fixed_params` name that is not a model parameter makes `estimate()` raise `ValueError`, with or without the check.
 
 ```python
 # requires: standalone snippet
@@ -321,7 +363,7 @@ Puremacro supports optimal monetary and macroprudential policy design across thr
 
 `model.osr()` optimizes feedback coefficients in simple policy rules (such as Taylor rules) to minimize a quadratic target variance loss:
 $$L(\gamma) = \sum_i w_i \text{Var}(y_i; \gamma)$$
-subject to Blanchard-Kahn determinacy. A continuous penalty surface guarantees smooth gradient evaluation when parameter candidates venture into indeterminacy:
+subject to Blanchard-Kahn determinacy. At a candidate rule that is indeterminate, or at which the model cannot be solved, the loss is replaced by a continuous penalty, $10^8 + 10^4\lVert\gamma - \gamma_0\rVert^2$, so the gradient-free optimizers (Nelder–Mead, Powell) contract away from that region:
 
 ```python
 # requires: standalone snippet
@@ -335,6 +377,10 @@ print(osr_res.summary())
 # Grouped bar chart comparing variances under baseline vs optimal rule
 fig = osr_res.plot()
 ```
+
+**Tolerances and accuracy.** `model.osr()` and the function `puremacro.dsge.osr(model, ...)` take `xatol` (default `1e-8`, an absolute tolerance on the coefficients, in their own units), `fatol` (default $10^{-12}$ times the initial loss, at least $10^{-12}$) and `options` (passed last to `scipy.optimize.minimize`, e.g. `{"xtol": ..., "ftol": ...}` for Powell). A search that compares loss values locates the coefficients, and the allocation they imply, only to a relative error of about $\sqrt{2\varepsilon/c}$, where $\varepsilon$ is the relative precision of the loss and $c$ its normalised curvature at the optimum. That is roughly $10^{-8}$ for a well-scaled problem and worse for a flat or badly scaled loss. Because `xatol` is absolute, scale it with the coefficients. `xatol=1e-4, fatol=1e-4` reproduces SciPy's own Nelder–Mead defaults, which `osr` used up to and including 4.3.0. Measured examples are in [DSGE Frontier, §1.6](dsge_phase_c.md).
+
+`loss_opt` is recomputed by re-solving the model at the returned coefficients. If that re-solve fails, or the rule is indeterminate there, `loss_opt` is NaN with a `RuntimeWarning` and `optimal_model` is `None`; `loss_initial` is NaN, also with a warning, when the baseline moments cannot be evaluated. Neither is ever a placeholder or the optimizer's penalty value.
 
 ### Discretionary Policy (`discretionary_policy()`)
 
@@ -356,7 +402,7 @@ print(disc_res.summary())
 
 ### Linear-Quadratic Commitment (`lq_commitment()`)
 
-`lq_commitment()` solves optimal policy under commitment from the timeless perspective ($\lambda_{-1} = 0$). It forms the Lagrangian over the rational-expectations equilibrium conditions, augmenting the state vector with forward-looking Lagrange multipliers:
+`lq_commitment()` solves optimal policy under commitment. It forms the Lagrangian over the rational-expectations equilibrium conditions and augments the state vector with the Lagrange multipliers. The law of motion it returns is the same for the Ramsey plan chosen at $t_0$ and for the timeless-perspective rule; the two differ only in the initial multiplier. The Ramsey plan sets $\lambda_{-1} = 0$ whatever the history, while the timeless perspective uses the multiplier implied by past policy. Impulse responses and `conditional_loss` start from the steady state, with $\lambda_{-1} = 0$, where the two coincide. `loss` averages over the stationary distribution, so it evaluates the timeless rule on average, and it is NaN with a `RuntimeWarning` when no stationary distribution exists. The `timeless` argument never changed the result and is deprecated. See [DSGE Frontier, §1.3](dsge_phase_c.md).
 
 ```python
 # requires: standalone snippet
@@ -392,8 +438,8 @@ All DSGE result objects (`EigenvalueTable`, `ModelDiagnosticsResult`, `Identific
 
 ## What this deliberately does not do
 
-- **No macro processor.** `@#define`, `@#for`, `@#if`, `@#include` and `@{...}` raise `DynareFeatureError`. They used to be ignored, which meant a file loaded clean and a *different model* was solved. Expand them with `dynare model.mod savemacro` and pass the expanded file. Planned for 2.7.0.
-- **No expression parser**, so `STEADY_STATE()`, `EXPECTATION()`, `normcdf`, and a model-local `#` variable defined over an endogenous variable all raise. Also 2.7.0.
+- **Macro directives are expanded, never ignored.** Since 2.7.0, `@#define`, `@#for`, `@#if`, `@#include` and `@{...}` are expanded by puremacro's own preprocessor before the file is parsed ([DSGE sketchpad, §4b](dsge_build.md)). In 2.6.0 they raised `DynareFeatureError`; before that they were ignored, which meant a file loaded clean and a *different model* was solved.
+- **Parameters are re-read only where Dynare re-reads them.** The `.mod` reader parses `STEADY_STATE()`, `normcdf` and model-local `#` variables, over parameters or over endogenous variables. Locals are substituted symbolically, never frozen at the calibration, so an estimated parameter that enters the model only through them (SW07's `constebeta`, via `cbeta`, `cbetabar`, `cr`, `conster`, ...) moves the likelihood at every draw; up to and including 4.3.0 such locals were folded to numbers at load time and `constebeta`'s likelihood was exactly flat. Top-level assignments such as `cbeta = 1/(1+constebeta/100);` outside the model block are evaluated once when the file is read and do **not** follow the draws — the same as in Dynare — so write a parameter-derived quantity as a `#` local. `EXPECTATION(k)(...)` is parsed but its compiled residual raises `NameError`.
 - **First order only.** A second-order solution is refused rather than silently linearised; a particle filter for it is a later release.
 - **The sampler adapts a scalar, not a covariance** — and its adaptation fires only every 100 iterations, so a `burn_in` below 100 never adapts at all and can leave the chain stuck with a 0% acceptance rate. Give it at least a few hundred.
 - **`mode_compute` defaults to `"lbfgs"`**, not to the better `csminwel`, because changing it changes every posterior previously produced.
@@ -409,9 +455,9 @@ For complete, interactive tutorials with visualization and diagnostics:
 
 ## Replication suite: `dsge_estimation` family
 
-The `puremacro.replication` module provides automated verification of published empirical headline results from academic papers. The `dsge_estimation` family verifies:
+The `puremacro.replication` module checks published headline results against puremacro's own computations. The `dsge_estimation` family runs the hand-coded Smets & Wouters (2007) model (`puremacro.dsge.smets_wouters`) on the bundled 1966Q1–2004Q4 US data (`_sw07_data.csv`, rebuilt from FRED with the SW07 data-appendix definitions). Its fixture, `puremacro/replication/data/sw07_parity_seed0_200draws.npz`, ships as package data and holds an optimised posterior mode (L-BFGS-B from two starts, polished with Newton steps), the inverse Hessian there and 200 thinned random-walk Metropolis draws. It has four cases, and only the first compares with a published number:
 
-- **`dsge_estimation.sw07_log_posterior_at_mode`**: Evaluates the exact Kalman log-posterior at the posterior mode on the 1966–2004 US dataset (`_sw07_data.csv`) under unconditional Lyapunov stationary covariance initialization (`_stationary_init`). Target: `-1673.72` (`Tol.TIGHT`).
-- **`dsge_estimation.sw07_laplace_marginal_data_density`**: Evaluates the Laplace approximation to the marginal data density from the mode inverse Hessian. Target: `-1686.09` (`Tol.TIGHT`).
-- **`dsge_estimation.sw07_harmonic_mean_mdd_consistency`**: Evaluates Geweke (1999) modified harmonic mean MDD across truncation parameters `[0.1, 0.3, 0.5, 0.7, 0.9]` and verifies consistency across truncation levels (spread $< 2.5$ log points).
-- **`dsge_estimation.sw07_structural_parameters_mode`**: Verifies headline structural parameters from Smets & Wouters (2007, Table 1) at the posterior mode (`csadjcost`, `csigma`, `chabb`, `csigl`, `cprobp`, `cfc`, `crr`, `crdy`, `ctrend`).
+- **`dsge_estimation.sw07_structural_parameters_mode`** (published target): the optimised mode against the posterior **Mode** column of SW07 Table 1a and Table 1b (ECB WP 722, PDF pp. 35–36), not the Mean column. It checks 13 parameters: `csadjcost`, `csigma`, `chabb`, `csigl`, `cprobp`, `cfc`, `crr`, `crdy`, `ctrend`, and the markup-process parameters `crhopinf`, `cmap`, `crhow`, `cmaw`. All 13 are within 6.2% of the published modes (for example $\varphi$ 5.694 against 5.48, $\sigma_c$ 1.405 against 1.39, $\mu_p$ 0.703 against 0.74); the case uses `Tol.COARSE` (25%) because the data are today's FRED vintage, not SW's 2006 files.
+- **`dsge_estimation.sw07_log_posterior_at_mode`**, **`dsge_estimation.sw07_laplace_marginal_data_density`**, **`dsge_estimation.sw07_harmonic_mean_mdd_consistency`** (puremacro regression values, **not published numbers**): the log posterior at the mode, `-822.04`, recomputed live; the Laplace log marginal data density, `-902.83`, from that value and the stored inverse Hessian; and Geweke's (1999) modified harmonic mean on the 200 stored draws, `-908.03`, with a spread of `2.66` log points across the truncation levels 0.1–0.9. With only 200 draws that spread is above the one-log-point convergence threshold of `harmonic_mean_mdd`, so this case pins the estimator's output, not a converged estimate. The three cases use `Tol.TIGHT` (2% relative, about ±16 to ±18 log points at these values), so they catch large changes to the model, data, priors or estimators; the test suite pins the stored mode's log posterior to $10^{-6}$. SW07 report no log posterior at the mode, and their marginal likelihood (Table 2: −905.8) is computed over 1966–2004 with 1956:1–1965:4 as a training sample. Since 4.6.0 `sw07_laplace_mdd` reproduces that computation on the authors' data (`presample=40`, `lik_init="diffuse"`): −932.3, with −921.4 for the options of the authors' replication `.mod`; at the authors' own mode puremacro agrees with Dynare 8 to 0.65 log points (−840.81 against −841.46), and Dynare 8 itself gives −923.1 rather than −905.8 on the public files. The published figure is thus not reproducible from those files and is not a comparable target; see the [Replication Gallery](replication.md).
+
+Up to and including 4.3.0 this page gave `-1673.72` and `-1686.09` as the log posterior and Laplace targets and described the mode case as a check of Table 1 at the posterior mode. Those were puremacro outputs, not SW07 results, and the mode case compared the best of 200 MCMC draws with Mean-column values. The full comparison table is in the [Replication Gallery](replication.md).

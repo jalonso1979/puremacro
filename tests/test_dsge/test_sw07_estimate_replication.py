@@ -33,17 +33,22 @@ import numpy as np
 import pytest
 
 
-# Reference values from Smets-Wouters (2007) Table 1A posterior means.
-# Eight parameters picked as the most tightly identified.
+# Posterior MEAN column of Smets-Wouters (2007) Table 1a (ECB WP 722, PDF
+# p.35, printed p.34), because the test below compares posterior means.
+# Eight parameters picked as the most tightly identified. Do not mix in the
+# Mode column, which differs for several of them (cprobp 0.65, cprobw 0.73,
+# cindp 0.22, cindw 0.59, csigma 1.39) and is the target of the replication
+# case dsge_estimation.sw07_structural_parameters_mode. Before 2026-09-30 this
+# dict mixed the two columns (Mode values for cprobp, cprobw, cindw, csigma).
 SW07_TABLE1A_REFERENCE = {
-    "ctrend":     0.43,
-    "constebeta": 0.16,
-    "chabb":      0.71,
-    "cprobp":     0.65,
-    "cprobw":     0.73,
-    "cindp":      0.24,
-    "cindw":      0.59,
-    "csigma":     1.39,
+    "ctrend":     0.43,   # gamma-bar
+    "constebeta": 0.16,   # 100(beta^-1 - 1)
+    "chabb":      0.71,   # h (habit)
+    "cprobp":     0.66,   # xi_p
+    "cprobw":     0.70,   # xi_w
+    "cindp":      0.24,   # iota_p
+    "cindw":      0.58,   # iota_w
+    "csigma":     1.38,   # sigma_c
 }
 TOL_RELATIVE = 0.25  # ±25% of reference
 
@@ -159,7 +164,8 @@ def test_estimate_sw07_10k_draw_sampler_contract():
     ),
 )
 def test_estimate_sw07_posterior_means_close_to_sw07_table1a():
-    """100K draws x 2 chains. Posterior means for 8 anchor params within ±25%.
+    """100K draws x 2 chains. Posterior means for 8 anchor params within ±25%
+    of the Table 1a posterior Mean column (SW07_TABLE1A_REFERENCE).
 
     Draw-count rationale: SW07's own Dynare estimation ran 250K MH draws
     per chain, so 20K burn-in + 100K retained draws x 2 chains is the same

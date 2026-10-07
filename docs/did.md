@@ -79,18 +79,44 @@ print(res_cs.to_latex())
 print(res_cs.to_typst())
 ```
 
+### Aggregation: cohort-size weights, as in the paper
+
+Every aggregate weights the cohorts by their **size**. With $n_g$ the number of units in cohort $g$, the share $n_g / \sum_{g'} n_{g'}$ estimates $P(G = g \mid G \le T)$. Equation numbers below are those of the arXiv version of the paper (1803.09015v4, Section 3, pp. 15–19).
+
+- **Event study** (eq. 3.4): $\theta_{es}(e) = \sum_g \mathbf{1}\{g + e \le T\}\, P(G = g \mid G + e \le T)\, ATT(g, g + e)$, the size-weighted average over the cohorts observed $e$ periods after adoption. Pre-periods use the same weights.
+- **Overall ATT**, chosen with `aggregation=`:
+
+| `aggregation=` | Estimand | Definition |
+|---|---|---|
+| `"group"` (default) | $\theta^O_{sel}$, eq. 3.11 | $\sum_g P(G = g \mid G \le T)\,\theta_{sel}(g)$, where $\theta_{sel}(g)$ (eq. 3.7) is the mean of cohort $g$'s post-treatment cells. The paper recommends it as the general-purpose summary: the average effect experienced by the units that were ever treated, the analogue of the 2×2 ATT. |
+| `"simple"` | $\theta^O_W$, eq. 3.10 | Every post-treatment cell weighted by its cohort size. It puts more weight on early cohorts, which have more post-treatment cells. |
+| `"dynamic"` | $\theta^O_{es}$, eq. 3.12 | Mean of $\theta_{es}(e)$ over $e \ge 0$. |
+| `"calendar"` | $\theta^O_c$, eq. 3.12 | Mean over the treated periods of $\theta_c(t)$ (eq. 3.8), the size-weighted effect of the cohorts treated by $t$. |
+| `"unweighted"` | none | The rule puremacro 4.3.0 and earlier used: every cohort counts once in the event study, and `att_overall` is the plain mean of the post-treatment cells. It is **not** a Callaway–Sant'Anna estimand; use it only to reproduce old numbers. |
+
+All five summaries coincide when every $ATT(g, t)$ is the same. They separate when effects differ across cohorts and cohorts differ in size. On a noiseless panel with a 10-unit cohort (effects 1, 1.5, 2, 2.5) and a 40-unit cohort (effects 3, 4), $\theta_{es}(0) = 2.6$ and $\theta^O_{sel} = 3.15$, while the equal-cohort rule gives 2.0 and 2.33 (validation case `did.callaway_santanna_aggregations_match_cs2021_equations`).
+
+**Inference.** Standard errors come from a panel bootstrap that resamples whole units. Each draw re-estimates every $ATT(g, t)$ *and* the cohort sizes, so each aggregate's `se` includes the covariance between cohorts that share control units and the uncertainty from estimating the weights (the paper's Corollary 2). `lo`/`hi` are pointwise percentile bands.
+
 ### Key Attributes of `CallawaySantannaResult`
 
 - `att_gt`: DataFrame of cohort-time estimates $ATT(g, t)$ with bootstrap standard errors (columns `g, t, event_time, att, se, lo, hi`).
-- `att_event_study`: Aggregated dynamic effects relative to treatment timing ($e = -K \dots +L$); each event time is the unweighted mean over the cohorts that identify it (`n_cohorts`).
-- `att_overall`: Simple mean of the post-treatment $ATT(g, t)$ cells (every identified cohort-period cell counts once; it is *not* weighted by cohort size — use `sun_abraham` for a unit-share-weighted overall effect).
+- `att_event_study`: the event study $\theta_{es}(e)$ of eq. 3.4, with `n_cohorts` the number of cohorts that identify each event time.
+- `att_overall`, `att_overall_se`, `att_overall_lo`, `att_overall_hi`: the overall summary chosen by `aggregation` ($\theta^O_{sel}$ by default), with its bootstrap standard error and percentile band.
+- `att_group`: $\theta_{sel}(g)$ per cohort (columns `g, n_g, weight, att, se, lo, hi`), where `weight` is the cohort's weight in $\theta^O_{sel}$.
+- `overall_aggregations`: all five overall summaries side by side (columns `aggregation, estimand, att, se, lo, hi`).
+- `event_study_vcov`: the bootstrap covariance matrix of the event-study coefficients. Pass it as `sigma=` to `honest_did`, which otherwise uses only the diagonal.
 - `.to_markdown()`, `.to_latex()`, `.to_typst()`: Publication table renderers of the event study (no index column); `.plot()` draws it with its confidence band.
 
 ---
 
 ## 2. Sun & Abraham (2021)
 
-Sun & Abraham explicitly model cohort-specific paths and weight dynamic coefficients by each cohort's sample share. This ensures that dynamic estimates at horizon $e$ are not distorted by compositional changes in which cohorts identify the effect. `att_overall` is the cohort-size-share-weighted mean of the post-treatment $ATT(g, t)$:
+Sun & Abraham show that the coefficients of a dynamic two-way fixed-effects regression can be contaminated by effects from other relative periods. Their interaction-weighted (IW) estimator instead estimates every cohort-specific effect $CATT_{e,\ell}$ and averages them at each relative period $\ell$ with the sample share of each cohort among the cohorts observed there (their eq. 27). Without covariates and with never-treated controls, Sun & Abraham note that their estimator coincides with Callaway & Sant'Anna's (arXiv:1804.05785, p. 24): `sun_abraham`'s event study is $\theta_{es}(e)$ of eq. 3.4 above. The two estimators do **not** differ in how they weight cohorts; both use cohort shares.
+
+`sun_abraham` reuses the group-time estimates *and the joint bootstrap draws* of `callaway_santanna`. Its event-study `se` is the bootstrap standard deviation of the aggregate itself, with the cohort shares re-estimated on every draw. This captures the covariance between cohorts that share the same controls, and the weight-estimation term of Sun & Abraham's Proposition 6. `lo`/`hi` are `att ∓ z·se`. With the same `seed`, its `se` column equals `callaway_santanna`'s.
+
+Up to 4.3.0 the aggregate `se` was $\sqrt{\sum_g w_g^2 se_g^2}$, which treats the cohorts as independent. Depending on the error process it was 0.6 to 1.4 times the Monte Carlo truth. `att_overall` defaults to `aggregation="simple"`, which weights every post-treatment cell by its cohort size ($\theta^O_W$, eq. 3.10, the value `sun_abraham` has always returned). `aggregation="dynamic"` gives Sun & Abraham's own $\nu_g$ for $g$ = the post-treatment periods. `att_overall_se`, `att_overall_lo` and `att_overall_hi` give its joint-bootstrap standard error and band:
 
 ```python
 from puremacro.did import sun_abraham
@@ -161,12 +187,39 @@ print(res_cdh.to_markdown())   # columns [estimand, horizon, att, se]
 ## 5. Synthetic Difference-in-Differences (SDID)
 
 Arkhangelsky et al. (2021) unify synthetic control methods and difference-in-differences:
-- Unlike Synthetic Control, SDID is invariant to additive unit and time level shifts: both weight problems include the intercepts $\omega_0$, $\lambda_0$ of the paper, so adding a constant to any unit's path (or a common constant to any period) leaves $\hat\tau$ unchanged.
+- Unlike Synthetic Control, SDID is invariant to additive unit level shifts: both weight problems include the intercepts $\omega_0$, $\lambda_0$ of the paper, so adding a constant to any unit's path leaves $\hat\tau$ unchanged. A common shift of the periods moves $\hat\tau$ only through the noise level $\hat\sigma$ that sets the ridge penalty (below); a common linear trend leaves $\hat\sigma$, and so $\hat\tau$, unchanged.
 - Unlike classical DiD, SDID does not require parallel trends across the entire donor pool; instead, it finds unit weights $\omega_i \ge 0$ that align the pre-treatment trends between treated and control groups, and time weights $\lambda_t \ge 0$ that prioritize more relevant pre-treatment periods:
 
 $$\hat{\tau}^{\text{SDID}} = \arg\min_{\tau, \mu, \alpha, \beta} \sum_{i=1}^N \sum_{t=1}^T \left( y_{it} - \mu - \alpha_i - \beta_t - \tau W_{it} \right)^2 \hat{\omega}_i \hat{\lambda}_t$$
 
-`synthetic_did` handles a **single treatment cohort** (one common adoption period, `treat_time` equal for every treated unit and `NaN` for donors) and requires a **balanced panel** — a missing `(unit, time)` cell raises a `ValueError` naming it. Standard errors come from a donor bootstrap.
+`synthetic_did` handles a **single treatment cohort** (one common adoption period, `treat_time` equal for every treated unit and `NaN` for donors) and requires a **balanced panel** — a missing `(unit, time)` cell raises a `ValueError` naming it.
+
+**Weights.** Equation and algorithm numbers are those of arXiv:1812.09970v4. The unit weights solve eq. (2.1) with ridge $\zeta_\omega^2 T_{pre}\lVert\omega\rVert^2$, $\zeta_\omega = (N_{tr} T_{post})^{1/4}\hat\sigma$; the time weights solve eq. (2.3) with the tiny ridge $\zeta_\lambda = 10^{-6}\hat\sigma$ of footnote 3. $\hat\sigma$ (eq. 2.2) is the standard deviation of the controls' pre-period first differences $Y_{i,t+1} - Y_{it}$ around their overall mean, as in the `synthdid` R package; `noise_level=` overrides it. Each weight problem is solved in units of the data's root-mean-square and then checked against its optimality (KKT) conditions, so $\hat\tau(c\,y) = c\,\hat\tau(y)$ for any rescaling of the outcome. If the solver cannot reach the optimum it warns and returns the best feasible weights it found. Up to 4.3.0, a weight solve that SLSQP flagged as failed returned uniform weights silently, which turned SDID into plain DiD for outcomes measured in large units; on the paper's California data it returned the DiD estimate −27.35.
+
+**Inference.** Choose the variance estimator with `se_method=` (Section 5 of the paper). Intervals are Gaussian, $\hat\tau \pm z_{1-\alpha/2}\,\text{se}$ (eq. 5.1). `n_boot` is the number of replications $B$; every replication reuses the full-sample $\zeta_\omega$, $\zeta_\lambda$, as `synthdid` does.
+
+| `se_method=` | Algorithm | When |
+|---|---|---|
+| `"placebo"` | 4 | Default with **one or two treated units**. Reassigns the treatment to $N_{tr}$ controls drawn without replacement and re-estimates SDID on the controls only. Assumes the units share one noise distribution (homoskedasticity); needs more controls than treated units. |
+| `"bootstrap"` | 2 | Default with **three or more treated units**. Resamples all units, treated and control, and redraws samples that lack either. With one treated unit it is not well-defined (it cannot resample the treated unit's noise), and with two it under-covers; it warns in both cases. |
+| `"jackknife"` | 3 | Leave-one-unit-out with $\hat\omega$, $\hat\lambda$ fixed. Fast and conservative; NaN with one treated unit. |
+
+`"auto"` (the default) picks the placebo estimator for one or two treated units (given more controls than treated units) and the bootstrap otherwise. Up to 4.3.0 the only option was a bootstrap over the donors that held the treated units fixed, with a percentile interval. With one treated unit its nominal 90% interval covered the truth 50–67% of the time.
+
+Monte Carlo coverage of the new nominal 90% intervals:
+
+| Design | $N_{tr}$ | Default | Coverage (MC s.e.) | Mean se / true sd |
+|---|---|---|---|---|
+| Notebook 29 (15 donors, factor model, noise sd 0.4), 400 draws | 1 | placebo | 0.892 (0.015) | 0.244 / 0.234 |
+| Two-way FE, iid N(0,1), 30 controls, $T = 20$, $T_{pre} = 15$, 400 draws | 1 | placebo | 0.905 (0.015) | 0.598 / 0.563 |
+| Same, 200 draws | 2 | placebo | 0.885 (0.023) | 0.425 / 0.422 |
+| Same, 200 draws | 3 | bootstrap | 0.885 (0.023) | 0.356 / 0.340 |
+| Same, 200 draws | 5 | bootstrap | 0.910 (0.020) | 0.304 / 0.279 |
+| Docs example below (8 of 40 treated), 200 draws | 8 | bootstrap | 0.910 (0.020) | 0.062 / 0.057 |
+
+With two treated units the bootstrap covered only 0.790 (0.029), which is why `"auto"` switches at three.
+
+**California Proposition 99.** Table 1 of the paper (p. 8) reports SDID −15.6 (placebo s.e. 8.4), SC −19.6 and DID −27.3. On the same panel (the `california_prop99` data of the `synthdid` R package), `synthetic_did` returns $\hat\tau = -15.61$. The time weights fall on 1986–1988 (0.366, 0.206, 0.427), and Nevada, New Hampshire and Connecticut carry the largest unit weights. The placebo s.e. is a Monte Carlo quantity: with $B = 200$ it is 10.3 at `seed=0` and ranges from 7.96 to 10.91 over seeds 0–19 around its $B \to \infty$ limit of 9.37, and the paper's 8.4 is one such draw. The exact SC optimum with the paper's settings is −19.51. The paper's −19.6 comes from `synthdid`'s Frank–Wolfe solver, which stops before the optimum; SDID is unaffected (Frank–Wolfe −15.60).
 
 ```python
 from puremacro.did import synthetic_did
@@ -203,7 +256,7 @@ print(res_sdid.lambda_w.round(3))
 fig = res_sdid.plot()   # treated-mean vs omega-weighted synthetic path
 ```
 
-For staggered adoption across multiple cohorts, use `sdid_multi_cohort`. It runs `synthetic_did` once per adoption cohort and averages the cohort estimates with cohort-size weights. Each cohort's donor pool is untreated throughout its SDID window: `control="never_treated"` uses never-treated units over the full panel, `control="not_yet_treated"` also admits later-treated units but truncates the window at their earliest adoption date, and the default `"auto"` picks never-treated donors when at least two exist. Like `cdh_did`, it takes the four-array form:
+For staggered adoption across multiple cohorts, use `sdid_multi_cohort`. It runs `synthetic_did` once per adoption cohort and averages the cohort estimates with cohort-size weights. Each cohort's donor pool is untreated throughout its SDID window: `control="never_treated"` uses never-treated units over the full panel, `control="not_yet_treated"` also admits later-treated units but truncates the window at their earliest adoption date, and the default `"auto"` picks never-treated donors when at least two exist. Its `se` comes from a bootstrap over units, treated and control, that repeats the whole pipeline on every draw. Like Algorithm 2 it needs several treated units, and it warns when the design has only one or two (use `synthetic_did` and its placebo estimator there). Like `cdh_did`, it takes the four-array form:
 
 ```python
 from puremacro.did import sdid_multi_cohort

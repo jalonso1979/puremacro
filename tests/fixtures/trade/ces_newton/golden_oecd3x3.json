@@ -1,0 +1,22 @@
+{
+  "description": "OECD 2019 3-region/3-sector fixture (tests/fixtures/trade/oecd_2023), USA levies 10% on all foreign intermediate and final purchases; nested CES technology (sv=.1, ss=.1, so=.5, rho_va=1); solve_ces_block_newton defaults (tol 2e-11, certificate_tol 1e-8). Self-generated regression golden written after the exact-inverse, Leontief-limit and flat-parity tests passed; not an external reference.",
+  "technology": {
+    "sigma_va_materials": 0.1,
+    "sigma_sectors": 0.1,
+    "sigma_origins": 0.5,
+    "rho_va": 1.0
+  },
+  "tariff": "USA 10% on all foreign intermediate and final purchases",
+  "unit": "M_USD",
+  "us_wage": 0.9827948513146101,
+  "us_rent": 0.98279485131461,
+  "us_rent_note": "equals us_wage by construction: the fixture has no observed factor split, so alpha is uniform within each country and r_c / w_c = alpha L_c / ((1 - alpha) K_c) = 1 at rho_va = 1; not an independent regression value",
+  "us_gdp": 21305149.652246907,
+  "us_tariff_revenue": 282175.83352971764,
+  "macro_condition": 202.25858878198358,
+  "iterations": 3,
+  "residual_max_scaled": 3.767079655119324e-12,
+  "certificate_max": 1.5372339562466546e-10,
+  "generated": "2026-09-22",
+  "generator": "puremacro.trade.ces_newton.solve_ces_block_newton"
+}

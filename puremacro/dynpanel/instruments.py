@@ -535,6 +535,44 @@ def build_H_block(diff_rows: list) -> np.ndarray:
 
 
 # ---------------------------------------------------------------------
+# Dead-instrument pruning
+# ---------------------------------------------------------------------
+
+
+def _prune_zero_columns(Z: np.ndarray, labels: list) -> tuple:
+    """Drop the columns of ``Z`` that are identically zero.
+
+    The uncollapsed (lag, t) basis is laid out from every usable
+    difference time *before* rows with missing lagged differences are
+    removed (``lag_dep_var >= 2``, lagged strictly-exogenous regressors,
+    gaps). A (lag, t) column whose rows were all removed, or an
+    instrument that is identically zero on the estimation sample, then
+    carries no moment condition at all: it adds nothing to ``Z'X`` or
+    ``Z'y`` but makes ``Z'HZ`` (and ``sum_i Z_i'u_i u_i'Z_i``) exactly
+    singular. Stata's ``xtabond``/``xtdpd`` build the instrument matrix
+    on the estimation sample only ("dropping the rows for which there are
+    no data and filling in zeros in columns where missing data are
+    required", [XT] xtdpd, Methods and formulas, p.18), so such columns
+    never appear and are not counted in "Number of instruments".
+
+    Removing an all-zero column leaves every GMM quantity unchanged
+    (coefficients, sandwich, Hansen J statistic); it only fixes the
+    instrument count and the J degrees of freedom to the number of
+    moment conditions actually used.
+
+    Returns ``(Z_kept, labels_kept, dropped_labels)``.
+    """
+    if Z.shape[1] == 0:
+        return Z, list(labels), []
+    live = np.any(Z != 0.0, axis=0)
+    if bool(np.all(live)):
+        return Z, list(labels), []
+    kept = [lab for lab, k in zip(labels, live) if k]
+    dropped = [lab for lab, k in zip(labels, live) if not k]
+    return Z[:, live], kept, dropped
+
+
+# ---------------------------------------------------------------------
 # Public wrapper used by ab_gmm / bb_gmm
 # ---------------------------------------------------------------------
 
@@ -555,11 +593,21 @@ def build_instruments(
     GMM: instrument matrix ``Z``, design matrix ``ΔX``, outcome ``Δy``,
     weighting helper ``H``, and per-row metadata.
 
+    Instrument columns that are identically zero on the estimation
+    sample (after rows with missing lagged differences are dropped) are
+    removed, as Stata ``xtabond`` does; their labels are returned under
+    ``dropped_instr_labels``. Example: with ``collapse=False`` and
+    ``lag_dep_var=2`` the (lag 2, first usable t) column is built from a
+    difference row that the second lag of ``y`` then removes; on Stata's
+    ``abdata`` this leaves the 41 instruments of [XT] xtabond Example 1
+    instead of 42.
+
     Returns
     -------
     dict with keys:
         ``Z``, ``X_diff``, ``y_diff``, ``H``, ``diff_rows``,
-        ``records``, ``names``, ``instr_labels``.
+        ``records``, ``names``, ``instr_labels``,
+        ``dropped_instr_labels`` (list of pruned all-zero columns).
     """
     if lag_dep_var < 1:
         raise ValueError("lag_dep_var must be >= 1.")
@@ -601,6 +649,14 @@ def build_instruments(
             "observations remain. Check lag_dep_var and the time gaps."
         )
 
+    # Remove instrument columns that the row drop left all-zero.
+    Z, instr_labels, dropped_instr_labels = _prune_zero_columns(Z, instr_labels)
+    if Z.shape[1] == 0:
+        raise ValueError(
+            "Every instrument column is zero on the estimation sample; "
+            "check gmm_lag_window and the time coverage of the panel."
+        )
+
     H = build_H_block(diff_rows)
 
     return {
@@ -612,6 +668,7 @@ def build_instruments(
         "records": records,
         "names": names,
         "instr_labels": instr_labels,
+        "dropped_instr_labels": dropped_instr_labels,
         "n_endog": n_endog,
         "n_pred": n_pred,
         "n_exog": n_exog,

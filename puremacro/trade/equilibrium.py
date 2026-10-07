@@ -196,6 +196,7 @@ def compute_equilibrium_residuals(
     capacity_target_country: str = "USA",
     penalty_scale: float = 0.05,
     penalty_exponent: float = 8.0,
+    foreign_saving_units: str = "numeraire",
     **kwargs: Any,
 ) -> np.ndarray:
     """Vectorized evaluation of all 2,001 general equilibrium residual equations.
@@ -255,6 +256,10 @@ def compute_equilibrium_residuals(
         Scale parameter zeta for C^2 smooth barrier penalty function.
     penalty_exponent : float, default 8.0
         Exponent eta for C^2 smooth barrier penalty function.
+    foreign_saving_units : {"numeraire", "world_income"}, default "numeraire"
+        Consistent accounting only: unit in which baseline foreign saving is
+        held fixed (see :mod:`puremacro.trade._accounting`). Legacy accounting
+        accepts only the default.
 
     Returns
     -------
@@ -273,7 +278,8 @@ def compute_equilibrium_residuals(
         tau_a=tau_a, taufd_a=taufd_a, sigma=sigma, tariff_revenue_mode=tariff_revenue_mode, accounting=accounting,
         fiscal_closure=fiscal_closure, recycling_params=recycling_params,
         capacity_margins=capacity_margins, capacity_target_country=capacity_target_country,
-        penalty_scale=penalty_scale, penalty_exponent=penalty_exponent, **kwargs,
+        penalty_scale=penalty_scale, penalty_exponent=penalty_exponent,
+        foreign_saving_units=foreign_saving_units, **kwargs,
     )["residuals"]
 
 
@@ -297,6 +303,7 @@ def _evaluate_equilibrium(
     capacity_target_country: str = "USA",
     penalty_scale: float = 0.05,
     penalty_exponent: float = 8.0,
+    foreign_saving_units: str = "numeraire",
     **kwargs: Any,
 ) -> dict[str, Any]:
     """Shared economic blocks for residuals and postprocessing."""
@@ -312,7 +319,10 @@ def _evaluate_equilibrium(
         return evaluate(x, calib, tau_a if tau_a is not None else tau,
                         taufd_a if taufd_a is not None else tau_fd, tauf, tauf_fd,
                         sigma=sigma, fiscal_closure=fiscal_closure,
-                        recycling_params=recycling_params, capacity_margins=capacity_margins)
+                        recycling_params=recycling_params, capacity_margins=capacity_margins,
+                        foreign_saving_units=foreign_saving_units)
+    if foreign_saving_units != "numeraire":
+        raise ValueError("foreign_saving_units applies to accounting='consistent' only")
 
     nc = calib.n_countries
     ns = calib.n_sectors

@@ -1,0 +1,7 @@
+region	sector	indout
+AT	Cultivation of paddy rice	10.15
+AT	Manure treatment (conventional), storage and land application	0.7
+AT	Other land transport	8.02
+WA	Cultivation of paddy rice	15.85
+WA	Manure treatment (conventional), storage and land application	0.0
+WA	Other land transport	10.92

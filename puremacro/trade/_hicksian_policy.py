@@ -24,10 +24,31 @@ def _count(value, name, minimum):
         raise ValueError(f"{name} must be an integer >= {minimum}")
 
 
+def _boundary_label(rate, maximum, tol):
+    """Classify a tariff on ``[0, maximum]`` as ``"lower"``, ``"upper"`` or ``"interior"``.
+
+    A rate within the absolute ``tol`` of a bound is at that bound. When the two
+    tolerance bands overlap (``maximum <= 2 * tol``) the nearer bound wins, and
+    the exact midpoint is ``"interior"``. Up to 4.3.0 the lower bound was tested
+    first, so with ``maximum <= tol`` a reply at the ceiling was labelled
+    ``"lower"``.
+    """
+    at_lower, at_upper = rate <= tol, rate >= maximum - tol
+    if at_lower and at_upper:
+        distance_lower, distance_upper = rate, maximum - rate
+        if distance_upper < distance_lower:
+            return "upper"
+        return "lower" if distance_lower < distance_upper else "interior"
+    return "lower" if at_lower else "upper" if at_upper else "interior"
+
+
+_FOREIGN_SAVING_UNITS = ("numeraire", "world_income")
+
+
 class _Context:
     def __init__(self, calib, x0, policy_mode, *, consumption_categories=(0,), base_equilibrium=None,
                  sigma=0., ge_tol=1e-8, ge_method="auto", ge_max_iter=100, ge_max_steps=100,
-                 accounting="consistent"):
+                 accounting="consistent", foreign_saving_units="numeraire"):
         from .optimal_tariffs import resolve_country_indices
         if accounting != "consistent":
             raise ValueError('metric="hicksian_ev" requires accounting="consistent"')
@@ -38,12 +59,17 @@ class _Context:
             raise ValueError("sigma must be finite and nonnegative")
         if ge_method not in ("auto", "newton", "hybr", "keller_pac"):
             raise ValueError("ge_method must be auto, newton, hybr or keller_pac")
+        if foreign_saving_units not in _FOREIGN_SAVING_UNITS:
+            raise ValueError("foreign_saving_units must be 'numeraire' or 'world_income'")
         _count(ge_max_iter, "ge_max_iter", 1)
         _count(ge_max_steps, "ge_max_steps", 1)
         self.calib, self.policy_mode = calib, policy_mode
         self.categories = tuple(consumption_categories)
+        # Every equilibrium of the search (baseline, deviations, final profile)
+        # uses the same foreign-saving closure; see solve_trade_equilibrium.
         self.options = dict(sigma=sigma, tol=ge_tol, method=ge_method,
-                            max_iter=ge_max_iter, max_steps=ge_max_steps)
+                            max_iter=ge_max_iter, max_steps=ge_max_steps,
+                            foreign_saving_units=foreign_saving_units)
         self.runs, self.cache = [], {}
         self.base = base_equilibrium
         if self.base is None:
@@ -56,6 +82,12 @@ class _Context:
                 raise ValueError("Policy comparison baseline must be a consistent zero-tariff equilibrium")
         if self.base.metadata.get("sigma") != sigma:
             raise ValueError("Policy baseline must use the requested sigma")
+        base_units = self.base.metadata.get("foreign_saving_units", "numeraire")
+        if base_units != foreign_saving_units:
+            raise ValueError(
+                f"Policy baseline was solved with foreign_saving_units={base_units!r}; "
+                f"the search requested {foreign_saving_units!r}. Solve the baseline with the "
+                "same foreign-saving closure")
         blocks, _ = _checked_state(self.base, calib, 1e-8)
         residual = np.r_[blocks["residuals"], blocks["physical_residuals"]]
         if not np.isfinite(residual).all() or np.max(np.abs(residual)) > ge_tol:
@@ -66,7 +98,9 @@ class _Context:
         self.warm = self.base.x_sol.copy()
         self.reference_id = hashlib.sha256(
             np.asarray(self.base.Pfd_final).tobytes()+np.asarray(self.base.c_fd).tobytes()
-            +repr(self.categories).encode()).hexdigest()
+            +repr(self.categories).encode()
+            +(b"" if foreign_saving_units == "numeraire" else foreign_saving_units.encode())
+            ).hexdigest()
         self.resolve = resolve_country_indices
 
     def indices(self, player):
@@ -147,6 +181,7 @@ class _Context:
                 "regret_denominator": "baseline selected consumption expenditure (fraction, not percent)",
                 "terms_of_trade_scope": "individual country; unavailable for multi-country blocs",
                 "sigma": self.options["sigma"], "ge_tol": self.options["tol"],
+                "foreign_saving_units": self.options["foreign_saving_units"],
                 "policy_mode": self.policy_mode, "solver_runs": list(self.runs),
                 "unit": self.calib.metadata.get("unit", "calibration value units")}
 
@@ -186,7 +221,8 @@ def _optimal(ctx, player, targets, maximum, size, tol, method):
         terms_of_trade_optimal=ctx.terms_of_trade(eq, player), tariff_grid=grid, welfare_curve=curve,
         equilibrium=eq, target_countries=None if targets is None else tuple(targets),
         metadata={**ctx.metadata(), "num_grid": size, "tariff_max": maximum, "tol": tol,
-                  "method": method, "boundary": "lower" if rate <= tol else "upper" if rate >= maximum-tol else "interior",
+                  "method": method, "boundary": _boundary_label(rate, maximum, tol),
+                  "boundary_bands_overlap": bool(maximum <= 2*tol),
                   "search_scope": "full-interval grid and all sampled local-peak brackets; no global proof"})
 
 
@@ -263,7 +299,8 @@ def nash(calib, player_countries, method, relaxation, tol, max_iter, tariff_max,
         baseline_welfares={p: 0. for p in players}, iteration_history=history,
         metadata={**ctx.metadata(), "player_regrets": regrets, "max_regret": max(regrets.values()),
             "relative_max_regret": regret, "best_responses": replies,
-            "best_response_boundaries": {p: "lower" if replies[p] <= tol else "upper" if replies[p] >= tariff_max-tol else "interior" for p in players},
+            "best_response_boundaries": {p: _boundary_label(replies[p], tariff_max, tol) for p in players},
+            "boundary_bands_overlap": bool(tariff_max <= 2*tol),
             "best_response_grid_size": best_response_grid_size, "regret_tol": regret_tol,
             "tol": tol, "tariff_max": tariff_max, "relaxation": relaxation, "max_iter": max_iter,
             "world_welfare_scope": "all calibrated countries, including nonplayers",

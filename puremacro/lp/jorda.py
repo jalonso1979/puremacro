@@ -33,7 +33,21 @@ def lp_hac(
     Accepts either DataFrame input `lp_hac(df, y='y_col', x='x_col', ...)`
     or 1D array/series input `lp_hac(y_series, shock_series, horizons=..., lags=...)`.
 
-    HAC bandwidth = h + 1 (Plagborg-Møller-Wolf 2021 recommendation).
+    At horizon ``h`` the outcome is ``y_{t+h} - y_{t-1}``, regressed on a
+    constant, ``x_t``, ``n_lags`` lags of ``x`` and ``y`` (and of each
+    control) and the contemporaneous controls; ``beta`` is the ``x_t``
+    coefficient.
+
+    Standard errors are Newey-West (1987): Bartlett kernel with
+    truncation lag ``h + 1`` at horizon ``h`` (weights ``1 - l/(h + 2)``),
+    no small-sample correction. The truncation lag is a rule of thumb: the
+    ``h``-step-ahead residual is serially correlated up to order ``h``, so
+    the kernel must reach at least that far. No reference is claimed for
+    it. (Earlier releases credited it to Plagborg-Møller and Wolf 2021,
+    whose paper proves that LPs and VARs estimate the same impulse
+    responses and makes no HAC recommendation.) For intervals that need no
+    HAC correction, use :func:`puremacro.lp.la_lp` (Montiel Olea and
+    Plagborg-Møller 2021).
     Bands at level (1 - alpha) — default 90 %.
 
     Returns

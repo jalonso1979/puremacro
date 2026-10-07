@@ -21,7 +21,10 @@ from puremacro.datasets.loaders import (
     list_datasets,
 )
 
+from puremacro.datasets.enigh import load_enigh2024_deciles
+
 __all__ = [
+    "load_enigh2024_deciles",
     "load_gali1999",
     "load_narrative_tax_shocks",
     "load_macro_quarterly",

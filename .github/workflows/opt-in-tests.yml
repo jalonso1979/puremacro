@@ -1,0 +1,82 @@
+name: Opt-in tests
+
+# The default `pytest` deselects the slow, reference and replication markers
+# (pyproject.toml addopts), so ci.yml never runs them and a frozen golden can
+# rot unnoticed: the SW07 parity fixture stayed red across the whole 2.5.0
+# line while every CI run was green. This workflow runs those markers on one
+# platform: every Monday, on demand, and -- through release.yml -- on every
+# release tag, where the `opt-in` job gates the PyPI publish.
+#
+# Measured on 2026-10-03 (12-core laptop, conda Python 3.13): 115 passed,
+# 9 skipped in 74 min, of which 43 min were
+# tests/test_notebooks/test_notebooks_execute.py::test_all_notebooks_execute.
+# That one test runs in its own job below, weekly and on demand only, so the
+# release gate stays within the hour on a shared runner.
+
+on:
+  schedule:
+    - cron: '17 5 * * 1'   # Mondays, 05:17 UTC
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  opt-in:
+    name: slow + reference + replication (ubuntu, Python 3.12)
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,notebooks]"
+
+      # `-m` on the command line replaces the marker expression in addopts.
+      # The notebook-execution test is deselected here and run by the job
+      # below; the `network` marker stays opt-in (external services).
+      # PYTHONPATH: six slow test modules import the repository's `tools`
+      # package (reference-validation helpers). The default `pytest` run
+      # reaches them only after pytest has put the repository root on
+      # sys.path for the in-package tests; an explicit path list does not,
+      # so the first run of this job failed at collection.
+      - name: Run the opt-in markers
+        env:
+          PUREMACRO_TIMING_SCALE: "10"
+          PYTHONPATH: "."
+        run: |
+          pytest -m "slow or reference or replication" tests puremacro/tests \
+            --deselect tests/test_notebooks/test_notebooks_execute.py::test_all_notebooks_execute \
+            --durations=25 -rs
+
+  notebooks:
+    name: execute every notebook (ubuntu, Python 3.12)
+    # Inside a workflow_call (release.yml) github.event_name is the caller's
+    # "push" of the tag, so this job runs only on the schedule and on demand.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,notebooks]"
+
+      - name: Execute the notebooks
+        env:
+          PUREMACRO_TIMING_SCALE: "10"
+          PYTHONPATH: "."
+        run: |
+          pytest -m slow tests/test_notebooks/test_notebooks_execute.py --durations=10 -rs

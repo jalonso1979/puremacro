@@ -1,0 +1,41 @@
+/Users/jalonso/.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/importlib/__init__.py:88: FutureWarning: puremacro.lp.garch_utils is private and deprecated, will be removed in a future major release (5.0.0); use puremacro.lp._garch_utils or high-level LP functions instead.
+  return _bootstrap._gcd_import(name[level:], package, level)
+release_check — puremacro pre-tag gate
+  repo root: /Users/jalonso/Documents/RESEARCH/puremacro
+  Gate 2 (Pyodide contract): PASS
+  Gate 3 (public API snapshot): FAIL — diff:
+    + module puremacro.structural.sw07_expectations
+    + puremacro.dsge.StructuralSingularityWarning
+    + puremacro.dsge.allow_structural_singularity
+    + puremacro.bartik.akm.ShiftShareIVResult.akm_shocks
+    + puremacro.bartik.akm.ShiftShareIVResult.n_sector_clusters
+    + puremacro.did._results.CallawaySantannaResult.aggregation
+    + puremacro.did._results.CallawaySantannaResult.alpha
+    + puremacro.did._results.CallawaySantannaResult.att_group
+    + puremacro.did._results.CallawaySantannaResult.att_overall_hi
+    + puremacro.did._results.CallawaySantannaResult.att_overall_lo
+    + puremacro.did._results.CallawaySantannaResult.att_overall_se
+    + puremacro.did._results.CallawaySantannaResult.event_study_vcov
+    + puremacro.did._results.CallawaySantannaResult.overall_aggregations
+    + puremacro.did._results.SunAbrahamResult.aggregation
+    + puremacro.did._results.SunAbrahamResult.alpha
+    + puremacro.did._results.SunAbrahamResult.att_overall_hi
+    + puremacro.did._results.SunAbrahamResult.att_overall_lo
+    + puremacro.did._results.SunAbrahamResult.att_overall_se
+    + puremacro.did._results.SunAbrahamResult.event_study_vcov
+    + puremacro.did._results.SunAbrahamResult.overall_aggregations
+    + puremacro.did._results.SyntheticDiDResult.alpha
+    + puremacro.did._results.SyntheticDiDResult.n_reps
+    + puremacro.did._results.SyntheticDiDResult.se_method
+    + puremacro.dynpanel._results.GMMResult.notes
+    + puremacro.nowcast.evaluation.PITUniformityResult.alpha
+    + puremacro.nowcast.realtime_nowcast.RealtimeNowcastResult.model_result
+    + puremacro.nowcast.realtime_nowcast.RealtimeNowcastResult.observed_panel
+    + puremacro.nowcast.realtime_nowcast.RealtimeNowcastResult.previous_vintage
+    + puremacro.var.regime.ms_var.MSVARResult.loglik_path
+    + puremacro.var.regime.ms_var.MSVARResult.pi0
+    + puremacro.var.regime.ms_var.MSVARResult.sigma_at_floor
+  Gate 4 (version sync): PASS — all read 4.3.0
+  Gate 7 (min-Python 3.11 syntax): PASS — 1647 files parse (ast.parse(feature_version=3.11); PEP 701 f-string scan)
+
+3/4 gates passed; FAIL: public_api_snapshot

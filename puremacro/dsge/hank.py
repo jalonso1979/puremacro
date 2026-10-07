@@ -34,11 +34,31 @@ from puremacro.models.hank_sequence_space import (
     _solve_two_asset_household_block,
     _consumption_jacobians,
     _two_asset_jacobians,
+    _two_asset_ge_solve,
+    _two_asset_steady_state_dict,
     _ge_matrices,
     _local_mpc,
     _transaction_cost,
     TwoAssetSequenceSpaceHANKResult,
 )
+
+# Two-asset calibration defaults (used when the .mod file does not set them); they
+# match solve_two_asset_hank_sequence_space and give beta (1 + r_a) < 1, so that the
+# illiquid-wealth distribution is interior.
+_TWO_ASSET_DEFAULTS = {
+    "beta": 0.98,
+    "r_b_ss": 0.005,
+    "r_a_ss": 0.0125,
+    "chi_0": 1.0,
+    "chi_1": 1.0,
+    "a_bar": 0.25,
+    "n_a": 25,
+    "n_b": 25,
+    "a_max": 40.0,
+    "b_max": 10.0,
+    "b_min": 0.0,
+    "alpha_ab": 0.5,
+}
 
 
 class HANKModel:
@@ -71,15 +91,18 @@ class HANKModel:
         )
 
         # Baseline calibration parameters
-        self.beta = float(self.params.get("beta", 0.985))
+        ta = _TWO_ASSET_DEFAULTS
+        self.beta = float(self.params.get("beta", ta["beta"] if self.is_two_asset else 0.985))
         self.gamma = float(self.params.get("gamma", 1.0))
-        self.r_ss = float(self.params.get("r_ss", self.params.get("r_b_ss", 0.01)))
+        self.r_ss = float(self.params.get("r_ss", self.params.get("r_b_ss", ta["r_b_ss"] if self.is_two_asset else 0.01)))
         self.r_b_ss = float(self.params.get("r_b_ss", self.r_ss))
-        self.r_a_ss = float(self.params.get("r_a_ss", 0.03))
+        self.r_a_ss = float(self.params.get("r_a_ss", ta["r_a_ss"]))
         self.phi_pi = float(self.params.get("phi_pi", 1.5))
         self.kappa = float(self.params.get("kappa", 0.1))
-        self.chi_0 = float(self.hetagent_config.get("chi_0", self.params.get("chi_0", 0.25)))
-        self.chi_1 = float(self.hetagent_config.get("chi_1", self.params.get("chi_1", 1.0)))
+        self.chi_0 = float(self.hetagent_config.get("chi_0", self.params.get("chi_0", ta["chi_0"])))
+        self.chi_1 = float(self.hetagent_config.get("chi_1", self.params.get("chi_1", ta["chi_1"])))
+        self.a_bar = float(self.hetagent_config.get("a_bar", self.params.get("a_bar", ta["a_bar"])))
+        self.alpha_ab = float(self.params.get("alpha_ab", ta["alpha_ab"]))
 
         # Solve stationary distribution on initialization
         self.steady_state: dict[str, float] = {}
@@ -96,11 +119,12 @@ class HANKModel:
     def _solve_steady_state(self) -> None:
         """Solve the microeconomic stationary distribution and aggregate steady state."""
         if self.is_two_asset:
-            n_a = int(self.hetagent_config.get("n_a", 25))
-            n_b = int(self.hetagent_config.get("n_b", 25))
-            a_max = float(self.hetagent_config.get("a_max", 30.0))
-            b_max = float(self.hetagent_config.get("b_max", 15.0))
-            b_min = float(self.hetagent_config.get("b_min", 0.0))
+            ta = _TWO_ASSET_DEFAULTS
+            n_a = int(self.hetagent_config.get("n_a", ta["n_a"]))
+            n_b = int(self.hetagent_config.get("n_b", ta["n_b"]))
+            a_max = float(self.hetagent_config.get("a_max", ta["a_max"]))
+            b_max = float(self.hetagent_config.get("b_max", ta["b_max"]))
+            b_min = float(self.hetagent_config.get("b_min", ta["b_min"]))
 
             hh = _solve_two_asset_household_block(
                 beta=self.beta,
@@ -115,6 +139,7 @@ class HANKModel:
                 b_min=b_min,
                 chi_0=self.chi_0,
                 chi_1=self.chi_1,
+                a_bar=self.a_bar,
             )
             self._hh_block = hh
             self.asset_grid = hh.a_grid.copy()
@@ -124,24 +149,16 @@ class HANKModel:
             self.joint_distribution = hh.joint_distribution.copy()
             self.deposit_distribution = hh.deposit_distribution.copy()
 
-            # Local MPC across wealth grid
-            mpc_a = np.clip(1.0 - (hh.a_grid / (hh.a_grid[-1] + 1e-4)), 0.05, 0.95)
+            # Quarterly MPC out of a lump-sum transfer, averaged over (b, s) at each illiquid grid point
+            mpc_state = hh.mpc()
+            weight = hh.D_ss.sum(axis=(1, 2))
+            mpc_a = np.mean(mpc_state, axis=(1, 2))
+            has_mass = weight > 1e-12
+            mpc_a[has_mass] = np.sum(hh.D_ss * mpc_state, axis=(1, 2))[has_mass] / weight[has_mass]
             self.mpc_distribution = mpc_a
 
-            c_ss = float(hh.C_ss)
-            self.steady_state = {
-                "Y": c_ss,
-                "C": c_ss,
-                "D": float(hh.D_flow_ss),
-                "r_b": self.r_b_ss,
-                "r_a": self.r_a_ss,
-                "r": self.r_b_ss,
-                "pi": 0.0,
-                "i": self.r_b_ss,
-                "w": 1.0,
-                "A": float(hh.A_ss),
-                "B": float(hh.B_ss),
-            }
+            self.steady_state = _two_asset_steady_state_dict(hh)
+            self.steady_state["r"] = self.r_b_ss
             for v in self.variables:
                 if v not in self.steady_state:
                     self.steady_state[v] = 0.0
@@ -185,7 +202,14 @@ class HANKModel:
                 self.steady_state[v] = 0.0
 
     def compute_jacobians(self, T: int = 300) -> dict[str, np.ndarray]:
-        """Compute sequence-space Jacobians via Fake-News Algorithm."""
+        """Compute sequence-space Jacobians via Fake-News Algorithm.
+
+        Two-asset models return the Jacobians of the household sector closed by
+        the income rule ``z_t N = Y_t - r^b_t B_{t-1} - r^a_t A_{t-1}``
+        (``J_O_Y``, ``J_O_rb``, ``J_O_ra`` for O in C, D, A, B, CHI, ex-ante
+        dated, plus ``J_z_*`` for non-financial income); see
+        :func:`puremacro.models.hank_sequence_space._two_asset_jacobians`.
+        """
         if self._hh_block is None:
             self._solve_steady_state()
         if self.is_two_asset:
@@ -208,23 +232,15 @@ class HANKModel:
         shock_path = magnitude * (rho ** np.arange(horizon))
 
         if self.is_two_asset:
-            res_2a = solve_two_asset_hank_sequence_space(
-                T=horizon,
-                beta=self.beta,
-                gamma=self.gamma,
-                r_b_ss=self.r_b_ss,
-                r_a_ss=self.r_a_ss,
-                phi_pi=self.phi_pi,
-                kappa=self.kappa,
-                chi_0=self.chi_0,
-                chi_1=self.chi_1,
-                shock_magnitude=magnitude,
-                shock_rho=rho,
-                n_a=int(self.hetagent_config.get("n_a", 25)),
-                n_b=int(self.hetagent_config.get("n_b", 25)),
-                a_max=float(self.hetagent_config.get("a_max", 30.0)),
-                b_max=float(self.hetagent_config.get("b_max", 15.0)),
-                b_min=float(self.hetagent_config.get("b_min", 0.0)),
+            # Linear GE on the steady state solved at construction (the same block the
+            # reported steady state and distributions come from).
+            res_2a = _two_asset_ge_solve(
+                self._hh_block,
+                int(horizon),
+                self.phi_pi,
+                self.kappa,
+                shock_path,
+                self.alpha_ab,
             )
             dY = res_2a.irf_output[:horizon]
             dC = res_2a.irf_consumption[:horizon]
@@ -237,6 +253,7 @@ class HANKModel:
             path_data: dict[str, np.ndarray] = {
                 "Y": dY,
                 "C": dC,
+                "CHI": dY - dC,  # adjustment costs: goods market Y = C + CHI
                 "D": dD,
                 "r_b": dr_b,
                 "r_a": dr_a,

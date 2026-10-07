@@ -19,6 +19,8 @@ References
 """
 from __future__ import annotations
 
+import os
+import sys
 import time
 import warnings
 from dataclasses import dataclass, field
@@ -882,9 +884,17 @@ class AiyagariContinuousEquilibrium:
     distribution : ContinuousStationaryDistribution
         Invariant stationary distribution at the equilibrium factor prices.
     capital_market_clearing_error : float
-        Excess capital demand residual |K^s(r*) - K^d(r*)| < 1e-4.
+        Signed market-clearing residual K^s(r*) - K^d(r*), in units of capital.
+        ``converged`` is False when its absolute value is not below the
+        clearing tolerance (``tol_ge``, default 1e-4, in solve_aiyagari_continuous).
     converged : bool
-        Whether the equilibrium price root-finder converged successfully.
+        Overall convergence at r*. From ``solve_aiyagari_continuous``: True only
+        if the household EGM fixed point met ``egm_tol`` within ``egm_max_iter``
+        iterations, the stationary distribution solver converged, and
+        |K^s - K^d| < ``tol_ge``. From ``continuous_stationary_equilibrium``: True
+        only if the distribution solver converged and the household solution does
+        not report ``converged=False``. A failed price search raises instead
+        (Brent's method raises RuntimeError after ``max_evals`` evaluations).
     iterations : int
         Number of price iterations/evaluations required to clear the market.
     metadata : dict
@@ -1055,11 +1065,20 @@ class AiyagariContinuousEquilibrium:
         r_bracket: Optional[Tuple[float, float]] = None,
         solver: str = "auto",
         backend: str = "numpy",
-        xtol: float = 1e-6,
+        xtol: float = 1e-8,
         dist_options: Optional[dict] = None,
         **kwargs,
     ) -> AiyagariContinuousEquilibrium:
-        """Solve canonical Aiyagari continuous general equilibrium."""
+        """Solve canonical Aiyagari continuous general equilibrium.
+
+        Calls ``solve_aiyagari_continuous``; further keywords (``egm_tol``,
+        ``egm_max_iter``, ``tol_ge``, ``max_evals``, ``n_a``, ...) are forwarded.
+        ``xtol`` (Brent's tolerance on r) defaults to 1e-8 as in
+        ``solve_aiyagari_continuous``; the 1e-6 used through 4.3.0 left
+        |K^s - K^d| above the 1e-4 clearing tolerance (``tol_ge``) in n_z=3
+        calibrations, where excess capital supply moves by several hundred units
+        of capital per unit of r near r*.
+        """
         return solve_aiyagari_continuous(
             beta=beta,
             gamma=gamma,
@@ -1101,9 +1120,16 @@ class _AiyagariContinuousModel:
         N_k: int = 1000,
         r_bracket: Optional[Tuple[float, float]] = None,
         backend: str = "numpy",
-        xtol: float = 1e-6,
+        xtol: float = 1e-8,
         **kwargs,
     ) -> AiyagariContinuousEquilibrium:
+        """Solve this economy with ``solve_aiyagari_continuous``; keywords are forwarded.
+
+        ``xtol`` (Brent's tolerance on r) defaults to 1e-8 as in
+        ``solve_aiyagari_continuous``; it was 1e-6 through 4.3.0, which left
+        |K^s - K^d| above the 1e-4 clearing tolerance (``tol_ge``) in n_z=3
+        calibrations.
+        """
         return solve_aiyagari_continuous(
             beta=self.beta,
             gamma=self.gamma,
@@ -1177,7 +1203,12 @@ def continuous_stationary_equilibrium(
     Returns
     -------
     AiyagariContinuousEquilibrium
-        Solved general equilibrium container.
+        Solved general equilibrium container. ``converged`` is False (with a
+        RuntimeWarning) when the stationary distribution solver did not converge
+        at p*, or when the household solution exposes ``converged=False``; the
+        price search itself raises on failure. The residual at p* is returned
+        in ``capital_market_clearing_error`` and is not checked against a
+        tolerance here, since its units depend on ``market_residual``.
     """
     t_start = time.time()
     k_arr = asset_grid if asset_grid is not None else k_grid
@@ -1245,10 +1276,34 @@ def continuous_stationary_equilibrium(
     w_star = float(getattr(sol_star, "w", getattr(prob_star, "w", 1.0)))
     L_star = float(getattr(sol_star, "L", getattr(prob_star, "L", 1.0)))
 
+    # Brent raises when the price search fails, so r* itself is a root to xtol.
+    # What it cannot see is a distribution (or a household solution that reports
+    # its own status) that stopped short of convergence at r*.
+    dist_ok = bool(dist_star.converged)
+    hh_flag = getattr(sol_star, "converged", None)
+    hh_ok = True if hh_flag is None else bool(hh_flag)
+    converged = dist_ok and hh_ok
+    if not converged:
+        reasons = []
+        if not dist_ok:
+            reasons.append(
+                f"the stationary distribution solver did not converge at p*={p_star:.6g} "
+                f"(dist_options={dist_opts!r})"
+            )
+        if not hh_ok:
+            reasons.append(f"the household solution reports converged=False at p*={p_star:.6g}")
+        warnings.warn(
+            "continuous_stationary_equilibrium did not converge: " + "; ".join(reasons),
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
     meta = {
         "elapsed_time": time.time() - t_start,
         "solver_type": type(sol_star).__name__,
         "backend": backend,
+        "dist_converged": dist_ok,
+        "household_converged": hh_flag if hh_flag is None else hh_ok,
     }
 
     return AiyagariContinuousEquilibrium(
@@ -1259,7 +1314,7 @@ def continuous_stationary_equilibrium(
         household_solution=sol_star,
         distribution=dist_star,
         capital_market_clearing_error=resid_star,
-        converged=True,
+        converged=converged,
         iterations=counter["n"],
         metadata=meta,
     )
@@ -1278,6 +1333,10 @@ class _ContinuousHouseholdEGMResult:
     w: float
     K_d: float
     L: float
+    # EGM fixed-point diagnostics: the loop stops when sup|c_n - c_(n-1)| < egm_tol.
+    converged: bool = True
+    iterations: int = 0
+    residual: float = float("nan")
 
     def policy(self, s: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
         """Evaluate next-asset continuous policy function g(s)."""
@@ -1299,6 +1358,38 @@ class _ContinuousHouseholdEGMResult:
         raise ValueError(f"Invalid state evaluation shape {s_arr.shape}")
 
 
+_PUREMACRO_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + os.sep
+
+
+def _caller_stacklevel() -> int:
+    """``stacklevel`` for ``warnings.warn`` pointing at the first frame outside puremacro.
+
+    Called from the function that issues the warning. The wrappers
+    (``AiyagariContinuousModel.solve``, ``AiyagariContinuousEquilibrium.solve``)
+    and ``continuous_transition`` forward to ``solve_aiyagari_continuous``, so a
+    fixed ``stacklevel=2`` would attribute the warning to library code.
+    """
+    frame = sys._getframe(1)  # the function calling warnings.warn: stacklevel 1
+    level = 1
+    while frame is not None:
+        if not os.path.abspath(frame.f_code.co_filename).startswith(_PUREMACRO_DIR):
+            return level
+        frame = frame.f_back
+        level += 1
+    return 2
+
+
+def _positive_finite(name: str, value: Any) -> float:
+    """``float(value)`` if it is a positive finite number, else ValueError naming ``name``."""
+    try:
+        out = float(value)
+    except (TypeError, ValueError):
+        out = float("nan")
+    if not (np.isfinite(out) and out > 0.0):
+        raise ValueError(f"{name} must be a positive finite number; got {value!r}")
+    return out
+
+
 def solve_aiyagari_continuous(
     beta: float = 0.96,
     gamma: float = 2.0,
@@ -1317,12 +1408,28 @@ def solve_aiyagari_continuous(
     dist_options: Optional[dict] = None,
     P_z: Optional[np.ndarray] = None,
     z_grid: Optional[np.ndarray] = None,
+    n_a: int = 150,
+    egm_tol: float = 1e-8,
+    egm_max_iter: int = 10_000,
+    tol_ge: float = 1e-4,
     **kwargs,
 ) -> AiyagariContinuousEquilibrium:
     """Solve the canonical continuous Aiyagari (1994) general equilibrium model.
 
     Finds the market-clearing equilibrium interest rate r* balancing aggregate
     capital supply K^s(r*) = int k dmu* with firm capital demand K^d(r*).
+
+    At each trial rate r the household problem is solved by the endogenous grid
+    method (Carroll 2006, "The method of endogenous gridpoints for solving
+    dynamic stochastic optimization problems", Economics Letters 91(3)). With
+    CRRA u'(c) = c^(-gamma), budget a' = (1 + r) a + w z - c and borrowing
+    limit a' >= 0, the Euler condition is
+    u'(c(a, z)) >= beta (1 + r) E[u'(c(a', z')) | z], with equality where
+    a' > 0 and c = (1 + r) a + w z where the limit binds. The Coleman operator
+    built from it is iterated on the consumption policy until
+    sup |c_n - c_(n-1)| < ``egm_tol``. The
+    stationary distribution is Young's (2010) histogram on ``N_k`` points, and
+    Brent's method on r clears the capital market.
 
     Parameters
     ----------
@@ -1345,13 +1452,26 @@ def solve_aiyagari_continuous(
     N_k : int, default 1000
         Number of points in fine histogram grid for Young (2010) distribution.
     r_bracket : tuple[float, float], optional
-        Search bracket (lo, hi) for r. Defaults to (1e-3, 1/beta - 1 - 5e-4).
-    solver : str, default "auto"
-        Household continuous solver engine ("auto", "egm", "collocation", "fem").
+        Search bracket (lo, hi) for r, with -delta < lo < hi < 1/beta - 1 - 1e-4.
+        When omitted, the search starts on (1e-3, 1/beta - 1 - 5e-4). If savings
+        already exceed the firm's capital demand at 1e-3, so that the equilibrium
+        rate is lower (possibly negative, as with persistent income risk), the
+        lower end moves to -delta + 1e-3, where capital demand is unbounded.
+    solver : {"auto", "egm"}, default "auto"
+        Household solver. Only the endogenous grid method is implemented, and
+        both names select it (case-insensitive; None is read as "auto"). Any
+        other value, including "collocation" and "fem", raises ValueError;
+        through 4.3.0 every value was silently solved by EGM. For a
+        collocation or finite-element household, build the problem yourself
+        and call ``continuous_stationary_equilibrium``.
     backend : str, default "numpy"
         Acceleration backend.
     xtol : float, default 1e-8
-        Market-clearing price tolerance.
+        Brent x-tolerance on the interest rate r (a rate per period, not a
+        residual tolerance). ``tol_ge`` checks the residual, which is roughly
+        xtol times the slope of K^s - K^d in r: that slope is several hundred
+        near r* in n_z=3 calibrations, so xtol=1e-6 leaves |K^s - K^d| of about
+        6e-4 there, above the default ``tol_ge``.
     max_evals : int, default 100
         Maximum price evaluations.
     dist_options : dict, optional
@@ -1360,16 +1480,112 @@ def solve_aiyagari_continuous(
         Pre-computed Markov transition matrix for productivity shocks.
     z_grid : np.ndarray, optional
         Pre-computed discrete productivity shock levels.
+    n_a : int, default 150
+        Nodes of the household's EGM asset grid, a_max * linspace(0, 1, n_a)**1.5.
+        Raise it together with ``a_max``: the spacing near the borrowing
+        constraint grows with a_max / n_a**1.5, and it drives the error in r.
+    egm_tol : float, default 1e-8
+        Stopping rule of the household EGM loop: sup-norm over the (n_a, n_z)
+        grid of the change in the consumption policy between two iterations, in
+        units of consumption. The step understates the distance to the fixed
+        point when the iteration contracts slowly (for a contraction of modulus
+        kappa the bound is kappa / (1 - kappa) times the step), as it does when
+        beta (1 + r) is close to one: at the defaults a step of 1e-8 leaves the
+        policy about 2e-7 from the fixed point.
+    egm_max_iter : int, default 10000
+        Cap on EGM iterations per trial rate (a hidden 500 through 4.3.0).
+        The loop needs more iterations as r approaches 1/beta - 1, and how many
+        depends on the calibration. In the documented n_z=3 example it needs
+        about 2,600 at r* and about 3,700 at the default upper end of the
+        bracket; riskier calibrations need more there (about 13,300 with
+        sigma_z=0.35, n_z=3 and a_max=30), so the cap can bind at the bracket
+        end; in that economy raising egm_max_iter to 20000 leaves r* unchanged
+        to 1e-10. Hitting
+        the cap at a trial rate other than r* (in practice the upper bracket
+        end, where Brent needs only the sign of the excess) can only steer the
+        search and is counted in ``metadata["egm_cap_hits"]``; hitting it at r*
+        sets ``converged=False`` and warns.
+    tol_ge : float, default 1e-4
+        Market-clearing tolerance, in units of capital: ``converged`` requires
+        |K^s(r*) - K^d(r*)| < tol_ge.
+    **kwargs
+        Not used. Unknown keywords were silently dropped through 4.3.0; they now
+        emit a FutureWarning naming them and will raise TypeError in a future
+        release.
 
     Returns
     -------
     AiyagariContinuousEquilibrium
-        Solved general equilibrium meeting tolerance |K^s - K^d| < 1e-4.
+        Equilibrium at r*. ``converged`` is True only when, at r*, the household
+        EGM met ``egm_tol`` within ``egm_max_iter`` iterations, the stationary
+        distribution solver converged and |K^s - K^d| < ``tol_ge``.
+        ``metadata`` records ``egm_converged``, ``egm_iterations`` and
+        ``egm_residual`` (at r*), ``egm_cap_hits`` and ``household_solves`` (over
+        the whole search), ``dist_converged``, ``clearing_ok``, the tolerances and
+        ``solver="egm"``.
+
+    Raises
+    ------
+    ValueError
+        For a ``solver`` other than "auto"/"egm", a non-positive ``egm_tol`` or
+        ``tol_ge``, ``egm_max_iter < 1``, an invalid ``r_bracket`` or a bracket
+        without a sign change.
+    RuntimeError
+        When Brent's method does not converge within ``max_evals`` evaluations.
+
+    Warns
+    -----
+    RuntimeWarning
+        When ``converged`` is False; the message names each failed criterion.
+    FutureWarning
+        For unknown keyword arguments, which are ignored.
     """
     t_start = time.time()
 
+    # None meant "the default" before solver was validated; keep accepting it.
+    solver_name = "auto" if solver is None else str(solver).strip().lower()
+    if solver_name not in ("auto", "egm"):
+        raise ValueError(
+            f"solve_aiyagari_continuous solves the household problem only with the endogenous grid "
+            f"method (solver='auto' or 'egm'); got solver={solver!r}. Earlier releases ignored this "
+            "argument and used EGM for every value. For a collocation or finite-element household, "
+            "use continuous_stationary_equilibrium with your own problem."
+        )
+    if kwargs:
+        _hints = {
+            "tol": "egm_tol (household EGM), tol_ge (market clearing) or xtol (Brent on r)",
+            "max_iter": "egm_max_iter (household EGM) or max_evals (Brent on r)",
+            "maxiter": "egm_max_iter (household EGM) or max_evals (Brent on r)",
+            "egm_maxiter": "egm_max_iter",
+            "tol_egm": "egm_tol",
+            "max_iter_egm": "egm_max_iter",
+            "clearing_tol": "tol_ge",
+            "N_a": "n_a",
+        }
+        names = sorted(kwargs)
+        hint = "; ".join(f"for {k!r} use {_hints[k]}" for k in names if k in _hints)
+        warnings.warn(
+            "solve_aiyagari_continuous: unknown keyword argument(s) "
+            + ", ".join(repr(k) for k in names)
+            + " ignored. They have never had an effect and will raise TypeError in a future release."
+            + (f" ({hint})" if hint else ""),
+            FutureWarning,
+            stacklevel=_caller_stacklevel(),
+        )
+    egm_tol = _positive_finite("egm_tol", egm_tol)
+    try:
+        _egm_max_iter_int = int(egm_max_iter)
+        _egm_max_iter_ok = _egm_max_iter_int == egm_max_iter and _egm_max_iter_int >= 1
+    except (TypeError, ValueError, OverflowError):  # None, "abc", inf, nan
+        _egm_max_iter_ok = False
+    if not _egm_max_iter_ok:
+        raise ValueError(f"egm_max_iter must be an integer >= 1; got {egm_max_iter!r}")
+    egm_max_iter = _egm_max_iter_int
+    tol_ge = _positive_finite("tol_ge", tol_ge)
+
     # Discretize shock process if not passed
-    if P_z is None or z_grid is None:
+    tauchen_chain = P_z is None or z_grid is None
+    if tauchen_chain:
         log_z, P_z = tauchen(n_z, rho_z, sigma_z)
         z_grid = np.exp(log_z)
     else:
@@ -1381,36 +1597,52 @@ def solve_aiyagari_continuous(
     L_agg = float(np.sum(pi_z * z_grid))
 
     # Dense asset grid for continuous EGM household solve
-    n_a = 150
+    n_a = int(n_a)
     a_grid_dense = a_max * (np.linspace(0.0, 1.0, n_a) ** 1.5)
     # Fine histogram grid for Young (2010) distribution
     K_hist = np.linspace(0.0, a_max, N_k)
 
     r_upper_bound = 1.0 / beta - 1.0
+    r_lower_bound = -delta  # firm capital demand is unbounded as r -> -delta
     if r_bracket is not None:
         lo, hi = r_bracket
         if hi >= r_upper_bound - 1e-4:
             raise ValueError(
                 f"Upper interest rate bound {hi} must be strictly less than 1/beta - 1 = {r_upper_bound:.6f}"
             )
+        if lo <= r_lower_bound:
+            raise ValueError(
+                f"Lower interest rate bound {lo} must exceed -delta = {r_lower_bound:.6f}, "
+                "where the firm's capital demand is unbounded"
+            )
     else:
         lo = 0.001
         hi = r_upper_bound - 0.0005
 
     counter = {"n": 0}
+    egm_stats = {"solves": 0, "cap_hits": 0, "iterations": 0}
 
     def _solve_household_at_r(r: float) -> _ContinuousHouseholdEGMResult:
         kl = ((r + delta) / alpha) ** (1.0 / (alpha - 1.0))
         w = (1.0 - alpha) * (kl**alpha)
         Kd = L_agg * kl
 
-        # EGM fixed point iteration for consumption policy
+        # EGM fixed point iteration for consumption policy. The first guess
+        # consumes income and keeps assets constant; at a negative rate that
+        # guess is negative for large assets, so consume cash on hand instead.
         c = np.zeros((n_a, n_z), dtype=np.float64)
         for m in range(n_z):
-            c[:, m] = r * a_grid_dense + w * z_grid[m]
+            if r >= 0.0:
+                c[:, m] = r * a_grid_dense + w * z_grid[m]
+            else:
+                c[:, m] = (1.0 + r) * a_grid_dense + w * z_grid[m]
 
-        for _ in range(500):
-            c_old = c.copy()
+        # Iterate the Coleman operator c <- T(c) until sup|T(c) - c| < egm_tol
+        # or egm_max_iter applications; the returned policy is the last iterate.
+        egm_ok = False
+        step = float("inf")
+        n_iter = 0
+        for n_iter in range(1, egm_max_iter + 1):
             # Euler expectation: EMu = beta * (1 + r) * sum_zp P_z(z, zp) * c(ap, zp)^(-gamma)
             EMu = beta * (1.0 + r) * (c ** (-gamma) @ P_z.T)
             c_endo = EMu ** (-1.0 / gamma)
@@ -1425,9 +1657,18 @@ def solve_aiyagari_continuous(
                 c_interp[binds] = (1.0 + r) * a_grid_dense[binds] + w * z_grid[m]
                 c_new[:, m] = c_interp
 
-            if np.max(np.abs(c_new - c_old)) < 1e-8:
-                break
+            step = float(np.max(np.abs(c_new - c)))
             c = c_new
+            if not np.isfinite(step):
+                break  # a non-finite policy cannot recover; report it unconverged
+            if step < egm_tol:
+                egm_ok = True
+                break
+
+        egm_stats["solves"] += 1
+        egm_stats["iterations"] += n_iter
+        if not egm_ok:
+            egm_stats["cap_hits"] += 1
 
         # Evaluate next-period asset policy a' = (1 + r) a + w z - c
         ap_dense = np.zeros((n_a, n_z), dtype=np.float64)
@@ -1449,6 +1690,9 @@ def solve_aiyagari_continuous(
             w=w,
             K_d=Kd,
             L=L_agg,
+            converged=egm_ok,
+            iterations=n_iter,
+            residual=step,
         )
 
     def _excess_capital_demand(r: float) -> Tuple[float, _ContinuousHouseholdEGMResult, ContinuousStationaryDistribution]:
@@ -1464,12 +1708,18 @@ def solve_aiyagari_continuous(
     f_lo, _, _ = _excess_capital_demand(lo)
     f_hi, _, _ = _excess_capital_demand(hi)
 
+    if r_bracket is None and f_lo > 0.0 and f_hi > 0.0:
+        # Savings exceed capital demand at r = 1e-3: the equilibrium rate is lower.
+        lo = r_lower_bound + 1e-3
+        f_lo, _, _ = _excess_capital_demand(lo)
+
     if f_lo * f_hi > 0.0:
         raise ValueError(
             f"Excess capital demand does not change sign on r in [{lo:.4f}, {hi:.4f}]: "
             f"K^s - K^d is {f_lo:+.4f} at {lo:.4f} and {f_hi:+.4f} at {hi:.4f}. "
-            "With both positive, the asset grid may be binding (increase a_max); "
-            "with both negative, households do not accumulate enough assets."
+            "With both positive, the equilibrium rate lies below the bracket (lower r_bracket[0], "
+            "keeping it above -delta); with both negative, the asset grid caps savings near "
+            "1/beta - 1 (increase a_max)."
         )
 
     # Solve market-clearing rate r* via Brent's method
@@ -1478,12 +1728,67 @@ def solve_aiyagari_continuous(
     excess_star, sol_star, dist_star = _excess_capital_demand(r_star)
     Ks_star = float(dist_star.mean())
 
+    # Convergence at r*: Brent raised above if the price search failed, so check
+    # the three things it cannot see.
+    egm_ok = bool(sol_star.converged)
+    dist_ok = bool(dist_star.converged)
+    clearing_ok = bool(np.isfinite(excess_star) and abs(excess_star) < tol_ge)
+    converged = egm_ok and dist_ok and clearing_ok
+    reasons = []
+    if not egm_ok and not np.isfinite(sol_star.residual):
+        reasons.append(
+            f"the household EGM produced a non-finite consumption policy after "
+            f"{sol_star.iterations} iterations"
+        )
+    elif not egm_ok:
+        reasons.append(
+            f"the household EGM stopped after {sol_star.iterations} iterations "
+            f"(egm_max_iter={egm_max_iter}) with sup|c_n - c_(n-1)| = {sol_star.residual:.3e}, "
+            f"not below egm_tol={egm_tol:.1e}; raise egm_max_iter"
+        )
+    if not dist_ok:
+        reasons.append(
+            "the stationary distribution solver did not converge "
+            f"(dist_options={dist_options!r})"
+        )
+    if not clearing_ok:
+        reasons.append(
+            f"|K^s - K^d| = {abs(excess_star):.3e} is not below tol_ge={tol_ge:.1e}; "
+            f"tighten xtol (now {xtol:.1e})"
+        )
+    if reasons:
+        warnings.warn(
+            f"solve_aiyagari_continuous did not converge at r*={r_star:.6f}: " + "; ".join(reasons) + ".",
+            RuntimeWarning,
+            stacklevel=_caller_stacklevel(),
+        )
+
     meta = {
         "elapsed_time": time.time() - t_start,
         "solver_type": "ContinuousEGM",
+        "solver": "egm",
         "backend": backend,
         "K_hist_points": N_k,
         "r_upper_bound": r_upper_bound,
+        "egm_converged": egm_ok,
+        "egm_iterations": int(sol_star.iterations),
+        "egm_residual": float(sol_star.residual),
+        "egm_tol": egm_tol,
+        "egm_max_iter": egm_max_iter,
+        "egm_cap_hits": int(egm_stats["cap_hits"]),
+        "household_solves": int(egm_stats["solves"]),
+        "egm_iterations_total": int(egm_stats["iterations"]),
+        "dist_converged": dist_ok,
+        "clearing_ok": clearing_ok,
+        "tol_ge": tol_ge,
+        "xtol": float(xtol),
+        "nonconvergence_reasons": reasons,
+        "params": {
+            "beta": beta, "gamma": gamma, "alpha": alpha, "delta": delta,
+            "rho_z": rho_z if tauchen_chain else None,
+            "sigma_z": sigma_z if tauchen_chain else None,
+            "a_max": a_max, "n_a": n_a, "N_k": N_k, "n_z": n_z,
+        },
     }
 
     return AiyagariContinuousEquilibrium(
@@ -1494,7 +1799,7 @@ def solve_aiyagari_continuous(
         household_solution=sol_star,
         distribution=dist_star,
         capital_market_clearing_error=excess_star,
-        converged=True,
+        converged=converged,
         iterations=counter["n"],
         metadata=meta,
     )

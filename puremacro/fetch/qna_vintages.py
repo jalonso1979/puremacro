@@ -365,70 +365,144 @@ class QNAVintagePanel:
         s.name = f"{country}_{variable}_latest_release"
         return s
 
-    def revision_stats(self, country: str, variable: str) -> dict[str, Any]:
-        """Compute revision properties: mean revision, variance, and news vs noise tests.
+    def revision_stats(
+        self,
+        country: str,
+        variable: str,
+        *,
+        hac_lags: int | str = 0,
+        significance: float = 0.05,
+    ) -> dict[str, Any]:
+        """Revision summary and the Mankiw-Shapiro (1986) news-versus-noise test pair.
 
-        Evaluates the difference between the latest release $y_T$ and the initial release $y_0$:
-        $$\text{Revision}_t = y_{T,t} - y_{0,t}$$
+        The revision of reference period t is r_t = y_T,t - y_0,t: the latest
+        release in the panel minus the first. Mankiw and Shapiro (1986,
+        Survey of Current Business 66(5); NBER WP 1939) regress it on each
+        release:
 
-        Also performs the Mankiw & Shapiro (1986) news vs noise regression:
-        $$y_{T,t} - y_{0,t} = \alpha + \beta y_{0,t} + \varepsilon_t$$
-        - Under **pure news** (initial release is an efficient rational expectation): $\beta = 0$.
-        - Under **pure noise** (initial release is true value + independent measurement error): $\beta = -1$.
+            r_t = a_0 + b_0 * y_0,t + e_t      (news leg)
+            r_t = a_T + b_T * y_T,t + u_t      (noise leg)
+
+        - **News**: the first release is an efficient forecast of the final
+          value, y_0 = E[y_T | information at t], so the revision is
+          orthogonal to it: b_0 = 0 (and b_T = Var(r) / Var(y_T) > 0).
+        - **Noise**: the first release is the final value plus classical
+          measurement error, y_0 = y_T + v with Cov(y_T, v) = 0, so
+          r = -v is orthogonal to the final release: b_T = 0. On the first
+          release the slope is then b_0 = -Var(v) / Var(y_0), which lies in
+          (-1, 0) and is close to -1 only when the error dominates the
+          variance of the first release. A slope of -1 is not the noise null.
+
+        Both regressions are run by :func:`puremacro.vintages.mankiw_shapiro`,
+        with heteroskedasticity-robust (``hac_lags=0``) or Newey-West
+        standard errors and Student-t p-values. ``hypothesis`` combines the
+        two tests at level ``significance``:
+
+        - ``"news"``: rejects the noise null (b_T = 0) but not the news null (b_0 = 0);
+        - ``"noise"``: rejects the news null but not the noise null;
+        - ``"mixed"``: rejects both (``mankiw_shapiro``'s verdict ``"neither"``):
+          the revision is correlated with both releases, as a mixture of news
+          and noise implies;
+        - ``"indeterminate"``: rejects neither. A failure to reject is not
+          evidence for either hypothesis; the sample cannot tell them apart;
+        - ``"insufficient_data"``: fewer than 4 periods with both releases;
+        - ``"no_revisions"``: every revision is exactly zero (one edition per period).
+
+        Pass growth rates or another stationary transform: a revision
+        regressed on a trending level is a spurious regression. For a panel
+        of levels, use :func:`puremacro.vintages.revision_test` with
+        ``transform="log_diff_pct"`` on the long frame.
+
+        Parameters
+        ----------
+        country, variable : str
+            Series to test.
+        hac_lags : int or "auto", default 0
+            Newey-West bandwidth passed to ``mankiw_shapiro``; 0 gives
+            White (heteroskedasticity-robust) errors, ``"auto"`` the
+            ``floor(4 (n/100)^(2/9))`` plug-in rule.
+        significance : float, default 0.05
+            Level of both tests and of the ``hypothesis`` label.
+
+        Returns
+        -------
+        dict
+            ``n_obs``, ``first_obs``, ``last_obs``, ``mean_revision`` (with
+            ``p_mean_revision``), ``abs_mean_revision``, ``std_revision``;
+            the news leg as ``mankiw_shapiro_alpha``, ``_beta``, ``_se``,
+            ``_tstat`` and ``_pvalue``; the noise leg as the same keys with
+            the suffix ``_final``; ``noise_share`` (max(0, -b_0)),
+            ``rejects_news``, ``rejects_noise``, ``hac_lags``,
+            ``significance`` and ``hypothesis``.
         """
+        from ..vintages import mankiw_shapiro
+
         first = self.first_release(country, variable).dropna()
         latest = self.latest_release(country, variable).dropna()
         shared = first.index.intersection(latest.index)
-        if len(shared) < 4:
-            return {
-                "n_obs": len(shared),
-                "mean_revision": np.nan,
-                "abs_mean_revision": np.nan,
-                "std_revision": np.nan,
-                "mankiw_shapiro_beta": np.nan,
-                "mankiw_shapiro_pvalue": np.nan,
-                "hypothesis": "insufficient_data",
-            }
-        y0 = first.loc[shared].values
-        yT = latest.loc[shared].values
-        rev = yT - y0
-
-        # OLS regression: rev = alpha + beta * y0 + e
-        X = np.column_stack([np.ones(len(y0)), y0])
-        beta_hat, *_ = np.linalg.lstsq(X, rev, rcond=None)
-        resid = rev - X @ beta_hat
-        n, k = X.shape
-        sigma2 = (resid @ resid) / max(1, n - k)
-        cov = sigma2 * np.linalg.pinv(X.T @ X)
-        se_beta = np.sqrt(max(0, cov[1, 1]))
-        t_stat = beta_hat[1] / se_beta if se_beta > 1e-9 else 0.0
-
-        # Approximate two-tailed p-value using standard normal
-        from math import erfc, sqrt
-        p_val = erfc(abs(t_stat) / sqrt(2.0))
-
-        # Categorize
-        if p_val > 0.05:
-            hypothesis = "news"  # cannot reject beta=0
-        elif abs(beta_hat[1] - (-1.0)) < 0.3:
-            hypothesis = "noise"
-        else:
-            hypothesis = "mixed"
-
-        return {
+        nan = float("nan")
+        out: dict[str, Any] = {
             "n_obs": int(len(shared)),
-            "first_obs": str(shared.min())[:10],
-            "last_obs": str(shared.max())[:10],
-            "mean_revision": float(np.mean(rev)),
-            "abs_mean_revision": float(np.mean(np.abs(rev))),
-            "std_revision": float(np.std(rev, ddof=1)),
-            "mankiw_shapiro_alpha": float(beta_hat[0]),
-            "mankiw_shapiro_beta": float(beta_hat[1]),
-            "mankiw_shapiro_se": float(se_beta),
-            "mankiw_shapiro_tstat": float(t_stat),
-            "mankiw_shapiro_pvalue": float(p_val),
-            "hypothesis": hypothesis,
+            "first_obs": str(shared.min())[:10] if len(shared) else None,
+            "last_obs": str(shared.max())[:10] if len(shared) else None,
+            "mean_revision": nan,
+            "p_mean_revision": nan,
+            "abs_mean_revision": nan,
+            "std_revision": nan,
+            "mankiw_shapiro_alpha": nan,
+            "mankiw_shapiro_beta": nan,
+            "mankiw_shapiro_se": nan,
+            "mankiw_shapiro_tstat": nan,
+            "mankiw_shapiro_pvalue": nan,
+            "mankiw_shapiro_alpha_final": nan,
+            "mankiw_shapiro_beta_final": nan,
+            "mankiw_shapiro_se_final": nan,
+            "mankiw_shapiro_tstat_final": nan,
+            "mankiw_shapiro_pvalue_final": nan,
+            "noise_share": nan,
+            "rejects_news": None,
+            "rejects_noise": None,
+            "hac_lags": hac_lags,
+            "significance": float(significance),
+            "hypothesis": "insufficient_data",
         }
+        if len(shared) < 4:
+            return out
+
+        y0 = first.loc[shared]
+        yT = latest.loc[shared]
+        rev = (yT - y0).to_numpy(dtype=float)
+        out["mean_revision"] = float(np.mean(rev))
+        out["abs_mean_revision"] = float(np.mean(np.abs(rev)))
+        out["std_revision"] = float(np.std(rev, ddof=1))
+        if not np.any(rev != 0.0):
+            out["hypothesis"] = "no_revisions"
+            return out
+
+        ms = mankiw_shapiro(y0, yT, hac_lags=hac_lags, significance=significance)
+        labels = {"news": "news", "noise": "noise", "neither": "mixed",
+                  "indeterminate": "indeterminate"}
+        out.update({
+            "n_obs": int(ms.n_obs),
+            "mean_revision": float(ms.mean_revision),
+            "p_mean_revision": float(ms.p_mean_revision),
+            "mankiw_shapiro_alpha": float(ms.alpha_on_preliminary),
+            "mankiw_shapiro_beta": float(ms.beta_on_preliminary),
+            "mankiw_shapiro_se": float(ms.se_beta_on_preliminary),
+            "mankiw_shapiro_tstat": float(ms.t_beta_on_preliminary),
+            "mankiw_shapiro_pvalue": float(ms.p_beta_on_preliminary),
+            "mankiw_shapiro_alpha_final": float(ms.alpha_on_final),
+            "mankiw_shapiro_beta_final": float(ms.beta_on_final),
+            "mankiw_shapiro_se_final": float(ms.se_beta_on_final),
+            "mankiw_shapiro_tstat_final": float(ms.t_beta_on_final),
+            "mankiw_shapiro_pvalue_final": float(ms.p_beta_on_final),
+            "noise_share": float(ms.noise_share),
+            "rejects_news": bool(ms.rejects_news),
+            "rejects_noise": bool(ms.rejects_noise),
+            "hac_lags": int(ms.hac_lags),
+            "hypothesis": labels[ms.verdict],
+        })
+        return out
 
     def to_long(self) -> pd.DataFrame:
         """Return raw long-form DataFrame ``[country, variable, date, vintage, value]``."""

@@ -1,0 +1,2134 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-10-01T20:52:50.661156+00:00",
+  "environment": {
+    "puremacro": "4.3.0",
+    "python": "3.14.6",
+    "numpy": "2.5.2",
+    "scipy": "1.18.1",
+    "pandas": "3.0.5",
+    "platform": "macOS-27.2-arm64-arm-64bit-Mach-O"
+  },
+  "passed": false,
+  "cases": [
+    {
+      "id": "linear_minimum_distance",
+      "title": "GLS fit and full parameter covariance",
+      "evidence_kind": "analytical",
+      "passed": true,
+      "metrics": {
+        "parameters": {
+          "observed": [
+            0.30269654727485484,
+            0.6215463659872577
+          ],
+          "reference": [
+            0.3026965472748549,
+            0.6215463659872575
+          ],
+          "shape": [
+            2
+          ],
+          "unit": "level",
+          "max_abs_error": 1.1102230246251565e-16,
+          "max_tolerance_excess": -3.126965467197434e-08,
+          "passed": true
+        },
+        "parameter_covariance": {
+          "observed": [
+            [
+              0.035399857964686046,
+              -0.012200619661752472
+            ],
+            [
+              -0.012200619661752472,
+              0.010305794640068623
+            ]
+          ],
+          "reference": [
+            [
+              0.03539985796468603,
+              -0.012200619661752468
+            ],
+            [
+              -0.012200619661752463,
+              0.010305794640068621
+            ]
+          ],
+          "shape": [
+            2,
+            2
+          ],
+          "unit": "level squared",
+          "max_abs_error": 1.3877787807814457e-17,
+          "max_tolerance_excess": -2.0305794622721385e-09,
+          "passed": true
+        },
+        "objective": {
+          "observed": 0.09803322244148377,
+          "reference": 0.09803322244148377,
+          "shape": [],
+          "unit": "dimensionless",
+          "max_abs_error": 0.0,
+          "max_tolerance_excess": -1.0803322244148377e-08,
+          "passed": true
+        }
+      },
+      "negative_control_rejected": true,
+      "provenance": {
+        "sources": [
+          "https://users.ssc.wisc.edu/~bhansen/econometrics/"
+        ],
+        "data": {
+          "origin": "deterministic synthetic four-moment linear design",
+          "observations": 4,
+          "design": [
+            [
+              1.0,
+              0.0
+            ],
+            [
+              1.0,
+              1.0
+            ],
+            [
+              1.0,
+              2.0
+            ],
+            [
+              1.0,
+              4.0
+            ]
+          ],
+          "values": [
+            0.3,
+            0.85,
+            1.6,
+            2.75
+          ],
+          "estimator_covariance": [
+            [
+              0.04000000000000001,
+              0.016,
+              0.004,
+              0.002
+            ],
+            [
+              0.016,
+              0.0964,
+              -0.0104,
+              0.015799999999999998
+            ],
+            [
+              0.004,
+              -0.0104,
+              0.0645,
+              0.005699999999999999
+            ],
+            [
+              0.002,
+              0.015799999999999998,
+              0.005699999999999999,
+              0.1635
+            ]
+          ]
+        },
+        "sampling": "No draws; supplied covariance is Cov(moment estimator), already scaled for its sample.",
+        "transformations": "Identity; fit intercept and slope with a correlated four-moment target.",
+        "limitations": "Checks linear optimal weighting and covariance. No empirical model identification or finite-sample coverage claim.",
+        "rtol": 1e-07,
+        "atol": 1e-09
+      },
+      "error": ""
+    },
+    {
+      "id": "household_expenditure",
+      "title": "Stone-Geary welfare versus independent primal optimization",
+      "evidence_kind": "numerical_oracle",
+      "passed": true,
+      "metrics": {
+        "ev": {
+          "observed": [
+            0.14474689040014965
+          ],
+          "reference": [
+            0.14474689039803046
+          ],
+          "shape": [
+            1
+          ],
+          "unit": "currency per period",
+          "max_abs_error": 2.119193709404499e-12,
+          "max_tolerance_excess": -4.894916616023515e-07,
+          "passed": true
+        },
+        "cv": {
+          "observed": [
+            0.14990565307406456
+          ],
+          "reference": [
+            0.14990565307438253
+          ],
+          "shape": [
+            1
+          ],
+          "unit": "currency per period",
+          "max_abs_error": 3.1796787425264483e-13,
+          "max_tolerance_excess": -4.998109881808908e-07,
+          "passed": true
+        },
+        "base_quantities": {
+          "observed": [
+            2.995476923076923,
+            5.28485052631579,
+            2.023623529411765
+          ],
+          "reference": [
+            2.99547770105714,
+            5.284850006881099,
+            2.0236232199642443
+          ],
+          "shape": [
+            3
+          ],
+          "unit": "benchmark-priced composite units",
+          "max_abs_error": 7.77980217137042e-07,
+          "max_tolerance_excess": -3.937798919431713e-06,
+          "passed": true
+        },
+        "new_quantities": {
+          "observed": [
+            2.8784,
+            5.688711111111111,
+            1.935721739130435
+          ],
+          "reference": [
+            2.8784002314927135,
+            5.688710839632867,
+            1.9357217100340554
+          ],
+          "shape": [
+            3
+          ],
+          "unit": "benchmark-priced composite units",
+          "max_abs_error": 2.714782443291597e-07,
+          "max_tolerance_excess": -4.0423470403180945e-06,
+          "passed": true
+        }
+      },
+      "negative_control_rejected": true,
+      "provenance": {
+        "sources": [
+          "https://ocw.mit.edu/courses/14-661-labor-economics-i-fall-2024/mit14_661_f24_problem_set_0.pdf"
+        ],
+        "data": {
+          "origin": "synthetic three-good household",
+          "baseline_spending": [
+            3.0,
+            5.0,
+            2.0
+          ],
+          "gamma": [
+            1.56,
+            1.88,
+            0.56
+          ],
+          "beta": [
+            0.24,
+            0.52,
+            0.24
+          ],
+          "base_prices": [
+            1.04,
+            0.95,
+            1.02
+          ],
+          "prices": [
+            1.2,
+            0.9,
+            1.15
+          ],
+          "base_budget": 10.2,
+          "budget": 10.8
+        },
+        "sampling": "No sample or survey weights. One household; two deterministic states.",
+        "transformations": "Direct utility maximization and four expenditure minimizations use raw log Stone-Geary utility; no puremacro welfare reference.",
+        "limitations": "Independent SciPy SLSQP oracle for interior preferences. Not an empirical household calibration.",
+        "rtol": 2e-06,
+        "atol": 2e-07
+      },
+      "error": ""
+    },
+    {
+      "id": "distributional_incidence",
+      "title": "Household incidence, expansion weights and uniform rebates",
+      "evidence_kind": "analytical",
+      "passed": true,
+      "metrics": {
+        "ev": {
+          "observed": [
+            2.8458883325682915,
+            14.040109416560398
+          ],
+          "reference": [
+            2.845888332568279,
+            14.040109416560426
+          ],
+          "shape": [
+            2
+          ],
+          "unit": "currency per household-year",
+          "max_abs_error": 2.842170943040401e-14,
+          "max_tolerance_excess": -2.8558882082233004e-07,
+          "passed": true
+        },
+        "cv": {
+          "observed": [
+            3.043852522039799,
+            13.775095637516813
+          ],
+          "reference": [
+            3.043852522039799,
+            13.775095637516841
+          ],
+          "shape": [
+            2
+          ],
+          "unit": "currency per household-year",
+          "max_abs_error": 2.842170943040401e-14,
+          "max_tolerance_excess": -3.053852522039799e-07,
+          "passed": true
+        },
+        "total_ev": {
+          "observed": 22.57777441426527,
+          "reference": 22.577774414265264,
+          "shape": [],
+          "unit": "currency per year",
+          "max_abs_error": 7.105427357601002e-15,
+          "max_tolerance_excess": -2.258777434321099e-06,
+          "passed": true
+        },
+        "budget": {
+          "observed": [
+            110.0,
+            210.0
+          ],
+          "reference": [
+            110.0,
+            210.0
+          ],
+          "shape": [
+            2
+          ],
+          "unit": "currency per household-year",
+          "max_abs_error": 0.0,
+          "max_tolerance_excess": -1.1001e-05,
+          "passed": true
+        }
+      },
+      "negative_control_rejected": true,
+      "provenance": {
+        "sources": [
+          "https://ocw.mit.edu/courses/14-661-labor-economics-i-fall-2024/mit14_661_f24_problem_set_0.pdf"
+        ],
+        "data": {
+          "origin": "synthetic grouped survey",
+          "group_spending": [
+            [
+              60.0,
+              40.0
+            ],
+            [
+              60.0,
+              140.0
+            ]
+          ],
+          "expansion_counts": [
+            3.0,
+            1.0
+          ],
+          "price_ratios": [
+            1.2,
+            0.9
+          ],
+          "transfer_total": 40.0
+        },
+        "sampling": "Two representative groups expand to three low-budget and one high-budget household; no sampling inference.",
+        "transformations": "Cobb-Douglas exact cost indices, equal transfer per expanded household, and weighted EV totals.",
+        "limitations": "Conditional static incidence with fixed preferences and exogenous prices; no empirical Mexico or general-equilibrium claim.",
+        "rtol": 1e-07,
+        "atol": 1e-09
+      },
+      "error": ""
+    },
+    {
+      "id": "growth_analytical",
+      "title": "Full-depreciation log-utility growth solution",
+      "evidence_kind": "analytical",
+      "passed": true,
+      "metrics": {
+        "steady_state": {
+          "observed": [
+            0.35999047999211753,
+            0.19011722170732856,
+            0.0
+          ],
+          "reference": [
+            0.35999047999211753,
+            0.1901172217073285,
+            0.0
+          ],
+          "shape": [
+            3
+          ],
+          "unit": "c,k: goods per capita; a: log technology",
+          "max_abs_error": 5.551115123125783e-17,
+          "max_tolerance_excess": -1e-09,
+          "passed": true
+        },
+        "lagged_capital_derivative": {
+          "observed": [
+            0.6816666666666669,
+            0.36000000000000004,
+            0.0
+          ],
+          "reference": [
+            0.6816666666666669,
+            0.36,
+            0.0
+          ],
+          "shape": [
+            3
+          ],
+          "unit": "output units per unit of lagged capital",
+          "max_abs_error": 5.551115123125783e-17,
+          "max_tolerance_excess": -1e-09,
+          "passed": true
+        },
+        "technology_derivative": {
+          "observed": [
+            0.3599904799921176,
+            0.19011722170732848,
+            1.0
+          ],
+          "reference": [
+            0.35999047999211753,
+            0.1901172217073285,
+            1.0
+          ],
+          "shape": [
+            3
+          ],
+          "unit": "output units per unit log-technology innovation",
+          "max_abs_error": 5.551115123125783e-17,
+          "max_tolerance_excess": -2.0011722142977274e-08,
+          "passed": true
+        }
+      },
+      "negative_control_rejected": true,
+      "provenance": {
+        "sources": [
+          "https://python.quantecon.org/cass_koopmans_1.html"
+        ],
+        "data": {
+          "origin": "analytical growth economy",
+          "alpha": 0.36,
+          "beta": 0.96,
+          "rho": 0.8,
+          "depreciation": 1.0,
+          "model_source": "var c k a; varexo e;\nparameters alpha beta rho; alpha=.36; beta=.96; rho=.8;\nmodel;\n1/c=beta/c(+1)*alpha*exp(a(+1))*k^(alpha-1);\nk=exp(a)*k(-1)^alpha-c;\na=rho*a(-1)+e;\nend;\ninitval; c=.35; k=.19; a=0; end;\nshocks; var e; stderr .01; end;\n"
+        },
+        "sampling": "No sample. Deterministic steady state and first-order derivatives at zero technology.",
+        "transformations": "k' = alpha*beta*exp(a)*k**alpha; c = (1-alpha*beta)*exp(a)*k**alpha. Variable order c,k,a.",
+        "limitations": "Checks this special log-utility, Cobb-Douglas, full-depreciation case and its local derivatives only.",
+        "rtol": 1e-07,
+        "atol": 1e-09
+      },
+      "error": ""
+    },
+    {
+      "id": "dynare_rbc_order2",
+      "title": "RBC decision rules and common-innovation moments versus Dynare 7",
+      "evidence_kind": "external_software",
+      "passed": true,
+      "metrics": {
+        "ys": {
+          "observed": [
+            3.0153277085137282,
+            2.3066172319875173,
+            28.348419061048435,
+            0.0
+          ],
+          "reference": [
+            3.0153277085137282,
+            2.3066172319875173,
+            28.348419061048435,
+            0.0
+          ],
+          "shape": [
+            4
+          ],
+          "unit": "model levels (y,c,k,a)",
+          "max_abs_error": 0.0,
+          "max_tolerance_excess": -1e-10,
+          "passed": true
+        },
+        "ghx": {
+          "observed": [
+            [
+              0.03510101010101068,
+              2.713794937662358
+            ],
+            [
+              0.048039529643882105,
+              0.47077390865385726
+            ],
+            [
+              0.9620614804571286,
+              2.243021029008501
+            ],
+            [
+              1.864641051681257e-16,
+              0.9000000000000008
+            ]
+          ],
+          "reference": [
+            [
+              0.035101010101010174,
+              2.713794937662355
+            ],
+            [
+              0.04803952964388204,
+              0.47077390865385654
+            ],
+            [
+              0.962061480457128,
+              2.2430210290084984
+            ],
+            [
+              0.0,
+              0.9
+            ]
+          ],
+          "shape": [
+            4,
+            2
+          ],
+          "unit": "level decision-rule derivative in named state/shock coordinates",
+          "max_abs_error": 3.1086244689504383e-15,
+          "max_tolerance_excess": -9.999981353589483e-11,
+          "passed": true
+        },
+        "ghu": {
+          "observed": [
+            [
+              3.0153277085137282
+            ],
+            [
+              0.5230821207265084
+            ],
+            [
+              2.49224558778722
+            ],
+            [
+              1.0
+            ]
+          ],
+          "reference": [
+            [
+              3.015327708513728
+            ],
+            [
+              0.5230821207265072
+            ],
+            [
+              2.4922455877872207
+            ],
+            [
+              1.0
+            ]
+          ],
+          "shape": [
+            4,
+            1
+          ],
+          "unit": "level decision-rule derivative in named state/shock coordinates",
+          "max_abs_error": 1.2212453270876722e-15,
+          "max_tolerance_excess": -6.230808994811801e-10,
+          "passed": true
+        },
+        "ghxx": {
+          "observed": [
+            [
+              -0.0008295939437409555,
+              0.03159090909090969,
+              0.03159090909090969,
+              2.4424154438961243
+            ],
+            [
+              -0.0005531948613835334,
+              0.003951728187879801,
+              0.0039517281878797975,
+              0.26714019447453596
+            ],
+            [
+              -0.00027639908235742235,
+              0.02763918090302989,
+              0.027639180903029893,
+              2.1752752494215883
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "reference": [
+            [
+              -0.0008295939437409684,
+              0.031590909090909156,
+              0.031590909090909156,
+              2.44241544389612
+            ],
+            [
+              -0.0005531948613834876,
+              0.003951728187880348,
+              0.003951728187880348,
+              0.2671401944745454
+            ],
+            [
+              -0.0002763990823574809,
+              0.02763918090302881,
+              0.02763918090302881,
+              2.1752752494215746
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "shape": [
+            4,
+            4
+          ],
+          "unit": "level decision-rule derivative in named state/shock coordinates",
+          "max_abs_error": 1.3766765505351941e-14,
+          "max_tolerance_excess": -1e-10,
+          "passed": true
+        },
+        "ghxu": {
+          "observed": [
+            [
+              0.035101010101010736,
+              2.713794937662358
+            ],
+            [
+              0.004390809097644256,
+              0.29682243830503996
+            ],
+            [
+              0.03071020100336648,
+              2.416972499357318
+            ],
+            [
+              -0.0,
+              -0.0
+            ]
+          ],
+          "reference": [
+            [
+              0.035101010101010174,
+              2.713794937662355
+            ],
+            [
+              0.0043908090976448304,
+              0.29682243830505045
+            ],
+            [
+              0.030710201003365342,
+              2.4169724993573043
+            ],
+            [
+              -0.0,
+              -0.0
+            ]
+          ],
+          "shape": [
+            4,
+            2
+          ],
+          "unit": "level decision-rule derivative in named state/shock coordinates",
+          "max_abs_error": 1.3766765505351941e-14,
+          "max_tolerance_excess": -1e-10,
+          "passed": true
+        },
+        "ghuu": {
+          "observed": [
+            [
+              3.0153277085137282
+            ],
+            [
+              0.3298027092278226
+            ],
+            [
+              2.6855249992859056
+            ],
+            [
+              -0.0
+            ]
+          ],
+          "reference": [
+            [
+              3.015327708513728
+            ],
+            [
+              0.3298027092278337
+            ],
+            [
+              2.685524999285894
+            ],
+            [
+              -0.0
+            ]
+          ],
+          "shape": [
+            4,
+            1
+          ],
+          "unit": "level decision-rule derivative in named state/shock coordinates",
+          "max_abs_error": 1.1546319456101628e-14,
+          "max_tolerance_excess": -1e-10,
+          "passed": true
+        },
+        "ghs2": {
+          "observed": [
+            [
+              0.0
+            ],
+            [
+              9.764604373374664e-05
+            ],
+            [
+              -9.764604373374664e-05
+            ],
+            [
+              0.0
+            ]
+          ],
+          "reference": [
+            [
+              0.0
+            ],
+            [
+              9.764604373377113e-05
+            ],
+            [
+              -9.764604373377113e-05
+            ],
+            [
+              0.0
+            ]
+          ],
+          "shape": [
+            4,
+            1
+          ],
+          "unit": "level decision-rule derivative in named state/shock coordinates",
+          "max_abs_error": 2.448941657101633e-17,
+          "max_tolerance_excess": -1e-10,
+          "passed": true
+        },
+        "sample_mean": {
+          "observed": [
+            3.0034425479199487,
+            2.2988175413948255,
+            28.214208715483235,
+            -0.0026622859264571848
+          ],
+          "reference": [
+            3.003442547919946,
+            2.2988175413948255,
+            28.214208715483245,
+            -0.002662285926456925
+          ],
+          "shape": [
+            4
+          ],
+          "unit": "model levels",
+          "max_abs_error": 1.0658141036401503e-14,
+          "max_tolerance_excess": -1.0266202615161641e-10,
+          "passed": true
+        },
+        "sample_covariance": {
+          "observed": [
+            [
+              0.007021161961263776,
+              0.003149022893748447,
+              0.04868868393295878,
+              0.0018002725431788345
+            ],
+            [
+              0.003149022893748447,
+              0.0019020711710313427,
+              0.03272208758773486,
+              0.0006707571791751538
+            ],
+            [
+              0.04868868393295878,
+              0.03272208758773486,
+              0.5796124359840139,
+              0.009443922937523145
+            ],
+            [
+              0.0018002725431788345,
+              0.0006707571791751538,
+              0.009443922937523145,
+              0.0005000712015520553
+            ]
+          ],
+          "reference": [
+            [
+              0.007021161961263253,
+              0.003149022893748093,
+              0.048688683932952545,
+              0.0018002725431787315
+            ],
+            [
+              0.003149022893748093,
+              0.0019020711710310972,
+              0.03272208758773047,
+              0.0006707571791750868
+            ],
+            [
+              0.048688683932952545,
+              0.03272208758773047,
+              0.5796124359839353,
+              0.009443922937521965
+            ],
+            [
+              0.0018002725431787315,
+              0.0006707571791750868,
+              0.009443922937521965,
+              0.0005000712015520343
+            ]
+          ],
+          "shape": [
+            4,
+            4
+          ],
+          "unit": "products of model level units",
+          "max_abs_error": 7.860379014346108e-14,
+          "max_tolerance_excess": -1.0050005027645011e-10,
+          "passed": true
+        },
+        "sample_lag1_covariance": {
+          "observed": [
+            [
+              0.006562995165161914,
+              0.0029642517659767462,
+              0.045975387261240494,
+              0.0016769871204891475
+            ],
+            [
+              0.0031826068247877305,
+              0.0018873885947347459,
+              0.032294556103487755,
+              0.0006876701812410381
+            ],
+            [
+              0.05082308288027781,
+              0.03295616723049714,
+              0.5783439716108586,
+              0.010193120590702074
+            ],
+            [
+              0.0016161057232927786,
+              0.0006043387515274442,
+              0.008527878616526005,
+              0.00044828050939384136
+            ]
+          ],
+          "reference": [
+            [
+              0.006562995165161376,
+              0.00296425176597639,
+              0.045975387261234284,
+              0.001676987120489046
+            ],
+            [
+              0.00318260682478738,
+              0.001887388594734498,
+              0.03229455610348352,
+              0.0006876701812409697
+            ],
+            [
+              0.050823082880271646,
+              0.032956167230492744,
+              0.5783439716107805,
+              0.010193120590700894
+            ],
+            [
+              0.0016161057232926778,
+              0.0006043387515273771,
+              0.00852787861652481,
+              0.0004482805093938217
+            ]
+          ],
+          "shape": [
+            4,
+            4
+          ],
+          "unit": "products of model level units",
+          "max_abs_error": 7.80486786311485e-14,
+          "max_tolerance_excess": -1.0044826083112439e-10,
+          "passed": true
+        }
+      },
+      "negative_control_rejected": true,
+      "provenance": {
+        "sources": [
+          "https://www.dynare.org/manual/the-model-file.html#stochastic-solution-and-simulation",
+          "Package: puremacro.dsge/_references/DYNARE_FIXTURES.md"
+        ],
+        "data": {
+          "origin": "Live Dynare 7.0 in MATLAB R2026a, 2026-09-20",
+          "run_id": "20260920_161322_166",
+          "reference": "puremacro.dsge/_references/dynare_live/rbc_order2.npz",
+          "reference_sha256": "eb7ddf55b223fae31b2664e16ec7970848c816020544b46822eca05e52926d72",
+          "provenance_manifest": "puremacro.dsge/_references/dynare_live/manifest.json"
+        },
+        "sampling": "2,500 common Gaussian innovations from NumPy default_rng(20260920); discard first 500. Covariance uses ddof=1; lag-1 covariance uses separately centered endpoints and N-2.",
+        "transformations": "Match variable/state/shock labels; unfold derivative tensors without factorial rescaling; add deterministic steady state to simulated deviations. Validate model, innovations and reference checksums.",
+        "limitations": "External-software agreement for one small model at order two, conditional on supplied innovations. No live Dynare run, population-moment accuracy or published empirical replication is claimed.",
+        "rtol": 1e-09,
+        "atol": 1e-10
+      },
+      "error": ""
+    },
+    {
+      "id": "enigh2024_official_totals",
+      "title": "Observed ENIGH decile baskets reproduce official national totals",
+      "evidence_kind": "official_data",
+      "passed": true,
+      "metrics": {
+        "households": {
+          "observed": 38830230.0,
+          "reference": 38830230.0,
+          "shape": [],
+          "unit": "expanded households",
+          "max_abs_error": 0.0,
+          "max_tolerance_excess": -0.0003983023,
+          "passed": true
+        },
+        "national_food": {
+          "observed": 698246718791.0176,
+          "reference": 698246718791.5,
+          "shape": [],
+          "unit": "MXN per quarter",
+          "max_abs_error": 0.482421875,
+          "max_tolerance_excess": -6.500055312914999,
+          "passed": true
+        },
+        "national_monetary_expenditure": {
+          "observed": 1851206621944.4336,
+          "reference": 1851206621945.59,
+          "shape": [],
+          "unit": "MXN per quarter",
+          "max_abs_error": 1.156494140625,
+          "max_tolerance_excess": -17.3555820788309,
+          "passed": true
+        },
+        "expenditure_adding_up": {
+          "observed": [
+            -7.996277417987585e-09,
+            -4.899629857391119e-08,
+            -5.2004907047376037e-08,
+            -1.5999830793589354e-08,
+            5.2998075261712074e-08,
+            1.3991666492074728e-08,
+            -2.9998773243278265e-08,
+            -1.0999065125361085e-07,
+            -2.999149728566408e-08,
+            2.8002250473946333e-07
+          ],
+          "reference": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shape": [
+            10
+          ],
+          "unit": "MXN per household-quarter",
+          "max_abs_error": 2.8002250473946333e-07,
+          "max_tolerance_excess": -9.719977495260537e-06,
+          "passed": true
+        }
+      },
+      "negative_control_rejected": true,
+      "provenance": {
+        "sources": [
+          "https://www.inegi.org.mx/contenidos/programas/enigh/nc/2024/tabulados/enigh2024_ns_basicos_tabulados.xlsx"
+        ],
+        "data": {
+          "origin": "INEGI ENIGH 2024 national household income deciles; Cuadros 3.2 and 4.2",
+          "source_sha256": "7af7850495255fb1e6a9cb139cf531e5a62c7fd2a9a1de5ba0503f03aa82490b",
+          "accessed": "2026-10-01",
+          "derived_csv": "puremacro.datasets/data/enigh2024_deciles.csv",
+          "reference_origin": "literal national published totals, not the derived CSV"
+        },
+        "sampling": "Ten national household income deciles; expansion counts include all households. No sampling covariance is available.",
+        "transformations": "Published thousands of MXN multiplied by 1000; decile totals divided by all-household counts. Eight consumption categories plus outward transfers equal monetary expenditure. CSV decimal rounding motivates the tolerance.",
+        "limitations": "Validates the extraction, weights, units and selected accounting totals of actual survey aggregates. Does not replicate an empirical causal model, identify tariff responses or validate within-decile heterogeneity.",
+        "rtol": 1e-11,
+        "atol": 1e-05
+      },
+      "error": ""
+    },
+    {
+      "id": "rr2010_baseline_software",
+      "title": "Romer\u2013Romer baseline versus independent software",
+      "evidence_kind": "external_software",
+      "passed": true,
+      "metrics": {
+        "coefficients": {
+          "observed": [
+            0.7913544266905304,
+            -0.09341382591709976,
+            -0.29417180040325314,
+            0.15590595532538393,
+            -0.5133656104630104,
+            -0.37202754635455776,
+            -0.24341948094120394,
+            -0.31233863229100967,
+            -0.7606944382561794,
+            -0.29468725674123414,
+            -0.2600902931431054,
+            -0.0925098339025679,
+            0.36308228813308785,
+            0.2000362919949211
+          ],
+          "reference": [
+            0.79135442669053,
+            -0.09341382591709939,
+            -0.294171800403253,
+            0.15590595532538373,
+            -0.5133656104630104,
+            -0.37202754635455854,
+            -0.2434194809412043,
+            -0.31233863229100983,
+            -0.7606944382561786,
+            -0.29468725674123397,
+            -0.26009029314310605,
+            -0.09250983390256831,
+            0.3630822881330878,
+            0.20003629199492093
+          ],
+          "shape": [
+            14
+          ],
+          "unit": "GDP growth percentage points; intercept or per one-percent-of-GDP tax increase",
+          "max_abs_error": 8.881784197001252e-16,
+          "max_tolerance_excess": -1.9250567056622596e-11,
+          "passed": true
+        },
+        "coefficient_covariance": {
+          "observed": [
+            [
+              0.0043967842276486455,
+              0.001872093342160274,
+              0.0018441859664470122,
+              0.0017180086579538822,
+              0.0015743076176240344,
+              0.0014439939256222446,
+              0.0013628371536905236,
+              0.0012032285632137649,
+              0.0016171707920215406,
+              0.0016531908345414005,
+              0.0017602265875759418,
+              0.0018492390070588348,
+              0.0019254879375186237,
+              0.0021678942719807414
+            ],
+            [
+              0.001872093342160274,
+              0.0844643984947877,
+              0.0013105645838320194,
+              -0.00044237158708128284,
+              -0.005008665625551501,
+              -0.006636399646474223,
+              0.002924486815422428,
+              -0.0036828387577825606,
+              0.0025538841876975083,
+              0.004843066194880175,
+              -0.0002669197246199358,
+              0.0005997888051636884,
+              0.00389211964138807,
+              0.0020482740324598045
+            ],
+            [
+              0.0018441859664470122,
+              0.0013105645838320194,
+              0.08437749096179743,
+              0.0012129174703345955,
+              -0.0006351164660799379,
+              -0.0051660577854179815,
+              -0.0067422612491616915,
+              0.0027982991652543043,
+              -0.002422823338578795,
+              0.0025637654289607245,
+              0.004931230057734155,
+              -0.00024022573558466693,
+              0.0005827344712008052,
+              0.004073976556326262
+            ],
+            [
+              0.0017180086579538822,
+              -0.00044237158708128284,
+              0.0012129174703345955,
+              0.08411848157577867,
+              0.0012537240639490985,
+              -0.0005370002817721622,
+              -0.005467978554473501,
+              -0.006872588776331421,
+              0.0024550769545684374,
+              -0.00257982401218575,
+              0.002788738393010903,
+              0.0051098330736106526,
+              -0.00023019964034347488,
+              0.0005765632468055452
+            ],
+            [
+              0.0015743076176240344,
+              -0.005008665625551501,
+              -0.0006351164660799379,
+              0.0012537240639490985,
+              0.08423622186571304,
+              0.001517597896010717,
+              -0.0007698377812043563,
+              -0.005261228153271895,
+              -0.005085766770941166,
+              0.00215208611965775,
+              -0.002562725579672236,
+              0.002666024021550014,
+              0.004741766025029943,
+              -0.00026750667344487906
+            ],
+            [
+              0.0014439939256222446,
+              -0.006636399646474223,
+              -0.0051660577854179815,
+              -0.0005370002817721622,
+              0.001517597896010717,
+              0.08466709768568433,
+              0.0013024767825182146,
+              -0.0004643064694610189,
+              -0.003953998152309436,
+              -0.005457273974273323,
+              0.0021374691030581956,
+              -0.002698305791167506,
+              0.0022623553145583414,
+              0.004790870948785441
+            ],
+            [
+              0.0013628371536905236,
+              0.002924486815422428,
+              -0.0067422612491616915,
+              -0.005467978554473501,
+              -0.0007698377812043563,
+              0.0013024767825182146,
+              0.08442233841672066,
+              0.0010030912463002487,
+              6.571821282584746e-05,
+              -0.003939737179646512,
+              -0.005216492209678997,
+              0.002323913640129278,
+              -0.0025880632356007583,
+              0.0023572196660665797
+            ],
+            [
+              0.0012032285632137649,
+              -0.0036828387577825606,
+              0.0027982991652543043,
+              -0.006872588776331421,
+              -0.005261228153271895,
+              -0.0004643064694610189,
+              0.0010030912463002487,
+              0.08449758681788304,
+              0.0008874142159479333,
+              -0.0002206006444583219,
+              -0.003802376744124841,
+              -0.005151518289964639,
+              0.0021541549258669804,
+              -0.0027302618320195035
+            ],
+            [
+              0.0016171707920215406,
+              0.0025538841876975083,
+              -0.002422823338578795,
+              0.0024550769545684374,
+              -0.005085766770941166,
+              -0.003953998152309436,
+              6.571821282584746e-05,
+              0.0008874142159479333,
+              0.06386580137811625,
+              0.0010833518477259185,
+              -4.893813293232811e-05,
+              -0.0026752343011220954,
+              -0.003509828341045735,
+              0.0020850123006365935
+            ],
+            [
+              0.0016531908345414005,
+              0.004843066194880175,
+              0.0025637654289607245,
+              -0.00257982401218575,
+              0.00215208611965775,
+              -0.005457273974273323,
+              -0.003939737179646512,
+              -0.0002206006444583219,
+              0.0010833518477259185,
+              0.06407725665757225,
+              0.0011782706131474414,
+              6.230607651965003e-05,
+              -0.002456826757004712,
+              -0.003450198486443507
+            ],
+            [
+              0.0017602265875759418,
+              -0.0002669197246199358,
+              0.004931230057734155,
+              0.002788738393010903,
+              -0.002562725579672236,
+              0.0021374691030581956,
+              -0.005216492209678997,
+              -0.003802376744124841,
+              -4.893813293232811e-05,
+              0.0011782706131474414,
+              0.0638914506454758,
+              0.0010332224179219818,
+              3.782634232003179e-05,
+              -0.0023769949353044315
+            ],
+            [
+              0.0018492390070588348,
+              0.0005997888051636884,
+              -0.00024022573558466693,
+              0.0051098330736106526,
+              0.002666024021550014,
+              -0.002698305791167506,
+              0.002323913640129278,
+              -0.005151518289964639,
+              -0.0026752343011220954,
+              6.230607651965003e-05,
+              0.0010332224179219818,
+              0.06374330005982433,
+              0.0009850378001744606,
+              0.00019461096126580966
+            ],
+            [
+              0.0019254879375186237,
+              0.00389211964138807,
+              0.0005827344712008052,
+              -0.00023019964034347488,
+              0.004741766025029943,
+              0.0022623553145583414,
+              -0.0025880632356007583,
+              0.0021541549258669804,
+              -0.003509828341045735,
+              -0.002456826757004712,
+              3.782634232003179e-05,
+              0.0009850378001744606,
+              0.0638181504498302,
+              0.0012008404864670922
+            ],
+            [
+              0.0021678942719807414,
+              0.0020482740324598045,
+              0.004073976556326262,
+              0.0005765632468055452,
+              -0.00026750667344487906,
+              0.004790870948785441,
+              0.0023572196660665797,
+              -0.0027302618320195035,
+              0.0020850123006365935,
+              -0.003450198486443507,
+              -0.0023769949353044315,
+              0.00019461096126580966,
+              0.0012008404864670922,
+              0.06547253257917507
+            ]
+          ],
+          "reference": [
+            [
+              0.004396784227648645,
+              0.001872093342160273,
+              0.0018441859664470113,
+              0.0017180086579538804,
+              0.0015743076176240349,
+              0.0014439939256222455,
+              0.0013628371536905254,
+              0.001203228563213766,
+              0.00161717079202154,
+              0.0016531908345413992,
+              0.0017602265875759392,
+              0.0018492390070588337,
+              0.001925487937518623,
+              0.0021678942719807414
+            ],
+            [
+              0.001872093342160273,
+              0.08446439849478767,
+              0.001310564583832016,
+              -0.0004423715870812814,
+              -0.005008665625551483,
+              -0.006636399646474223,
+              0.0029244868154224414,
+              -0.003682838757782565,
+              0.002553884187697508,
+              0.004843066194880176,
+              -0.0002669197246199364,
+              0.0005997888051636881,
+              0.0038921196413880684,
+              0.002048274032459806
+            ],
+            [
+              0.0018441859664470115,
+              0.0013105645838320163,
+              0.08437749096179736,
+              0.0012129174703345948,
+              -0.0006351164660799345,
+              -0.005166057785417986,
+              -0.0067422612491616915,
+              0.002798299165254304,
+              -0.0024228233385788,
+              0.0025637654289607245,
+              0.004931230057734151,
+              -0.00024022573558466674,
+              0.0005827344712008046,
+              0.004073976556326264
+            ],
+            [
+              0.0017180086579538806,
+              -0.0004423715870812814,
+              0.0012129174703345946,
+              0.0841184815757786,
+              0.0012537240639490972,
+              -0.0005370002817721593,
+              -0.005467978554473504,
+              -0.006872588776331407,
+              0.002455076954568436,
+              -0.0025798240121857434,
+              0.002788738393010898,
+              0.0051098330736106395,
+              -0.00023019964034347464,
+              0.0005765632468055431
+            ],
+            [
+              0.0015743076176240344,
+              -0.005008665625551485,
+              -0.0006351164660799347,
+              0.001253724063949097,
+              0.08423622186571303,
+              0.0015175978960107177,
+              -0.0007698377812043553,
+              -0.005261228153271894,
+              -0.005085766770941167,
+              0.002152086119657733,
+              -0.002562725579672239,
+              0.002666024021550014,
+              0.004741766025029948,
+              -0.00026750667344487835
+            ],
+            [
+              0.0014439939256222455,
+              -0.006636399646474223,
+              -0.005166057785417987,
+              -0.0005370002817721594,
+              0.001517597896010717,
+              0.08466709768568437,
+              0.0013024767825182153,
+              -0.000464306469461021,
+              -0.0039539981523094405,
+              -0.005457273974273327,
+              0.002137469103058198,
+              -0.0026983057911675033,
+              0.0022623553145583427,
+              0.004790870948785448
+            ],
+            [
+              0.001362837153690525,
+              0.0029244868154224414,
+              -0.0067422612491616915,
+              -0.005467978554473503,
+              -0.0007698377812043553,
+              0.0013024767825182148,
+              0.08442233841672069,
+              0.0010030912463002476,
+              6.571821282584675e-05,
+              -0.003939737179646518,
+              -0.005216492209678996,
+              0.00232391364012928,
+              -0.002588063235600759,
+              0.0023572196660665806
+            ],
+            [
+              0.0012032285632137664,
+              -0.003682838757782564,
+              0.0027982991652543043,
+              -0.006872588776331406,
+              -0.005261228153271893,
+              -0.00046430646946102105,
+              0.0010030912463002474,
+              0.08449758681788305,
+              0.0008874142159479334,
+              -0.00022060064445831698,
+              -0.0038023767441248395,
+              -0.005151518289964634,
+              0.002154154925866977,
+              -0.0027302618320195087
+            ],
+            [
+              0.0016171707920215402,
+              0.002553884187697509,
+              -0.0024228233385788014,
+              0.002455076954568435,
+              -0.005085766770941167,
+              -0.0039539981523094405,
+              6.571821282584638e-05,
+              0.0008874142159479329,
+              0.06386580137811626,
+              0.0010833518477259163,
+              -4.893813293232838e-05,
+              -0.002675234301122098,
+              -0.003509828341045738,
+              0.0020850123006365905
+            ],
+            [
+              0.0016531908345413992,
+              0.004843066194880175,
+              0.0025637654289607245,
+              -0.0025798240121857425,
+              0.002152086119657734,
+              -0.005457273974273327,
+              -0.003939737179646518,
+              -0.00022060064445831746,
+              0.001083351847725916,
+              0.06407725665757222,
+              0.0011782706131474405,
+              6.230607651964703e-05,
+              -0.00245682675700471,
+              -0.0034501984864435038
+            ],
+            [
+              0.0017602265875759388,
+              -0.00026691972461993633,
+              0.004931230057734151,
+              0.0027887383930108975,
+              -0.00256272557967224,
+              0.002137469103058198,
+              -0.005216492209678997,
+              -0.0038023767441248395,
+              -4.8938132932328256e-05,
+              0.0011782706131474405,
+              0.06389145064547574,
+              0.0010332224179219794,
+              3.782634232003116e-05,
+              -0.002376994935304433
+            ],
+            [
+              0.0018492390070588337,
+              0.0005997888051636882,
+              -0.00024022573558466674,
+              0.005109833073610639,
+              0.002666024021550014,
+              -0.0026983057911675037,
+              0.0023239136401292794,
+              -0.005151518289964634,
+              -0.0026752343011220976,
+              6.230607651964724e-05,
+              0.0010332224179219797,
+              0.06374330005982434,
+              0.0009850378001744586,
+              0.00019461096126580703
+            ],
+            [
+              0.001925487937518623,
+              0.0038921196413880693,
+              0.0005827344712008045,
+              -0.00023019964034347477,
+              0.004741766025029947,
+              0.0022623553145583422,
+              -0.0025880632356007596,
+              0.002154154925866977,
+              -0.003509828341045739,
+              -0.0024568267570047103,
+              3.7826342320031025e-05,
+              0.0009850378001744586,
+              0.06381815044983022,
+              0.0012008404864670915
+            ],
+            [
+              0.0021678942719807414,
+              0.0020482740324598066,
+              0.004073976556326264,
+              0.0005765632468055431,
+              -0.0002675066734448784,
+              0.004790870948785446,
+              0.0023572196660665806,
+              -0.0027302618320195087,
+              0.002085012300636591,
+              -0.003450198486443504,
+              -0.0023769949353044336,
+              0.00019461096126580703,
+              0.0012008404864670915,
+              0.06547253257917508
+            ]
+          ],
+          "shape": [
+            14,
+            14
+          ],
+          "unit": "products of coefficient units",
+          "max_abs_error": 6.938893903907228e-17,
+          "max_tolerance_excess": -1.0003781868514218e-11,
+          "passed": true
+        },
+        "irf": {
+          "observed": [
+            -0.09341382591709976,
+            -0.38758562632035287,
+            -0.23167967099496897,
+            -0.7450452814579794,
+            -1.1170728278125373,
+            -1.3604923087537413,
+            -1.6728309410447508,
+            -2.43352537930093,
+            -2.7282126360421644,
+            -2.9883029291852696,
+            -3.0808127630878372,
+            -2.7177304749547497,
+            -2.5176941829598283
+          ],
+          "reference": [
+            -0.09341382591709939,
+            -0.3875856263203524,
+            -0.2316796709949687,
+            -0.7450452814579791,
+            -1.1170728278125377,
+            -1.360492308753742,
+            -1.6728309410447517,
+            -2.43352537930093,
+            -2.728212636042164,
+            -2.98830292918527,
+            -3.0808127630878386,
+            -2.7177304749547506,
+            -2.5176941829598296
+          ],
+          "shape": [
+            13
+          ],
+          "unit": "GDP log-percent per one-percent-of-GDP tax increase",
+          "max_abs_error": 1.3322676295501878e-15,
+          "max_tolerance_excess": -1.9341007891439128e-11,
+          "passed": true
+        },
+        "irf_covariance": {
+          "observed": [
+            [
+              0.0844643984947877,
+              0.08577496307861973,
+              0.08533259149153845,
+              0.08032392586598695,
+              0.07368752621951273,
+              0.07661201303493516,
+              0.07292917427715259,
+              0.0754830584648501,
+              0.08032612465973027,
+              0.08005920493511033,
+              0.08065899374027402,
+              0.08455111338166209,
+              0.08659938741412189
+            ],
+            [
+              0.08577496307861973,
+              0.17146301862424917,
+              0.1722335645075025,
+              0.16658978241587105,
+              0.15478732498397885,
+              0.15096955055023958,
+              0.15008501095771132,
+              0.15021607180683003,
+              0.15762290343067092,
+              0.16228721376378513,
+              0.16264677683336415,
+              0.16712163094595303,
+              0.1732438815347391
+            ],
+            [
+              0.08533259149153845,
+              0.1722335645075025,
+              0.2571225919665345,
+              0.25273253393885214,
+              0.24039307622518777,
+              0.231107323236975,
+              0.22335019486811533,
+              0.2259363326718025,
+              0.23076334028345763,
+              0.23821638900958275,
+              0.24368578515277242,
+              0.24793043962501782,
+              0.25462925346060944
+            ],
+            [
+              0.08032392586598694,
+              0.16658978241587102,
+              0.2527325339388521,
+              0.33257869777688276,
+              0.3217568379592291,
+              0.31170124718981196,
+              0.2986828906676804,
+              0.29618326170042636,
+              0.30316235543173925,
+              0.30805267857819213,
+              0.3161880987429318,
+              0.3251745192402071,
+              0.33160582640235386
+            ],
+            [
+              0.07368752621951272,
+              0.15478732498397885,
+              0.24039307622518777,
+              0.32175683795922916,
+              0.3956020758272598,
+              0.3868489618403609,
+              0.3733662988487683,
+              0.3669126717292049,
+              0.36843449148624446,
+              0.3754622837357555,
+              0.3808993981093277,
+              0.3921481739211614,
+              0.4033703520320936
+            ],
+            [
+              0.07661201303493514,
+              0.15096955055023958,
+              0.23110732323697503,
+              0.31170124718981207,
+              0.386848961840361,
+              0.4625181862701827,
+              0.45003861452489036,
+              0.44365070561815273,
+              0.4412327881955458,
+              0.4430440882353779,
+              0.4508051162490794,
+              0.4594658288253123,
+              0.473045226602311
+            ],
+            [
+              0.07292917427715258,
+              0.15008501095771132,
+              0.22335019486811533,
+              0.2986828906676805,
+              0.3733662988487684,
+              0.45003861452489036,
+              0.522056629597481,
+              0.5165561349066913,
+              0.513917616839626,
+              0.5119265401353332,
+              0.5145360498590701,
+              0.52535091736117,
+              0.5362000533061493
+            ],
+            [
+              0.0754830584648501,
+              0.15021607180683005,
+              0.2259363326718025,
+              0.29618326170042647,
+              0.3669126717292049,
+              0.44365070561815273,
+              0.5165561349066914,
+              0.5749214415940179,
+              0.5733662753746785,
+              0.5713262605374535,
+              0.5712605359600682,
+              0.5785655751211224,
+              0.5914997233667383
+            ],
+            [
+              0.08032612465973027,
+              0.15762290343067092,
+              0.23076334028345763,
+              0.30316235543173936,
+              0.36843449148624446,
+              0.4412327881955458,
+              0.5139176168396261,
+              0.5733662753746787,
+              0.6358883658129115,
+              0.6350266215888339,
+              0.6350232030879683,
+              0.6398714154920178,
+              0.6493553652511901
+            ],
+            [
+              0.08005920493511033,
+              0.16228721376378516,
+              0.23821638900958275,
+              0.30805267857819224,
+              0.3754622837357555,
+              0.4430440882353779,
+              0.5119265401353333,
+              0.5713262605374535,
+              0.6350266215888338,
+              0.698056328010232,
+              0.6990861319272883,
+              0.7039721706736578,
+              0.7110791254975257
+            ],
+            [
+              0.08065899374027402,
+              0.16264677683336418,
+              0.24368578515277245,
+              0.31618809874293197,
+              0.38089939810932777,
+              0.4508051162490794,
+              0.5145360498590702,
+              0.5712605359600683,
+              0.6350232030879683,
+              0.6990861319272885,
+              0.7638592359041692,
+              0.7697303124507131,
+              0.7770318782358469
+            ],
+            [
+              0.08455111338166209,
+              0.16712163094595306,
+              0.24793043962501785,
+              0.3251745192402073,
+              0.3921481739211614,
+              0.4594658288253123,
+              0.5253509173611701,
+              0.5785655751211225,
+              0.6398714154920178,
+              0.7039721706736579,
+              0.7697303124507131,
+              0.8394195394470872,
+              0.8479219457186881
+            ],
+            [
+              0.08659938741412189,
+              0.1732438815347391,
+              0.25462925346060944,
+              0.33160582640235403,
+              0.4033703520320936,
+              0.4730452266023111,
+              0.5362000533061494,
+              0.5914997233667383,
+              0.6493553652511901,
+              0.7110791254975258,
+              0.7770318782358467,
+              0.847921945718688,
+              0.9218968845694638
+            ]
+          ],
+          "reference": [
+            [
+              0.08446439849478767,
+              0.08577496307861968,
+              0.08533259149153839,
+              0.08032392586598691,
+              0.07368752621951269,
+              0.07661201303493513,
+              0.07292917427715256,
+              0.07548305846485007,
+              0.08032612465973024,
+              0.0800592049351103,
+              0.080658993740274,
+              0.08455111338166206,
+              0.08659938741412186
+            ],
+            [
+              0.08577496307861968,
+              0.17146301862424906,
+              0.17223356450750235,
+              0.1665897824158709,
+              0.1547873249839787,
+              0.15096955055023947,
+              0.1500850109577112,
+              0.15021607180682994,
+              0.15762290343067084,
+              0.16228721376378505,
+              0.1626467768333641,
+              0.16712163094595295,
+              0.17324388153473902
+            ],
+            [
+              0.08533259149153839,
+              0.17223356450750238,
+              0.25712259196653425,
+              0.2527325339388519,
+              0.24039307622518755,
+              0.23110732323697483,
+              0.22335019486811516,
+              0.22593633267180233,
+              0.23076334028345746,
+              0.23821638900958256,
+              0.24368578515277228,
+              0.2479304396250176,
+              0.2546292534606092
+            ],
+            [
+              0.08032392586598691,
+              0.16658978241587094,
+              0.2527325339388519,
+              0.33257869777688265,
+              0.32175683795922894,
+              0.31170124718981185,
+              0.2986828906676803,
+              0.29618326170042625,
+              0.3031623554317391,
+              0.30805267857819196,
+              0.3161880987429317,
+              0.32517451924020696,
+              0.33160582640235375
+            ],
+            [
+              0.07368752621951269,
+              0.15478732498397874,
+              0.24039307622518755,
+              0.32175683795922894,
+              0.3956020758272596,
+              0.3868489618403607,
+              0.37336629884876815,
+              0.36691267172920466,
+              0.3684344914862442,
+              0.37546228373575524,
+              0.3808993981093275,
+              0.3921481739211611,
+              0.4033703520320933
+            ],
+            [
+              0.07661201303493513,
+              0.15096955055023947,
+              0.23110732323697478,
+              0.3117012471898118,
+              0.38684896184036066,
+              0.4625181862701825,
+              0.4500386145248902,
+              0.44365070561815256,
+              0.44123278819554557,
+              0.4430440882353776,
+              0.45080511624907915,
+              0.459465828825312,
+              0.4730452266023108
+            ],
+            [
+              0.07292917427715256,
+              0.15008501095771123,
+              0.22335019486811514,
+              0.2986828906676802,
+              0.3733662988487681,
+              0.4500386145248902,
+              0.5220566295974809,
+              0.5165561349066913,
+              0.513917616839626,
+              0.5119265401353331,
+              0.5145360498590701,
+              0.52535091736117,
+              0.5362000533061492
+            ],
+            [
+              0.07548305846485007,
+              0.15021607180682994,
+              0.22593633267180227,
+              0.2961832617004262,
+              0.3669126717292046,
+              0.44365070561815256,
+              0.5165561349066913,
+              0.5749214415940179,
+              0.5733662753746785,
+              0.5713262605374534,
+              0.5712605359600682,
+              0.5785655751211225,
+              0.5914997233667383
+            ],
+            [
+              0.08032612465973024,
+              0.15762290343067084,
+              0.23076334028345744,
+              0.3031623554317391,
+              0.3684344914862442,
+              0.4412327881955456,
+              0.5139176168396262,
+              0.5733662753746788,
+              0.6358883658129116,
+              0.6350266215888339,
+              0.6350232030879684,
+              0.639871415492018,
+              0.6493553652511903
+            ],
+            [
+              0.0800592049351103,
+              0.16228721376378508,
+              0.23821638900958256,
+              0.30805267857819196,
+              0.37546228373575524,
+              0.44304408823537766,
+              0.5119265401353335,
+              0.5713262605374537,
+              0.635026621588834,
+              0.6980563280102321,
+              0.6990861319272886,
+              0.7039721706736582,
+              0.7110791254975262
+            ],
+            [
+              0.080658993740274,
+              0.1626467768333641,
+              0.2436857851527722,
+              0.31618809874293163,
+              0.38089939810932744,
+              0.45080511624907915,
+              0.5145360498590703,
+              0.5712605359600685,
+              0.6350232030879686,
+              0.6990861319272886,
+              0.7638592359041695,
+              0.7697303124507135,
+              0.7770318782358473
+            ],
+            [
+              0.08455111338166206,
+              0.16712163094595298,
+              0.2479304396250176,
+              0.325174519240207,
+              0.39214817392116114,
+              0.4594658288253121,
+              0.5253509173611702,
+              0.5785655751211227,
+              0.639871415492018,
+              0.7039721706736581,
+              0.7697303124507134,
+              0.8394195394470877,
+              0.8479219457186885
+            ],
+            [
+              0.08659938741412186,
+              0.17324388153473905,
+              0.2546292534606092,
+              0.33160582640235375,
+              0.4033703520320933,
+              0.47304522660231085,
+              0.5362000533061495,
+              0.5914997233667386,
+              0.6493553652511904,
+              0.7110791254975262,
+              0.7770318782358473,
+              0.8479219457186886,
+              0.9218968845694645
+            ]
+          ],
+          "shape": [
+            13,
+            13
+          ],
+          "unit": "squared GDP log-percent response units",
+          "max_abs_error": 6.661338147750939e-16,
+          "max_tolerance_excess": -1.7292889672139643e-11,
+          "passed": true
+        },
+        "standard_errors": {
+          "observed": [
+            0.290627594173003,
+            0.41408093245674715,
+            0.5070725707100853,
+            0.5766963653231072,
+            0.6289690579251572,
+            0.6800868961170938,
+            0.7225348639321711,
+            0.7582357427568407,
+            0.7974260879936845,
+            0.8354976529052801,
+            0.8739904095035421,
+            0.916198417073009,
+            0.9601546149290039
+          ],
+          "reference": [
+            0.2906275941730029,
+            0.414080932456747,
+            0.507072570710085,
+            0.5766963653231071,
+            0.6289690579251571,
+            0.6800868961170936,
+            0.722534863932171,
+            0.7582357427568407,
+            0.7974260879936846,
+            0.8354976529052802,
+            0.8739904095035422,
+            0.9161984170730092,
+            0.9601546149290043
+          ],
+          "shape": [
+            13
+          ],
+          "unit": "GDP log-percent response units",
+          "max_abs_error": 4.440892098500626e-16,
+          "max_tolerance_excess": -3.906264839499783e-11,
+          "passed": true
+        },
+        "t_statistics": {
+          "observed": [
+            -0.32142104806982974,
+            -0.9360141845237903,
+            -0.45689647671246253,
+            -1.291919502632119,
+            -1.7760378093916678,
+            -2.000468346797111,
+            -2.3152252224078005,
+            -3.209457484097185,
+            -3.4212733657940864,
+            -3.5766742357612005,
+            -3.5249960750002387,
+            -2.9663121266211294,
+            -2.6221757869132283
+          ],
+          "reference": [
+            -0.3214210480698286,
+            -0.9360141845237896,
+            -0.45689647671246214,
+            -1.2919195026321186,
+            -1.7760378093916689,
+            -2.0004683467971125,
+            -2.3152252224078023,
+            -3.209457484097185,
+            -3.4212733657940855,
+            -3.576674235761201,
+            -3.5249960750002396,
+            -2.96631212662113,
+            -2.6221757869132283
+          ],
+          "shape": [
+            13
+          ],
+          "unit": "dimensionless",
+          "max_abs_error": 1.7763568394002505e-15,
+          "max_tolerance_excess": -4.2140939072807e-11,
+          "passed": true
+        },
+        "nobs": {
+          "observed": 232.0,
+          "reference": 232.0,
+          "shape": [],
+          "unit": "quarters",
+          "max_abs_error": 0.0,
+          "max_tolerance_excess": -2.321e-08,
+          "passed": true
+        },
+        "df_resid": {
+          "observed": 218.0,
+          "reference": 218.0,
+          "shape": [],
+          "unit": "degrees of freedom",
+          "max_abs_error": 0.0,
+          "max_tolerance_excess": -2.181e-08,
+          "passed": true
+        }
+      },
+      "negative_control_rejected": true,
+      "provenance": {
+        "sources": [
+          "https://www.aeaweb.org/articles?id=10.1257/aer.100.3.763",
+          "https://eml.berkeley.edu/~dromer/papers/DataSet.zip",
+          "https://emlab.berkeley.edu/~dromer/papers/RomerandRomerAERJune2010.pdf"
+        ],
+        "data": {
+          "origin": "Romer and Romer (2010) original author archive",
+          "archive_sha256": "c6c3b4888f3de596abf56bc136e2175ec5a4aa0dab137e79e261984a0a84701c",
+          "csv_sha256": "059d7514fb14e5b8a8f2516e23c49b618032236c0b4cf4599082f3637e12fdad",
+          "reference_sha256": "3c915d119158db1f7002efa80fa12812e2c4edaf225569960561fef29b915b8b",
+          "metadata_sha256": "06cf9cffee4213684b0abd9d05a158e00e880cc6260cfab632cf6a2793ee13d7",
+          "author_specification": "EXOGERNR.RAT",
+          "reference_software": "statsmodels 0.14.6, Python 3.12.13; QR OLS",
+          "reference_loader": "puremacro.replication.load_rr2010_reference"
+        },
+        "sampling": "1950Q1\u20132007Q4, 232 quarterly observations; 14 coefficients, 218 residual degrees of freedom.",
+        "transformations": "OLS of 100*delta log(real GDP) on intercept and lags 0\u201312 of 100*(DEFIC+LONGR)/NOMGDP; conventional residual-df OLS covariance. Cumulate tax coefficients and full covariance to obtain GDP-level responses.",
+        "limitations": "Frozen independent software port of the authors' baseline specification; not a live RATS run. Numerical agreement does not establish narrative shock exogeneity or reproduce robustness specifications.",
+        "rtol": 1e-10,
+        "atol": 1e-11
+      },
+      "error": ""
+    },
+    {
+      "id": "rr2010_published_peak",
+      "title": "Romer\u2013Romer published Figure 4 baseline trough",
+      "evidence_kind": "published_empirical",
+      "passed": false,
+      "metrics": {
+        "response_h10": {
+          "observed": -3.0808127630878372,
+          "reference": -3.08,
+          "shape": [],
+          "unit": "GDP log-percent per one-percent-of-GDP tax increase",
+          "max_abs_error": 0.0008127630878371761,
+          "max_tolerance_excess": -0.004187236912162824,
+          "passed": true
+        },
+        "t_h10": {
+          "observed": -3.5249960750002387,
+          "reference": -3.53,
+          "shape": [],
+          "unit": "dimensionless",
+          "max_abs_error": 0.0050039249997611,
+          "max_tolerance_excess": 3.924999761100063e-06,
+          "passed": false
+        },
+        "trough_horizon": {
+          "observed": 10.0,
+          "reference": 10.0,
+          "shape": [],
+          "unit": "quarters after the tax increase",
+          "max_abs_error": 0.0,
+          "max_tolerance_excess": -0.005,
+          "passed": true
+        }
+      },
+      "negative_control_rejected": true,
+      "provenance": {
+        "sources": [
+          "https://www.aeaweb.org/articles?id=10.1257/aer.100.3.763",
+          "https://eml.berkeley.edu/~dromer/papers/DataSet.zip",
+          "https://emlab.berkeley.edu/~dromer/papers/RomerandRomerAERJune2010.pdf"
+        ],
+        "data": {
+          "origin": "Romer and Romer (2010) original author archive",
+          "archive_sha256": "c6c3b4888f3de596abf56bc136e2175ec5a4aa0dab137e79e261984a0a84701c",
+          "csv_sha256": "059d7514fb14e5b8a8f2516e23c49b618032236c0b4cf4599082f3637e12fdad",
+          "reference_sha256": "3c915d119158db1f7002efa80fa12812e2c4edaf225569960561fef29b915b8b",
+          "metadata_sha256": "06cf9cffee4213684b0abd9d05a158e00e880cc6260cfab632cf6a2793ee13d7",
+          "author_specification": "EXOGERNR.RAT",
+          "reference_software": "statsmodels 0.14.6, Python 3.12.13; QR OLS",
+          "reference_loader": "puremacro.replication.load_rr2010_reference",
+          "printed_page": 781,
+          "reference_origin": "literal published values -3.08, -3.53 and horizon 10"
+        },
+        "sampling": "1950Q1\u20132007Q4, 232 quarterly observations; 14 coefficients, 218 residual degrees of freedom.",
+        "transformations": "OLS of 100*delta log(real GDP) on intercept and lags 0\u201312 of 100*(DEFIC+LONGR)/NOMGDP; conventional residual-df OLS covariance. Cumulate tax coefficients and full covariance to obtain GDP-level responses.",
+        "limitations": "One original-data baseline result. Absolute tolerance 0.005 reflects two-decimal publication rounding; integer horizon must match exactly. The original-data t statistic misses its published rounding interval by about 0.000003925; this remains a failure, also present in the authors' RATS databanks. It is not a software-parity tolerance or independent causal validation.",
+        "rtol": 0.0,
+        "atol": 0.005
+      },
+      "error": ""
+    }
+  ]
+}

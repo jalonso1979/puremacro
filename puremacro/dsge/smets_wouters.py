@@ -1,17 +1,32 @@
-"""Smets-Wouters (2007) faithful translation of Pfeifer's Dynare implementation.
+"""Smets-Wouters (2007) hand-coded translation of Pfeifer's Dynare implementation.
 
-Faithful Python translation of:
+Python translation of:
     Pfeifer, J. (2013-15). Dynare replication of Smets & Wouters (2007).
     DSGE_mod/Smets_Wouters_2007/Smets_Wouters_2007_45.mod
+    (bundled as puremacro/dsge/_references/sw07_pfeifer.mod)
 
     Smets, F. and Wouters, R. (2007). Shocks and Frictions in US Business
     Cycles: A Bayesian DSGE Approach. AER 97(3), 586-606.
 
+The impulse responses of all seven shocks coincide with the bundled .mod
+solved by puremacro's .mod engine at the same parameters (max abs gap
+< 1e-12 over 20 quarters; tests/test_fix_SW07_markup_and_replication.py).
+
 Key notes (from Pfeifer mod file header):
-  - Parameters are posterior-mode values, NOT prior means.
+  - ``SW07_POSTERIOR_MODE`` holds the .mod file's calibration block
+    (mod lines 158-202, "fixed parameters" + "estimated parameters
+    initialisation"). Despite the name it is NOT the SW07 posterior mode:
+    it sets crhopinf = crhow = cmap = cmaw = 0, whereas SW07 Table 1b
+    reports modes rho_p = 0.90, rho_w = 0.97, mu_p = 0.74, mu_w = 0.88
+    (ECB WP 722, PDF p.36). The name is kept for backward compatibility.
   - Eq. (8) / flex eq. (11): missing (1+cbetabar*cgamma) in qs term — mirrored.
   - b = c_3 * epsilon_t^b (rescaled).
-  - epinfma / ewma are auxiliary MA-error variables.
+  - Price and wage markup disturbances are ARMA(1,1) with a contemporaneous
+    innovation: spinf_t = crhopinf*spinf_{t-1} + epinf_t - cmap*epinf_{t-1}
+    (and sw with crhow, ew, cmaw). The states epinfma / ewma hold the
+    current innovation so that its lag is available for the MA term.
+    Through 4.3.0 the MA terms were dropped and the innovation entered one
+    quarter late.
 
 Solution strategy — Klein (2000) QZ:
   The 44-variable system (20 lags/shocks + 24 controls) is cast in Klein
@@ -492,18 +507,24 @@ def _build_gensys_matrices(p: dict) -> tuple:
     r = _idx("g");      a(r,"g",1.0);      b(r,"g",crhog);     c(r,"eg",1.0); c(r,"ea",cgy)
     r = _idx("qs");     a(r,"qs",1.0);     b(r,"qs",crhoqs);   c(r,"eqs",1.0)
     r = _idx("ms");     a(r,"ms",1.0);     b(r,"ms",crhoms);   c(r,"em",1.0)
-    # spinf(t+1) = crhopinf*spinf(t) + epinfma(t) - cmap*epinfma(t-1)
-    # epinfma(t) is a current control, epinfma(t-1) = epinfma_lag... but we don't have it.
-    # Following Pfeifer: treat epinfma as iid shock (epinfma=epinf), so:
-    # spinf(t+1) = crhopinf*spinf(t) + epinfma(t) - cmap*epinfma(t-1)
-    # But epinfma(t-1) is not tracked. In the standard approach: since epinfma=epinf(t)
-    # is iid, epinfma(t-1)=epinf(t-1) which is 0 in expectations. So:
-    # spinf(t+1) ≈ crhopinf*spinf(t) + epinfma(t) (ignoring MA term since cmap=0)
-    r = _idx("spinf");  a(r,"spinf",1.0);  b(r,"spinf",crhopinf); b(r,"epinfma",1.0)
-    # epinfma = epinf (iid): epinfma(t+1) = epinf(t+1), Klein: 1*E_t[epinfma(t+1)] = 0 + epinf shock
+    # Price and wage markup disturbances are ARMA(1,1) with a CONTEMPORANEOUS
+    # innovation (SW07, ECB WP 722 printed pp. 14-15, below eqs. (10), (13);
+    # sw07_pfeifer.mod lines 307-311):
+    #   spinf_t = crhopinf*spinf_{t-1} + epinfma_t - cmap*epinfma_{t-1},  epinfma_t = epinf_t
+    #   sw_t    = crhow*sw_{t-1}       + ewma_t    - cmaw*ewma_{t-1},     ewma_t    = ew_t
+    # The states epinfma / ewma hold the CURRENT innovation, so their value
+    # at t is the lagged innovation needed by the MA term at t+1. Klein form
+    # of the state rows (x_{t+1} = B x_t + C eps_{t+1}):
+    #   spinf_{t+1}   = crhopinf*spinf_t - cmap*epinfma_t + epinf_{t+1}
+    #   epinfma_{t+1} = epinf_{t+1}
+    # (Through 4.3.0 the rows read spinf_{t+1} = crhopinf*spinf_t + epinfma_t:
+    # no MA term, so cmap/cmaw never entered, and the innovation reached
+    # spinf/sw one quarter late -- an anticipated shock.)
+    r = _idx("spinf");  a(r,"spinf",1.0);  b(r,"spinf",crhopinf)
+    b(r,"epinfma",-cmap); c(r,"epinf",1.0)
     r = _idx("epinfma"); a(r,"epinfma",1.0); c(r,"epinf",1.0)
-    # sw(t+1) = crhow*sw(t) + ewma(t) - cmaw*ewma(t-1), ewma=ew(iid)
-    r = _idx("sw");     a(r,"sw",1.0);     b(r,"sw",crhow);    b(r,"ewma",1.0)
+    r = _idx("sw");     a(r,"sw",1.0);     b(r,"sw",crhow)
+    b(r,"ewma",-cmaw);  c(r,"ew",1.0)
     r = _idx("ewma");   a(r,"ewma",1.0);   c(r,"ew",1.0)
 
     # =========================================================================
@@ -678,7 +699,13 @@ def _build_sw07_matrices(p: dict) -> tuple:
 
 
 def solve_sw07(params: dict | None = None) -> SWResult:
-    """Solve the SW07 model at posterior-mode parameters via Klein QZ.
+    """Solve the SW07 model via Klein QZ.
+
+    ``params`` overrides entries of ``SW07_POSTERIOR_MODE`` (the calibration
+    block of Pfeifer's .mod, not the SW07 posterior mode; see the module
+    docstring). Units: all variables are percent (100 x log) deviations from
+    the balanced growth path; ``cmap``/``cmaw`` are the MA coefficients mu_p,
+    mu_w of the ARMA(1,1) markup disturbances.
 
     Uses Klein (2000) for the state-transition matrix G, then recovers
     the policy function F via the equilibrium Sylvester system (bypassing

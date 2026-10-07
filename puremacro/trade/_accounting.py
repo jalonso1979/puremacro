@@ -3,6 +3,20 @@
 The compatibility evaluator remains separate. This mode uses homogeneous Cobb–
 Douglas factor costs, a calibrated tax on output revenue, tax-inclusive final
 expenditure shares, and full schedule duties rebated to the importing country.
+
+Foreign saving B_c (baseline ``invforT``) is exogenous. Two unit conventions
+are available through ``foreign_saving_units``:
+
+- ``"numeraire"`` (default, the 4.3.0 closure): ``B_c`` is fixed in units of the
+  numeraire (first country/sector producer price = 1). With ``B != 0`` the
+  equilibrium is then not homogeneous of degree zero in nominal prices, so the
+  real allocation, and Hicksian EV/CV, depend on which country/sector is listed
+  first.
+- ``"world_income"``: ``B_c = b_c * sum_d (w_d L_d + r_d K_d)`` with
+  ``b_c = invforT_c / sum_d (L_d + K_d)``, i.e. each country's baseline saving is
+  a fixed share of world factor income. The system is homogeneous of degree
+  zero in nominal variables and results do not depend on the country order
+  (the numeraire only fixes the price level).
 """
 from __future__ import annotations
 
@@ -63,10 +77,21 @@ def _parameters(calib):
     return shares, basic, inv
 
 
+FOREIGN_SAVING_UNITS = ("numeraire", "world_income")
+
+
 def evaluate(x, calib, tau, tau_fd, tauf, tauf_fd, *, sigma=0., fiscal_closure="lump_sum",
-             recycling_params=None, capacity_margins=None):
+             recycling_params=None, capacity_margins=None, foreign_saving_units="numeraire"):
+    """Evaluate the consistent-accounting blocks at state ``x``.
+
+    ``foreign_saving_units`` selects the foreign-saving closure (module
+    docstring); the default reproduces the 4.3.0 numbers bit for bit.
+    """
     from .equilibrium import unpack_equilibrium_vector, _get_ces_weights
     from .solver import _resolve_tariffs
+
+    if foreign_saving_units not in FOREIGN_SAVING_UNITS:
+        raise ValueError("foreign_saving_units must be 'numeraire' or 'world_income'")
 
     if fiscal_closure not in ("lump_sum", "baseline", "") or recycling_params:
         raise NotImplementedError("Consistent accounting currently supports lump-sum fiscal rebates only")
@@ -131,9 +156,15 @@ def evaluate(x, calib, tau, tau_fd, tauf, tauf_fd, *, sigma=0., fiscal_closure="
     labor_gap = calib.l_endow.ravel()-labor.sum(1).ravel()
     capital_gap = calib.k_endow.ravel()-capital.sum(1).ravel()
     budget_gap = T.ravel()-government
-    # Foreign saving is exogenous in numeraire units. Endogenous trade balances
-    # plus national budget identities otherwise leave the model underidentified.
-    balances = v.XN-np.asarray(calib.invforT).ravel()[:nc-1]
+    # Foreign saving is exogenous (in numeraire units, or as a share of world
+    # factor income). Endogenous trade balances plus national budget identities
+    # otherwise leave the model underidentified.
+    if foreign_saving_units == "numeraire":
+        balances = v.XN-np.asarray(calib.invforT).ravel()[:nc-1]
+    else:
+        base_world = float(np.sum(calib.l_endow)+np.sum(calib.k_endow))
+        world = float(np.sum(w.ravel()*calib.l_endow.ravel()+r.ravel()*calib.k_endow.ravel()))
+        balances = v.XN-np.asarray(calib.invforT).ravel()[:nc-1]*(world/base_world)
     solver_goods = goods.copy()
     solver_goods[0] = pv[0]-1.  # Drop one redundant goods equation (Walras' law).
     residuals = np.concatenate([solver_goods, prices, labor_gap, capital_gap, balances, budget_gap])
@@ -144,7 +175,8 @@ def evaluate(x, calib, tau, tau_fd, tauf, tauf_fd, *, sigma=0., fiscal_closure="
                 duties_i=duties_i, duties_f=duties_f, tariffs=tariffs, trade=trade,
                 producer_values=producer_values, ta=ta, tf=tf, basic0=basic0, fd_tax=fd_tax,
                 residuals=residuals, physical_residuals=physical, goods_gap=goods,
-                net_exports_gap=net_exports-B.ravel(), government=government)
+                net_exports_gap=net_exports-B.ravel(), government=government,
+                foreign_saving_units=foreign_saving_units)
 
 
 def postprocess(b, calib, base_result=None):
@@ -195,7 +227,11 @@ def postprocess(b, calib, base_result=None):
     meta = dict(accounting="consistent", tariff_revenue_mode="schedule", replicate_matlab_precedence=False,
                 intermediate_tariff_multipliers=b["ta"].copy(),
                 final_tariff_multipliers=b["tf"].copy(),
-                matlab_compat=False, foreign_balance_closure="fixed baseline in numeraire units",
+                matlab_compat=False,
+                foreign_balance_closure=("fixed baseline in numeraire units"
+                                         if b.get("foreign_saving_units", "numeraire") == "numeraire"
+                                         else "fixed baseline share of world factor income"),
+                foreign_saving_units=b.get("foreign_saving_units", "numeraire"),
                 numeraire="first country/sector producer price = 1", fiscal_closure="lump_sum",
                 production_tax_base="output revenue", final_tax_share=b["fd_tax"],
                 final_tax_base="actual final expenditure excluding foreign saving",

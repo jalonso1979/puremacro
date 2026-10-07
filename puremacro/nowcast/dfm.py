@@ -267,7 +267,7 @@ class DynamicFactorModelResult:
             ax.plot(F_df.index, F_df[col], lw=1.8, label=str(col))
 
         ax.axhline(0.0, color="grey", lw=0.8, ls="--", alpha=0.7)
-        ax.set_title(title, fontsize=11, fontweight="semibold")
+        ax.set_title(title, fontsize=11, fontweight="bold")
         ax.set_xlabel("Period")
         ax.set_ylabel("Factor Value")
         ax.legend(loc="best", frameon=True, fontsize=8)

@@ -13,15 +13,16 @@
 # %% [markdown]
 # # Una vida en el tiempo: consumo, ahorro y demografía
 #
+# **¿Cómo transita una economía a lo largo de su trayectoria de punto de silla hacia el estado estacionario de crecimiento balanceado, y cómo las transiciones demográficas y los horizontes finitos transforman la acumulación de capital a lo largo del ciclo de vida?**
+#
 # Un hogar con horizonte finito percibe un ingreso en forma de joroba, ahorra ante
-# el riesgo de ingreso y desacumula activos hacia el final de la vida. Resolvemos el
+# el riesgo de ingreso y desacumula activos hacia el final de la vida (Modigliani & Brumberg 1954; Blanchard 1985). Resolvemos el
 # problema del ciclo de vida, analizamos la distribución de riqueza de la cohorte
 # por edad, y ponderamos las cohortes con un perfil demográfico (con y sin
-# mortalidad) para ver cómo el envejecimiento de la población remodela el capital
+# mortalidad; Cass 1965; Koopmans 1965) para ver cómo el envejecimiento de la población remodela el capital
 # agregado. Todo con `puremacro.vfi`.
-
-# %% [markdown]
-# ## El método en ecuaciones
+#
+# ## El método en matemáticas
 #
 # Un hogar vive las edades $j = 0, 1, \dots, J-1$ (aquí $J = 40$). A diferencia del
 # problema de Aiyagari con horizonte infinito, esto **no** es un punto fijo: con un
@@ -50,6 +51,21 @@
 # numerosos, por lo que sus (elevadas) tenencias de activos pesan menos en el
 # capital agregado $K = \sum_j \ell_j\, \mathbb{E}_j[a]$.
 #
+# ### Parámetros del modelo base
+#
+# | Parámetro | Símbolo | Interpretación Económica | Valor Base | Unidades |
+# |---|---|---|---|---|
+# | Factor de descuento anual | $\beta$ | Tasa subjetiva de preferencia temporal | 0.97 | Adimensional (anual) |
+# | Aversión al riesgo | $\gamma$ | Coeficiente de aversión relativa al riesgo | 2.00 | Adimensional |
+# | Participación del capital | $\alpha$ | Elasticidad producto en referente de producción | 0.33 | Fracción adimensional |
+# | Depreciación | $\delta$ | Tasa anual de depreciación de capital físico | 0.06 | Tasa anual |
+# | Horizonte del ciclo de vida | $J$ | Total de cohortes adultas laborales y jubiladas | 40 | Períodos anuales (años) |
+# | Tasa libre de riesgo | $r$ | Rendimiento real de activos en equilibrio parcial | 0.03 | Tasa anual |
+# | Programa de supervivencia | $s_j$ | Probabilidades condicionales de supervivencia por edad | $[0.999 \dots 0.920]$ | Probabilidad anual |
+# | Crecimiento poblacional | $n$ | Tasa de crecimiento demográfico / fertilidad anual | 0.00 | Tasa anual |
+# | Cota superior de activos | $a_{\max}$ | Cota de truncamiento de la grilla de activos | 40.00 | Unidades de activo |
+# | Puntos de grilla de activos | $n_a$ | Nodos discretizados en el dominio de activos | 120 | Recuento entero |
+#
 # **Intuición.** Esta es la lógica del ingreso permanente / ciclo de vida. Un hogar
 # joven *sabe* que su ingreso crecerá hacia el máximo de mediana edad de $\kappa_j$,
 # por lo que querría endeudarse contra ese ingreso futuro para suavizar el consumo
@@ -61,6 +77,14 @@
 # antes de la última edad. La ponderación por mortalidad importa para la sección
 # transversal porque los ricos en activos se concentran entre los mayores —
 # precisamente las cohortes que un perfil de supervivencia decreciente adelgaza.
+#
+# ### Referencias clave
+#
+# - Blanchard (1985). Debt, deficits, and finite horizons. *Journal of Political Economy*, 93(2), 223–247.
+# - Cass (1965). Optimum growth in an aggregative model of capital accumulation. *Review of Economic Studies*, 32(3), 233–240.
+# - Koopmans (1965). On the concept of optimal economic growth. *The Econometric Approach to Development Planning*, 225–287.
+# - Modigliani & Brumberg (1954). Utility analysis and the consumption function: An interpretation of cross-section data. *Franco Modigliani*, 1(1), 388–436.
+# - Ramsey (1928). A mathematical theory of saving. *Economic Journal*, 38(152), 543–559.
 
 # %%
 import sys
@@ -96,7 +120,7 @@ assert assets_by_age[-1] < assets_by_age.max()           # ...then draw down
 assert np.all(cons_by_age > 0)
 
 # %% [markdown]
-# **Lee el resultado.** Los activos medios parten esencialmente de cero — los
+# **Lectura de los resultados.** Los activos medios parten esencialmente de cero — los
 # recién nacidos entran sin nada y, bloqueados por la restricción de no
 # endeudamiento, no pueden adelantar las ganancias que esperan más tarde. Luego
 # ascienden de forma sostenida y alcanzan su máximo en el interior (la edad del
@@ -209,7 +233,7 @@ assert (beta_you < 0.96) or (assets_you.max() >= assets_by_age.max() - 1e-9)
 # actúe *dentro* de la resolución — el descuento efectivo $\beta s_j$ — construye un
 # `FiniteHorizonProblem` directamente con su argumento `survival=`.)
 #
-# **¿Qué tan completo es esto?** `life_cycle_profile` maneja la pila de horizonte
+# **¿Qué tan exhaustivo es esto?** `life_cycle_profile` maneja la pila de horizonte
 # finito (`FiniteHorizonProblem` → `life_cycle_distribution` → `age_profile`) y
 # `stationary_age_weights` incorpora la demografía; `puremacro.vfi` cierra el círculo
 # con el **equilibrio general OLG con trabajo endógeno** (`olg_stationary_equilibrium`).

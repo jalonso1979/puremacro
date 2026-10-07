@@ -205,8 +205,10 @@ m = dsge.load_mod(mod_macro)
 
 #### Árbol de Sintaxis Abstracta (AST) y Parser Descendente Recursivo
 - **Grafo Acíclico Dirigido Inmutable (DAG)**: Las ecuaciones se transforman en un grafo inmutable de expresiones (`Const`, `Var`, `Param`, `UnaryOp`, `BinOp`, `Call`), eliminando manipulaciones frágiles de texto y errores por colisiones de subcadenas.
-- **Variables Locales `#`**: Soporte nativo para declaraciones de variables auxiliares como `#MU = c^(-gamma);` que se expanden limpiamente en el grafo de ecuaciones.
-- **Operadores Especiales**: Soporte completo para `STEADY_STATE(x)`, `EXPECTATION(t)(x)` y `diff(x)`.
+- **Variables Locales `#`**: Admite declaraciones como `#MU = c^(-gamma);` y `#cbetabar = cbeta*cgamma^(-csigma);`. Como en Dynare (Manual de Referencia, §4.5), una variable local es una abreviatura *simbólica*: su expresión se sustituye allí donde se usa, se desplaza en el tiempo cuando aparece como `MU(+1)` o `MU(-1)`, y nunca se evalúa a un número al cargar el archivo. Por eso una local construida a partir de parámetros los sigue cada vez que el modelo se vuelve a resolver: `load_mod(..., params={...})`, `osr`, los widgets, los gradientes analíticos, SMC y `model.estimate()` ven todos el valor nuevo (el `constebeta` de SW07 entra en el modelo solo a través de variables locales). `dag.evaluate_locals(params)` devuelve sus valores numéricos. Hasta la 4.3.0 inclusive, una local que dependía solo de parámetros quedaba congelada en la calibración del archivo, de modo que cada nueva resolución conservaba su valor de carga.
+- **Bloques que dependen de parámetros al sobrescribirlos**: `load_mod(..., params={...})` vuelve a evaluar `steady_state_model` e `initval` con los parámetros combinados (Dynare vuelve a ejecutar `steady_state_model` en cada vector de parámetros). Las asignaciones de primer nivel como `beta = 1/(1+r);` se evalúan una sola vez al leer el archivo, como en Dynare, y no cambian si se sobrescribe `r`.
+- **Cualquier nombre de Dynare**: un parámetro o una variable con nombre de palabra reservada de Python (`lambda`, `yield`) se analiza y se resuelve.
+- **Operadores Especiales**: Soporte para `STEADY_STATE(x)` y `diff(x)`. `EXPECTATION(k)(x)` se analiza sintácticamente, pero su residuo compilado lanza `NameError`, así que un modelo que lo use todavía no puede resolverse.
 - **Funciones Trascendentes**: Análisis sintáctico y diferenciación analítica exacta para `exp`, `log`, `sin`, `cos`, `tan`, `normcdf`, `normpdf`, `erf`, `abs` y `sign`.
 
 #### Diferenciación Simbólica y Eliminación de Subexpresiones Comunes (CSE)
@@ -240,9 +242,9 @@ $$y_t^{(1)} = F x_t^{(1)} + L u_t$$
 $$y_t^{(2)} = F x_t^{(2)} + \frac{1}{2} G_{xx} (x_t^{(1)} \otimes x_t^{(1)}) + \frac{1}{2} G_{\sigma\sigma} \sigma^2$$
 
 Capacidades destacadas:
-- **Simulación incondicionalmente estable**: `sol_2nd.simulate(periods=200, sigma=0.01)` evita las trayectorias explosivas características de las aproximaciones cuadráticas sin poda.
+- **Simulación incondicionalmente estable**: `sol_2nd.simulate(periods=200)` evita las trayectorias explosivas características de las aproximaciones cuadráticas sin poda. Su `sigma` multiplica la escala de los choques ya declarada en `shock_cov`, de modo que `sigma=1` (el valor por defecto) es la calibración.
 - **Respuestas al impulso generalizadas (GIRF)**: `sol_2nd.girf(shock="eps", size=0.01, horizon=20)` evalúa impactos dependientes del estado.
-- **Estado estacionario estocástico corregido por riesgo**: `sol_2nd.stochastic_steady_state(sigma=0.01)` captura el ahorro precautorio originado por la volatilidad.
+- **Media ergódica y estado estacionario con riesgo**: `sol_2nd.ergodic_mean()` (alias `stochastic_steady_state()`) es la media incondicional de la solución podada; `sol_2nd.risky_steady_state()` es el punto fijo sin choques, donde solo actúa el término de riesgo ½ g_σσ σ²; `sol_2nd.risk_decomposition()` descompone la media en ese término de riesgo y los términos de curvatura ½ g_xx vec(Ω) y ½ g_uu vec(σ²Σ_u) (véase [Perturbación de orden superior, §2.4](dsge_higher_order.md)). Ambos pueden tener signos opuestos: en el modelo RBC de esa sección la media ergódica del capital está por encima de su estado estacionario determinista y el estado estacionario con riesgo, por debajo.
 
 ---
 
@@ -373,7 +375,7 @@ pf_res.plot()
 2. Búsqueda de moda mediante L-BFGS-B o Nelder-Mead.
 3. Inversión del hessiano numérico en la moda para la covarianza de propuesta de Laplace.
 4. Muestreador adaptativo Random-Walk Metropolis-Hastings (RWMH).
-5. Diagnósticos de convergencia $\hat{R}$ dividida (Gelman-Rubin) y prueba espectral de Geweke.
+5. Diagnósticos de convergencia $\hat{R}$ dividida (Gelman-Rubin) y prueba espectral de Geweke, con la densidad espectral en cero estimada a partir de un modelo AR ajustado, como en `coda` de R.
 
 ```python
 import numpy as np

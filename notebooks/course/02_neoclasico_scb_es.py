@@ -79,12 +79,15 @@ DATA = (_here / "data") if (_here / "data").exists() else (_nb / "course" / "dat
 # **función impulso-respuesta** de las horas al choque tecnológico.
 #
 # `puremacro` implementa esta identificación en NumPy puro:
-# `bq_svar(Y, p=..., horizon=..., permanent_var_idx=0, n_boot=..., seed=...)`
-# devuelve un `BQSVARResult` con `irf_point`, `irf_lower`, `irf_upper` (IRFs
-# **acumuladas** a lo largo del horizonte). Todos los argumentos salvo `Y` son
-# **por palabra clave**, y las IRFs son la respuesta a un choque de **una
-# desviación estándar**, no a un choque unitario. La receta completa está en
-# `puremacro/examples/gali_1999_hours.py`.
+# `bq_svar(Y, p=..., horizon=..., permanent_var_idx=0, n_boot=..., seed=..., cumulate=...)`
+# devuelve un `BQSVARResult` con `irf_point`, `irf_lower`, `irf_upper`.
+# `cumulate=` dice qué variables se **acumulan** a lo largo del horizonte:
+# acumular la respuesta de una variable en diferencias da la respuesta de su
+# **nivel**, y una variable que ya entra en niveles no se acumula. Por defecto
+# (`cumulate=True`) se acumulan todas; `cumulate=[0]` acumula solo la columna
+# 0. Todos los argumentos salvo `Y` son **por palabra clave**, y las IRFs son
+# la respuesta a un choque de **una desviación estándar**, no a un choque
+# unitario. Un ejemplo completo está en `puremacro/examples/gali_1999_hours.py`.
 
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 2. Replicando a Galí con datos reales de EE. UU.
@@ -112,8 +115,12 @@ panel = panel.loc[:"2007-12-31"]                     # muestra estándar pre-Gra
 Y_diff = panel[["dprod", "dh"]].to_numpy()           # horas en diferencias (Galí)
 Y_lvl = panel[["dprod", "h"]].to_numpy()             # horas en niveles (CEV)
 
-res_diff = bq_svar(Y_diff, p=4, horizon=12, permanent_var_idx=0, n_boot=200, seed=0)
-res_lvl = bq_svar(Y_lvl, p=4, horizon=12, permanent_var_idx=0, n_boot=200, seed=0)
+# Galí: las dos columnas en diferencias -> se acumulan ambas (nivel de productividad y de horas)
+res_diff = bq_svar(Y_diff, p=4, horizon=12, permanent_var_idx=0, n_boot=200, seed=0,
+                   cumulate=[0, 1])
+# CEV: las horas ya están en niveles -> solo se acumula la productividad (columna 0)
+res_lvl = bq_svar(Y_lvl, p=4, horizon=12, permanent_var_idx=0, n_boot=200, seed=0,
+                  cumulate=[0])
 
 print(f"muestra: {panel.index.min().date()} .. {panel.index.max().date()} "
       f"({len(panel)} trimestres)")
@@ -121,30 +128,40 @@ print(f"muestra: {panel.index.min().date()} .. {panel.index.max().date()} "
 # %% [markdown] slideshow={"slide_type": "subslide"}
 # ### Respuesta de las horas al choque tecnológico
 #
-# `bq_svar` **acumula** las IRFs, así que en la especificación en diferencias la
-# respuesta acumulada de las horas *es* la respuesta en nivel. En la
-# especificación en niveles hay que **des-acumular** (`np.diff`) para leer la
-# respuesta en nivel. El índice `irf_point[h, i, j]` es la respuesta de la
-# variable `i` al choque `j` en el horizonte `h`; aquí `i=1` (horas), `j=0`
-# (choque tecnológico permanente).
+# Con esas elecciones de `cumulate=`, las dos especificaciones devuelven la
+# respuesta del **nivel** de las horas: en la de diferencias porque se acumula
+# $\Delta h$, y en la de niveles porque $h$ entra ya en niveles y no se
+# acumula. Las bandas bootstrap salen del mismo objeto, así que ahora también
+# hay banda para la especificación en niveles. (Des-acumular a mano con
+# `np.diff` daría el mismo punto, pero no una banda válida: la diferencia de
+# dos percentiles no es un percentil.) El índice `irf_point[h, i, j]` es la
+# respuesta de la variable `i` al choque `j` en el horizonte `h`; aquí `i=1`
+# (horas), `j=0` (choque tecnológico permanente).
 
 # %% slideshow={"slide_type": "fragment"}
 impact_diff = float(res_diff.irf_point[0, 1, 0])                 # horas en diferencias, h=0
-n = res_lvl.irf_point.shape[1]
-raw_lvl = np.diff(res_lvl.irf_point, axis=0, prepend=np.zeros((1, n, n)))
-impact_lvl = float(raw_lvl[0, 1, 0])                            # horas en niveles, h=0
+impact_lvl = float(res_lvl.irf_point[0, 1, 0])                   # horas en niveles, h=0
 lr_prod = float(res_diff.irf_point[-1, 0, 0])                   # efecto de largo plazo en productividad
+
+def banda_sin_cero(r):
+    """Horizontes en los que la banda al 90% de las horas excluye el cero."""
+    return np.flatnonzero((r.irf_lower[:, 1, 0] > 0) | (r.irf_upper[:, 1, 0] < 0)).tolist()
+
 
 print("choque tecnológico de UNA desviación estándar:")
 print(f"  efecto de largo plazo en productividad: {lr_prod:+.3f}%")
 print(f"  impacto en horas, DIFERENCIAS (Galí): {impact_diff:+.3f}%  "
       f"[banda 90%: {res_diff.irf_lower[0,1,0]:+.3f}, {res_diff.irf_upper[0,1,0]:+.3f}]")
-print(f"  impacto en horas, NIVELES (CEV):      {impact_lvl:+.3f}%")
+print(f"  impacto en horas, NIVELES (CEV):      {impact_lvl:+.3f}%  "
+      f"[banda 90%: {res_lvl.irf_lower[0,1,0]:+.3f}, {res_lvl.irf_upper[0,1,0]:+.3f}]")
+print(f"  horizontes con la banda lejos del cero: DIFERENCIAS {banda_sin_cero(res_diff)} | "
+      f"NIVELES {banda_sin_cero(res_lvl)}")
 
 assert lr_prod > 0.0                        # el choque identificado es POSITIVO
 assert impact_diff < 0.0                    # Galí: las horas CAEN en impacto
 assert res_diff.irf_upper[0, 1, 0] < 0.0    # la banda al 90% excluye el cero
-assert impact_lvl > 0.0                     # en niveles el signo se VOLTEA (CEV)
+assert impact_lvl > 0.0                     # en niveles el signo puntual se VOLTEA (CEV)...
+assert res_lvl.irf_lower[0, 1, 0] < 0.0     # ...pero su banda al 90% incluye el cero
 
 # %% slideshow={"slide_type": "slide"}
 H = res_diff.irf_point.shape[0] - 1
@@ -152,20 +169,21 @@ hs = np.arange(H + 1)
 fig, axes = plt.subplots(1, 2, figsize=(8.6, 3.5), sharey=True)
 
 ax = axes[0]
-ax.plot(hs, res_diff.irf_point[:, 1, 0], color="0.0", lw=1.4)
+ax.plot(hs, res_diff.irf_point[:, 1, 0], color="0.0", lw=1.4, label="IRF puntual")
 ax.fill_between(hs, res_diff.irf_lower[:, 1, 0], res_diff.irf_upper[:, 1, 0],
                 color="0.82", label="banda bootstrap 90%")
 ax.axhline(0.0, color="0.55", lw=0.6)
 ax.set_title("Horas en diferencias (Galí 1999)")
 ax.set_xlabel("trimestres"); ax.set_ylabel("respuesta de horas per cápita (%)")
-ax.legend(loc="lower right")
+ax.legend(loc="upper left")                  # una sola leyenda, en la zona vacía
 
 ax = axes[1]
-ax.plot(hs, raw_lvl[:, 1, 0], color="0.0", lw=1.4, label="IRF puntual")
+ax.plot(hs, res_lvl.irf_point[:, 1, 0], color="0.0", lw=1.4)
+ax.fill_between(hs, res_lvl.irf_lower[:, 1, 0], res_lvl.irf_upper[:, 1, 0],
+                color="0.82", label="banda bootstrap 90%")
 ax.axhline(0.0, color="0.55", lw=0.6)
 ax.set_title("Horas en niveles (crítica CEV)")
 ax.set_xlabel("trimestres")
-ax.legend(loc="lower right")
 
 fig.suptitle("Horas tras un choque tecnológico positivo (identificación BQ de largo plazo)")
 fig.tight_layout()
@@ -173,10 +191,14 @@ plt.show()
 
 # %% [markdown] slideshow={"slide_type": "subslide"}
 # **Lectura.** Con las horas en **diferencias** (Galí), la respuesta de impacto es
-# **negativa** y la banda al 90% excluye el cero: las horas caen — el resultado
-# anti-RBC. Al medir las horas en **niveles** (CEV 2003), el signo se voltea. El
-# hallazgo empírico depende, entonces, de una decisión de **identificación**:
-# ¿son las horas estacionarias en niveles o hay que diferenciarlas?
+# **−0.243 %** y la banda al 90% excluye el cero en el impacto y en el trimestre
+# siguiente (h = 0 y 1): las horas caen — el resultado anti-RBC. Al medir las
+# horas en **niveles** (CEV 2003), el signo puntual se voltea (+0.112 % en el
+# impacto), pero en esta muestra la banda al 90% incluye el cero en **todos** los
+# horizontes: en niveles el dato no distingue si las horas suben o bajan. El
+# hallazgo empírico depende, entonces, de una decisión de **especificación**:
+# ¿son las horas estacionarias en niveles o hay que diferenciarlas? Y la
+# especificación cambia no solo el signo sino también cuánto informa el dato.
 
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 3. El largo plazo: estado estacionario y senda de crecimiento balanceado
@@ -388,7 +410,7 @@ assert np.max(np.abs(policy - policy_closed)[interior]) < 1e-2  # política ~ fo
 fig, axes = plt.subplots(1, 2, figsize=(8.6, 3.5))
 
 ax = axes[0]
-ax.plot(k, ve, color="0.0", lw=1.6, label="exacta $v(k)$")
+ax.plot(k, ve, color=_nbstyle.TINTA, lw=1.6, label="exacta $v(k)$")  # tinta del tema: visible en fondo claro y oscuro
 ax.plot(k, V, color="0.55", lw=1.2, ls=(0, (4, 2)), label="VFI numérica")
 ax.set_title("Función de valor: numérica vs exacta")
 ax.set_xlabel("capital $k$"); ax.set_ylabel("$v(k)$")
@@ -396,7 +418,7 @@ ax.legend(loc="lower right")
 
 ax = axes[1]
 it = np.arange(len(errors))
-ax.semilogy(it, errors, color="0.0", lw=1.4, label="error sup-norma")
+ax.semilogy(it, errors, color=_nbstyle.TINTA, lw=1.4, label="error sup-norma")
 ref = errors[seg[0]] * beta ** (it - seg[0])          # recta de referencia, pendiente log(beta)
 ax.semilogy(it, ref, color="0.55", lw=1.2, ls=(0, (1, 1)), label=r"referencia $\beta^{n}$")
 ax.set_ylim(floor / 3, errors[0] * 3)

@@ -36,6 +36,7 @@ References
 """
 from __future__ import annotations
 
+import inspect
 import time
 import warnings
 from dataclasses import dataclass, field
@@ -49,6 +50,8 @@ from puremacro import _backend as _bk
 from puremacro.reports import _df_to_latex, _df_to_markdown, _df_to_typst
 from puremacro.vfi.continuous_distribution import (
     AiyagariContinuousEquilibrium,
+    _caller_stacklevel,
+    _positive_finite,
     continuous_push_distribution,
     continuous_stationary_distribution,
     solve_aiyagari_continuous,
@@ -293,7 +296,7 @@ def _backward_egm_path(
     K_hist: np.ndarray,
     P_z: np.ndarray,
     z_grid: np.ndarray,
-    beta: float = 0.96,
+    beta: float | np.ndarray = 0.96,
     gamma: float = 2.0,
     r_term: float = 0.02,
 ) -> Tuple[list[np.ndarray], list[np.ndarray]]:
@@ -301,7 +304,7 @@ def _backward_egm_path(
 
     Given factor prices {r_t, w_t}_{t=0}^{T-1} and continuation consumption
     policy c_T(k, z) = c_term, performs backward time iteration:
-        EMu_t(a', z_m) = beta * (1 + r_{t+1}) * sum_{z'} P_z(z_m, z') * c_{t+1}(a', z')^{-gamma}
+        EMu_t(a', z_m) = beta_t * (1 + r_{t+1}) * sum_{z'} P_z(z_m, z') * c_{t+1}(a', z')^{-gamma}
         c_endo(a', z_m) = EMu_t^{-1/gamma}
         k_endo(a', z_m) = (c_endo + a' - w_t * z_m) / (1 + r_t)
 
@@ -323,8 +326,9 @@ def _backward_egm_path(
         Row-stochastic transition matrix for productivity shocks.
     z_grid : np.ndarray
         Discrete productivity levels of length n_z.
-    beta : float
-        Discount factor.
+    beta : float or np.ndarray
+        Discount factor: a scalar, or a path (beta_0, ..., beta_{T-1}) where
+        beta_t discounts date t+1 in the date-t Euler equation.
     gamma : float
         Relative risk aversion coefficient.
     r_term : float
@@ -341,6 +345,7 @@ def _backward_egm_path(
     N_k = len(K_hist)
     n_z = len(z_grid)
     n_a = len(a_grid_dense)
+    beta_arr = np.broadcast_to(np.asarray(beta, dtype=np.float64), (T,))
 
     policies_a = [None] * T
     policies_c = [None] * T
@@ -354,7 +359,7 @@ def _backward_egm_path(
 
         # Expected marginal utility of saving a'
         # EMu has shape (n_a, n_z)
-        EMu = beta * (1.0 + r_tp1) * (c_next ** (-gamma) @ P_z.T)
+        EMu = float(beta_arr[t]) * (1.0 + r_tp1) * (c_next ** (-gamma) @ P_z.T)
         c_endo = EMu ** (-1.0 / gamma)
 
         c_dense = np.zeros((n_a, n_z), dtype=np.float64)
@@ -482,7 +487,7 @@ def _evaluate_transition_system(
     alpha: float,
     delta: float,
     L_agg: float,
-    beta: float,
+    beta: float | np.ndarray,
     gamma: float,
     r_term: float,
     r_wedge: Optional[np.ndarray] = None,
@@ -583,7 +588,9 @@ def _solve_transition_shooting(
 
         Ks = res[1]
         # Implied market clearing interest rate: r_implied = alpha * Z * (Ks / L)^(alpha - 1) - delta
-        r_implied = alpha * Z_path * ((Ks / L_agg) ** (alpha - 1.0)) - delta
+        # (Ks = 0 gives +inf, which the clip below maps to r_max.)
+        with np.errstate(divide="ignore"):
+            r_implied = alpha * Z_path * ((Ks / L_agg) ** (alpha - 1.0)) - delta
         r_next = (1.0 - damping) * r + damping * r_implied
         r = np.clip(r_next, r_min, r_max)
 
@@ -686,27 +693,67 @@ def _solve_terminal_steady_state(
     z_grid: np.ndarray,
     r_bracket: Optional[Tuple[float, float]] = None,
     backend: str = "numpy",
-) -> Tuple[float, float, float, np.ndarray, np.ndarray]:
-    """Solve the terminal stationary general equilibrium under TFP Z_term."""
+    *,
+    egm_tol: float = 1e-8,
+    egm_max_iter: int = 10_000,
+    xtol: float = 1e-8,
+    tol_ge: float = 1e-4,
+    max_evals: int = 100,
+    dist_options: Optional[dict] = None,
+) -> Tuple[float, float, float, np.ndarray, np.ndarray, dict[str, Any]]:
+    """Solve the terminal stationary general equilibrium under TFP ``Z_term``.
+
+    The household problem, stopping rules, bracket and convergence criteria are
+    those of ``solve_aiyagari_continuous`` (which has no TFP argument), with
+    firm demand K^d = L ((r + delta) / (alpha Z))^(1/(alpha-1)) and wage
+    w = (1 - alpha) Z (K/L)^alpha. At each trial rate the Coleman operator is
+    iterated until sup|c_n - c_(n-1)| < ``egm_tol`` or ``egm_max_iter``
+    applications; Brent's method on r stops at ``xtol``. Through 4.3.0 this
+    solver capped the EGM at a hidden 500 iterations and used xtol=1e-6, so at
+    Z_term = 1 in the n_z=3 documentation economy it returned r* = 0.03941949
+    against the converged initial steady state's 0.03941451, with a consumption
+    policy 0.09 away.
+
+    Returns
+    -------
+    r_star, w_star, K_star, c_star, pdf_star, diagnostics
+        ``c_star`` is the consumption policy on ``a_grid_dense`` (n_a, n_z);
+        ``diagnostics`` holds ``converged`` (EGM met ``egm_tol`` at r*, the
+        stationary distribution converged and |K^s - K^d| < ``tol_ge``) and the
+        same counters ``solve_aiyagari_continuous`` records in its metadata.
+    """
     n_a = len(a_grid_dense)
     N_k = len(K_hist)
     n_z = len(z_grid)
+    dist_opts = dist_options or {}
 
     r_upper = 1.0 / beta - 1.0
-    lo = 0.001 if r_bracket is None else r_bracket[0]
-    hi = (r_upper - 0.0005) if r_bracket is None else r_bracket[1]
+    r_lower = -delta  # firm capital demand is unbounded as r -> -delta
+    if r_bracket is None:
+        lo, hi = 0.001, r_upper - 0.0005
+    else:
+        lo, hi = float(r_bracket[0]), float(r_bracket[1])
 
-    def _eval_excess(r_cand: float) -> Tuple[float, float, float, np.ndarray, np.ndarray]:
+    egm_stats = {"solves": 0, "cap_hits": 0, "iterations": 0}
+
+    def _eval_excess(r_cand: float) -> Tuple[float, float, float, np.ndarray, Any, bool, int, float]:
         kl = ((r_cand + delta) / (alpha * Z_term)) ** (1.0 / (alpha - 1.0))
         w = (1.0 - alpha) * Z_term * (kl ** alpha)
         Kd = L_agg * kl
 
+        # Same first guess as solve_aiyagari_continuous: consume income, or cash
+        # on hand at a negative rate, where income consumption is negative.
         c = np.zeros((n_a, n_z), dtype=np.float64)
         for m in range(n_z):
-            c[:, m] = r_cand * a_grid_dense + w * z_grid[m]
+            if r_cand >= 0.0:
+                c[:, m] = r_cand * a_grid_dense + w * z_grid[m]
+            else:
+                c[:, m] = (1.0 + r_cand) * a_grid_dense + w * z_grid[m]
 
-        for _ in range(500):
-            c_old = c.copy()
+        egm_ok = False
+        step = float("inf")
+        n_iter = 0
+        for n_iter in range(1, egm_max_iter + 1):
             EMu = beta * (1.0 + r_cand) * (c ** (-gamma) @ P_z.T)
             c_endo = EMu ** (-1.0 / gamma)
             c_new = np.zeros_like(c)
@@ -716,9 +763,18 @@ def _solve_terminal_steady_state(
                 binds = a_grid_dense < a_endo[0]
                 c_interp[binds] = (1.0 + r_cand) * a_grid_dense[binds] + w * z_grid[m]
                 c_new[:, m] = c_interp
-            if np.max(np.abs(c_new - c_old)) < 1e-8:
-                break
+            step = float(np.max(np.abs(c_new - c)))
             c = c_new
+            if not np.isfinite(step):
+                break
+            if step < egm_tol:
+                egm_ok = True
+                break
+
+        egm_stats["solves"] += 1
+        egm_stats["iterations"] += n_iter
+        if not egm_ok:
+            egm_stats["cap_hits"] += 1
 
         ap_dense = np.maximum((1.0 + r_cand) * a_grid_dense[:, None] + w * z_grid[None, :] - c, 0.0)
         ap_hist = np.zeros((N_k, n_z), dtype=np.float64)
@@ -726,15 +782,211 @@ def _solve_terminal_steady_state(
             ap_hist[:, m] = np.interp(K_hist, a_grid_dense, ap_dense[:, m])
 
         dist = continuous_stationary_distribution(
-            ap_hist, K_hist, shock_transition=P_z, shock_grid=z_grid, backend=backend
+            ap_hist, K_hist, shock_transition=P_z, shock_grid=z_grid, backend=backend, **dist_opts
         )
         Ks = float(dist.mean())
         excess = Ks - Kd
-        return excess, w, Ks, c, dist.pdf
+        return excess, w, Ks, c, dist, egm_ok, n_iter, step
 
-    r_star = float(brentq(lambda r: _eval_excess(r)[0], lo, hi, xtol=1e-6, maxiter=80))
-    _, w_star, Ks_star, c_star, pdf_star = _eval_excess(r_star)
-    return r_star, w_star, Ks_star, c_star, pdf_star
+    f_lo = _eval_excess(lo)[0]
+    f_hi = _eval_excess(hi)[0]
+    if r_bracket is None and f_lo > 0.0 and f_hi > 0.0:
+        # Savings exceed capital demand at r = 1e-3: the terminal rate is lower.
+        lo = r_lower + 1e-3
+        f_lo = _eval_excess(lo)[0]
+    if f_lo * f_hi > 0.0:
+        raise ValueError(
+            f"Terminal steady state at Z={Z_term:.6g}: excess capital supply K^s - K^d does not change "
+            f"sign on r in [{lo:.4f}, {hi:.4f}] ({f_lo:+.4f} and {f_hi:+.4f}). Pass a solved "
+            "terminal_steady_state instead."
+        )
+
+    r_star = float(brentq(lambda r: _eval_excess(r)[0], lo, hi, xtol=xtol, maxiter=max_evals))
+    excess_star, w_star, Ks_star, c_star, dist_star, egm_ok, n_iter_star, step_star = _eval_excess(r_star)
+
+    dist_ok = bool(dist_star.converged)
+    clearing_ok = bool(np.isfinite(excess_star) and abs(excess_star) < tol_ge)
+    reasons: list[str] = []
+    if not egm_ok and not np.isfinite(step_star):
+        reasons.append(
+            f"the household EGM produced a non-finite consumption policy after {n_iter_star} iterations"
+        )
+    elif not egm_ok:
+        reasons.append(
+            f"the household EGM stopped after {n_iter_star} iterations (egm_max_iter={egm_max_iter}) "
+            f"with sup|c_n - c_(n-1)| = {step_star:.3e}, not below egm_tol={egm_tol:.1e}; raise egm_max_iter"
+        )
+    if not dist_ok:
+        reasons.append(f"the stationary distribution solver did not converge (dist_options={dist_options!r})")
+    if not clearing_ok:
+        reasons.append(
+            f"|K^s - K^d| = {abs(excess_star):.3e} is not below tol_ge={tol_ge:.1e}; tighten xtol (now {xtol:.1e})"
+        )
+
+    diagnostics: dict[str, Any] = {
+        "converged": egm_ok and dist_ok and clearing_ok,
+        "Z": float(Z_term),
+        "beta": float(beta),
+        "r": r_star,
+        "w": float(w_star),
+        "K": Ks_star,
+        "capital_market_clearing_error": float(excess_star),
+        "egm_converged": bool(egm_ok),
+        "egm_iterations": int(n_iter_star),
+        "egm_residual": float(step_star),
+        "egm_tol": float(egm_tol),
+        "egm_max_iter": int(egm_max_iter),
+        "egm_cap_hits": int(egm_stats["cap_hits"]),
+        "household_solves": int(egm_stats["solves"]),
+        "egm_iterations_total": int(egm_stats["iterations"]),
+        "dist_converged": dist_ok,
+        "clearing_ok": clearing_ok,
+        "tol_ge": float(tol_ge),
+        "xtol": float(xtol),
+        "nonconvergence_reasons": reasons,
+    }
+    return r_star, float(w_star), Ks_star, c_star, dist_star.pdf, diagnostics
+
+
+# ---------------------------------------------------------------------------
+# Steady-state and parameter resolution
+# ---------------------------------------------------------------------------
+
+# Keywords a configuration dict may carry: the named parameters of
+# solve_aiyagari_continuous (its **kwargs catch-all excluded).
+_SS_CONFIG_KEYS = frozenset(
+    name
+    for name, p in inspect.signature(solve_aiyagari_continuous).parameters.items()
+    if p.kind not in (inspect.Parameter.VAR_KEYWORD, inspect.Parameter.VAR_POSITIONAL)
+)
+
+# Structural parameters of the transition, with the solve_aiyagari_continuous defaults.
+_STRUCTURAL_DEFAULTS = (("beta", 0.96), ("gamma", 2.0), ("alpha", 0.36), ("delta", 0.08))
+
+# Controls of the internally solved terminal steady state, with the
+# solve_aiyagari_continuous defaults used when the initial one records none.
+_TERMINAL_CONTROL_DEFAULTS = (
+    ("egm_tol", 1e-8),
+    ("egm_max_iter", 10_000),
+    ("xtol", 1e-8),
+    ("tol_ge", 1e-4),
+    ("max_evals", 100),
+)
+
+_KNOWN_KWARGS = frozenset(
+    {name for name, _ in _STRUCTURAL_DEFAULTS}
+    | {name for name, _ in _TERMINAL_CONTROL_DEFAULTS}
+    | {"r_min", "r_max", "dist_options"}
+)
+
+
+def _resolve_steady_state(
+    steady_state: Any, argname: str, backend: str
+) -> AiyagariContinuousEquilibrium:
+    """Return ``steady_state`` if solved, or solve the configuration dict it holds.
+
+    A dict is a configuration for ``solve_aiyagari_continuous`` and must hold
+    only its keywords. Through 4.3.0 other keys (for example the ``k_grid``,
+    ``pdf_ss``, ``policy_a`` or ``r_ss`` of a steady state solved elsewhere)
+    were silently dropped, and the transition started from a freshly solved
+    economy with the remaining, often default, parameters.
+    """
+    if isinstance(steady_state, AiyagariContinuousEquilibrium):
+        return steady_state
+    if isinstance(steady_state, dict):
+        unknown = sorted(str(k) for k in steady_state if k not in _SS_CONFIG_KEYS)
+        if unknown:
+            raise TypeError(
+                f"{argname}: a dict is a configuration passed to solve_aiyagari_continuous, which solves "
+                f"a new steady state, and it does not accept the key(s) {', '.join(map(repr, unknown))}. "
+                "To start from a steady state you have already solved, pass the "
+                "AiyagariContinuousEquilibrium that solve_aiyagari_continuous returned. Accepted keys: "
+                f"{', '.join(sorted(_SS_CONFIG_KEYS))}."
+            )
+        config = dict(steady_state)
+        config.setdefault("backend", backend)
+        return solve_aiyagari_continuous(**config)
+    raise TypeError(
+        f"{argname} must be an AiyagariContinuousEquilibrium or a configuration dict, "
+        f"got {type(steady_state).__name__}"
+    )
+
+
+def _structural_parameters(
+    init_ss: AiyagariContinuousEquilibrium, kwargs: dict[str, Any]
+) -> dict[str, float]:
+    """beta, gamma, alpha and delta of the initial steady state.
+
+    They are read from ``init_ss.metadata["params"]``, which
+    ``solve_aiyagari_continuous`` records. A keyword that contradicts the
+    recorded value raises ValueError. When the steady state records none (one
+    built with ``continuous_stationary_equilibrium`` or by hand), the keywords
+    are used, and any that is missing falls back to the
+    ``solve_aiyagari_continuous`` default with a UserWarning. Through 4.3.0 the
+    keywords or those defaults were always used, so a steady state solved with
+    beta=0.99 was paired with beta=0.96 transition dynamics.
+    """
+    meta = init_ss.metadata if isinstance(init_ss.metadata, dict) else {}
+    recorded = meta.get("params") or {}
+    out: dict[str, float] = {}
+    missing: list[str] = []
+    for name, default in _STRUCTURAL_DEFAULTS:
+        ss_val = recorded.get(name)
+        kw_val = kwargs.pop(name, None)
+        if ss_val is not None:
+            ss_val = float(ss_val)
+            if kw_val is not None and abs(float(kw_val) - ss_val) > 1e-12 * max(1.0, abs(ss_val)):
+                raise ValueError(
+                    f"{name}={kw_val!r} contradicts the initial steady state, which was solved with "
+                    f"{name}={ss_val!r}. The transition uses the steady state's parameters; to study a "
+                    f"different {name}, solve the steady state with it."
+                )
+            out[name] = ss_val
+        elif kw_val is not None:
+            out[name] = float(kw_val)
+        else:
+            out[name] = float(default)
+            missing.append(name)
+    if missing:
+        warnings.warn(
+            "solve_continuous_transition: the initial steady state does not record "
+            + ", ".join(missing)
+            + " in metadata['params'] and they were not passed as keywords; using "
+            + ", ".join(f"{n}={out[n]}" for n in missing)
+            + ". Pass them explicitly if the steady state was solved with other values.",
+            UserWarning,
+            stacklevel=_caller_stacklevel(),
+        )
+    return out
+
+
+def _terminal_controls(
+    init_ss: AiyagariContinuousEquilibrium, kwargs: dict[str, Any]
+) -> dict[str, Any]:
+    """Controls for the internally solved terminal steady state.
+
+    Keywords win; otherwise the values recorded in ``init_ss.metadata`` by
+    ``solve_aiyagari_continuous``, so both steady states are solved to the same
+    accuracy; otherwise that function's defaults.
+    """
+    meta = init_ss.metadata if isinstance(init_ss.metadata, dict) else {}
+    out: dict[str, Any] = {}
+    for name, default in _TERMINAL_CONTROL_DEFAULTS:
+        out[name] = kwargs.pop(name, meta.get(name, default))
+    out["egm_tol"] = _positive_finite("egm_tol", out["egm_tol"])
+    out["xtol"] = _positive_finite("xtol", out["xtol"])
+    out["tol_ge"] = _positive_finite("tol_ge", out["tol_ge"])
+    for name in ("egm_max_iter", "max_evals"):
+        value = out[name]
+        try:
+            ok = int(value) == value and int(value) >= 1
+        except (TypeError, ValueError, OverflowError):
+            ok = False
+        if not ok:
+            raise ValueError(f"{name} must be an integer >= 1; got {value!r}")
+        out[name] = int(value)
+    out["dist_options"] = kwargs.pop("dist_options", None)
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -761,12 +1013,19 @@ def solve_continuous_transition(
     Parameters
     ----------
     initial_steady_state : AiyagariContinuousEquilibrium or dict
-        Pre-solved initial general equilibrium, or configuration dictionary
-        to pass to ``solve_aiyagari_continuous``.
+        Pre-solved initial general equilibrium, or a configuration dict of
+        ``solve_aiyagari_continuous`` keywords, which is solved here. A dict with
+        any other key (for example the grids, distribution or prices of a steady
+        state solved elsewhere) raises TypeError; through 4.3.0 such keys were
+        dropped silently and a default economy was solved instead. The
+        structural parameters beta, gamma, alpha and delta are read from
+        ``metadata["params"]`` of this steady state (see ``**kwargs``).
     terminal_steady_state : AiyagariContinuousEquilibrium or dict, optional
-        Pre-solved terminal general equilibrium. If None and shock is transitory,
-        defaults to ``initial_steady_state``. If None and shock is permanent,
-        is automatically solved at the terminal shock value.
+        Pre-solved terminal general equilibrium (a dict as above). If None, it
+        is the initial steady state when the shock has died out by date T-1,
+        and it is solved here, with the controls listed under ``**kwargs``,
+        when Z_{T-1} differs from 1 or beta_{T-1} from beta by more than
+        ``numpy.isclose(..., atol=1e-6)`` allows (about 1e-5).
     shock_path : np.ndarray or Sequence[float], optional
         Exogenous shock trajectory over the horizon T. If None, represents a zero shock
         (steady-state invariance check).
@@ -774,7 +1033,11 @@ def solve_continuous_transition(
         Variable targeted by the MIT shock:
         - 'z' or 'tfp': Aggregate total factor productivity Z_t.
         - 'r' or 'rate': Exogenous interest rate wedge / monetary shock.
-        - 'beta' or 'discount': Discount factor shock beta_t.
+        - 'beta' or 'discount': Discount factor shock beta_t, the factor that
+          discounts date t+1 in the date-t Euler equation. Values above 0.5
+          are levels of beta_t; smaller values s_t give beta_t = beta (1 + s_t).
+          Through 4.3.0 the path was built but never used, so a discount
+          factor shock returned the steady state.
     horizon : int, default 150
         Number of transition periods T.
     solver : {'broyden', 'shooting'}, default 'broyden'
@@ -794,13 +1057,43 @@ def solve_continuous_transition(
     r_init_path : np.ndarray or Sequence[float], optional
         Optional initial guess for the interest rate trajectory.
     **kwargs : Any
-        Additional parameter overrides.
+        - ``beta``, ``gamma``, ``alpha``, ``delta``: used only when the initial
+          steady state does not record them in ``metadata["params"]`` (one built
+          with ``continuous_stationary_equilibrium`` or by hand); a missing one
+          then falls back to the ``solve_aiyagari_continuous`` default with a
+          UserWarning. A value that contradicts the recorded one raises
+          ValueError. Through 4.3.0 these keywords, or the defaults 0.96, 2.0,
+          0.36 and 0.08, were always used, whatever the steady state.
+        - ``egm_tol``, ``egm_max_iter``, ``xtol``, ``tol_ge``, ``max_evals``,
+          ``dist_options``: controls of the terminal steady state solved here,
+          as in ``solve_aiyagari_continuous``. Unless given, they are taken from
+          the initial steady state's metadata, then from that function's
+          defaults (1e-8, 10000, 1e-8, 1e-4, 100). Through 4.3.0 that solve
+          stopped the household EGM at a hidden 500 iterations and used
+          xtol=1e-6.
+        - ``r_min``, ``r_max``: bounds on the trial interest rate path.
+        Any other keyword is ignored with a FutureWarning; it will raise
+        TypeError in a future release.
 
     Returns
     -------
     ContinuousTransitionResult
         Frozen dataclass holding equilibrium price paths, capital stocks,
         consumption, full sequence of wealth distributions, and presentation methods.
+        ``converged`` is True when the relaxation met ``tol`` and, if a terminal
+        steady state was solved here, that solve converged (a RuntimeWarning
+        names the failed criteria otherwise). ``metadata`` records ``params``,
+        ``relaxation_converged`` and, when solved here,
+        ``terminal_steady_state`` with its diagnostics.
+
+    Raises
+    ------
+    TypeError
+        For a steady-state dict with keys ``solve_aiyagari_continuous`` does not
+        accept.
+    ValueError
+        For invalid inputs, or a structural keyword that contradicts the
+        initial steady state.
     """
     t_start = time.time()
 
@@ -824,16 +1117,22 @@ def solve_continuous_transition(
     if s_solver not in ("broyden", "shooting"):
         raise ValueError(f"Invalid solver {solver!r}. Must be 'broyden' or 'shooting'")
 
-    # 1. Resolve initial steady state
-    if isinstance(initial_steady_state, dict):
-        init_ss = solve_aiyagari_continuous(backend=backend, **initial_steady_state)
-    elif isinstance(initial_steady_state, AiyagariContinuousEquilibrium):
-        init_ss = initial_steady_state
-    else:
-        raise TypeError(
-            f"initial_steady_state must be an AiyagariContinuousEquilibrium or dict, "
-            f"got {type(initial_steady_state).__name__}"
+    kwargs = dict(kwargs)
+    unknown_kwargs = sorted(k for k in kwargs if k not in _KNOWN_KWARGS)
+    if unknown_kwargs:
+        warnings.warn(
+            "solve_continuous_transition: unknown keyword argument(s) "
+            + ", ".join(repr(k) for k in unknown_kwargs)
+            + " ignored. They have never had an effect and will raise TypeError in a future release. "
+            f"Known keywords: {', '.join(sorted(_KNOWN_KWARGS))}.",
+            FutureWarning,
+            stacklevel=_caller_stacklevel(),
         )
+        for k in unknown_kwargs:
+            kwargs.pop(k)
+
+    # 1. Resolve initial steady state
+    init_ss = _resolve_steady_state(initial_steady_state, "initial_steady_state", backend)
 
     # Extract model parameters from initial steady state
     hh_init = init_ss.household_solution
@@ -847,10 +1146,12 @@ def solve_continuous_transition(
     w_ss_init = float(init_ss.w)
     K_ss_init = float(init_ss.K)
 
-    beta = float(kwargs.get("beta", 0.96))
-    gamma = float(kwargs.get("gamma", 2.0))
-    alpha = float(kwargs.get("alpha", 0.36))
-    delta = float(kwargs.get("delta", 0.08))
+    params = _structural_parameters(init_ss, kwargs)
+    beta = params["beta"]
+    gamma = params["gamma"]
+    alpha = params["alpha"]
+    delta = params["delta"]
+    terminal_controls = _terminal_controls(init_ss, kwargs)
 
     # Dense asset grid for continuous EGM
     n_a = len(hh_init.policy_c)
@@ -899,26 +1200,21 @@ def solve_continuous_transition(
 
     # 3. Resolve terminal steady state
     Z_term = float(Z_path[-1])
+    beta_term = float(beta_path[-1])
     is_permanent_tfp = is_tfp_shock and not np.isclose(Z_term, 1.0, atol=1e-6)
+    is_permanent_beta = is_beta_shock and not np.isclose(beta_term, beta, atol=1e-6)
+    terminal_diag: Optional[dict[str, Any]] = None
 
     if terminal_steady_state is not None:
-        if isinstance(terminal_steady_state, dict):
-            term_ss = solve_aiyagari_continuous(backend=backend, **terminal_steady_state)
-        elif isinstance(terminal_steady_state, AiyagariContinuousEquilibrium):
-            term_ss = terminal_steady_state
-        else:
-            raise TypeError(
-                f"terminal_steady_state must be AiyagariContinuousEquilibrium or dict, "
-                f"got {type(terminal_steady_state).__name__}"
-            )
+        term_ss = _resolve_steady_state(terminal_steady_state, "terminal_steady_state", backend)
         r_term = float(term_ss.r)
         w_term = float(term_ss.w)
         c_term = np.asarray(term_ss.household_solution.policy_c, dtype=np.float64)
-    elif is_permanent_tfp:
-        r_term, w_term, _, c_term, _ = _solve_terminal_steady_state(
+    elif is_permanent_tfp or is_permanent_beta:
+        r_term, w_term, _, c_term, _, terminal_diag = _solve_terminal_steady_state(
             init_ss=init_ss,
             Z_term=Z_term,
-            beta=beta,
+            beta=beta_term,
             gamma=gamma,
             alpha=alpha,
             delta=delta,
@@ -928,7 +1224,17 @@ def solve_continuous_transition(
             P_z=P_z,
             z_grid=z_grid,
             backend=backend,
+            **terminal_controls,
         )
+        if not terminal_diag["converged"]:
+            warnings.warn(
+                f"solve_continuous_transition: the terminal steady state (Z={Z_term:.6g}, "
+                f"beta={beta_term:.6g}) did not converge at r*={r_term:.6f}: "
+                + "; ".join(terminal_diag["nonconvergence_reasons"])
+                + ".",
+                RuntimeWarning,
+                stacklevel=_caller_stacklevel(),
+            )
     else:
         # Transitory shock or zero shock: terminal steady state identical to initial
         r_term = r_ss_init
@@ -979,7 +1285,7 @@ def solve_continuous_transition(
             alpha=alpha,
             delta=delta,
             L_agg=L_agg,
-            beta=beta,
+            beta=beta_path,
             gamma=gamma,
             r_term=r_term,
             r_wedge=r_wedge,
@@ -999,6 +1305,9 @@ def solve_continuous_transition(
                 "asset_grid": K_hist,
                 "mass_error": 0.0,
                 "backend": backend,
+                "params": dict(params),
+                "relaxation_converged": True,
+                "terminal_steady_state": terminal_diag,
             }
             return ContinuousTransitionResult(
                 r_path=r_init,
@@ -1063,8 +1372,10 @@ def solve_continuous_transition(
             f"solve_continuous_transition did not converge: max residual {max_res:.2e} >= tol {tol:.2e} "
             f"after {iters} iterations. Try increasing horizon, damping, or max_iter.",
             RuntimeWarning,
-            stacklevel=2,
+            stacklevel=_caller_stacklevel(),
         )
+
+    terminal_ok = terminal_diag is None or bool(terminal_diag["converged"])
 
     meta = {
         "solver": s_solver,
@@ -1072,7 +1383,11 @@ def solve_continuous_transition(
         "shock_var": s_var,
         "asset_grid": K_hist,
         "Z_path": Z_path,
+        "beta_path": beta_path,
         "backend": backend,
+        "params": dict(params),
+        "relaxation_converged": bool(converged),
+        "terminal_steady_state": terminal_diag,
     }
 
     return ContinuousTransitionResult(
@@ -1087,10 +1402,81 @@ def solve_continuous_transition(
         residuals=residuals,
         max_residual=max_res,
         iterations=iters,
-        converged=converged,
+        converged=bool(converged) and terminal_ok,
         elapsed_time=elapsed,
         metadata=meta,
     )
+
+
+# ---------------------------------------------------------------------------
+# continuous_mit_shock helpers
+# ---------------------------------------------------------------------------
+
+# shock_type aliases accepted by solve_continuous_transition, by shock class.
+_MIT_SHOCK_KINDS = {
+    "z": "tfp", "tfp": "tfp", "productivity": "tfp",
+    "r": "rate", "rate": "rate", "monetary": "rate",
+    "beta": "beta", "discount": "beta",
+}
+
+
+def _mit_shock_kind(shock_type: Any) -> str:
+    """'tfp', 'rate' or 'beta' for a ``shock_type`` alias; ValueError otherwise."""
+    key = str(shock_type).lower().strip()
+    if key not in _MIT_SHOCK_KINDS:
+        raise ValueError(f"Invalid shock_type {shock_type!r}. Must be one of {tuple(_MIT_SHOCK_KINDS)}")
+    return _MIT_SHOCK_KINDS[key]
+
+
+def _mit_solver_path(base: float, rel: np.ndarray, name: str) -> np.ndarray:
+    """A path that ``solve_continuous_transition`` reads as ``base * (1 + rel)``.
+
+    That function reads a TFP or discount-factor path as levels when any entry
+    exceeds 0.5 and as relative deviations otherwise. Through 4.3.0 this
+    wrapper always passed the relative path, so ``shock_size=0.6`` gave
+    Z_0 = 0.6 (a 40% fall) instead of 1.6, and a discount-factor shock of 0.6
+    gave beta_0 = 0.6. The levels are passed whenever they are read as levels,
+    which reproduces the old path bit for bit for every shock up to 0.5.
+    """
+    levels = base * (1.0 + rel)
+    if float(np.max(levels)) > 0.5:
+        return levels
+    if float(np.max(rel)) <= 0.5:
+        return rel
+    raise ValueError(
+        f"continuous_mit_shock: the {name} path {base} * (1 + s_t) cannot be passed unambiguously "
+        "to solve_continuous_transition; build the path and call that function directly."
+    )
+
+
+def _mit_transitory_rate_guess(
+    init_ss: AiyagariContinuousEquilibrium, Z0: float, alpha: float, delta: float, horizon: int
+) -> np.ndarray:
+    """The starting rate path ``solve_continuous_transition`` uses for a transitory TFP shock.
+
+    r_t = r* + (r_0 - r*) 0.85^t, where r_0 is the firm's rate at the
+    predetermined K* and Z_0 (same formula, same floating-point operations).
+    That function switches to a straight line toward the terminal rate once
+    Z_(T-1) differs from 1, so passing this guess gives a transitory shock the
+    same starting point whatever the persistence.
+    """
+    r_ss = float(init_ss.r)
+    r0 = alpha * Z0 * ((float(init_ss.K) / float(init_ss.L)) ** (alpha - 1.0)) - delta
+    return r_ss + (r0 - r_ss) * (0.85 ** np.arange(horizon))
+
+
+def _mit_horizon_needed(persistence: float, truncation_tol: float) -> int:
+    """Smallest horizon T with persistence**(T-1) <= truncation_tol."""
+    if truncation_tol >= 1.0:
+        return 1
+    if persistence <= 0.0:
+        return 2
+    T = 1 + max(0, int(np.ceil(np.log(truncation_tol) / np.log(persistence))))
+    while persistence ** (T - 1) > truncation_tol:
+        T += 1
+    while T > 1 and persistence ** (T - 2) <= truncation_tol:
+        T -= 1
+    return T
 
 
 def continuous_mit_shock(
@@ -1100,55 +1486,182 @@ def continuous_mit_shock(
     persistence: float = 0.8,
     horizon: int = 150,
     solver: str = "broyden",
+    *,
+    truncation_tol: float = 1e-3,
     **kwargs: Any,
 ) -> ContinuousTransitionResult:
     """Convenience entry point for simulating unexpected aggregate MIT shocks.
 
+    The shock is s_t = shock_size * persistence**t for t = 0, ..., T-1.
+
+    - ``persistence < 1`` is a transitory shock. The terminal condition at date
+      T is always the initial steady state, and the shock is set to zero from T
+      on. If the shock left at T-1, a share ``persistence**(T-1)`` of the
+      impact, exceeds ``truncation_tol``, a RuntimeWarning names the horizon
+      that would bring it below the tolerance; the truncation is reported in
+      ``metadata["mit_shock"]`` either way. Through 4.3.0 a transitory shock
+      whose Z_(T-1) (or beta_(T-1)/beta) differed from 1 by more than about
+      1e-5 was silently treated as permanent: a terminal steady state was
+      solved at Z_(T-1), so for T=40 and shock_size=0.05 the model changed at
+      persistence 0.806, and at persistence 0.92 the economy converged to a
+      steady state with 0.19% higher TFP.
+    - ``persistence == 1`` is a permanent shock and must be asked for
+      explicitly. For 'tfp' and 'beta' a terminal steady state is solved at
+      Z = 1 + shock_size or beta (1 + shock_size). A permanent 'rate' wedge is
+      not supported: the terminal condition stays the initial steady state,
+      and a RuntimeWarning says so.
+
     Parameters
     ----------
     steady_state : AiyagariContinuousEquilibrium or dict
-        Initial general equilibrium state.
+        Initial general equilibrium state (a dict is a configuration for
+        ``solve_aiyagari_continuous``, as in ``solve_continuous_transition``).
     shock_type : {'tfp', 'rate', 'beta'}, default 'tfp'
-        Type of aggregate shock:
-        - 'tfp': Total factor productivity shock.
-        - 'rate': Monetary/interest rate shock.
-        - 'beta': Discount factor patience shock.
+        Type of aggregate shock (the aliases of ``solve_continuous_transition``'s
+        ``shock_var`` are accepted):
+        - 'tfp': Total factor productivity, Z_t = 1 + s_t.
+        - 'rate': Interest rate wedge earned by households, r_t + s_t.
+        - 'beta': Discount factor, beta_t = beta (1 + s_t).
     shock_size : float, default 0.05
-        Initial innovation size (e.g. +0.05 for +5% TFP, or +0.01 for +100 bps rate).
+        Impact of the shock s_0 (e.g. +0.05 for +5% TFP, or +0.01 for +100 bps
+        rate). Always a deviation, never a level: through 4.3.0 a TFP or
+        discount-factor shock above 0.5 was read as a level. A TFP shock must
+        be above -1, so that Z_0 > 0.
     persistence : float, default 0.8
-        Persistence parameter rho in [0.0, 1.0].
-        If persistence == 1.0, the shock is permanent.
-        If persistence < 1.0, the shock is transitory with decay rho^t.
+        Persistence rho in [0.0, 1.0]: 1.0 is a permanent shock, anything
+        below is transitory (see above).
     horizon : int, default 150
         Length T of simulation horizon.
     solver : {'broyden', 'shooting'}, default 'broyden'
         Equilibrium relaxation solver.
+    truncation_tol : float, default 1e-3
+        Largest share of the impact that a transitory shock may still have at
+        date T-1 without a truncation warning.
     **kwargs : Any
-        Additional options passed to ``solve_continuous_transition``.
+        Passed to ``solve_continuous_transition``. ``damping`` is the
+        relaxation weight of ``solver='shooting'``. With ``solver='broyden'``
+        it only scales the fallback step taken when the backtracking line
+        search fails to reduce ||H||_2 in 12 halvings (and every step when
+        ``backtracking=False``, which also discards the rank-one updates). In
+        every run of notebook 52 the line search never failed, and damping
+        from 0.2 to 0.8 gave bit-identical Broyden paths. A
+        ``terminal_steady_state`` passed here is used as given, for any
+        persistence.
 
     Returns
     -------
     ContinuousTransitionResult
-        Solved non-linear transition dynamics.
+        Solved non-linear transition dynamics. ``metadata["mit_shock"]``
+        records ``shock_type``, ``shock_size``, ``persistence``,
+        ``permanent``, ``terminal_condition`` ('initial_steady_state',
+        'solved_steady_state' or 'user'), ``shock_at_last_date`` (s_(T-1)),
+        ``remaining_share`` (persistence**(T-1)), ``truncation_tol``,
+        ``truncated``, ``horizon_needed`` (the smallest T with
+        persistence**(T-1) <= truncation_tol; None for a permanent shock) and
+        ``capital_gap_last`` (K_(T-1) - K* for a transitory shock, a separate
+        measure of how far the endogenous response is from over).
     """
     persistence = float(persistence)
     if not (0.0 <= persistence <= 1.0):
         raise ValueError(f"persistence must be in [0.0, 1.0]; got {persistence}")
-
     horizon = int(horizon)
-    if persistence == 1.0:
-        shock_path = np.full(horizon, float(shock_size), dtype=np.float64)
-    else:
-        shock_path = float(shock_size) * (persistence ** np.arange(horizon, dtype=np.float64))
+    if horizon < 1:
+        raise ValueError(f"horizon must be a positive integer >= 1; got {horizon}")
+    truncation_tol = _positive_finite("truncation_tol", truncation_tol)
+    shock_size = float(shock_size)
+    if not np.isfinite(shock_size):
+        raise ValueError(f"shock_size must be finite; got {shock_size}")
+    kind = _mit_shock_kind(shock_type)
+    if kind == "tfp" and shock_size <= -1.0:
+        raise ValueError(f"a TFP shock must be above -1 so that Z_0 = 1 + shock_size > 0; got {shock_size}")
 
-    return solve_continuous_transition(
-        initial_steady_state=steady_state,
+    kwargs = dict(kwargs)
+    init_ss = _resolve_steady_state(steady_state, "steady_state", kwargs.get("backend", "numpy"))
+    # The transition reads beta, alpha and delta the same way; any warning or
+    # error about them is raised by solve_continuous_transition below.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        params = _structural_parameters(init_ss, dict(kwargs))
+
+    permanent = persistence == 1.0
+    if permanent:
+        rel = np.full(horizon, shock_size, dtype=np.float64)
+    else:
+        rel = shock_size * (persistence ** np.arange(horizon, dtype=np.float64))
+    if kind == "tfp":
+        shock_path = _mit_solver_path(1.0, rel, "TFP")
+    elif kind == "beta":
+        shock_path = _mit_solver_path(params["beta"], rel, "discount-factor")
+    else:
+        shock_path = rel
+
+    user_terminal = kwargs.get("terminal_steady_state") is not None
+    if user_terminal:
+        terminal_condition = "user"
+    elif permanent and kind != "rate":
+        terminal_condition = "solved_steady_state"
+    else:
+        terminal_condition = "initial_steady_state"
+        kwargs["terminal_steady_state"] = init_ss
+        # (A zero shock keeps the solver's exact steady-state path.)
+        if (
+            kind == "tfp"
+            and not permanent
+            and kwargs.get("r_init_path") is None
+            and not np.allclose(1.0 + rel, 1.0, atol=1e-12)
+        ):
+            kwargs["r_init_path"] = _mit_transitory_rate_guess(
+                init_ss, 1.0 + float(rel[0]), params["alpha"], params["delta"], horizon
+            )
+
+    res = solve_continuous_transition(
+        initial_steady_state=init_ss,
         shock_path=shock_path,
         shock_var=shock_type,
         horizon=horizon,
         solver=solver,
         **kwargs,
     )
+
+    remaining_share = float(persistence ** (horizon - 1))
+    if permanent:
+        truncated = kind == "rate" and shock_size != 0.0
+        horizon_needed: Optional[int] = None
+    else:
+        truncated = shock_size != 0.0 and remaining_share > truncation_tol
+        horizon_needed = _mit_horizon_needed(persistence, truncation_tol)
+    res.metadata["mit_shock"] = {
+        "shock_type": kind,
+        "shock_size": shock_size,
+        "persistence": persistence,
+        "permanent": permanent,
+        "terminal_condition": terminal_condition,
+        "shock_at_last_date": float(rel[-1]),
+        "remaining_share": remaining_share,
+        "truncation_tol": truncation_tol,
+        "truncated": bool(truncated),
+        "horizon_needed": horizon_needed,
+        "capital_gap_last": None if permanent else float(res.K_s_path[-1] - float(init_ss.K)),
+    }
+
+    if truncated and not user_terminal:
+        if permanent:
+            message = (
+                "continuous_mit_shock: a permanent rate wedge (persistence=1) is not supported. The "
+                "terminal condition is the initial steady state, which carries no wedge, so the path is "
+                "solved against an inconsistent terminal condition; use a wedge that dies out by T-1."
+            )
+        else:
+            message = (
+                f"continuous_mit_shock: the transitory {kind} shock has not died out by the last date: "
+                f"s_(T-1) = {rel[-1]:.3g}, {remaining_share:.2%} of the impact (persistence {persistence}, "
+                f"horizon {horizon}). The terminal condition is the initial steady state, so the shock is "
+                f"truncated to zero from date T = {horizon} on. horizon={horizon_needed} brings it below "
+                f"truncation_tol={truncation_tol:g}; persistence=1.0 asks for a permanent shock."
+            )
+        warnings.warn(message, RuntimeWarning, stacklevel=_caller_stacklevel())
+
+    return res
 
 
 __all__ = [

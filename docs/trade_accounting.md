@@ -1,18 +1,56 @@
+> 🇬🇧 English · 🇪🇸 [Español](es/trade_accounting.md)
+
 # Producer and purchaser accounting in the trade model
 
-Use the consistent mode for new counterfactuals:
+Use the consistent mode for new counterfactuals. This example runs as written
+on the hand-balanced two-country table used by the reference check below:
 
 ```python
+import numpy as np
+from puremacro.trade import calibrate_trade_model, solve_trade_equilibrium
+
+# Two countries (A, B), one good, final uses C and I, values in one currency unit.
+Z = np.array([[10., 12.], [8., 14.]])                      # intermediate sales
+F = np.array([[30., 8., 20., 20.], [15., 15., 50., 18.]])  # final sales to A-C, A-I, B-C, B-I
+production_tax = np.array([4., 6.])
+final_tax = np.array([2., 1., 3., 2.])
+value_added = Z.sum(1) + F.sum(1) - Z.sum(0) - production_tax
+data = np.vstack([np.hstack([Z, F]), np.r_[production_tax, final_tax],
+                  np.r_[2*value_added/3, np.zeros(4)], np.r_[value_added/3, np.zeros(4)]])
+calibration = calibrate_trade_model(data, ns=1, nc=2, nfd=2, country_codes=["A", "B"],
+                                    sector_codes=["GOOD"])
+
+# Tariff MULTIPLIERS (1 + rate), indexed (origin node, use, destination country):
+# A charges 20% on imports from B, B charges 10% on imports from A.
+intermediate_tariff_multipliers = np.ones((2, 1, 2))
+intermediate_tariff_multipliers[1, 0, 0] = 1.2
+intermediate_tariff_multipliers[0, 0, 1] = 1.1
+final_tariff_multipliers = np.ones((2, 2, 2))
+final_tariff_multipliers[1, :, 0] = 1.2
+final_tariff_multipliers[0, :, 1] = 1.1
+
 result = solve_trade_equilibrium(
     calibration,
     tau=intermediate_tariff_multipliers,
     tau_fd=final_tariff_multipliers,
     accounting="consistent",
-    tol=1e-9,
+    tol=1e-9,  # absolute, in the table's value units
 )
 assert result.converged
 print(result.metadata["account_residuals"])
 ```
+
+`tol` bounds **absolute** residuals in the calibration's value units. The
+attainable floor is roughly `1e-16` times the largest output value: `tol=1e-9`
+suits the table above (values in tens), while the frozen OECD 3-region x
+3-sector fixture in million USD (outputs up to `6.4e7`) bottoms out near
+`5e-8`; use `1e-5` to `1e-7` there, and rescale the tolerance when you change
+the currency unit. Consistent accounting needs a calibration whose final-use
+coefficients and expenditure shares are nonnegative: the bundled legacy
+77-country x 11-sector table (`load_icio_data(source="legacy")`) is rejected with a
+`ValueError` (three negative investment cells and one negative investment
+share); use native ingestion with `package_mrio_to_calibration_result`, the
+frozen OECD fixture, or your own balanced table.
 
 `accounting="legacy"` remains the compatibility default. It reproduces historical
 MATLAB conventions, including their price-precedence and final-demand valuation
@@ -103,9 +141,15 @@ B_c = baseline foreign saving, fixed in numeraire units
 
 Investment is category index 1, or index 0 for a single-category model. Native
 OECD ingestion first maps the six final uses to C/I/Cx. Final expenditure must
-be nonnegative in an accepted solution. A negative signed inventory **aggregate**
-requires further aggregation or an explicit inventory model; it cannot serve
-as a positive consumption basket.
+be nonnegative in an accepted solution. The consistent mode rejects any
+negative final-use cell. On the native OECD 2019 table, I = GFCF + INVNT has 90
+negative cells although every country's I total is positive; the count per
+category is recorded in `calib.metadata["negative_final_demand_cells"]`. Such a
+table needs aggregation or an explicit inventory model first. The FIGARO,
+EXIOBASE, WIOD and Eora loaders condense their final uses to C (final
+consumption), I (gross fixed capital formation) and Cx (changes in inventories
+and valuables, and EXIOBASE exports); unlike the OECD mapping, their Cx is not
+residents' purchases abroad. The mapping is in `metadata["final_use_mapping"]`.
 
 Fixing foreign saving is a substantive closure choice. Allowing all foreign
 balances to be endogenous while imposing national budgets leaves independent
@@ -115,6 +159,38 @@ price is fixed at one. Its redundant goods-clearing equation is omitted from
 the numerical square system, then **checked independently before convergence
 can be reported**. Realized exports minus imports must also recover B_c in every
 country, including the last one.
+
+Because B_c is fixed in numeraire units by default
+(`foreign_saving_units="numeraire"`), the equilibrium is not homogeneous of
+degree zero in nominal prices when foreign saving is nonzero: entering the same
+table with a different country listed first changes the real allocation and
+Hicksian EV/CV (on the two-country welfare reference table, country A's EV is
+-27.55% of baseline consumption with A first and -45.99% with B first). Pass
+`foreign_saving_units="world_income"` to hold each country's baseline saving
+fixed as a share of world factor income,
+`B_c = (B_c^0 / Σ_d (L_d + K_d)) Σ_d (w_d L_d + r_d K_d)`; the system is then
+homogeneous of degree zero and the results do not depend on the country order
+(the same example gives -36.95% for either order). The default is unchanged.
+
+The legacy mode (`accounting="legacy"`, the MATLAB replica) keeps all foreign
+balances endogenous and does not remove this redundancy. For each country, the
+sum of its goods-market residuals weighted by prices, its zero-profit residuals
+weighted by outputs, its factor-market residuals weighted by factor prices and
+its fiscal equation, minus its foreign-balance equation, is identically equal
+to four accounting wedges of the MATLAB code: the `w/(1-α)^(1-α)` precedence,
+production tax collected on quantity rather than value, uncredited tariffs, and
+final-demand trade valued at the importer's composite price. Each country's
+price level and foreign balance are therefore determined only by how these
+wedges respond to them, and the equilibrated Jacobian has one weak direction per
+country. Where the responses nearly cancel, small shocks have no nearby
+equilibrium. On the clean OECD 2020 table (`load_icio_data(source="oecd2020")`)
+Costa Rica's direction loses its pin at a uniform US tariff of about 0.89%, and
+the tariff path folds there, so the legacy model's tariff scenarios have no
+solution on that table. With `replicate_matlab_precedence=False` they solve. The
+full analysis is in `reviews/2026-10-04-clean-table-tariff-scenarios/REPORT.md`.
+For full-size tables use `solve_trade_equilibrium(method="equilibrated_newton")`.
+On failure its `metadata["near_singular_country"]` names the country whose
+direction has become singular.
 
 GDP at factor cost equals factor income. GDP at market prices adds domestic
 taxes and duties; it must equal final purchaser expenditure plus net exports
@@ -142,8 +218,15 @@ This is an index, not Hicksian welfare or an expenditure-function derivation.
 
 The mode supports NumPy, Leontief/CES intermediate sourcing and lump-sum rebates.
 Newton, sparse LU, Krylov, Broyden, SciPy hybrid/LM and full Keller continuation
-all solve the same equations. A request for `method="condensed"` uses full
-Newton and records `effective_method="newton"`; the legacy Schur reduction
+all solve the same equations. The Newton, sparse-LU, Krylov, Broyden and Keller
+solvers stop only when the solved residuals and the independently checked
+physical equations (the omitted goods equation and realized foreign balances)
+both meet `tol`, so a state the solver accepts is not rejected afterwards at the
+same tolerance; their finite-difference Jacobians scale the step of the
+value-unit transfer and foreign-balance unknowns with their magnitude, so the
+solve does not depend on the currency unit. SciPy hybrid/LM use SciPy's own
+termination test and are audited afterwards. A request for
+`method="condensed"` uses full Newton and records `effective_method="newton"`; the legacy Schur reduction
 embodies different equations. Quasi-condensed, other fiscal recycling schemes,
 GPU execution and capacity penalties explicitly raise `NotImplementedError` in
 this mode pending their own economic derivations. Legacy mode retains those

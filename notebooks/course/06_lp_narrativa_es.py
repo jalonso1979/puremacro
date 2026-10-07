@@ -70,7 +70,10 @@ DATA = (_here / "data") if (_here / "data").exists() else (_nb / "course" / "dat
 # - **divergen en horizontes largos**: el VAR extrapola una curva suave; la LP, sin restringir,
 #   sigue la trayectoria muestral (más ruido, menos sesgo por mala especificación).
 #
-# En `puremacro`: `lp.lp_hac` usa **ancho de banda HAC $= h+1$** (recomendación de PMW 2021).
+# En `puremacro`: `lp.lp_hac` usa errores estándar HAC de Newey-West con **rezago de
+# truncamiento $h+1$**. Es una regla práctica, no una recomendación de PMW (2021), cuyo
+# artículo no propone ningún ancho de banda: el residuo a $h$ pasos está correlacionado
+# serialmente hasta el orden $h$, así que el núcleo debe llegar al menos hasta ahí.
 
 # %% slideshow={"slide_type": "fragment"}
 from puremacro.lp import lp_hac                       # LP con errores estándar HAC (Newey-West)
@@ -130,7 +133,8 @@ ax.plot(hs, lp_beta, color=cols[0], lw=1.6, label="Proyección local (HAC)")
 ax.fill_between(hs, lp.set_index("h")["lo"], lp.set_index("h")["hi"],
                 color=cols[0], alpha=0.15, label="Banda LP 90%")
 ax.plot(hs, svar_beta, color="0.55", lw=1.6, ls=(0, (4, 2)), label="SVAR recursivo (escalado)")
-ax.plot(hs, irf_pop, color="0.15", lw=1.0, ls=(0, (1, 2)), label="IRF poblacional (PGD conocido)")
+ax.plot(hs, irf_pop, color=_nbstyle.palette(4)[3], lw=1.4, ls=(0, (1, 2)),
+        label="IRF poblacional (PGD conocido)")   # tono de serie punteada: legible en ambos temas
 ax.axhline(0, color="0.85", lw=0.6)
 ax.set_xlabel("horizonte $h$ (trimestres)"); ax.set_ylabel(r"respuesta $\beta_h$")
 ax.set_title("LP-HAC vs SVAR: idénticas en el impacto, divergen al alargar el horizonte")
@@ -143,15 +147,15 @@ plt.show()
 # mismos cuatro rezagos, la LP en $h=0$ *es* la misma regresión que el impacto contemporáneo
 # del SVAR recursivo. En horizontes cortos casi se solapan. Al alargar el horizonte, el SVAR
 # **decae suave** hacia cero (impone la dinámica del VAR), mientras la LP **oscila** siguiendo
-# la muestra: la brecha máxima que imprime el diagnóstico aparece en torno a $h=10$ y vale
-# unas 0.27 unidades de respuesta, frente a cero (hasta el redondeo) en el impacto.
+# la muestra: la brecha máxima que imprime el diagnóstico aparece en $h=10$ y vale 0.2743
+# unidades de respuesta, frente a cero (hasta el redondeo) en el impacto.
 #
 # Ojo con un espejismo: en $h=16$ las dos curvas vuelven a estar cerca de cero y la diferencia
 # es pequeña otra vez. Por eso el diagnóstico compara el impacto contra la **brecha máxima**
 # sobre todos los horizontes, no contra el último.
 #
 # Aquí sabemos quién acierta, porque el PGD es exactamente un VAR(1) con $x$ ordenado primero:
-# la línea punteada oscura es la **IRF poblacional**. El SVAR está bien especificado y su
+# la línea punteada fina es la **IRF poblacional**. El SVAR está bien especificado y su
 # error medio frente a esa verdad es mucho menor que el de la LP. Ese es el mensaje de PMW
 # (2021) con todas sus letras: **misma IRF poblacional**, distinto sesgo/varianza en muestra
 # finita. Si el VAR está bien especificado —como en esta simulación— su IRF larga es más
@@ -289,9 +293,11 @@ plt.show()
 # prociclicidad de la recaudación —`mtr_u` ya es una serie narrativa, no la recaudación
 # observada— sino ese error de medida.
 #
-# **Coherencia con el mazo A5.** La transparencia de "el multiplicador impositivo por tres
-# vías" sitúa a Romer-Romer en $-2.5$ a $-3$ y a Mertens-Ravn en $-2$ a $-3$. Nuestro pico
-# ($\approx -1.7$) queda algo por debajo, y con razón: aquí corremos un sistema mínimo —PIB y
+# **Coherencia con los artículos.** Como referencia publicada, la Figura 4 de Romer y Romer
+# (2010, AER, p. 781) toca fondo en $-3.08\%$ a los diez trimestres, y Mertens y Ravn (2014,
+# JME) reportan multiplicadores de alrededor de dos en el impacto y hasta tres a los seis
+# trimestres, en valor absoluto. Nuestro pico ($-1.68$ en $h=10$) queda por debajo, y con
+# razón: aquí corremos un sistema mínimo —PIB y
 # una sola serie fiscal, cuatro rezagos, sin gasto, sin deuda, sin controles— frente a las
 # especificaciones más ricas de esos artículos. Mismo signo, misma familia de magnitudes,
 # menos ambición.
@@ -303,10 +309,14 @@ plt.show()
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 2b. Proyecciones locales aumentadas por rezagos (LA-LP) e integrales acumuladas
 #
-# Plagborg-Møller y Wolf (2021) proponen la **proyección local aumentada por rezagos**
-# (`puremacro.lp.la_lp`): incluye rezagos adicionales $p_{\text{aug}} \ge p + h$ para que
-# las proyecciones locales tengan una cobertura asintótica uniforme e invariante al horizonte,
-# usando errores estándar robustos de Eicker-Huber-White.
+# Montiel Olea y Plagborg-Møller (2021) proponen la **proyección local aumentada con
+# rezagos** (`puremacro.lp.la_lp`): añade **un** rezago más de todas las variables, el mismo
+# en todos los horizontes ($p_{\text{aug}} = p + 1$; aquí $4 + 1 = 5$). Con ese rezago extra
+# bastan los errores estándar robustos de Eicker-Huber-White, sin corrección por la
+# autocorrelación de los residuos, y la inferencia es asintóticamente válida de manera
+# uniforme con datos estacionarios y no estacionarios y en un rango amplio de horizontes
+# (MOPM 2021, resumen y §2.1). El rezago extra tiene un costo que la tabla de abajo hace
+# visible: consume una observación más al inicio de la muestra.
 #
 # Adicionalmente, en la literatura fiscal (Ramey y Zubairy 2018; Mountford y Uhlig 2009) el
 # objeto central para política no es solo la respuesta punto a punto, sino la
@@ -341,6 +351,33 @@ print(df_to_markdown(comp_lp_df, digits=3))
 assert la["beta"].min() < 0.0          # contracción bajo LA-LP
 assert cum_iv.loc[12] < cum_ols.loc[12] # la contracción acumulada es mayor corrigiendo por atenuación
 
+# El rezago extra cuesta una observación al inicio de la muestra. ¿Cuál se pierde?
+p_aug = la.attrs["p_aug"]                               # 4 + 1 rezago de aumento
+i_max = int(df["mtr_u"].abs().idxmax())                 # el mayor cambio narrativo del registro
+ols_sin = lp_hac(df.iloc[1:].reset_index(drop=True), y="y", x="mtr_u",
+                 horizons=range(0, Htax + 1), n_lags=4).set_index("h")
+print(f"\nLA-LP con p_aug = {p_aug} rezagos; primer trimestre usado: LP-HAC {df['date'].iloc[4]}"
+      f" | LA-LP {df['date'].iloc[p_aug]}")
+print(f"mayor |mtr_u| del registro: {df['date'].iloc[i_max]} ({df['mtr_u'].iloc[i_max]:+.2f} % del PIB)")
+print(f"beta en h=4: OLS {ols.loc[4, 'beta']:+.3f} | OLS sin {df['date'].iloc[4]} "
+      f"{ols_sin.loc[4, 'beta']:+.3f} | LA-LP {la.loc[4, 'beta']:+.3f}")
+assert i_max == 4                      # la LA-LP pierde justo el trimestre más influyente
+# Sin ese trimestre, la OLS se acerca a la LA-LP: la brecha es de muestra, no de rezagos.
+assert abs(ols_sin.loc[4, "beta"] - la.loc[4, "beta"]) < abs(ols.loc[4, "beta"] - la.loc[4, "beta"]) / 3
+
+# %% [markdown] slideshow={"slide_type": "subslide"}
+# ### Cómo leer la columna LA-LP
+# La columna LA-LP se aleja mucho de la OLS (−1.195 frente a −0.240 en $h=4$), pero no por el
+# aumento con rezagos en sí. El quinto rezago obliga a empezar la muestra un trimestre
+# después, en 1948Q3, y el trimestre que se pierde, 1948Q2, es el mayor cambio de `mtr_u` de
+# todo el registro (−3.74% del PIB, la Revenue Act de 1948). Si la OLS con cuatro rezagos
+# también se estima sin 1948Q2, su coeficiente en $h=4$ pasa a −1.141, casi el de la LA-LP.
+# Con series narrativas hechas de unos pocos eventos grandes, una sola observación mueve el
+# multiplicador. Romer y Romer (2010, AER, p. 788) también señalan el recorte de 1948 como la
+# observación influyente de su muestra: en su VAR, excluirlo lleva el efecto máximo de
+# $-2.93\%$ a $-2.20\%$. Aquí, con `mtr_u` y sin controles, excluirlo refuerza el efecto en
+# lugar de debilitarlo. Antes de comparar estimadores, compara sus muestras.
+
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 3. Preguntas para pensar
 # 1. En la figura de la sección 1, la LP y el SVAR **coinciden en $h=0$** por construcción.
@@ -353,7 +390,7 @@ assert cum_iv.loc[12] < cum_ols.loc[12] # la contracción acumulada es mayor cor
 #    instrumento y regresor. ¿Qué le pasa al estimador 2SLS y a las bandas de confianza
 #    cuando el instrumento es débil? ¿Preferirías reportar la banda usual o una **robusta a
 #    IV débil** (p. ej., Anderson-Rubin)?
-# 4. La LP-IV da un multiplicador ~2.5 veces mayor (en valor absoluto) que la LP directa por
+# 4. La LP-IV da en el pico un multiplicador 2.5 veces mayor (en valor absoluto) que la LP directa por
 #    OLS sobre la misma serie `mtr_u`. Da dos explicaciones rivales de esa brecha: una que
 #    favorece a la IV (error de medida en la serie narrativa) y otra que la condena
 #    (`rr_exog` no es realmente exógeno y la IV está amplificando un sesgo). ¿Qué evidencia

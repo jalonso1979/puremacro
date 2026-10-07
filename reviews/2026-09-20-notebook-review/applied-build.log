@@ -1,0 +1,32 @@
+[jupytext] Reading 48_applied_realtime_nowcasting_and_news.py in format py
+[jupytext] Setting kernel python3
+[jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
+[jupytext] Executing notebook with kernel python3
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 48_applied_realtime_nowcasting_and_news.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
+[jupytext] Reading 48_applied_realtime_nowcasting_and_news_es.py in format py
+[jupytext] Setting kernel python3
+[jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
+[jupytext] Executing notebook with kernel python3
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 48_applied_realtime_nowcasting_and_news_es.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
+[jupytext] Reading 50_applied_fiscal_multipliers_and_debt_sustainability.py in format py
+[jupytext] Setting kernel python3
+[jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
+[jupytext] Executing notebook with kernel python3
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 50_applied_fiscal_multipliers_and_debt_sustainability.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
+[jupytext] Reading 50_applied_fiscal_multipliers_and_debt_sustainability_es.py in format py
+[jupytext] Setting kernel python3
+[jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
+[jupytext] Executing notebook with kernel python3
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 50_applied_fiscal_multipliers_and_debt_sustainability_es.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
+› /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 48_applied_realtime_nowcasting_and_news.py
+› /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 48_applied_realtime_nowcasting_and_news_es.py
+› /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 50_applied_fiscal_multipliers_and_debt_sustainability.py
+› /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 50_applied_fiscal_multipliers_and_debt_sustainability_es.py

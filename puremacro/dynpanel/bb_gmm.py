@@ -25,11 +25,17 @@ from __future__ import annotations
 import numpy as np
 
 from ._results import GMMResult
-from .ab_gmm import _gmm_sandwich_cov, _gmm_step, _inv_psd
+from .ab_gmm import (
+    _dropped_instrument_notes,
+    _gmm_sandwich_cov,
+    _gmm_step,
+    _inv_psd,
+)
 from .diagnostics import ar_test, hansen_j, windmeijer_correction
 from .instruments import (
     _build_panel_records,
     _level_at,
+    _prune_zero_columns,
     _y_level_at,
     build_diff_design,
     build_diff_instruments,
@@ -238,49 +244,29 @@ def _W_step1_system(Z_full: np.ndarray, n_diff: int) -> np.ndarray:
     return _inv_psd(M, name="bb_gmm step1 weight Z'Z")
 
 
-# ---------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------
-
-
-def bb_gmm(
+def _build_system(
     y: np.ndarray,
     panel_id: np.ndarray,
     time_id: np.ndarray,
     *,
-    lag_dep_var: int = 1,
-    lags: int | None = None,
-    X_endog: np.ndarray | None = None,
-    X_pred: np.ndarray | None = None,
-    X_exog: np.ndarray | None = None,
-    gmm_lag_window: tuple = (2, None),
-    collapse: bool = True,
-    two_step: bool = True,
-    windmeijer: bool = True,
-    names: list | None = None,
-) -> GMMResult:
-    """Blundell-Bond (1998) system GMM.
+    lag_dep_var: int,
+    X_endog: np.ndarray | None,
+    X_pred: np.ndarray | None,
+    X_exog: np.ndarray | None,
+    gmm_lag_window: tuple,
+    collapse: bool,
+) -> dict:
+    """Stack the difference and level equations of system GMM.
 
-    Stacks Arellano-Bond difference moments with Blundell-Bond level
-    moments. The level moments instrument the level regressors with
-    lagged FIRST DIFFERENCES (so the ``α_i`` fixed effect drops
-    asymptotically under mean-stationarity of the regressors).
+    Returns a dict with ``Z`` (block-diagonal: difference instruments on
+    the difference rows, level instruments on the level rows), ``X``,
+    ``y``, ``rows`` (difference rows first, then level rows), ``diff_rows``,
+    ``n_diff``, ``names``, ``instr_labels`` and ``dropped_instr_labels``.
 
-    Same signature and semantics as :func:`ab_gmm`. The level block is
-    always collapsed (one moment per regressor per time t), regardless
-    of ``collapse=True/False``: the BB level moment is intrinsically
-    one-per-regressor and uncollapsing it is not standard practice.
-    The ``collapse`` flag still applies to the AB difference moment
-    block.
-
-    See :func:`ab_gmm` parameters for details.
-
-    References
-    ----------
-    See module-level docstring.
+    Instrument columns that are identically zero on the estimation sample
+    are dropped (see :func:`puremacro.dynpanel.instruments._prune_zero_columns`);
+    they carry no moment condition but make the weight matrices singular.
     """
-    if lags is not None:
-        lag_dep_var = lags
     # 1) Build the difference block (using the same machinery as ab_gmm)
     records = _build_panel_records(y, panel_id, time_id, X_endog, X_pred, X_exog)
     n_endog = records[0]["Xe"].shape[1] if records else 0
@@ -351,6 +337,103 @@ def bb_gmm(
 
     rows_full = list(diff_rows) + list(lvl_rows)
 
+    labels_lvl = (
+        [f"lvl_dL{p}.y" for p in range(1, lag_dep_var + 1)]
+        + [f"lvl_dXe{j}" for j in range(n_endog)]
+        + [f"lvl_dXp{j}" for j in range(n_pred)]
+        + [f"lvl_Xx{j}" for j in range(n_exog)]
+    )[:m_lvl]
+    Z_full, instr_labels, dropped = _prune_zero_columns(
+        Z_full, list(instr_labels_diff) + labels_lvl
+    )
+
+    return {
+        "Z": Z_full,
+        "X": X_full,
+        "y": y_full,
+        "rows": rows_full,
+        "diff_rows": diff_rows,
+        "n_diff": n_diff,
+        "names": names_auto,
+        "instr_labels": instr_labels,
+        "dropped_instr_labels": dropped,
+    }
+
+
+# ---------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------
+
+
+def bb_gmm(
+    y: np.ndarray,
+    panel_id: np.ndarray,
+    time_id: np.ndarray,
+    *,
+    lag_dep_var: int = 1,
+    lags: int | None = None,
+    X_endog: np.ndarray | None = None,
+    X_pred: np.ndarray | None = None,
+    X_exog: np.ndarray | None = None,
+    gmm_lag_window: tuple = (2, None),
+    collapse: bool = True,
+    two_step: bool = True,
+    windmeijer: bool = True,
+    names: list | None = None,
+) -> GMMResult:
+    """Blundell-Bond (1998) system GMM.
+
+    Stacks Arellano-Bond difference moments with Blundell-Bond level
+    moments. The level moments instrument the level regressors with
+    lagged FIRST DIFFERENCES (so the ``α_i`` fixed effect drops
+    asymptotically under mean-stationarity of the regressors).
+
+    Same signature and semantics as :func:`ab_gmm` (without its one-step
+    ``robust=False`` option). The level block is
+    always collapsed (one moment per regressor per time t), regardless
+    of ``collapse=True/False``: the BB level moment is intrinsically
+    one-per-regressor and uncollapsing it is not standard practice.
+    The ``collapse`` flag still applies to the AB difference moment
+    block. Instrument columns that are identically zero on the
+    estimation sample are dropped and listed in ``GMMResult.notes``.
+
+    The Windmeijer correction differentiates the step-2 weight at the
+    one-step estimate (see
+    :func:`puremacro.dynpanel.diagnostics.windmeijer_correction`). The
+    step-1 weight here is ``(Z'Z)^{-1}``, not the ``H``-weighted matrix of
+    Stata ``xtdpdsys``, so one-step estimates (and hence the two-step
+    ones) are not expected to match ``xtdpdsys`` numerically.
+
+    See :func:`ab_gmm` parameters for details.
+
+    References
+    ----------
+    See module-level docstring.
+    """
+    if lags is not None:
+        lag_dep_var = lags
+    system = _build_system(
+        y,
+        panel_id,
+        time_id,
+        lag_dep_var=lag_dep_var,
+        X_endog=X_endog,
+        X_pred=X_pred,
+        X_exog=X_exog,
+        gmm_lag_window=gmm_lag_window,
+        collapse=collapse,
+    )
+    Z_full = system["Z"]
+    X_full = system["X"]
+    y_full = system["y"]
+    rows_full = system["rows"]
+    diff_rows = system["diff_rows"]
+    n_diff = system["n_diff"]
+    names_auto = system["names"]
+    notes = _dropped_instrument_notes(system["dropped_instr_labels"])
+
+    m = Z_full.shape[1]
+    n_full = len(rows_full)
     n_panels = len({r["panel"] for r in rows_full})
     k = X_full.shape[1]
 
@@ -419,6 +502,7 @@ def bb_gmm(
                 cov_uncorrected=cov_uncorr,
                 diff_rows=rows_full,
                 cov_step1=V_1,
+                residuals_step1=resid1,
             )
             windmeijer_used = True
         else:
@@ -473,6 +557,7 @@ def bb_gmm(
         windmeijer=bool(windmeijer_used),
         estimator="bb",
         converged=converged,
+        notes=notes,
     )
 
 

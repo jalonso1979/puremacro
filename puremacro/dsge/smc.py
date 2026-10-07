@@ -939,7 +939,7 @@ class SMCSampler:
 
     def _setup_dsge_target(self, custom_priors: Mapping[str, Any] | None) -> None:
         """Configure DSGE Kalman filter likelihood and priors."""
-        from puremacro.dsge.dynare import build_dynare
+        from puremacro.dsge.dynare import _resolve_dynare_model
         from puremacro.dsge.observation import make_state_space_from_varobs
         from puremacro.state_space import kalman_filter
         from puremacro.dsge.estimate import _stationary_init
@@ -993,6 +993,36 @@ class SMCSampler:
         n_obs = len(varobs)
         eff_ridge = max(self.ridge, 1e-3 if n_shocks < n_obs else 1e-5)
 
+        # For a build_dynare / load_mod model the particles are mapped to a
+        # state space exactly as LinearModel.estimate maps its draws
+        # (build._make_observation_eq): structural names re-solve the model,
+        # while SE_/CORR_/ME_ names from the model's estimated_params block go
+        # into Q and H. Passing them as parameters, as before, changed nothing
+        # the solver reads, so their likelihood was flat and their posterior
+        # was the prior. Names that are neither are ignored, as before.
+        obs_eq = None
+        me = self.measurement_error
+        if getattr(m, "_dynare_equations", None) is not None and (
+            me is None or isinstance(me, Mapping)
+        ):
+            from puremacro.dsge.build import _make_observation_eq
+            from puremacro.dsge._estimated_params import EstimatedParamSpec
+
+            est = getattr(m, "_estimated_params", None)
+            declared = {sp.name: sp for sp in est.specs} if est is not None else {}
+            specs = []
+            for n in param_names:
+                if n in declared and (declared[n].kind != "param" or n in base_params):
+                    specs.append(declared[n])
+                elif n in base_params:
+                    specs.append(EstimatedParamSpec(
+                        kind="param", target=(n,), name=n, prior=None, init=None,
+                        lb=-math.inf, ub=math.inf,
+                    ))
+            obs_eq = _make_observation_eq(
+                m, tuple(specs), varobs, measurement_error=me, ridge=eff_ridge,
+            )
+
         def dsge_log_lik(par_dict_or_vec: dict[str, float] | np.ndarray) -> float:
             if isinstance(par_dict_or_vec, dict):
                 p_dict = par_dict_or_vec
@@ -1003,25 +1033,29 @@ class SMCSampler:
             curr_params.update(p_dict)
 
             try:
-                if getattr(m, "_dynare_equations", None) is not None:
-                    solved_m = build_dynare(
-                        m._dynare_equations,
-                        variables=m.variables,
-                        shocks=m.shocks,
-                        params=curr_params,
-                        steady_state=m.steady_state,
-                        check_steady_state=False,
-                        strict=False,
-                    )
+                if obs_eq is not None:
+                    ssm = obs_eq(curr_params)
                 else:
-                    solved_m = m
+                    if getattr(m, "_dynare_equations", None) is not None:
+                        # The shared re-solve: the steady state follows the
+                        # parameters, the declared shock covariance is kept
+                        # (it used to fall back to the identity here) and a
+                        # lag calibrated to 0 stays a state at every particle.
+                        solved_m = _resolve_dynare_model(m, curr_params, strict=False)
+                    elif getattr(m, "_equations", None) is not None:
+                        # A build() model: it used to be evaluated at its
+                        # calibration for every particle, a flat likelihood.
+                        from puremacro.dsge.build import _resolve_build_model
 
-                ssm = make_state_space_from_varobs(
-                    solved_m,
-                    varobs,
-                    measurement_error=self.measurement_error,
-                    ridge=eff_ridge,
-                )
+                        solved_m = _resolve_build_model(m, curr_params, strict=False)
+                    else:
+                        solved_m = m
+                    ssm = make_state_space_from_varobs(
+                        solved_m,
+                        varobs,
+                        measurement_error=me,
+                        ridge=eff_ridge,
+                    )
                 a0, P0 = _stationary_init(ssm)
                 if P0 is None:
                     P0 = 1e6 * np.eye(ssm.m)

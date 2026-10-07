@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "package_file": "/tmp/puremacro-sw07-sampling-wheel/installed/puremacro/__init__.py",
+  "environment": {
+    "python": "3.13.12",
+    "numpy": "2.4.6",
+    "scipy": "1.18.1",
+    "pandas": "3.0.6"
+  },
+  "exact_moment_count": 15,
+  "exact_covariance_shape": [
+    15,
+    15
+  ],
+  "stationary_sample_shape": [
+    156,
+    7
+  ],
+  "stationary_sample_sha256": "e6604ad549987d348d7cce9c7702927e993cf583ded7e76df116c26cae1f0ea4",
+  "scenario": "published_fixed",
+  "replications": 2,
+  "usable_fits": 2,
+  "unresolved_draws": 0,
+  "statuses": [
+    "regular",
+    "regular"
+  ],
+  "tail_fraction_bounds": [
+    0.5,
+    0.5
+  ],
+  "network_blocked_with_positive_control": true,
+  "statsmodels_blocked_with_positive_control": true,
+  "statsmodels_runtime_imported": false,
+  "repository_source_absent_from_sys_path": true,
+  "scope": "Installation and two-draw workflow verification, not scientific Monte Carlo evidence"
+}

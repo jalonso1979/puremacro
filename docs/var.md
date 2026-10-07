@@ -97,7 +97,7 @@ defaulting is still choosing.
 | call | assumption | needs |
 |---|---|---|
 | `cholesky` | recursive contemporaneous ordering | `ordering` (optional) |
-| `bq` | one shock has all the long-run effect on one variable | `permanent_var_idx` |
+| `bq` | one shock has all the long-run effect on one variable | `permanent_var_idx`, `cumulate` |
 | `sign_restrictions` | IRF signs at named horizons | `restrictions` |
 | `sign_zero` | signs **and** exact zeros on the impact matrix | `zero_constraints`, `sign_constraints` |
 | `narrative_sign_svar` | signs plus the sign or dominance of a shock on named dates | `sign_matrix`, `restrictions` |
@@ -136,13 +136,57 @@ into `Y` so you can map them back to dates for an LP-IV or a narrative check.
 
 ### Blanchard–Quah
 
-`bq(Y, p=..., horizon=..., permanent_var_idx=0)` imposes that only the shock in
-column `permanent_var_idx` has a non-zero long-run effect on that variable.
-**The IRFs come back cumulated** along the horizon axis, so `irf_point[h]` is a
-*level* response and not a difference — the whole point, since the VAR is
-normally run on growth rates. Do not `cumsum` them again. If `(I − ΣA_i)` is
-singular the call raises a `LinAlgError` naming the near-unit-root, rather than
-returning an inverse of a singular matrix.
+`bq(Y, p=..., horizon=..., permanent_var_idx=0, cumulate=True)` imposes that
+only the shock in column `permanent_var_idx` has a non-zero long-run effect on
+the *level* of that variable: `(I − ΣA_i)⁻¹ B` is lower triangular once that
+variable is moved first. Shock `permanent_var_idx` is the permanent one (supply,
+technology); the others have no long-run effect on it.
+
+**Which responses come back cumulated depends on how each column entered, and
+`cumulate=` says so.** The VAR must be stationary, so a variable with a unit
+root enters in first differences and a stationary one may enter in levels.
+Cumulating the response of a differenced variable over the horizon gives the
+response of its level. Cumulating a variable that is already in levels gives
+the running sum of its response, which converges to `((I − ΣA_i)⁻¹ B)[i, :]`
+instead of returning to zero — a permanent effect the identification rules
+out.
+
+| specification | columns of `Y` | `cumulate` | `irf_point[h, i, j]` |
+|---|---|---|---|
+| Blanchard–Quah (1989) | `[100·Δlog GNP, unemployment rate]` | `[0]` | row 0: % deviation of the level of GNP; row 1: deviation of the unemployment rate, in points |
+| Galí (1999), hours in differences | `[100·Δlog productivity, 100·Δlog hours]` | `True` (default) | both rows: % deviation of the level |
+| hours in levels (the CEV critique) | `[100·Δlog productivity, log hours]` | `[0]` | row 1: deviation of log hours, not cumulated |
+| raw responses of the columns as entered | any | `False` | no row cumulated |
+
+Blanchard and Quah define `X = (ΔY, U)′` with `Y` the log of GNP and `U` the
+*level* of the unemployment rate, and obtain the effect on the level of `Y`
+after `k` periods as the partial sum of the `ΔY` responses (NBER WP 2737, 1988,
+p. 3); their figures plot the log of output and the unemployment rate itself.
+So for their system:
+
+```python
+import numpy as np
+from puremacro.var.identify import bq
+
+# gnp, urate: your quarterly series of real GNP and the unemployment rate (%)
+Y = np.column_stack([100 * np.diff(np.log(gnp)), urate[1:]])   # (Δ log GNP, U)
+res = bq(Y, p=4, horizon=40, permanent_var_idx=0, cumulate=[0])
+res.irf_point[:, 0, 1]   # log GNP (%) after the demand shock: returns to 0
+res.irf_point[:, 1, 1]   # unemployment rate (points) after the demand shock: returns to 0
+res.irf_point[:, 0, 0]   # log GNP after the supply shock: the permanent effect
+```
+
+`cumulate=True` is the default and the behaviour of every earlier release (all
+rows cumulated), which is right when every column is differenced; it is wrong
+for BQ's own `(Δy, u)` system, where it turns the unemployment response into a
+spurious permanent effect. A list of indices, or a boolean mask of length `n`,
+cumulates only those rows. The same transformation is applied to every
+bootstrap draw before the percentiles are taken, so `irf_lower` and
+`irf_upper` are bands of the object you asked for. Do not `cumsum` a cumulated
+row again, and do not `np.diff` cumulated bands to recover a levels variable —
+the difference of two quantiles is not a quantile; pass `cumulate=` instead.
+If `(I − ΣA_i)` is singular the call raises a `LinAlgError` naming the
+near-unit-root, rather than returning an inverse of a singular matrix.
 
 ### Sign restrictions, and the four different formats
 
@@ -357,7 +401,7 @@ everywhere — a median over rotation draws is not a point estimate:
 | function | class | central | bands | notes |
 |---|---|---|---|---|
 | `cholesky` | `CholeskySVARResult` | `irf_point` | `irf_lower`, `irf_upper` | `n_boot`, `n_fail`, `ci` |
-| `bq` | `BQSVARResult` | `irf_point` | `irf_lower`, `irf_upper` | **cumulated** |
+| `bq` | `BQSVARResult` | `irf_point` | `irf_lower`, `irf_upper` | rows in `cumulate=` are **cumulated** (default: all) |
 | `sign_restrictions` | `SignRestrictionResult` | `irf_median` | `irf_lower`, `irf_upper` | `n_draws`, `n_accepted` |
 | `narrative_sign_svar` | `NarrativeSignSVARResult` | `irf_median` (weighted) | `irf_lower`, `irf_upper` | `weights`, `ess`, `restriction_fail_counts` |
 | `proxy` | `ProxySVARResult` | `irf_point` | `irf_lower`, `irf_upper` | `B`, `first_stage_F` |
@@ -542,3 +586,19 @@ threshold, TVECM, generalised IRFs) and `diagnostics` (`granger_causality`,
 shocks one equation at a time, so `girf_by_regime` is `(K, S, H+1, n)` — `K`
 starting regimes by `S` shock sizes — and `girf_pooled` is `(S, H+1, n)`, not
 `(H+1, n, n)`.
+
+The Minnesota BVAR has two posteriors, and they differ in what the
+cross-variable factor λ₂ can do. `minnesota_posterior` solves one
+Theil–Goldberger mixed regression per equation, so λ₂ (default 0.5) is
+honoured; it returns the posterior mean only. `minnesota_gibbs`,
+`minnesota_optimal_lambda` and the marginal likelihood behind it use the
+conjugate Normal–inverse-Wishart prior, built from the dummy observations of
+Bańbura, Giannone and Reichlin (2010, eq. 5): own first lags centred on 1,
+prior sd `λ₁ σ_i / (k^λ₃ σ_j)`. Its covariance `Ψ ⊗ Ω₀` gives every equation
+the same prior shape, so it can only encode λ₂ = 1 — the paper imposes the
+prior "under the condition that ϑ = 1" (ECB WP 966, p. 11). These functions
+default to λ₂ = 1 and warn, then use 1, for any other value; at λ₂ = 1 the
+exact Gibbs posterior mean (`A_mean`) equals `minnesota_posterior`'s. In
+puremacro 4.3.0 and earlier their dummy block centred the own first lag of
+every variable except the last one on λ₂ (0.5 by default) instead of 1, so the
+posterior depended on the column order.

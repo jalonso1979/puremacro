@@ -339,42 +339,38 @@ def canonical_collocation_solution() -> Tuple[CollocationSolution, CollocationPr
 
 @pytest.fixture
 def canonical_continuous_steady_state() -> dict[str, Any]:
-    """Canonical initial continuous steady state for MIT shock transitions."""
-    N_k = 40
-    k_grid = np.linspace(0.1, 15.0, N_k)
-    P_z = np.array([[0.90, 0.10], [0.10, 0.90]], dtype=float)
-    z_grid = np.array([0.80, 1.20], dtype=float)
+    """Configuration of the initial continuous steady state for MIT shock transitions.
 
-    r_ss = 0.035
-    w_ss = 1.15
-    alpha = 0.36
-    delta = 0.08
-
-    # Synthetic steady-state continuous policy: savings rule k' = 0.88 * k + 0.12 * z
-    policy_a = 0.88 * k_grid[:, None] + 0.12 * z_grid[None, :]
-
-    # Compute stationary distribution via power iteration on young lottery
-    pdf = np.full((N_k, 2), 1.0 / (N_k * 2))
-    for _ in range(200):
-        pdf_next = continuous_push_distribution(pdf, policy_a, k_grid, shock_transition=P_z, shock_grid=z_grid)
-        if np.max(np.abs(pdf_next - pdf)) < 1e-11:
-            break
-        pdf = pdf_next
-
-    K_ss = np.sum(k_grid[:, None] * pdf)
-
+    ``solve_continuous_transition`` solves a dict with ``solve_aiyagari_continuous``,
+    so it may hold only that function's keywords. Until the AIYCONT fix this
+    fixture also carried a hand-built solved state (``k_grid``, ``policy_a``,
+    ``pdf_ss``, ``r_ss``, ``w_ss``, ``K_ss``); those keys were silently dropped
+    and the transitions started from the economy below, which is what these
+    tests have always run. They now raise TypeError.
+    """
     return {
-        "k_grid": k_grid,
-        "z_grid": z_grid,
-        "P_z": P_z,
-        "r_ss": r_ss,
-        "w_ss": w_ss,
-        "alpha": alpha,
-        "delta": delta,
-        "policy_a": policy_a,
-        "pdf_ss": pdf,
-        "K_ss": K_ss,
+        "beta": 0.96,
+        "gamma": 2.0,
+        "alpha": 0.36,
+        "delta": 0.08,
+        "P_z": np.array([[0.90, 0.10], [0.10, 0.90]], dtype=float),
+        "z_grid": np.array([0.80, 1.20], dtype=float),
     }
+
+
+@pytest.fixture(scope="module")
+def canonical_continuous_equilibrium() -> AiyagariContinuousEquilibrium:
+    """The solved steady state of ``canonical_continuous_steady_state``."""
+    from puremacro.vfi.continuous_distribution import solve_aiyagari_continuous
+
+    return solve_aiyagari_continuous(
+        beta=0.96,
+        gamma=2.0,
+        alpha=0.36,
+        delta=0.08,
+        P_z=np.array([[0.90, 0.10], [0.10, 0.90]], dtype=float),
+        z_grid=np.array([0.80, 1.20], dtype=float),
+    )
 
 
 # ===========================================================================
@@ -818,29 +814,38 @@ class TestTier2BoundaryCornerCases:
         assert np.allclose(res.r_path, res.r_path[0], atol=1e-6), "Zero shock path must be static across time"
         assert np.allclose(res.K_s_path, res.K_s_path[0], atol=1e-6), "Zero shock path must be static across time"
 
-    def test_continuous_transition_boundary_mass_clamping(self, canonical_continuous_steady_state):
+    def test_continuous_transition_boundary_mass_clamping(self, canonical_continuous_equilibrium):
         """Boundary mass clamping: extreme wealth distribution at k=0 preserves mass conservation."""
+        import dataclasses
+
         ct = _require_continuous_transition()
-        ss = canonical_continuous_steady_state
+        ss = canonical_continuous_equilibrium
 
-        # Plant all mass at lower boundary k = k_min
-        N_k = len(ss["k_grid"])
-        clamped_pdf = np.zeros_like(ss["pdf_ss"])
+        # Plant all mass at lower boundary k = k_min. A dict cannot carry a
+        # distribution (it is a solve_aiyagari_continuous configuration), so the
+        # solved equilibrium is copied with the clamped initial distribution.
+        k_grid = ss.distribution.asset_grid
+        clamped_pdf = np.zeros_like(ss.distribution.pdf)
         clamped_pdf[0, :] = 0.5  # 100% mass at borrowing constraint
-
-        clamped_ss = dict(ss)
-        clamped_ss["pdf_ss"] = clamped_pdf
-        clamped_ss["K_ss"] = np.sum(ss["k_grid"][:, None] * clamped_pdf)
-
-        res = ct.solve_continuous_transition(
-            initial_steady_state=clamped_ss,
-            shock_path=np.zeros(10),
-            horizon=10,
-            solver="shooting",
-            tol=1e-2,
-            backend="numpy",
+        clamped_ss = dataclasses.replace(
+            ss,
+            distribution=dataclasses.replace(ss.distribution, pdf=clamped_pdf),
+            K=float(np.sum(k_grid[:, None] * clamped_pdf)),
         )
 
+        with pytest.warns(RuntimeWarning, match="did not converge"):
+            res = ct.solve_continuous_transition(
+                initial_steady_state=clamped_ss,
+                shock_path=np.zeros(10),
+                horizon=10,
+                solver="shooting",
+                tol=1e-2,
+                backend="numpy",
+            )
+
+        # The clamped distribution is the one the transition starts from.
+        assert np.array_equal(res.distributions[0], clamped_pdf)
+        assert res.K_s_path[0] == pytest.approx(0.0, abs=1e-12)
         # No mass loss despite heavy constraint boundary concentration
         for t, dist in enumerate(res.distributions):
             assert np.isclose(np.sum(dist), 1.0, atol=1e-11), f"Mass escaped at t={t}: sum={np.sum(dist)}"
@@ -1170,17 +1175,19 @@ class TestTier3CrossFeatureCombinations:
 class TestTier4RealWorldScenarios:
     """Tier 4: Realistic macroeconomic policy counterfactuals, shock transitions, and trade wars."""
 
-    def test_scenario_100bps_monetary_rate_hike_mit_shock(self, canonical_continuous_steady_state):
+    def test_scenario_100bps_monetary_rate_hike_mit_shock(self, canonical_continuous_equilibrium):
         """Scenario 1: 100 bps unexpected monetary policy rate hike decaying with persistence rho=0.70.
 
+        The shock is a wedge on the return households earn (``shock_var="r"``).
+
         Economic properties:
-        - Higher user cost of capital contracts capital demand.
-        - Wealth distribution gradually evolves rightward as households accumulate precautionary assets.
+        - Capital is predetermined on impact, so the market rate starts at the steady-state rate.
+        - Wealth distribution gradually evolves rightward as households accumulate assets at the higher return.
+        - The larger capital stock lowers the market rate, which then recovers towards the steady state.
         - Mass is strictly conserved throughout: sum(mu_t) = 1.0 +- 1e-12.
-        - Smooth asymptotic recovery to initial steady state.
         """
         ct = _require_continuous_transition()
-        ss = canonical_continuous_steady_state
+        ss = canonical_continuous_equilibrium
 
         T = 40
         # 100 bps rate hike: delta r_t = +0.0100 * (0.70^t)
@@ -1202,8 +1209,18 @@ class TestTier4RealWorldScenarios:
         for t, dist in enumerate(res.distributions):
             assert np.isclose(np.sum(dist), 1.0, atol=1e-11), f"Mass leaked at period t={t}: sum = {np.sum(dist)}"
 
-        # Economic property: terminal rate converges back towards steady state
-        assert abs(res.r_path[-1] - ss["r_ss"]) < abs(res.r_path[0] - ss["r_ss"]), "Rate path must converge toward steady state"
+        # Economic properties, measured against the solved steady state. Until the
+        # AIYCONT fix this test compared with a hand-built r_ss = 0.035 that the
+        # transition never used (its dict keys were dropped), which any falling
+        # rate path satisfied.
+        assert res.converged
+        dev = res.r_path - ss.r
+        assert abs(dev[0]) < 1e-5, "Capital is predetermined: the market rate starts at the steady state"
+        assert np.all(res.K_s_path[1:] > ss.K), "Households accumulate capital at the higher return"
+        assert np.all(dev[1:] < 0.0), "The larger capital stock lowers the market rate"
+        trough = int(np.argmax(np.abs(dev)))
+        assert 0 < trough < T - 1
+        assert abs(dev[-1]) < 0.5 * abs(dev[trough]), "Rate path must recover toward the steady state"
 
     def test_scenario_us_china_bilateral_tariff_war_and_diversion(self, canonical_caliendo_parro_data):
         """Scenario 2: US-China 25% Bilateral Tariff War and Trade Diversion in Caliendo-Parro.

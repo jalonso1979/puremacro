@@ -2298,13 +2298,24 @@ class OSRResult:
     Attributes
     ----------
     optimal_params : dict[str, float]
-        Dictionary of optimal rule parameter values.
+        Dictionary of optimal rule parameter values. A loss-based search pins
+        them (and the allocation they imply) down to a relative error of about
+        sqrt(2 eps / c), eps the loss's relative precision and c its normalised
+        curvature at the optimum: about 1e-8 for a well-scaled problem, worse
+        for a flat or badly scaled loss, because the loss is quadratic at its
+        minimum. On a ridge of equivalent rules they are one point of the
+        ridge. See ``osr``.
     initial_params : dict[str, float]
         Dictionary of baseline/initial rule parameter values.
     loss_opt : float
-        Value of quadratic loss at the optimum.
+        Value of quadratic loss at the optimum, from re-solving the model at
+        ``optimal_params``. NaN (with a RuntimeWarning from ``osr``) when that
+        re-solve fails or the rule is indeterminate; never the optimizer's
+        penalty value.
     loss_initial : float
-        Value of quadratic loss at initial parameters.
+        Value of quadratic loss at initial parameters. NaN (with a
+        RuntimeWarning from ``osr``) when the baseline moments cannot be
+        evaluated.
     rule_params : tuple[str, ...]
         Names of optimized rule parameters.
     target_vars : tuple[str, ...]
@@ -2352,9 +2363,12 @@ class OSRResult:
 
     def summary(self) -> str:
         """Render human-readable summary of OSR optimization results."""
-        improvement_pct = 0.0
-        if self.loss_initial > 0:
+        # Undefined (not 0%) when either loss is missing or the baseline loss is zero.
+        if np.isfinite(self.loss_initial) and np.isfinite(self.loss_opt) and self.loss_initial > 0:
             improvement_pct = 100.0 * (self.loss_initial - self.loss_opt) / self.loss_initial
+            reduction_text = f"{improvement_pct:.2f}%"
+        else:
+            reduction_text = "unavailable (a loss is NaN or the baseline loss is zero)"
 
         lines = [
             "OPTIMAL SIMPLE RULES (OSR) OPTIMIZATION",
@@ -2363,7 +2377,7 @@ class OSRResult:
             f"Function evaluations    : {self.n_evaluations}",
             f"Baseline loss           : {self.loss_initial:.6e}",
             f"Optimal loss            : {self.loss_opt:.6e}",
-            f"Loss reduction          : {improvement_pct:.2f}%",
+            f"Loss reduction          : {reduction_text}",
             "",
             "RULE PARAMETERS",
             "-" * 72,
@@ -2461,7 +2475,14 @@ class PolicyResult:
     beta : float
         Policymaker discount factor.
     loss : float
-        Expected unconditional quadratic loss.
+        Expected unconditional quadratic loss sum_i w_i Var(y_i), the average over
+        the stationary distribution. Under commitment this evaluates the
+        timeless-perspective rule on average. NaN when the closed-loop transition
+        has a root on or outside the unit circle (no stationary distribution),
+        with a RuntimeWarning. The test uses the spectral radius of the whole
+        transition (roots within 1e-10 of the unit circle count), so a unit root
+        confined to a variable with zero weight, such as a price level, also
+        gives NaN even though the weighted loss would exist.
     policy_rules : pd.DataFrame
         Reaction function coefficients expressing instrument(s) in terms of states.
     transition_matrix : np.ndarray
@@ -2473,6 +2494,12 @@ class PolicyResult:
     linear_model : Any
         The solved LinearModel under the policy regime, enabling .irf(), .fevd(),
         .simulate(), and .theoretical_moments().
+    conditional_loss : float
+        Conditional discounted loss (1 - beta) E_0 sum_t beta^t loss_t, starting
+        from the steady state with every lagged variable and Lagrange multiplier at
+        zero. Under commitment this is the loss of the fully optimal (Ramsey) plan,
+        which from the steady state coincides with the timeless-perspective rule.
+        NaN when the discounted sum diverges.
     """
 
     regime: str
@@ -2486,6 +2513,7 @@ class PolicyResult:
     impact_matrix: np.ndarray
     multipliers: tuple[str, ...] = ()
     linear_model: Any = None
+    conditional_loss: float = float("nan")
 
     @property
     def augmented_model(self) -> Any:
@@ -2503,9 +2531,13 @@ class PolicyResult:
             "=" * 72,
             f"Policymaker discount (beta): {self.beta:.4f}",
             f"Expected unconditional loss : {self.loss:.6e}",
+        ]
+        if np.isfinite(self.conditional_loss):
+            lines.append(f"Conditional loss (from s.s.): {self.conditional_loss:.6e}")
+        lines.extend([
             f"Policy instruments          : {', '.join(self.instruments)}",
             f"Target variables            : {', '.join(f'{k} (w={v})' for k, v in self.weights.items())}",
-        ]
+        ])
         if self.multipliers:
             lines.append(f"Lagrange multipliers        : {', '.join(self.multipliers)}")
         lines.extend([
@@ -2595,7 +2627,11 @@ class DiscretionaryPolicyResult(PolicyResult):
     beta : float
         Policymaker discount factor.
     loss : float
-        Expected unconditional quadratic loss.
+        Expected unconditional quadratic loss, the average over the stationary
+        distribution.
+    conditional_loss : float
+        Conditional discounted loss (1 - beta) E_0 sum_t beta^t loss_t from the
+        steady state.
     policy_rules : pd.DataFrame
         Reaction function coefficients expressing instrument(s) in terms of states.
     F : pd.DataFrame
@@ -2609,7 +2645,19 @@ class DiscretionaryPolicyResult(PolicyResult):
     inflation_bias : float
         Quantified inflation bias E[pi^disc] - E[pi^comm].
     stabilization_bias : float
-        Quantified stabilization bias Loss^disc - Loss^comm.
+        Loss^disc - Loss^comm under ``loss_criterion``. The unconditional
+        difference can be negative: for a small enough discount factor,
+        discretion beats the timeless-perspective rule on average whenever the
+        output gap has some weight and prices are not flexible (Sauer 2010,
+        Int. J. Central Banking 6(2), Prop. 2). The conditional difference is
+        non-negative, because from the steady state the commitment plan is the
+        Ramsey optimum. NaN when it is not computed (``compare_commitment=False``)
+        or cannot be computed (the commitment solve failed, in which case
+        ``commitment_result`` is None, or a loss under ``loss_criterion`` is
+        NaN); the last two cases emit a RuntimeWarning.
+    loss_criterion : str
+        "unconditional" (default) or "conditional": the loss that
+        ``stabilization_bias`` compares.
     converged : bool
         Whether Dennis (2007) policy iteration converged within max_iter.
     iterations : int
@@ -2619,17 +2667,19 @@ class DiscretionaryPolicyResult(PolicyResult):
     linear_model : Any
         The solved LinearModel under discretion.
     commitment_result : Any | None
-        Solved PolicyResult under LQ commitment for formal bias comparison.
+        Solved PolicyResult under LQ commitment for formal bias comparison; None
+        when ``compare_commitment=False`` or when the commitment solve failed.
     """
 
     F: pd.DataFrame = field(default_factory=pd.DataFrame)
     V: np.ndarray = field(default_factory=lambda: np.zeros((0, 0)))
     inflation_bias: float = 0.0
-    stabilization_bias: float = 0.0
+    stabilization_bias: float = float("nan")
     converged: bool = True
     iterations: int = 0
     diff: float = 0.0
     commitment_result: Any | None = None
+    loss_criterion: str = "unconditional"
 
     def __post_init__(self) -> None:
         if not isinstance(self.weights, pd.Series):
@@ -2664,14 +2714,34 @@ class DiscretionaryPolicyResult(PolicyResult):
             "=" * 72,
             f"Policymaker discount (beta): {self.beta:.4f}",
             f"Expected unconditional loss : {self.loss:.6e}",
+        ]
+        if np.isfinite(self.conditional_loss):
+            lines.append(f"Conditional loss (from s.s.): {self.conditional_loss:.6e}")
+        lines.extend([
             f"Policy instruments          : {', '.join(self.instruments)}",
             f"Target variables            : {', '.join(f'{k} (w={v})' for k, v in self.weights.items())}",
             f"Convergence status          : {'Converged' if self.converged else 'Did not converge'} in {self.iterations} iterations (diff={self.diff:.2e})",
-        ]
+        ])
         if self.inflation_bias != 0.0:
             lines.append(f"Inflation bias (E[pi^disc] - E[pi^comm]): {self.inflation_bias:.6e}")
-        if self.stabilization_bias != 0.0:
-            lines.append(f"Stabilization bias (Loss^disc - Loss^comm): {self.stabilization_bias:.6e}")
+        bias_label = f"Stabilization bias (Loss^disc - Loss^comm, {self.loss_criterion})"
+        if np.isfinite(self.stabilization_bias):
+            lines.append(f"{bias_label}: {self.stabilization_bias:.6e}")
+        elif self.commitment_result is None:
+            lines.append(f"{bias_label}: unavailable (no commitment solution; not computed or failed)")
+        else:
+            crit = self.loss_criterion
+            field_name = "conditional_loss" if crit == "conditional" else "loss"
+            missing = [
+                regime
+                for regime, value in (
+                    ("discretion", getattr(self, field_name, np.nan)),
+                    ("commitment", getattr(self.commitment_result, field_name, np.nan)),
+                )
+                if not np.isfinite(value)
+            ]
+            which = " and ".join(missing) if missing else "discretion or commitment"
+            lines.append(f"{bias_label}: unavailable (the {which} {crit} loss is not finite)")
         if self.V is not None and self.V.size > 0:
             lines.append(f"Riccati value matrix (norm) : {float(np.linalg.norm(self.V)):.6e}")
         lines.extend([

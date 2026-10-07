@@ -13,13 +13,14 @@
 # %% [markdown]
 # # Aggregate shocks in a heterogeneous economy
 #
+# **Can households in a macroeconomy with millions of heterogeneous agents forecast future factor prices using only aggregate capital, and why does approximate aggregation emerge despite non-linear individual savings rules?**
+#
 # Add aggregate TFP shocks to the Aiyagari economy and the *entire wealth
 # distribution* becomes a state variable. Krusell & Smith (1998) showed that
 # households can forecast the future with a single moment — mean capital — and be
-# almost exactly right ("approximate aggregation"). We solve that fixed point,
-# then show a perfect-foresight transition and the representative-agent benchmark.
-
-# %% [markdown]
+# almost exactly right ("approximate aggregation"; Carroll 1997; Den Haan 1997). We solve that fixed point,
+# then show a perfect-foresight transition (Boppart, Krusell & Mitman 2018) and the representative-agent benchmark.
+#
 # ## The method in math
 #
 # Add aggregate TFP $Z$ to Aiyagari and the household value function gains *two*
@@ -37,6 +38,21 @@
 # is the empirical finding that the rule fits with $R^2\approx 0.999$ — a single moment (mean
 # $K$) is a near-sufficient statistic for the whole distribution.
 #
+# ### Baseline Model Parameters
+#
+# | Parameter | Symbol | Economic Interpretation | Baseline Value | Units |
+# |---|---|---|---|---|
+# | Discount factor | $\beta$ | Subjective rate of time preference | 0.96 | Dimensionless (annual) |
+# | Risk aversion | $\gamma$ | Relative risk aversion curvature (log utility) | 1.00 | Dimensionless |
+# | Capital share | $\alpha$ | Cobb-Douglas output elasticity of capital | 0.36 | Dimensionless fraction |
+# | Depreciation | $\delta$ | Annual physical capital depreciation rate | 0.08 | Annual rate |
+# | Aggregate TFP states | $Z_{\text{low}}, Z_{\text{high}}$ | Aggregate productivity in bad vs good regimes | $[0.99, 1.01]$ | Normalized index |
+# | Aggregate transition | $P_Z$ | Transition probability matrix across regimes | $[[0.875, 0.125], [0.125, 0.875]]$ | Probability |
+# | Simulation horizon | $T$ | Number of periods for fixed-point simulation | 2000 | Annual periods |
+# | Burn-in horizon | $T_{\text{burn}}$ | Initial simulation periods dropped | 300 | Annual periods |
+# | Asset grid points | $n_a$ | Household asset grid discretization points | 150 | Integer count |
+# | Capital grid points | $n_K$ | Aggregate capital grid discretization points | 5 | Integer count |
+#
 # **Intuition.** Carrying $\mu$ as a state is hopeless: it is an infinite-dimensional object,
 # so the value function would live on a space no computer can grid. Why does *one* moment
 # suffice? Because the saving policy $a'(a,z)$ is very nearly **linear in wealth** over the
@@ -47,6 +63,14 @@
 # stress-test this: the **transition path** (an MIT shock — a one-off, perfectly-anticipated
 # deviation from steady state) shows how prices and capital travel *between* steady states, and
 # the **representative-agent** model strips out heterogeneity entirely as the limiting benchmark.
+#
+# ### Seminal Literature Citations
+#
+# - Boppart, Krusell & Mitman (2018). Exploiting MIT shocks in heterogeneous-agent economies: the impulse response as a numerical tool. *Journal of Economic Dynamics and Control*, 89, 90–102.
+# - Carroll (1997). Buffer-stock saving and the life cycle/permanent income hypothesis. *Quarterly Journal of Economics*, 112(1), 1–55.
+# - Deaton (1991). Saving and liquidity constraints. *Econometrica*, 59(5), 1221–1248.
+# - Den Haan (1997). Solving dynamic models with heterogeneous agents: Macroeconomic implications of reasons for borrowing. *Computational Economics*, 10(3), 253–274.
+# - Krusell & Smith (1998). Income and wealth heterogeneity in the macroeconomy. *Journal of Political Economy*, 106(5), 867–896.
 
 # %%
 import sys

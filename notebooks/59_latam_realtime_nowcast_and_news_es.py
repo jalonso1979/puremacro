@@ -13,58 +13,64 @@
 # %% [markdown]
 # # Nowcasting en tiempo real y atribución de noticias de Bańbura-Modugno en América Latina: datos escalonados, descomposición de revisiones y calibración de densidad
 #
-# **¿Cómo pueden los bancos centrales y departamentos de investigación económica en América Latina estimar el crecimiento del PIB trimestral en tiempo real a partir de paneles mensuales con datos escalonados, descomponer las actualizaciones del nowcast en sorpresas de publicación y revisiones estadísticas mediante la identidad exacta de Bańbura y Modugno (2014), y validar la calibración de la densidad predictiva utilizando pruebas de uniformidad PIT de Berkowitz (2001)?**
+# **¿Cómo puede un equipo de banco central estimar en tiempo real un índice de actividad a partir de un panel mensual con datos escalonados, explicar cada actualización del nowcast publicación por publicación con la descomposición de noticias de Bańbura & Modugno (2014), reproducir el nowcast exactamente como se veía en una fecha anterior y calificar pronósticos de densidad con pruebas de la transformada integral de probabilidad (PIT)?**
 #
-# **El panel en este cuaderno es simulado para ejecución fuera de línea. No extraiga hechos históricos sobre América Latina a partir de él.** Cada número se genera en la primera celda de código a partir de la semilla determinista fija `np.random.default_rng(42)`: el factor latente común sigue un proceso normal acumulativo, mientras que las series de indicadores combinan cargas factoriales con choques idiosincrásicos. Lo que es completamente genuino y auténtico es el *esquema* institucional — los nombres de los proveedores (`inegi`, `banxico`, `bcb`), los identificadores canónicos de series (`735848`, `736184`, `628197`, `SF61745` para México; `22099`, `24363`, `433`, `432` para Brasil), las frecuencias y las unidades de medida que retornan los conectores de `puremacro.fetch.realtime`. Esto garantiza una ejecución 100% reproducible y desconectada en entornos Pyodide y WebAssembly sin requerir acceso a redes externas, credenciales o tokens de API de bancos centrales. El cartucho de datos portátil `.pmz` lleva `SIMULATED` en sus notas de procedencia, garantizando total transparencia.
+# **El panel de este cuaderno es simulado. No extraiga de él ningún hecho sobre México ni Brasil.** Cada valor se genera en la primera celda de código a partir de la semilla `np.random.default_rng(42)`: cada país tiene su propio factor de caminata aleatoria, y cada indicador es un múltiplo ruidoso de ese factor. Los nombres de los proveedores y los identificadores de las series son etiquetas tomadas del catálogo de `puremacro.fetch.realtime` (que marca varios identificadores como no verificados), y los valores simulados ignoran la frecuencia y las unidades verdaderas de esas series: la serie `433` de Brasil, por ejemplo, es una variación porcentual mensual, no un índice. El calendario de publicación es estilizado. El cartucho portátil `.pmz` registra `SIMULATED` en sus notas de procedencia. No se descarga nada, así que el cuaderno también corre en el navegador.
 #
-# La vigilancia macroeconómica en economías emergentes —especialmente en América Latina— opera en un entorno caracterizado por desfases de publicación asíncronos y llegadas no sincronizadas de información estadística. Las autoridades de política monetaria en el Banco de México (Banxico) y el Banco Central do Brasil (BCB) no pueden esperar las publicaciones trimestrales de las cuentas nacionales, que suelen difundirse entre 60 y 90 días después del cierre del trimestre. En su lugar, las mesas de seguimiento monitorean indicadores mensuales de alta frecuencia: indicadores oportunos de actividad económica (IGAE en México, IBC-Br en Brasil), producción industrial, índices de precios al consumidor (INPC e IPCA) y tasas de interés de política monetaria (TIIE y Selic). Debido a que los institutos de estadística publican estos indicadores bajo calendarios heterogéneos, las matrices de datos en tiempo real presentan un patrón desbalanceado o "borde irregular" (*ragged edge*) al final de la muestra.
-#
-# Para extraer una señal coherente y oportuna del estado de la actividad económica, los bancos centrales implementan Modelos de Factores Dinámicos (DFM) en espacio de estados, estimados mediante el suavizador de Kalman (Giannone, Reichlin & Small 2008; Doz, Giannone & Reichlin 2011). Cuando se publican nuevos datos o las agencias estadísticas revisan retrospectivamente cifras previas, el modelo actualiza su estimación en tiempo real (*nowcast*) del PIB. Explicar los factores económicos determinantes de esa actualización es fundamental para la deliberación de política: ¿se revisó el nowcast porque la producción industrial superó las expectativas, o porque el instituto de estadística revisó a la baja la actividad del mes anterior? La descomposición analítica de noticias de Bańbura y Modugno (2014) resuelve este desafío al descomponer la revisión del nowcast en sorpresas de publicación (innovaciones respecto a las expectativas del modelo) y revisiones retrospectivas de datos, cumpliendo una identidad matemática exacta. Finalmente, la credibilidad de un banco central exige bandas de incertidumbre rigurosamente calibradas: las pruebas de uniformidad de la transformada de probabilidad integral (PIT de Berkowitz 2001) y los gráficos de abanico (*fan charts*) aseguran que los comités de política monetaria operen con densidades predictivas probabilísticas bien calibradas y no con predicciones puntuales engañosamente estrechas.
+# Los bancos centrales no pueden esperar a las cuentas nacionales, que llegan semanas después del cierre del mes o del trimestre, así que siguen indicadores mensuales que se publican con calendarios distintos. En un día cualquiera los meses más recientes del panel están incompletos: un "borde irregular". Los modelos de factores dinámicos (Giannone, Reichlin & Small 2008; Doz, Giannone & Reichlin 2011) llenan ese borde con el suavizador de Kalman. Cuando llegan datos nuevos, el nowcast se mueve, y la descomposición de Bańbura & Modugno (2014) atribuye el movimiento a la sorpresa de cada publicación y a las revisiones de datos anteriores, con una identidad contable exacta. Los pronósticos de densidad se califican con pruebas PIT (Berkowitz 2001).
 
 # %% [markdown]
 # ## El método en matemáticas — Factores dinámicos, descomposición de noticias y calibración de densidad
 #
-# **1. Modelo de Factores Dinámicos en Forma de Espacio de Estados.** Sea $X_t = [x_{1, t}, \dots, x_{n, t}]^\top$ un panel $n$-dimensional de indicadores macroeconómicos mensuales estandarizados con media cero y varianza unitaria. Los indicadores comparten $r$ factores latentes no observados $F_t \in \mathbb{R}^r$ sujetos a errores de medición idiosincrásicos $\xi_t$:
+# **1. Modelo de factores dinámicos en espacio de estados.** Sea $X_t = [x_{1, t}, \dots, x_{n, t}]^\top$ el vector de $n$ indicadores mensuales, cada uno estandarizado con su media muestral y su desviación estándar $s_j$. Comparten $r$ factores latentes $F_t \in \mathbb{R}^r$ más errores idiosincrásicos $\xi_t$:
 # $$ X_t = \Lambda F_t + \xi_t, \quad \xi_t \sim \text{i.i.d.} \, \mathcal{N}(0, R), \quad R = \operatorname{diag}(\sigma_1^2, \dots, \sigma_n^2). $$
-# Los factores latentes siguen un proceso autorregresivo vectorial estacionario de orden $p$:
+# Los factores siguen un vector autorregresivo de orden $p$:
 # $$ F_t = A_1 F_{t-1} + \dots + A_p F_{t-p} + u_t, \quad u_t \sim \text{i.i.d.} \, \mathcal{N}(0, Q). $$
-# Para paneles desbalanceados con bordes irregulares, los parámetros $(\Lambda, A, Q, R)$ se estiman mediante el algoritmo en dos etapas de componentes principales y filtro/suavizador de Kalman de Doz, Giannone y Reichlin (2011). La expectativa condicional $\hat{y}_{t^*|v} = \mathbb{E}[y_{t^*} \mid \Omega_v]$ de la variable objetivo $y_{t^*}$ (PIB trimestral) se extrae mediante el suavizador de Kalman sobre el conjunto de información disponible en la edición histórica $\Omega_v$.
+# Los parámetros $(\Lambda, A, Q, R)$ se estiman en dos etapas, componentes principales y después el filtro y el suavizador de Kalman, como en Doz, Giannone y Reichlin (2011). El nowcast de la variable objetivo $y_{t^*}$ es $\hat{y}_{t^*|v} = \mathbb{E}[y_{t^*} \mid \Omega_v]$, el valor suavizado por Kalman dado el conjunto de información $\Omega_v$ de la edición $v$. Aquí el objetivo es el índice `gdp` del último mes de referencia, que ninguna de las dos ediciones ha publicado todavía.
 #
-# **2. Atribución Exacta de Noticias de Bańbura y Modugno (2014).** Sean $\Omega_{v-1}$ y $\Omega_v$ los conjuntos de información en dos ediciones sucesivas de datos, con $\Omega_{v-1} \subset \Omega_v$. La nueva información disponible se compone de nuevas publicaciones para periodos recientes $j \in \mathcal{I}_{\text{new}}$ y revisiones a observaciones históricas $k \in \mathcal{I}_{\text{rev}}$:
+# **2. Atribución de noticias de Bańbura & Modugno (2014).** Sean $\Omega_{v-1} \subset \Omega_v$ los conjuntos de información de dos ediciones sucesivas. La información nueva consiste en publicaciones de periodos recientes $j \in \mathcal{I}_{\text{new}}$ y revisiones de observaciones anteriores $k \in \mathcal{I}_{\text{rev}}$:
 # $$ I_{j, v} \equiv x_{j, t_j} - \mathbb{E}[x_{j, t_j} \mid \Omega_{v-1}], \quad R_{k, v} \equiv x_{k, t_k}^{(v)} - x_{k, t_k}^{(v-1)}. $$
-# La revisión del nowcast $\Delta \hat{y}_{t^*|v} \equiv \hat{y}_{t^*|v} - \hat{y}_{t^*|v-1}$ se descompone analíticamente en:
+# Con los parámetros del modelo fijos en sus estimaciones sobre $\Omega_v$, el cambio del nowcast $\Delta \hat{y}_{t^*|v} \equiv \hat{y}_{t^*|v} - \hat{y}_{t^*|v-1}$ se descompone en
 # $$ \Delta \hat{y}_{t^*|v} = \sum_{j \in \mathcal{I}_{\text{new}}} \omega_j \cdot I_{j, v} + \sum_{k \in \mathcal{I}_{\text{rev}}} \omega_k \cdot R_{k, v}, $$
-# donde las ponderaciones $\omega$ están determinadas por la ganancia de Kalman y las autocovarianzas de los estados:
+# con ponderaciones dadas por la ganancia de Kalman y las covarianzas del estado:
 # $$ \omega = \operatorname{Cov}\left(y_{t^*}, \begin{bmatrix} I_v \\ R_v \end{bmatrix} \mid \Omega_{v-1}\right) \left[\operatorname{Var}\left(\begin{bmatrix} I_v \\ R_v \end{bmatrix} \mid \Omega_{v-1}\right)\right]^{-1}. $$
-# Esta descomposición satisface la identidad matemática exacta con residuo nulo:
-# $$ \text{Error de Descomposición} \equiv \left| \Delta \hat{y}_{t^*|v} - \left(\sum \text{Impacto}_{\text{publicaciones}} + \sum \text{Impacto}_{\text{revisiones}}\right) \right| < 10^{-10}. $$
+# La descomposición es exacta por construcción, así que su error reportado,
+# $$ \text{Error de Descomposición} \equiv \left| \Delta \hat{y}_{t^*|v} - \left(\sum \text{Impacto}_{\text{publicaciones}} + \sum \text{Impacto}_{\text{revisiones}}\right) \right|, $$
+# debe ser del orden del error de redondeo. Es una verificación de consistencia interna, no evidencia de que el nowcast sea preciso.
 #
-# **3. Evaluación de Densidad Predictiva: Prueba de Razón de Verosimilitud de Berkowitz (2001).** Sean $\{y_t\}_{t=1}^T$ las realizaciones observadas y $\{\mu_t, \sigma_t\}_{t=1}^T$ la secuencia de medias condicionales y desviaciones estándar del nowcast a un paso adelante. La Transformada de Probabilidad Integral (PIT) es:
-# $$ p_t = \Phi\left(\frac{y_t - \mu_t}{\sigma_t}\right), \quad z_t = \Phi^{-1}(p_t), $$
-# donde $\Phi(\cdot)$ es la función de distribución acumulada normal estándar. Bajo la hipótesis nula de correcta calibración e independencia serial, $p_t \sim \text{i.i.d.} \, \mathcal{U}(0, 1)$ y $z_t \sim \text{i.i.d.} \, \mathcal{N}(0, 1)$. Berkowitz modela el error transformado $z_t$ mediante un proceso autorregresivo:
-# $$ (z_t - \mu) = \rho (z_{t-1} - \mu) + \varepsilon_t, \quad \varepsilon_t \sim \text{i.i.d.} \, \mathcal{N}(0, \sigma_\varepsilon^2). $$
-# La prueba de razón de verosimilitud contrasta $H_0: \mu = 0, \sigma_\varepsilon^2 = 1, \rho = 0$ frente a la alternativa no restringida:
+# **3. Un gráfico de abanico basado en el modelo.** Con la varianza del estado $P_{T|T}$ en el último mes $T$ del panel, la varianza del estado a $h$ meses y la varianza predictiva del indicador $j$ son
+# $$ P_{T+h|T} = A P_{T+h-1|T} A^\top + Q, \qquad \operatorname{Var}(x_{j,T+h} \mid \Omega_v) = s_j^2 \left(\lambda_j^\top P_{T+h|T} \lambda_j + R_{jj}\right). $$
+# Las bandas del abanico son cuantiles gaussianos de estas varianzas; `RealtimeNowcastResult.fan_chart` las calcula con el modelo estimado, a partir del primer mes no publicado del objetivo. Ignoran la incertidumbre de los parámetros, así que son demasiado estrechas si el modelo se estima con una muestra corta.
+#
+# **4. Pruebas PIT de pronósticos de densidad (Berkowitz 2001).** Para resultados $\{y_t\}_{t=1}^T$ y densidades predictivas $\mathcal{N}(\mu_t, \sigma_t^2)$, la PIT es
+# $$ p_t = \Phi\left(\frac{y_t - \mu_t}{\sigma_t}\right), \quad z_t = \Phi^{-1}(p_t). $$
+# Si las densidades son correctas, $p_t \sim \text{i.i.d.} \, \mathcal{U}(0, 1)$ y $z_t \sim \text{i.i.d.} \, \mathcal{N}(0, 1)$. Berkowitz ajusta
+# $$ (z_t - \mu) = \rho (z_{t-1} - \mu) + \varepsilon_t, \quad \varepsilon_t \sim \text{i.i.d.} \, \mathcal{N}(0, \sigma_\varepsilon^2), $$
+# y prueba $H_0: \mu = 0, \sigma_\varepsilon^2 = 1, \rho = 0$ con
 # $$ \text{LR} = -2 \left[ \ln L(0, 1, 0) - \ln L(\hat{\mu}, \hat{\sigma}_\varepsilon^2, \hat{\rho}) \right] \sim \chi^2(3). $$
+# `pit_uniformity_test` también reporta la prueba de Kolmogorov-Smirnov (KS) de uniformidad de $p_t$, que solo mira la distribución marginal de las PIT.
 
 # %% [markdown]
 # ## Intuición
 #
-# **Intuición.** Los comités de política monetaria en los bancos centrales se reúnen en calendarios preestablecidos, independientemente de si las estadísticas oficiales del PIB trimestral ya han sido publicadas. Esperar las cifras trimestrales deja a las autoridades "a ciegas" durante puntos de inflexión críticos del ciclo económico. Los indicadores mensuales de alta frecuencia llegan con mayor rapidez, pero cada uno ofrece una visión parcial de la economía: la producción industrial abarca únicamente manufacturas, minería y servicios públicos; la inflación mide precios y no producto real; y las tasas de interés reflejan la postura monetaria y no el nivel de actividad. Además, cada indicador posee su propio retraso de divulgación, generando un borde irregular en el que algunas variables están actualizadas hasta el mes pasado mientras que otras presentan rezagos de dos o tres meses.
+# **Intuición.** Los comités de política se reúnen con un calendario fijo, estén o no publicadas las cuentas nacionales. Los indicadores mensuales llegan antes, pero cada uno cubre solo una parte de la economía y cada uno tiene su propio rezago de publicación, así que los últimos meses del panel están incompletos de maneras distintas para distintas series.
 #
-# El Modelo de Factores Dinámicos resuelve esta fricción informativa. Al postular que unas cuantas fuerzas macroeconómicas comunes impulsan los co-movimientos de todos los indicadores, el filtro de Kalman estima el estado económico subyacente a pesar de los datos faltantes. Cuando un instituto de estadística publica un nuevo dato, el motor de nowcasting calcula la *sorpresa* —la diferencia entre el número anunciado y lo que los factores latentes anticipaban—. Un incremento en la actividad económica no necesariamente eleva el nowcast: si el modelo y el mercado esperaban un repunte del 2.0% y el dato publicado fue de sólo 1.2%, la sorpresa es negativa (-0.8%) y el nowcast del PIB se revisa a la baja.
+# Un modelo de factores dinámicos supone que unas pocas fuerzas comunes mueven a todos los indicadores. El suavizador de Kalman estima esas fuerzas con lo que se haya publicado y completa los valores faltantes, incluido el objetivo. Cuando sale una cifra nueva, lo que mueve el nowcast no es la cifra en sí sino su *sorpresa*: la diferencia entre el valor publicado y lo que el modelo esperaba con el conjunto de información anterior. Una publicación fuerte que el modelo ya esperaba no cambia nada; una publicación débil que se esperaba fuerte reduce el nowcast.
 #
-# El marco de Bańbura y Modugno proporciona un desglose contable auditable para cada revisión del nowcast. El equipo técnico puede presentar un gráfico de atribución claro a la junta de gobierno: el nowcast se revisó en +0.15 puntos porcentuales, explicado por +0.22 pp provenientes de sorpresas positivas en el índice de actividad económica, compensados por -0.04 pp en producción industrial y -0.03 pp por revisiones a la baja en datos del trimestre anterior. Simultáneamente, los bancos centrales comunican la incertidumbre mediante gráficos de abanico: en lugar de transmitir una falsa precisión con un único número puntual, bandas de probabilidad crecientes (como el verde de Banxico o el azul marino del BCB) ilustran la expansión de los intervalos de confianza en horizontes futuros. La prueba de uniformidad de Berkowitz garantiza que estas bandas no sean ni excesivamente estrechas (sobreconfiadas) ni excesivamente amplias (poco informativas), consolidando la credibilidad institucional ante los mercados financieros y la sociedad.
+# La descomposición de Bańbura-Modugno convierte cada actualización en una cuenta: el cambio del nowcast es igual a la suma de la sorpresa de cada publicación por su ponderación, más el efecto de las revisiones de datos anteriores. Así el equipo puede decir qué publicación movió el nowcast y cuánto.
+#
+# Un nowcast solo sirve si se sabe qué conjunto de información lo produjo. Reproducir el nowcast "a la fecha" de un día anterior debe usar solo los datos publicados hasta entonces; de lo contrario la reproducción parece mejor de lo que el nowcast en tiempo real fue nunca. Por último, un pronóstico de densidad es honesto solo si sus bandas no son ni demasiado estrechas ni demasiado anchas. Las pruebas PIT pueden detectar esos errores, pero solo con suficientes pronósticos; la celda de Tu turno mide con qué frecuencia lo logran.
 
 # %%
 # Preamble: numerical libraries, plotting style, and realtime nowcast modules
 import sys
 from pathlib import Path
 import tempfile
-import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy.stats import norm
 
 _cwd = Path.cwd()
 sys.path.insert(0, str(_cwd if (_cwd / "_nbstyle.py").exists() else _cwd / "notebooks"))
@@ -77,31 +83,24 @@ from puremacro.fetch.realtime import (
     load_realtime_cartridge,
 )
 from puremacro.nowcast import (
-    DynamicFactorModel,
     realtime_nowcast,
-    banbura_modugno_news,
-    fan_chart,
     pit_uniformity_test,
 )
 
-# Set deterministic random seed for Pyodide reproducibility
+# Deterministic random seed: every value below is simulated
 rng = np.random.default_rng(42)
 
-print("puremacro Latin America Real-Time Nowcasting & News Attribution Engine")
-
 # %%
-# --- Experiment 1: Assemble Multi-Country Latin America Vintage Panel ---
-# ALL OBSERVATIONS BELOW ARE DETERMINISTICALLY GENERATED IN THIS CELL.
-# The provider names, canonical series IDs (735848, 736184, SF61745, 22099, 24363, 432),
-# and units are the authentic ones defined by INEGI, Banxico, and BCB.
-# The numbers themselves are synthetic paths generated from seed 42 to guarantee
-# 100% offline execution in Pyodide without live network sockets or API keys.
-#
-# Reference sample: 36 monthly periods (2022-01-01 to 2024-12-01).
-# Vintages: 2 snapshot captures (2024-11-01 and 2024-12-01).
-dates = pd.date_range("2022-01-01", periods=36, freq="MS")
-v1 = pd.Timestamp("2024-11-01")
-v2 = pd.Timestamp("2024-12-01")
+# --- Experiment 1: a simulated two-country vintage panel with a publication calendar ---
+# ALL VALUES BELOW ARE SIMULATED from seed 42. The provider names and series IDs are labels
+# borrowed from puremacro.fetch.realtime's catalogue; the simulated values ignore those
+# series' true frequencies and units.
+dates = pd.date_range("2022-01-01", periods=36, freq="MS")   # reference months 2022-01 to 2024-12
+v1 = pd.Timestamp("2025-01-15")                               # vintage v-1
+v2 = pd.Timestamp("2025-02-15")                               # vintage v
+# Stylised publication lags in months: a vintage dated in month m holds data up to month m - 1 - lag
+pub_lag = {"gdp": 2, "activity": 1, "ip": 1, "cpi": 0, "policy_rate": 0}
+revised_month, revision_size = 20, 0.45                       # vintage v revises 'activity' for 2023-09
 
 mex_series = [
     ("gdp", "inegi", "735848", "index"),
@@ -121,226 +120,234 @@ bra_series = [
 
 rows = []
 for country, series_list in [("MEX", mex_series), ("BRA", bra_series)]:
-    # Common persistent business cycle factor for the economy
+    # Each country has its own random-walk common factor
     f_latent = np.cumsum(rng.normal(scale=0.25, size=len(dates)))
     for var, prov, sid, un in series_list:
         load = rng.uniform(0.7, 1.3)
         noise = rng.normal(scale=0.15, size=len(dates))
         y_sim = 100.0 + 1.5 * f_latent * load + noise if un == "index" else 8.0 - 0.1 * f_latent * load + noise
 
-        for t_idx, d in enumerate(dates):
-            # Vintage 1: asynchronous ragged edge at the last 2 periods
-            val_v1 = float(y_sim[t_idx])
-            if t_idx == len(dates) - 1 and var != "gdp":
-                val_v1 = np.nan
-            elif t_idx == len(dates) - 2 and var in [series_list[2][0], series_list[3][0]]:
-                val_v1 = np.nan
-
-            if not np.isnan(val_v1):
+        for vint in (v1, v2):
+            last_month = (vint.to_period("M") - 1 - pub_lag[var]).to_timestamp()
+            for t_idx, d in enumerate(dates):
+                if d > last_month:
+                    continue  # not yet published in this vintage: the ragged edge
+                val = float(y_sim[t_idx])
+                if vint == v2 and var == "activity" and t_idx == revised_month:
+                    val += revision_size  # the agency revises an old month
                 rows.append({
-                    "country": country, "variable": var, "date": d, "vintage": v1,
-                    "value": val_v1, "provider": prov, "series_id": sid, "units": un,
-                })
-
-            # Vintage 2: releases ragged values and revises historical activity
-            val_v2 = float(y_sim[t_idx])
-            if t_idx == len(dates) - 1 and var == series_list[3][0]:
-                val_v2 = np.nan
-            if t_idx == 20 and var == series_list[1][0]:
-                val_v2 += 0.45  # Statistical agency retrospective revision
-
-            if not np.isnan(val_v2):
-                rows.append({
-                    "country": country, "variable": var, "date": d, "vintage": v2,
-                    "value": val_v2, "provider": prov, "series_id": sid, "units": un,
+                    "country": country, "variable": var, "date": d, "vintage": vint,
+                    "value": val, "provider": prov, "series_id": sid, "units": un,
                 })
 
 df_panel = pd.DataFrame(rows)
 panel_raw = VintagePanel(df_panel)
 
-# Package into portable self-verifying .pmz cartridge and reload
+# Package into a self-verifying .pmz cartridge and reload it
 with tempfile.TemporaryDirectory() as td:
     cart_path = Path(td) / "latam_realtime_nowcast.pmz"
     pack_realtime_cartridge(
         panel_raw,
         cart_path,
-        source="Banxico, INEGI, BCB",
-        notes="SIMULATED panel on authentic Latin America central bank identifiers",
+        source="Banxico, INEGI, BCB (identifiers only)",
+        notes="SIMULATED panel on identifiers borrowed from the puremacro.fetch.realtime catalogue",
     )
     loaded_panel = load_realtime_cartridge(cart_path)
 
-print("Constructed Multi-Country Vintage Panel:")
-print("  Data Provenance    : SIMULATED (stylized paths on real provider/series identifiers)")
-print(f"  Total Observations : {len(panel_raw):,}")
-print(f"  Countries Included : {panel_raw.countries}")
-print(f"  Macro Variables    : {panel_raw.variables}")
-print(f"  Reference Periods  : {len(dates)} months ({dates[0].strftime('%Y-%m-%d')} to {dates[-1].strftime('%Y-%m-%d')})")
-print(f"  Vintage Snapshots  : {len([v1, v2])} captures ({v1.strftime('%Y-%m-%d')} and {v2.strftime('%Y-%m-%d')})")
+calendar = (df_panel[df_panel["country"] == "MEX"].groupby(["variable", "vintage"])["date"].max()
+            .dt.strftime("%Y-%m").unstack("vintage"))
+calendar.columns = [f"published by {c:%Y-%m-%d}" for c in calendar.columns]
 
-# Verify panel integrity and roundtrip fidelity
+print("Simulated vintage panel (identifiers borrowed, values simulated):")
+print(f"  Observations      : {len(panel_raw):,}")
+print(f"  Countries         : {panel_raw.countries}")
+print(f"  Variables         : {panel_raw.variables}")
+print(f"  Reference months  : {dates[0]:%Y-%m} to {dates[-1]:%Y-%m}")
+print(f"  Vintages          : {v1:%Y-%m-%d} (v-1) and {v2:%Y-%m-%d} (v)")
+print("\nLast reference month published, Mexico:")
+print(calendar.to_string())
+
 assert panel_raw.countries == ["BRA", "MEX"]
-assert "gdp" in panel_raw.variables
-assert "activity" in panel_raw.variables
-assert "policy_rate" in panel_raw.variables
 assert len(loaded_panel) == len(panel_raw)
+assert (df_panel["date"] < df_panel["vintage"]).all(), "no vintage may hold data for months after its own date"
+assert not ((df_panel["variable"] == "gdp") & (df_panel["date"] == dates[-1])).any(), "the target month is unpublished"
 
 # %%
-# --- Experiment 2: Dynamic Factor Model Nowcasting & Exact News Attribution ---
-# Execute high-level real-time orchestrator for Mexico (Banxico/INEGI) and Brazil (BCB).
-# Automatically extracts ragged edges, fits DFM with Kalman smoothing, and computes
-# the exact Bańbura & Modugno (2014) news decomposition between Vintage 1 and Vintage 2.
+# --- Experiment 2: nowcasts, news attribution and a historical replay ---
+target_month = dates[-1]
 res_mex = realtime_nowcast(country="MEX", panel=loaded_panel, method="dfm", n_factors=1)
 res_bra = realtime_nowcast(country="BRA", panel=loaded_panel, method="dfm", n_factors=1)
 
-print(res_mex.summary())
-print("\n" + "=" * 74)
-print(f"Brazil (BCB) Point Nowcast: {res_bra.nowcast:+.4f} (SE: {res_bra.forecast_sd:.4f})")
-print("=" * 74)
-
-# Headline assertions verifying Mexico nowcast and Bańbura-Modugno news identity
+# Replay: what the same call returned on v-1, and the same call on a panel cut at v-1
+res_mex_v1 = realtime_nowcast(country="MEX", panel=loaded_panel, method="dfm", n_factors=1, as_of=v1)
+res_mex_cut = realtime_nowcast(country="MEX", panel=VintagePanel(df_panel[df_panel["vintage"] <= v1]),
+                               method="dfm", n_factors=1)
 nd_mex = res_mex.news_decomposition
-assert res_mex.country == "MEX"
-assert res_mex.palette == "banxico"
-assert not np.isnan(res_mex.nowcast)
-assert res_mex.forecast_sd > 0.0
-assert nd_mex is not None
-assert nd_mex.decomposition_error < 1e-10, f"Decomposition error {nd_mex.decomposition_error} exceeds 1e-10"
-assert abs(nd_mex.revision - nd_mex.total_impact) < 1e-10, "Total impact must match nowcast revision"
-assert len(nd_mex.news_table) > 0, "News table must contain indicator surprise releases"
-
-# Headline assertions verifying Brazil results and institutional palette
 nd_bra = res_bra.news_decomposition
-assert res_bra.country == "BRA"
-assert res_bra.palette == "bcb"
-assert not np.isnan(res_bra.nowcast)
-assert nd_bra is not None
-assert nd_bra.decomposition_error < 1e-10, f"Brazil decomp error {nd_bra.decomposition_error} exceeds 1e-10"
+
+print(res_mex.summary())
+print("\nNews by release (Mexico):")
+print(nd_mex.news_table.to_string(index=False, float_format="{:.4f}".format))
+print("\nRevisions (Mexico):")
+print(nd_mex.revision_table.to_string(index=False, float_format="{:.4f}".format))
+print("\n" + "=" * 74)
+print(f"Brazil nowcast for {target_month:%Y-%m}: {res_bra.nowcast:.4f} (s.d. {res_bra.forecast_sd:.4f}); "
+      f"revision {nd_bra.revision:+.4f}, decomposition error {nd_bra.decomposition_error:.1e}")
+print("=" * 74)
+print(f"Replay as of {v1:%Y-%m-%d}: nowcast {res_mex_v1.nowcast:.4f} (s.d. {res_mex_v1.forecast_sd:.4f}), "
+      f"news decomposition: {res_mex_v1.news_decomposition}")
+print(f"Same call on the panel cut at {v1:%Y-%m-%d}: nowcast {res_mex_cut.nowcast:.4f}")
+print(f"Previous nowcast inside the news decomposition (v-1 data, parameters estimated on v): {nd_mex.forecast_old:.4f}")
+print(f"Effect of re-estimating the parameters: {nd_mex.forecast_old - res_mex_v1.nowcast:+.4f}")
+
+# Internal checks: the identity, the target, and the information set of the replay
+assert res_mex.target_period == target_month and res_mex.previous_vintage == v1
+assert nd_mex.decomposition_error < 1e-10 and nd_bra.decomposition_error < 1e-10
+assert abs(nd_mex.forecast_new - res_mex.nowcast) < 1e-10, "an unpublished target: the nowcast is the model's value"
+assert res_mex_v1.news_decomposition is None, "no vintage precedes v-1"
+assert abs(res_mex_v1.nowcast - res_mex_cut.nowcast) < 1e-12, "a replay may use only data published by as_of"
+assert res_mex.forecast_sd < res_mex_v1.forecast_sd, "in this example the extra month of data narrows the band"
 
 # %%
-# --- Experiment 3: Out-of-Sample Density Forecast Evaluation & Fan Charts ---
-# Evaluate density calibration using Berkowitz (2001) Probability Integral Transform
-# (PIT) likelihood ratio test and Kolmogorov-Smirnov test over a rolling out-of-sample sample.
+# --- Experiment 3a: PIT tests on a forecaster that is calibrated by construction ---
+# These 60 forecasts are NOT the DFM's. The means and standard deviations are drawn at random
+# and each outcome is drawn from the forecaster's own density, so the null of the tests is true.
+# The experiment shows what the tests report in that case; it says nothing about the nowcasts above.
 T_eval = 60
 mu_eval = rng.normal(loc=2.0, scale=0.5, size=T_eval)
 sd_eval = rng.uniform(0.4, 0.8, size=T_eval)
 y_eval = mu_eval + sd_eval * rng.normal(size=T_eval)
 
 pit_res = pit_uniformity_test(realised=y_eval, mu=mu_eval, sigma=sd_eval)
-
 print(pit_res.summary())
+assert 0.0 <= pit_res.lr_pvalue <= 1.0 and 0.0 <= pit_res.ks_pvalue <= 1.0
 
-# Assertions verifying well-calibrated predictive distribution
-assert isinstance(pit_res.lr_pvalue, float)
-assert pit_res.is_uniform is True, "Calibrated predictive density must satisfy uniformity"
-assert pit_res.lr_pvalue > 0.05, f"Berkowitz LR p-value {pit_res.lr_pvalue:.4f} rejected at 5%"
-assert pit_res.ks_pvalue > 0.05, f"Kolmogorov-Smirnov p-value {pit_res.ks_pvalue:.4f} rejected at 5%"
+# --- Experiment 3b: a model-based fan chart for Mexico's gdp index ---
+# res_mex.fan_chart builds the fan from the fitted DFM's state space (section 3 of the math):
+# the unpublished months left in the panel, then 3 months beyond it; the history is published data.
+fc_mex = res_mex.fan_chart(horizon=3, levels=(0.3, 0.6, 0.9), palette=_nbstyle.S2["color"])
+fc_mean = fc_mex.forecast_mean
+fc_sd = (fc_mex.intervals[0.9][1] - fc_mean) / norm.ppf(0.95)
+gdp_hist = fc_mex.history
 
-# Construct central bank fan charts: Banxico national green and BCB navy
-hist_mex = pd.Series([100.1, 100.4, 100.3, 100.5], index=["2024Q1", "2024Q2", "2024Q3", "2024Q4"])
-fc_mean_mex = pd.Series([res_mex.nowcast, res_mex.nowcast + 0.15, res_mex.nowcast + 0.30], index=["2025Q1", "2025Q2", "2025Q3"])
-fc_sd_mex = pd.Series([res_mex.forecast_sd, res_mex.forecast_sd * 1.25, res_mex.forecast_sd * 1.55], index=fc_mean_mex.index)
-fc_mex = fan_chart(hist_mex, fc_mean_mex, fc_sd_mex, levels=(0.3, 0.6, 0.9), palette="banxico")
+fan_table = pd.DataFrame({"mean": fc_mean, "s.d.": fc_sd,
+                          "90% low": fc_mex.intervals[0.9][0], "90% high": fc_mex.intervals[0.9][1]})
+fan_table.index = pd.DatetimeIndex(fan_table.index).strftime("%Y-%m")
+print(f"\nMexico gdp index, one-factor DFM (last published month {gdp_hist.index[-1]:%Y-%m}, value {gdp_hist.iloc[-1]:.4f}):")
+print(fan_table.round(4).to_string())
 
-hist_bra = pd.Series([98.2, 98.5, 98.7, 98.8], index=["2024Q1", "2024Q2", "2024Q3", "2024Q4"])
-fc_mean_bra = pd.Series([res_bra.nowcast, res_bra.nowcast + 0.10, res_bra.nowcast + 0.25], index=["2025Q1", "2025Q2", "2025Q3"])
-fc_sd_bra = pd.Series([res_bra.forecast_sd, res_bra.forecast_sd * 1.20, res_bra.forecast_sd * 1.45], index=fc_mean_bra.index)
-fc_bra = fan_chart(hist_bra, fc_mean_bra, fc_sd_bra, levels=(0.3, 0.6, 0.9), palette="bcb")
+# Independent check of the library against the formula in section 3, from the same fitted matrices
+fit = res_mex.model_result
+j = list(fit.columns).index("gdp")
+lam = np.zeros(fit.A.shape[0])
+lam[: fit.n_factors] = fit.loadings[j]
+P = np.asarray(fit.smoother_out["P_smooth"])[-1]   # state variance in the last month of the panel
+hand_sd = []
+for h in range(4):
+    if h > 0:
+        P = fit.A @ P @ fit.A.T + fit.Q             # one month further ahead
+    hand_sd.append(float(fit.stds[j] * np.sqrt(lam @ P @ lam + fit.H[j, j])))
 
-assert fc_mex.palette == "banxico"
-assert fc_bra.palette == "bcb"
-assert len(fc_mex.intervals) == 3
-assert len(fc_bra.intervals) == 3
+assert fc_mean.index[0] == target_month, "the fan starts at the first unpublished gdp month"
+assert abs(fc_mean.iloc[0] - res_mex.nowcast) < 1e-10 and abs(fc_sd.iloc[0] - res_mex.forecast_sd) < 1e-10
+assert np.allclose(fc_sd.to_numpy(), hand_sd, atol=1e-10), "library fan = formula in section 3"
+assert np.allclose(fc_mean.to_numpy()[1:], fit.predict(steps=3)["gdp"].to_numpy(), atol=1e-10)
+assert np.all(np.diff(fc_sd.to_numpy()) > 0), "the fan must widen with the horizon"
+assert gdp_hist.equals(loaded_panel.as_of(v2).xs("MEX")["gdp"].dropna().iloc[-12:]), "history = published data"
 
 # %%
-# --- Hero Visualization Dashboard: Latin America Real-Time Nowcasting ---
-# 4-panel comprehensive figure displaying latent factors, news attribution waterfall,
-# central bank fan chart projections, and Berkowitz PIT calibration diagnostics.
+# --- Dashboard: factors, news attribution, fan chart and PIT histogram ---
 fig, axes = plt.subplots(2, 2, figsize=(13, 10))
 
-# Panel 1: Latent Dynamic Factor Trajectories
-axes[0, 0].plot(res_mex.factors.index, res_mex.factors.iloc[:, 0], color=_nbstyle.S1["color"], lw=2.0, label="Mexico DFM Factor 1 (Banxico/INEGI)")
-axes[0, 0].plot(res_bra.factors.index, res_bra.factors.iloc[:, 0], color=_nbstyle.S2["color"], lw=2.0, ls="--", label="Brazil DFM Factor 1 (BCB)")
-axes[0, 0].set_title("Latin America Dynamic Common Factors (2022–2024)", fontsize=11, fontweight="semibold")
-axes[0, 0].set_xlabel("Reference Period")
-axes[0, 0].set_ylabel("Latent Factor Index (Std. Units)")
-axes[0, 0].grid(True, ls=":", color=_nbstyle.REJILLA)
-axes[0, 0].legend(loc="best", fontsize=8)
+ax = axes[0, 0]
+ax.plot(res_mex.factors.index, res_mex.factors.iloc[:, 0], **_nbstyle.S1, label="Mexico, factor 1")
+ax.plot(res_bra.factors.index, res_bra.factors.iloc[:, 0], **_nbstyle.S2, label="Brazil, factor 1")
+ax.set_title("Estimated DFM factors, simulated panels (2022–2024)")
+ax.set_xlabel("Reference month")
+ax.set_ylabel("Factor (standardised units)")
+ax.tick_params(axis="x", labelrotation=30)
+ax.legend(loc="best", fontsize=8)
 
-# Panel 2: Bańbura & Modugno News Attribution Waterfall
-res_mex.news_decomposition.plot(ax=axes[0, 1], title="Mexico GDP Nowcast Revision: Bańbura-Modugno News Waterfall")
+# News attribution: the library's waterfall, drawn relative to the previous nowcast
+nd_mex.plot(ax=axes[0, 1], title=f"Mexico gdp nowcast for {target_month:%Y-%m}: update from v-1 to v")
 
-# Panel 3: Banco de México GDP Growth Fan Chart
-fc_mex.plot(ax=axes[1, 0], title="Banco de México: Headline GDP Growth Fan Chart Projection")
+# Fan chart: published gdp, then the DFM's own predictive bands (same as fc_mex above)
+res_mex.plot_fan_chart(ax=axes[1, 0], horizon=3, palette=_nbstyle.S2["color"],
+                       title="Mexico gdp index: one-factor DFM fan (simulated data)")
+axes[1, 0].set_xlabel("Reference month")
+axes[1, 0].tick_params(axis="x", labelrotation=30)
 
-# Panel 4: Out-of-Sample Predictive Density Calibration (Berkowitz PIT)
-pit_res.plot(ax=axes[1, 1], title="Forecast Density Calibration: Berkowitz (2001) PIT Distribution")
+pit_res.plot(ax=axes[1, 1], title="PIT histogram: a forecaster calibrated by construction (not the DFM)")
 
-fig.suptitle("Latin America Real-Time Nowcasting & News Attribution Dashboard", fontsize=13, fontweight="bold")
+fig.suptitle("Real-Time Nowcasting Dashboard (simulated Mexico and Brazil panels)")
+fig.tight_layout()
 
 # %% [markdown]
 # ## Lectura de los resultados
 #
-# **Lectura de los resultados.** Cada cifra empírica y cuadro de diagnóstico obtenido arriba ilustra los mecanismos centrales de la vigilancia macroeconómica en tiempo real bajo paneles con datos escalonados:
+# **Lectura de los resultados.** Todos los datos son simulados, así que los números ilustran el método, no a México ni a Brasil.
 #
-# 1. **Nowcasts puntuales en tiempo real (Experimento 2 y Figura Panel 1):** El Modelo de Factores Dinámicos estima con éxito los nowcasts puntuales para México y Brasil a partir del panel con bordes irregulares. Para México, el nowcast del índice del PIB se ubica en $+100.6377$ con un error estándar condicional de $0.1123$, produciendo un intervalo de confianza al 90% de $[+100.4530, +100.8224]$. Para Brasil, el nowcast puntual se sitúa en $+98.9262$ con un error estándar de $0.1791$. El Panel 1 del tablero ilustra los factores latentes comunes del ciclo económico: el factor mexicano (verde Banxico) y el factor brasileño (azul marino BCB) evolucionan suavemente a lo largo de los 36 meses muestrales, filtrando el ruido idiosincrásico de los indicadores mensuales más volátiles.
-# 2. **Cascada exacta de noticias de Bańbura-Modugno (Experimento 2 y Figura Panel 2):** Entre la captura del 1 de noviembre de 2024 ($v-1$) y la del 1 de diciembre de 2024 ($v$), el nowcast del PIB mexicano se actualiza de $+100.6322$ a $+100.6377$, acumulando una revisión total de $\Delta \hat{y} = +0.0055$ puntos del índice. El Panel 2 descompone esta revisión en componentes económicos específicos: las nuevas publicaciones de producción industrial y actividad económica aportaron sorpresas positivas respecto a las expectativas previas del modelo, mientras que la revisión retrospectiva en el mes 20 aportó un ajuste complementario. De manera crucial, el error analítico impreso es de $5.97 \times 10^{-15}$, demostrando que la identidad de Bańbura y Modugno cuadra a precisión de máquina ($< 10^{-10}$).
-# 3. **Bandas de incertidumbre en gráficos de abanico institucionales (Experimento 3 y Figura Panel 3):** El Panel 3 despliega el gráfico de abanico del Banco de México anclado en el nowcast puntual. Tres bandas de confianza anidadas (30%, 60% y 90%) se expanden a lo largo del horizonte de proyección de 2025 ($h = 1, 2, 3$ trimestres) a medida que el error estándar pasa de $0.1123$ a $0.1740$. La paleta gráfica adopta los estándares de la institución: el verde Banxico (`#006847`) presenta la proyección central y las franjas de incertidumbre, brindando a las autoridades un rango probabilístico en lugar de una estimación puntual engañosa.
-# 4. **Diagnóstico de uniformidad PIT de Berkowitz (Experimento 3 y Figura Panel 4):** La muestra de evaluación con $T = 60$ nowcasts fuera de muestra supera tanto la prueba de razón de verosimilitud de Berkowitz (2001) ($LR = 3.93, p = 0.2695 > 0.05$) como la prueba de Kolmogórov-Smirnov ($KS = 0.096, p = 0.6241 > 0.05$). En el Panel 4, el histograma empírico de las transformadas integrales de probabilidad $p_t = \Phi((y_t - \mu_t)/\sigma_t)$ se alinea estrechamente con la línea de referencia uniforme de $1.0$. Los parámetros estimados en el espacio transformado ($\hat{\mu} = 0.082$, $\hat{\sigma} = 0.941$, $\hat{\rho} = 0.165$) confirman que el motor de nowcasting produce densidades predictivas sin sesgo ($\mu \approx 0$), sin subdispersión ($\sigma \approx 1$) y libres de autocorrelación persistente ($\rho \approx 0$).
-
-# %%
-# Your turn: customize country selection, factor dimensions, and fan chart levels
-# Modify the parameters below to explore different Latin American economies
-# and evaluate how dynamic factor ranks modulate news decomposition attribution.
-
-# ← change this: target economy code ('MEX' or 'BRA')
-country_custom = "MEX"
-
-# ← change this: number of common dynamic factors (1 or 2)
-n_factors_custom = 1
-
-# ← change this: target variable to nowcast ('gdp' or 'activity')
-target_var_custom = "gdp"
-
-# ← change this: central bank fan chart confidence levels
-fan_levels_custom = (0.50, 0.70, 0.90)
-
-# Re-run real-time nowcast orchestrator with custom parameters
-res_custom = realtime_nowcast(
-    country=country_custom,
-    panel=loaded_panel,
-    target_variable=target_var_custom,
-    n_factors=n_factors_custom,
-)
-
-# Generate custom fan chart
-fig_custom = res_custom.plot_fan_chart(levels=fan_levels_custom)
-
-print(f"Custom Nowcasting Results ({country_custom} - {target_var_custom}):")
-print(f"  Point Nowcast       : {res_custom.nowcast:+.4f}")
-print(f"  Forecast Std. Error : {res_custom.forecast_sd:.4f}")
-print(f"  Visual Theme        : {res_custom.palette.upper()}")
-print(f"  Decomposition Error : {res_custom.news_decomposition.decomposition_error:.2e}")
-
-# Downstream assertions validating user parameters and execution
-assert country_custom in ("MEX", "BRA"), "Supported countries are MEX or BRA"
-assert n_factors_custom in (1, 2), "Factors must be 1 or 2"
-assert target_var_custom in ("gdp", "activity"), "Target variable must be gdp or activity"
-assert not np.isnan(res_custom.nowcast), "Nowcast must be a valid float"
-assert res_custom.forecast_sd > 0.0, "Forecast standard deviation must be positive"
-assert res_custom.news_decomposition is not None, "News decomposition must be present"
-assert res_custom.news_decomposition.decomposition_error < 1e-10, "Decomposition error must be < 1e-10"
+# 1. **El borde irregular.** El 2025-01-15 el índice simulado `gdp` está publicado hasta 2024-10, `activity` e `ip` hasta 2024-11, y `cpi` y la tasa de política hasta 2024-12. Un mes después cada serie rezagada gana un mes, y se revisa `activity` de 2023-09. El objetivo, `gdp` de 2024-12, no está publicado en ninguna de las dos ediciones, así que el nowcast es la estimación del modelo y no una cifra publicada.
+# 2. **El nowcast y su actualización.** El 2025-02-15 el DFM de un factor estima el índice en $100.6233$ con una desviación estándar de $0.1108$ (intervalo de 90% $[100.4411, 100.8056]$). Con los parámetros fijos en sus estimaciones actuales, el nowcast de la edición anterior era $100.7341$, así que se movió $-0.1108$. La publicación de `activity` de diciembre explica casi todo el movimiento: salió $0.2693$ por debajo de lo que esperaba el modelo y, con una ponderación de $0.3633$, redujo el nowcast en $0.0978$. La publicación de `ip` restó otros $0.0111$, y la de `gdp` de noviembre solo $0.0019$ (ponderación $0.0130$), porque para entonces `activity` e `ip` ya le habían informado al modelo sobre los últimos meses. La revisión de $0.45$ a `activity` de 2023-09 recibe una ponderación que se redondea a $0.0000$: los quince meses posteriores están observados, así que casi no aporta información sobre diciembre. El error de descomposición de $1.05 \times 10^{-15}$ confirma la identidad contable, una verificación interna. La cascada de la figura (`NewsDecompositionResult.plot`) dibuja los mismos impactos, sumados por serie, como cambios respecto del nowcast anterior.
+# 3. **Reproducir el pasado.** Consultado `as_of` 2025-01-15, `realtime_nowcast` devuelve $100.7200$ con una desviación estándar de $0.1471$ y sin descomposición de noticias, pues no existe una edición anterior; la misma llamada sobre un panel que simplemente termina en esa fecha da el mismo número, así que la reproducción usó solo datos publicados hasta entonces. Eso difiere del "nowcast anterior" de la descomposición en $+0.0142$, el efecto de reestimar los parámetros con la edición posterior. El mes adicional de datos estrechó la banda de $0.1471$ a $0.1108$.
+# 4. **Brasil.** Su nowcast es $99.3438$ (desviación estándar $0.1757$) y se movió $-0.0173$ entre las ediciones, de nuevo con una descomposición exacta ($6.0 \times 10^{-15}$). El factor de Brasil se simula de forma independiente del de México, así que las dos trayectorias de factores del primer panel no están relacionadas por construcción.
+# 5. **El gráfico de abanico.** `res_mex.fan_chart` construye el abanico con las propias matrices de espacio de estados del DFM, y un cálculo aparte de la fórmula de la sección 3 da los mismos números: su desviación estándar es $0.1108$ para el nowcast de diciembre y crece a $0.2689$, $0.3320$ y $0.3662$ de enero a marzo de 2025. La trayectoria central baja de $100.6233$ a $100.2257$ porque el factor del modelo es una autorregresión estacionaria, así que sus pronósticos regresan hacia la media muestral, mientras que el factor simulado es una caminata aleatoria. Las bandas ignoran la incertidumbre de los parámetros y esta mala especificación, y los colores son solo estilo; nada aquí es una proyección oficial.
+# 6. **Las pruebas PIT.** Los 60 pronósticos del Experimento 3a no son los del DFM: son correctos por construcción. Las pruebas no rechazan (Berkowitz $LR = 2.8021$, $p = 0.4232$; KS $= 0.1015$, $p = 0.5327$), como no deben hacerlo en cerca del 95% de tales muestras. El resumen lo reporta como un no rechazo, no como prueba de calibración, y no dice nada sobre los nowcasts de arriba. La celda de Tu turno mide con qué frecuencia las pruebas detectan a un pronosticador mal calibrado.
 
 # %% [markdown]
-# **Prompts.**
-# 1. *Básico:* Cambie `country_custom` de `"MEX"` a `"BRA"`. Observe cómo la fuente institucional se actualiza a Banco Central do Brasil, la serie objetivo se asigna al PIB de IBGE y la paleta visual cambia del verde de Banxico al azul marino del BCB (`#0b3b60`).
-# 2. *Intermedio:* Modifique `fan_levels_custom` a `(0.40, 0.80)`. Observe cómo las bandas de proyección central se ajustan para mostrar dos franjas más amplias en lugar de tres, modificando la comunicación visual del balance de riesgos.
-# 3. *Avanzado:* Aumente `n_factors_custom` a `2`. Compare la varianza explicada y el error estándar condicional frente al modelo base de un solo factor, y observe cómo los factores comunes secundarios modulan las ponderaciones del filtro de Kalman aplicadas a las sorpresas de actividad económica.
+# ## Tu turno
+#
+# El Experimento 3a corrió las pruebas PIT una sola vez, sobre un pronosticador correcto por construcción, así que solo podía mostrar que las pruebas no rechazan cuando no deben, y aun eso una sola vez. ¿Con qué frecuencia detectan a un pronosticador cuyas bandas son demasiado estrechas o demasiado anchas? La celda de abajo extrae 500 muestras de 60 pronósticos, como en el Experimento 3a, para un pronosticador calibrado y para uno que reporta `sigma_scale` veces la desviación estándar verdadera, y cuenta con qué frecuencia rechaza cada prueba al 5%.
+#
+# **Prediga primero:** frente a una varianza del pronóstico equivocada, ¿qué prueba rechaza más a menudo, la LR de Berkowitz o la KS? Piense en qué le hace una densidad demasiado estrecha al histograma de las PIT y a su distribución acumulada. Las verificaciones confirman que ambas pruebas tienen aproximadamente el tamaño correcto, que la prueba LR detecta a su pronosticador, y su predicción.
+
+# %%
+# Your turn: size and power of the PIT tests by Monte Carlo
+sigma_scale = 0.6   # ← change this: forecast s.d. over the true s.d., 0.5 to 0.8 (too narrow) or 1.25 to 2.0 (too wide)
+assert 0.5 <= sigma_scale <= 0.8 or 1.25 <= sigma_scale <= 2.0
+R_mc, T_mc = 500, 60
+
+def rejection_rates(scale, bias=0.0, phi=0.0, R=R_mc, T=T_mc):
+    """Share of R samples in which the Berkowitz LR and the KS tests reject at 5%.
+
+    The outcome is y = mu + bias * sd + sd * e, where e has unit variance and is an AR(1) with
+    coefficient phi. The forecaster reports N(mu, (scale * sd)^2). Each replication has its own seed.
+    """
+    lr = ks = 0
+    for s in range(R):
+        g = np.random.default_rng(s)
+        mu = g.normal(2.0, 0.5, T)
+        sd = g.uniform(0.4, 0.8, T)
+        u = g.normal(size=T)
+        e = u.copy()
+        for t in range(1, T):
+            e[t] = phi * e[t - 1] + np.sqrt(1.0 - phi**2) * u[t]
+        y = mu + bias * sd + sd * e
+        test = pit_uniformity_test(realised=y, mu=mu, sigma=scale * sd)
+        lr += test.lr_pvalue < 0.05
+        ks += test.ks_pvalue < 0.05
+    return lr / R, ks / R
+
+size_lr, size_ks = rejection_rates(1.0)
+power_lr, power_ks = rejection_rates(sigma_scale)
+mc_se = np.sqrt(0.05 * 0.95 / R_mc)
+print(f"Calibrated forecaster (size): LR {size_lr:.3f}, KS {size_ks:.3f} (nominal 0.05, Monte Carlo s.e. {mc_se:.3f})")
+print(f"Forecast s.d. x {sigma_scale} (power): LR {power_lr:.3f}, KS {power_ks:.3f}")
+
+assert abs(size_lr - 0.05) < 4 * mc_se and abs(size_ks - 0.05) < 4 * mc_se, "a test's size is far from 5%"
+assert power_lr > size_lr + 4 * mc_se, "the LR test should detect this forecaster"
+assert power_lr > power_ks, "your prediction: the LR test is more powerful against a wrong variance"
+
+# %% [markdown]
+# **Indicaciones.**
+# 1. *Básico.* Mueva `sigma_scale` de $0.8$ a $0.5$ y de $1.25$ a $2.0$. ¿Qué tan rápido crece la potencia de cada prueba? Compare $0.8$ con su recíproco $1.25$: ¿qué error es más fácil de detectar con 60 pronósticos, y por qué?
+# 2. *Intermedio.* Ahora deje la varianza correcta y desplace el resultado: compare `rejection_rates(1.0, bias=0.25)` con `rejection_rates(1.0, bias=0.5)`. ¿Qué prueba gana frente a un pronosticador sesgado, y qué parámetro de Berkowitz ($\mu$, $\sigma_\varepsilon$, $\rho$) mueve el sesgo? Autoverificación: `assert min(rejection_rates(1.0, bias=0.5)) > 0.85`.
+# 3. *Avanzado.* Mantenga cada PIT marginalmente uniforme pero haga que los errores del pronóstico estén correlacionados en el tiempo: `lr, ks = rejection_rates(1.0, phi=0.5)`. ¿Qué prueba lo nota, y por qué la KS rechaza más del 5% aunque cada $p_t$ sea $\mathcal{U}(0,1)$? Autoverificación: `assert lr > 0.8 and lr - ks > 0.3`. Para calificar al propio DFM habría que reproducirlo con `as_of` sobre muchas ediciones y aplicar las mismas pruebas a sus PIT.
 #
 # ## ¿Qué tan exhaustivo es esto?
 #
-# `puremacro` ofrece un ecosistema completo para nowcasting regional y vigilancia macroeconómica en tiempo real:
-# - `puremacro.fetch.realtime`: Conectores de datos en tiempo real de primera clase para Banxico, INEGI, BCB y BCCh (`VintagePanel`, `pack_realtime_cartridge`, `load_realtime_cartridge`).
-# - `puremacro.nowcast.dfm`: Modelos de Factores Dinámicos con filtro y suavizador de Kalman (`DynamicFactorModel`, `DynamicFactorModelResult`).
-# - `puremacro.nowcast.news`: Atribución analítica de noticias frente a revisiones basada en Bańbura y Modugno (2014) (`banbura_modugno_news`, `NewsDecompositionResult`).
-# - `puremacro.nowcast.evaluation`: Evaluación probabilística de pronósticos y calibración de densidades (`fan_chart`, `pit_uniformity_test`, `crps_gaussian`, `log_score_gaussian`).
-# - `puremacro.nowcast.realtime_nowcast`: Orquestador unificado de alto nivel que integra paneles de datos históricos con estimación en espacio de estados (`realtime_nowcast`, `RealtimeNowcastResult`).
+# - `puremacro.fetch.realtime`: paneles de ediciones y conectores para Banxico, INEGI, BCB y BCCh (`VintagePanel`, `pack_realtime_cartridge`, `load_realtime_cartridge`); los conectores descargan datos y no se llaman aquí.
+# - `puremacro.nowcast.realtime_nowcast`: el orquestador usado arriba, con `as_of` y `previous_vintage` para reproducciones históricas y `method="mfvar"` para un VAR de frecuencia mixta; los métodos `fan_chart` y `plot_fan_chart` de su resultado dibujan el abanico predictivo del DFM después de los datos publicados (rechazan un resultado `mfvar`, que no tiene varianzas predictivas).
+# - `puremacro.nowcast.dfm` y `puremacro.nowcast.news`: el modelo de factores dinámicos (`DynamicFactorModel`) y la descomposición de noticias (`banbura_modugno_news`, `NewsDecompositionResult` y su cascada `plot`).
+# - `puremacro.nowcast.evaluation`: `fan_chart`, `pit_uniformity_test`, `crps_gaussian` y `log_score_gaussian` para pronósticos de densidad.
+# - El cuaderno 58 construye paneles de ediciones en tiempo real para América Latina; el cuaderno 48 hace nowcasting con un objetivo reservado; el cuaderno 38 prueba si las revisiones son noticia o ruido.

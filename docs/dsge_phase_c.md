@@ -4,7 +4,7 @@
 
 `puremacro` delivers three state-of-the-art computational frontiers for structural macroeconomic analysis:
 
-1. **Optimal Policy Regimes (Discretion vs. Commitment)**: Solves Markov-perfect time-consistent discretionary policy via Dennis (2007) Riccati matrix iteration, alongside timeless-perspective linear-quadratic (LQ) commitment via Lagrange multiplier augmentation and Klein (2000) QZ decomposition. Formalizes the quantification of Kydland-Prescott / Barro-Gordon **inflation bias** and **stabilization bias**.
+1. **Optimal Policy Regimes (Discretion vs. Commitment)**: Solves Markov-perfect time-consistent discretionary policy via Dennis (2007) Riccati matrix iteration, alongside linear-quadratic (LQ) commitment via Lagrange multiplier augmentation and Klein (2000) QZ decomposition (the Ramsey plan from the steady state, whose law of motion is the timeless-perspective rule; section 1.3). Formalizes the quantification of Kydland-Prescott / Barro-Gordon **inflation bias** and **stabilization bias**.
 2. **DSGE-VAR Hybrid Modeling (Del Negro & Schorfheide 2004)**: Bridges structural DSGE microfoundations with flexible vector autoregressions via an analytical Normal-Inverted-Wishart prior centered on theoretical cross-equation moments $\Gamma_k(\theta)$. Provides closed-form evaluation of the log marginal data density $\ln p(Y \mid \lambda, \theta)$, bounded hyperparameter optimization for $\hat{\lambda} \in [\lambda_{\min}, \infty)$, and structural identification via the DSGE rotation matrix $Q^*$.
 3. **News & Anticipated Shocks Engine (Beaudry & Portier 2006; Schmitt-Grohé & Uribe 2012)**: Implements companion state-space augmentation for forward-looking announcements $\epsilon_t = \eta_t^0 + \sum_{k=1}^H \eta_{t-k}^k$. Preserves Blanchard-Kahn saddle-path determinacy through nilpotent companion transition operators with zero eigenvalues, computes multi-lead impulse responses, and performs automated variance decompositions.
 
@@ -17,10 +17,10 @@ All algorithms are implemented in **pure Python** under the strict Pyodide four-
 | Dimension | Optimal Discretion | LQ Commitment | DSGE-VAR($\lambda$) | News Shocks Engine |
 |:---|:---|:---|:---|:---|
 | **Core Reference** | Dennis (2007); Oudiz & Sachs (1985) | Currie & Levine (1993); Woodford (2003) | Del Negro & Schorfheide (2004) | Beaudry & Portier (2006); Schmitt-Grohé & Uribe (2012) |
-| **Equilibrium Concept** | Markov-perfect time-consistent Nash | Timeless perspective subgame-perfect | Bayesian conjugate posterior VAR | Rational expectations forward announcement |
+| **Equilibrium Concept** | Markov-perfect time-consistent Nash | Commitment: Ramsey plan from the steady state, timeless-perspective law of motion | Bayesian conjugate posterior VAR | Rational expectations forward announcement |
 | **State Space** | Physical predetermined states $x_{t-1}$ | Augmented with past shadow prices $\lambda_{t-1}$ | Observables lag companion $X_t$ | Augmented with news pipeline $V_t$ |
 | **Computational Core** | Riccati matrix iteration $\|F_{k+1}-F_k\|_\infty < 10^{-9}$ | Augmented generalized Schur (Klein QZ) | Analytical Lyapunov + Inverted-Wishart | Nilpotent shift operator $K_H$ ($\sigma=\{0\}$) |
-| **Primary Economic Insight** | Quantifies inflation bias and stabilization bias | Lower bound on quadratic loss under credibility | Quantifies structural misspecification $\hat{\lambda}$ | Distinguishes anticipation from realization |
+| **Primary Economic Insight** | Quantifies inflation bias and stabilization bias | Lowest conditional loss from the steady state (Ramsey); the unconditional loss can exceed discretion's (section 1.4) | Quantifies structural misspecification $\hat{\lambda}$ | Distinguishes anticipation from realization |
 | **Pyodide Compatible** | Yes (`numpy`, `scipy`) | Yes (`numpy`, `scipy`) | Yes (`numpy`, `scipy`) | Yes (`numpy`, `scipy`) |
 
 ---
@@ -55,20 +55,36 @@ $$u_t = F x_{t-1}$$
 via Dennis (2007) policy iteration:
 $$\|F_{k+1} - F_k\|_\infty < 10^{-9}$$
 
-### 1.3 Timeless Commitment
+### 1.3 Commitment: Ramsey Plan and Timeless Perspective
 
-Under commitment, the central bank credibly commits from date $t_0 = -\infty$ to an optimal state-contingent rule. Introducing Lagrange multiplier vectors $\lambda_t$ on the structural forward-looking equations, the first-order necessary conditions yield an augmented system:
+Under commitment, the central bank chooses a state-contingent plan and keeps to it. Introducing Lagrange multiplier vectors $\lambda_t$ on the private-sector equations that remain once the instrument's rule is removed, the first-order necessary conditions yield an augmented system:
 $$\begin{bmatrix} y_t \\ \lambda_t \end{bmatrix} = G_{\text{comm}} \begin{bmatrix} y_{t-1} \\ \lambda_{t-1} \end{bmatrix} + N_{\text{comm}} \epsilon_t$$
-solved directly via the Klein (2000) generalized Schur (QZ) solver under the timeless perspective ($\lambda_{-1} = 0$).
+solved directly via the Klein (2000) generalized Schur (QZ) solver.
+
+This law of motion is the same for the Ramsey plan chosen at $t_0$ and for the timeless-perspective rule; the two differ only in the initial multiplier. The Ramsey plan sets $\lambda_{-1} = 0$ whatever the history. The timeless perspective applies the condition for $t \ge 1$ at $t_0$ as well, so it uses the multiplier implied by past policy (Jensen and McCallum 2002, eqs. 4a–4c and 5). `lq_commitment` evaluates its outputs as follows:
+
+- Impulse responses and `conditional_loss` start from the steady state, with $y_{-1} = 0$ and $\lambda_{-1} = 0$. From the steady state the multiplier implied by past policy is also zero, so there the Ramsey plan and the timeless rule coincide.
+- `loss` averages over the stationary distribution of $(y_t, \lambda_t)$, so it evaluates the timeless rule on average. It is NaN, with a `RuntimeWarning`, when $G_{\text{comm}}$ has a root on or outside the unit circle, because no stationary distribution exists. The check covers the whole transition, so a unit root confined to a variable with zero weight (a price level, say) also gives NaN.
+
+The `timeless` argument of `lq_commitment` and `ramsey_model` never changed the result. It is deprecated and emits a `FutureWarning`.
+
+`ramsey_model(model, objective, ...)` reaches the same solution from an objective string such as `"pi^2 + 0.25*x^2"`. It derives the planner's first-order conditions symbolically, but only for display: `focs` holds them as readable equations in Dynare syntax, and `foc_nodes` as expression trees. The system it solves is assembled numerically, from the model's linear matrices (or the `.mod` equations linearized at the steady state) and the Hessian of the objective at the steady state, with the steady-state multipliers set to zero. On a linear model it therefore shares the matrices and the QZ solver with `lq_commitment`. The two differ only in how the objective is read: `ramsey_model` uses the Hessian of the objective string, `lq_commitment` the weights with a factor 1/2 in the loss. That only rescales the multipliers, so comparing the two checks the objective parser and the multiplier bookkeeping, not the solution. For a nonlinear welfare objective whose steady-state multipliers are not zero, `ramsey_model` is only a linear-quadratic approximation.
 
 ### 1.4 Welfare Bias Decomposition
 
-`puremacro` quantifies the two fundamental welfare losses identified in monetary economics:
+`discretionary_policy` reports two gaps between discretion and commitment. They are defined differently, and neither re-solves the model at another target.
 
-1. **Inflation Bias**: Originating from Kydland & Prescott (1977) and Barro & Gordon (1983), when the central bank targets an output gap $y^* > 0$ above natural potential:
-   $$\text{Bias}_{\pi} = \mathbb{E}[\pi^{\text{disc}}] - \mathbb{E}[\pi^{\text{comm}}] = \frac{\kappa \lambda_y}{\lambda_y (1 - \beta) + \kappa^2} y^*$$
-2. **Stabilization Bias**: Originating from Clarida, Galí & Gertler (1999) and Woodford (2003), the discretionary policymaker cannot generate credible forward guidance (history dependence) to stabilize current inflation with lower output contraction. The stabilization bias is strictly positive:
-   $$\text{Bias}_{\text{stab}} = \mathcal{L}^{\text{disc}} - \mathcal{L}^{\text{comm}} > 0$$
+1. **Inflation Bias**: Originating from Kydland & Prescott (1977) and Barro & Gordon (1983). When the loss targets an output gap $y^* > 0$ above natural potential, steady-state inflation under discretion exceeds the zero steady-state inflation of timeless commitment by
+   $$\text{Bias}_{\pi} = \mathbb{E}[\pi^{\text{disc}}] - \mathbb{E}[\pi^{\text{comm}}] = \frac{\kappa \lambda_y}{\lambda_y (1 - \beta) + \kappa^2} y^*,$$
+   where $\lambda_y$ is the output-gap weight divided by the inflation weight, read from the `weights` entries named `y`, `y_gap`, `output`, `x` or `gap` and `pi`, `inflation`, `infl` or `pfe` (0.25 and 1 when absent). `inflation_bias` evaluates this closed form; `y_star` does not enter the solved dynamics. The slope $\kappa$ comes from `kappa=` (or `slope_pc=`), then from a model parameter named `kappa`, `slope_pc`, `kap` or `pc_slope`, then from the Phillips-curve row of the model's Jacobian, and otherwise defaults to 0.5, so pass `kappa=` when the slope has another name.
+2. **Stabilization Bias**: Originating from Clarida, Galí & Gertler (1999) and Woodford (2003). Without commitment, the central bank cannot promise the history-dependent policy that stabilizes current inflation at a smaller output cost. `stabilization_bias` is a difference of losses, and `loss_criterion` chooses which. The default, `loss_criterion="unconditional"`, compares the `loss` fields, the loss averaged over each regime's stationary distribution (the criterion `osr` also uses):
+   $$\text{Bias}_{\text{stab}} = \mathcal{L}^{\text{disc}} - \mathcal{L}^{\text{comm}}, \qquad \mathcal{L} = \sum_i w_i \operatorname{Var}(y_i)$$
+   Its sign is not guaranteed. The timeless rule keeps honoring past promises and can lose on average: for a small enough discount factor, discretion beats the timeless rule under the unconditional loss whenever the output gap has some weight and prices are not flexible (Sauer 2010, Proposition 2). In Sauer's benchmark, which holds the Calvo parameter at 0.8722 (a slope of 0.02 at $\beta = 0.99$), with output weight 0.0625 and serially uncorrelated shocks, this happens for $\beta < 0.839$. Jensen and McCallum (2002) make a related point: under this criterion the timeless rule is not even the best rule of its own form. In the Clarida, Galí and Gertler model with slope 0.1, output weight 0.25 and cost-push persistence 0.5, the unconditional bias is positive at $\beta \ge 0.85$ and negative at $\beta \le 0.8$ on the grid of [notebook 66](https://github.com/jalonso1979/puremacro/blob/main/notebooks/66_optimal_policy_cgg1999_replication.py). With serially uncorrelated cost-push shocks and $\beta = 0.5$ it is $-0.19$.
+   `loss_criterion="conditional"` compares the `conditional_loss` fields instead, the planner's own criterion evaluated from the steady state:
+   $$\mathcal{L}_0 = (1-\beta)\,E_0 \sum_{t \ge 0} \beta^t \sum_i w_i y_{i,t}^2, \qquad y_{-1} = 0,\ \lambda_{-1} = 0.$$
+   From the steady state, commitment is the fully optimal (Ramsey) policy, so this bias is never negative: in the $\beta = 0.5$ example it is $+0.031$. Every result carries both `loss` and `conditional_loss` whatever the criterion, and notebook 66 checks both against closed forms.
+
+   `stabilization_bias` is NaN when it is not computed (`compare_commitment=False`) or cannot be computed: the commitment solve fails, in which case `commitment_result` is None, or a loss under the chosen criterion is NaN. The last two cases emit a `RuntimeWarning`, and `summary()` reports the bias as unavailable. A computed bias is never replaced by 0.0.
 
 ### 1.5 Runnable Python Example
 
@@ -110,6 +126,14 @@ print(f"Stabilization Bias : {res.stabilization_bias:.6f}")
 ax = res.plot(compare_commitment=True, periods=16)
 ax.figure.savefig("output/dsge_optimal_discretion.png", bbox_inches="tight")
 ```
+
+### 1.6 Optimal Simple Rules: Achievable Accuracy
+
+`osr(model, rule_params, weights, ...)` tunes the coefficients of an instrument rule to minimize the unconditional loss $\sum_i w_i \operatorname{Var}(y_i)$, by default with Nelder–Mead. The loss is quadratic at its minimum, $\mathcal{L}(\gamma) \approx \mathcal{L}^*\,[1 + \tfrac{c}{2}((\gamma - \gamma^*)/\gamma^*)^2]$, with normalized curvature $c = \gamma^{*2} \mathcal{L}''(\gamma^*)/\mathcal{L}^*$. A search that compares loss values therefore locates the minimizing coefficients, and the allocation they imply, only to a relative error of about $\sqrt{2\varepsilon/c}$, where $\varepsilon$ is the relative precision of the loss (at best machine epsilon, $2.2\times10^{-16}$). For a well-scaled problem ($c$ of order one) that is roughly $10^{-8}$, whatever the tolerances. A flat or badly scaled loss is located less precisely. For example, take the targeting rule $x_t = -\phi\,\pi_t$ under the Phillips curve $\pi_t = \beta E_t\pi_{t+1} + \kappa x_t + u_t$ with AR(1) cost push, where $\phi^* = \kappa/(\alpha(1-\beta\rho)) = 500$ and $c = 0.02$: `osr` stops at a relative error of $10^{-7}$, under both the new and the old tolerances. The loss itself is accurate to about $10^{-15}$ relative.
+
+The defaults `xatol=1e-8` (coefficients) and `fatol` equal to $10^{-12}$ times the initial loss (at least $10^{-12}$) reach that floor for coefficients of order one. `xatol` is absolute, in the coefficients' own units, so scale it with them, to about $10^{-8}$ times their magnitude: for coefficients much smaller than one, `1e-8` is a loose relative tolerance. Take the Clarida, Galí and Gertler economy with the rule $i_t = g_t/\varphi + \phi_\pi \pi_t + \phi_x x_t$, bounds $\phi_\pi \in [1, 10]$ and $\phi_x \in [0, 10]$, and 25 random calibrations. There the output-gap response to a cost-push shock matches the closed-form optimal simple rule with a relative error of $9\times10^{-9}$ (median) and $7\times10^{-8}$ (worst), and the loss to within $4\times10^{-15}$. SciPy's own Nelder–Mead defaults ($10^{-4}$ for both), which `osr` used before, stopped at errors up to $2.7\times10^{-5}$ when the optimum lies on a bound, with about 1.8 times fewer loss evaluations. Pass `xatol=1e-4, fatol=1e-4` to reproduce them, or `options={...}` to set the tolerances of another SciPy optimizer. When the optimum is a ridge, many rules implement the same allocation: the allocation is then determined to this accuracy, but the coefficients are only one point of the ridge.
+
+`loss_opt` is recomputed by re-solving the model at the returned coefficients. If that re-solve fails, or the rule is indeterminate, `loss_opt` is NaN with a `RuntimeWarning` (never the optimizer's penalty value), and so is `loss_initial` when the baseline moments cannot be evaluated. In `variance_table`, `variance_reduction_pct` is NaN where it is undefined.
 
 ---
 
@@ -316,9 +340,11 @@ fig.savefig("output/dsge_news_shocks.png", bbox_inches="tight")
 
 | Function / Constructor | Module | Primary Parameters | Return Type | Description |
 |:---|:---|:---|:---|:---|
-| `optimal_policy(model, loss, rule, ...)` | `puremacro.dsge.policy` | `model`, `loss`, `rule="discretion"\|"commitment"`, `instruments`, `y_star`, `tol=1e-9` | `DiscretionaryPolicyResult` or `PolicyResult` | Top-level dispatcher solving optimal discretion (Dennis 2007) or timeless LQ commitment. |
-| `discretionary_policy(model, ...)` | `puremacro.dsge.policy` | `model`, `target_vars`, `weights`, `instruments`, `beta=0.99`, `y_star`, `tol=1e-9` | `DiscretionaryPolicyResult` | Dennis (2007) Markov-perfect policy iteration algorithm. |
-| `lq_commitment(model, ...)` | `puremacro.dsge.policy` | `model`, `target_vars`, `weights`, `instruments`, `beta=0.99` | `PolicyResult` | Timeless perspective linear-quadratic optimal commitment policy via Klein QZ. |
+| `optimal_policy(model, loss, rule, ...)` | `puremacro.dsge.policy` | `model`, `loss`, `rule="discretion"\|"commitment"`, `instruments`, `y_star`, `tol=1e-9` | `DiscretionaryPolicyResult` or `PolicyResult` | Top-level dispatcher solving optimal discretion (Dennis 2007) or LQ commitment (section 1.3). |
+| `discretionary_policy(model, ...)` | `puremacro.dsge.policy` | `model`, `target_vars`, `weights`, `instruments`, `beta=0.99`, `y_star`, `tol=1e-9`, `loss_criterion="unconditional"` | `DiscretionaryPolicyResult` | Dennis (2007) Markov-perfect policy iteration algorithm. |
+| `lq_commitment(model, ...)` | `puremacro.dsge.policy` | `model`, `target_vars`, `weights`, `instruments`, `beta=0.99` (`timeless` is deprecated) | `PolicyResult` | Linear-quadratic optimal commitment via Klein QZ: the timeless-perspective law of motion, with responses and `conditional_loss` from the steady state (section 1.3). |
+| `ramsey_model(model, objective, ...)` | `puremacro.dsge.ramsey` | `model_or_dag`, `objective`, `planner_discount=0.99`, `instruments` (`timeless` is deprecated) | `RamseyResult` | Same commitment solution from an objective string; readable first-order conditions in `focs` (section 1.3). |
+| `osr(model, rule_params, weights, ...)` | `puremacro.dsge.policy` | `rule_params`, `weights`, `bounds`, `optimizer="Nelder-Mead"`, `xatol=1e-8`, `fatol=None`, `options=None` | `OSRResult` | Optimal simple rule by derivative-free minimization of the unconditional loss (section 1.6). |
 | `estimate_dsge_var(model, data, ...)` | `puremacro.dsge.dsge_var` | `model`, `data`, `p=4`, `lamb=None`, `identification="dsge"`, `lambda_grid=None` | `DSGEVARResult` | Del Negro & Schorfheide (2004) DSGE-VAR estimator and hyperparameter optimizer. |
 | `news_irf(model, shock, lead, ...)` | `puremacro.dsge.news` | `model`, `shock`, `lead=0`, `horizon=40`, `size=1.0` | `NewsIRFResult` | Companion state-space augmented impulse responses for anticipated news shocks. |
 | `decompose_news(model, shock, ...)` | `puremacro.dsge.news` | `model`, `shock=None`, `horizon=40`, `max_lead=8` | `NewsDecompositionResult` | Automated forecast error variance decomposition across surprise and news leads. |
@@ -328,7 +354,7 @@ fig.savefig("output/dsge_news_shocks.png", bbox_inches="tight")
 
 | Result Class | Module | Key Attributes | Presentation Methods |
 |:---|:---|:---|:---|
-| `DiscretionaryPolicyResult` | `puremacro.dsge._results` | `F`, `V`, `inflation_bias`, `stabilization_bias`, `converged`, `iterations`, `diff`, `commitment_result` | `.summary()`, `.plot(compare_commitment=True)`, `.to_frame()`, `.to_markdown()`, `.to_latex()`, `.to_typst()` |
+| `DiscretionaryPolicyResult` | `puremacro.dsge._results` | `F`, `V`, `loss`, `conditional_loss`, `inflation_bias`, `stabilization_bias`, `loss_criterion`, `converged`, `iterations`, `diff`, `commitment_result` | `.summary()`, `.plot(compare_commitment=True)`, `.to_frame()`, `.to_markdown()`, `.to_latex()`, `.to_typst()` |
 | `DSGEVARResult` | `puremacro.dsge.dsge_var` | `lamb`, `hat_lambda`, `lambda_min`, `log_mdd`, `log_mdd_grid`, `Phi_star`, `Sigma_star`, `Phi_ols`, `Sigma_ols`, `B0` | `.summary()`, `.plot(kind="irf"\|"mdd"\|"forecast")`, `.irf()`, `.forecast()`, `.fevd()`, `.to_frame()`, `.to_markdown()`, `.to_latex()`, `.to_typst()` |
 | `NewsIRFResult` | `puremacro.dsge.news` | `irf`, `surprise_irf`, `shock`, `lead`, `horizon`, `size`, `model` | `.summary()`, `.plot(compare_surprise=True)`, `.to_frame()`, `.to_markdown()`, `.to_latex()`, `.to_typst()` |
 | `NewsDecompositionResult` | `puremacro.dsge.news` | `variance_shares`, `dynamic_shares`, `shock`, `horizon`, `max_lead`, `model` | `.summary()`, `.plot()`, `.to_frame()`, `.to_markdown()`, `.to_latex()`, `.to_typst()` |
@@ -343,8 +369,10 @@ fig.savefig("output/dsge_news_shocks.png", bbox_inches="tight")
 - **Currie, D., & Levine, P. (1993).** *Rules, Reputation and Macroeconomic Policy Coordination*. Cambridge University Press.
 - **Del Negro, M., & Schorfheide, F. (2004).** "Priors from General Equilibrium Models for VARs." *International Economic Review*, 45(2), 643-673.
 - **Dennis, R. (2007).** "Optimal Policy in Rational Expectations Models: New Solution Algorithms." *Macroeconomic Dynamics*, 11(1), 31-55.
+- **Jensen, C., & McCallum, B. T. (2002).** "The Non-optimality of Proposed Monetary Policy Rules under Timeless-Perspective Commitment." *Economics Letters*, 77(2), 163-168. NBER Working Paper 8882.
 - **Klein, P. (2000).** "Using the generalized Schur form to solve a multivariate linear rational expectations model." *Journal of Economic Dynamics and Control*, 24(10), 1405-1423.
 - **Kydland, F. E., & Prescott, E. C. (1977).** "Rules rather than discretion: The inconsistency of optimal plans." *Journal of Political Economy*, 85(3), 473-491.
 - **Oudiz, G., & Sachs, J. (1985).** "International Policy Coordination in Dynamic Macroeconomic Models." In *International Economic Policy Coordination*, Cambridge University Press.
+- **Sauer, S. (2010).** "Discretion Rather Than Rules? When Is Discretionary Policymaking Better Than the Timeless Perspective?" *International Journal of Central Banking*, 6(2), 1-29.
 - **Schmitt-Grohé, S., & Uribe, M. (2012).** "What's News in Business Cycles." *Econometrica*, 80(6), 2733-2764.
 - **Woodford, M. (2003).** *Interest and Prices: Foundations of a Theory of Monetary Policy*. Princeton University Press.

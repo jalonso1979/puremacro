@@ -1,0 +1,25 @@
+published_fitted: 1/399
+published_fitted: 19/399
+published_fitted: 38/399
+published_fitted: 57/399
+published_fitted: 76/399
+published_fitted: 95/399
+published_fitted: 114/399
+published_fitted: 133/399
+published_fitted: 152/399
+published_fitted: 171/399
+published_fitted: 190/399
+published_fitted: 209/399
+published_fitted: 228/399
+published_fitted: 247/399
+published_fitted: 266/399
+published_fitted: 285/399
+published_fitted: 304/399
+published_fitted: 323/399
+published_fitted: 342/399
+published_fitted: 361/399
+published_fitted: 380/399
+published_fitted: 399/399
+        scenario  is_plugin  replications  usable_fits  unresolved_draws  boundary_fits  numerically_regular_fits  observed_objective  tail_exceedances  tail_fraction_lower  tail_fraction_upper  tail_mc_95_lower  tail_mc_95_upper  naive_chi2_rejections  naive_chi2_rate_lower  naive_chi2_rate_upper  naive_chi2_mc_95_lower  naive_chi2_mc_95_upper  regular_j_rejections  regular_j_rate_conditional  regular_j_mc_95_lower_conditional  regular_j_mc_95_upper_conditional  criterion_median  criterion_q95  true_crr  bias_crr_usable  rmse_crr_usable  true_em  bias_em_usable  rmse_em_usable
+published_fitted       True           399          392                 7              1                       391            25.25541               157             0.393484             0.411028          0.345243           0.46107                    225                0.56391               0.581454                0.513676                 0.63035                   224                     0.57289                           0.522184                           0.622484         18.201319     110.898675  0.838258        -0.001988         0.037762 0.254086       -0.015072        0.055917
+Evidence: reviews/2026-10-01-sw07-finite-sample/published_fitted

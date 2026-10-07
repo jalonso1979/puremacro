@@ -130,7 +130,7 @@ def test_validation_6_sw07_steady_state_bit_identical():
     mod_path = Path(dsge.__file__).parent / "_references" / "sw07_pfeifer.mod"
     assert mod_path.is_file(), f"SW07 reference file missing: {mod_path}"
 
-    parsed = parse_mod(mod_path.read_text())
+    parsed = parse_mod(mod_path.read_text(encoding="utf-8"))
     guess_dict = {v: 0.0 for v in parsed["variables"]}
     if parsed["steady_state"]:
         guess_dict.update(parsed["steady_state"])

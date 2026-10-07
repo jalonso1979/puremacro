@@ -183,7 +183,19 @@ res_la = la_lp_iv(
 )
 ```
 
-Siguiendo a Plagborg-Møller y Wolf (2021), el aumento de rezagos vuelve válido el error estándar **de Eicker-Huber-White (HC0)** en todos los horizontes, de modo que `la_lp_iv` emplea White — no HAC — en todas partes: en la segunda etapa, en `mop_f` y en el conjunto AR (`lags = 0` es el caso Bartlett de cero rezagos). Allí `first_stage_f` coincide con `mop_f` sea cual sea el número de instrumentos.
+El aumento de rezagos (Montiel Olea y Plagborg-Møller 2021, *Econometrica* 89(4), 1789–1823) controla por un rezago más de cada serie de los que necesita la proyección local sin aumentar. Así, los *scores* de la regresión no están serialmente correlacionados, y el error estándar simple **de Eicker-Huber-White (HC0)** es válido en todos los horizontes, uniformemente en la persistencia de los datos (su §2.1 y su Proposición 1). MOPM lo demuestran para proyecciones locales por MCO. `la_lp_iv` lo traslada a LP-IV y emplea White — no HAC — en todas partes: en la segunda etapa, en `mop_f` y en el conjunto AR (`lags = 0` es el caso Bartlett de cero rezagos). Allí `first_stage_f` coincide con `mop_f` sea cual sea el número de instrumentos.
+
+**Número de rezagos.** `la_lp` y `la_lp_iv` incluyen `p_aug = n_lags + extra_lags` rezagos de `x` e `y`, y `control_lags` rezagos de cada control (por defecto `p_aug`), con el mismo `p_aug` en todos los horizontes. El valor por defecto `extra_lags=1` es el único rezago adicional de MOPM. En un VAR(p), su proyección local controla por p rezagos de todas las series, uno más que los p − 1 rezagos que necesita la representación de la proyección local (§4.1, p. 20). Por eso `n_lags = p − 1` reproduce exactamente su especificación. Un `n_lags` mayor es la elección conservadora, y MOPM señalan que no tiene coste de eficiencia asintótica (§6, p. 28). Ninguna fuente recomienda `p + h` rezagos. La especificación de rezagos queda registrada en el resultado:
+
+```python
+from puremacro.lp import la_lp
+
+res_ols = la_lp(df, y="gdp", x="fedfunds", horizon=8, lags=4, ci=0.90)
+print(res_ols.attrs["extra_lags"], res_ols.attrs["p_aug"])
+# 1 5
+```
+
+> **Cambio posterior a 4.3.0.** Antes, el valor por defecto era `extra_lags = max(horizons)` rezagos en todos los horizontes. Por eso la estimación en un `h` dado dependía del mayor horizonte solicitado, `horizons=[0]` no recibía ningún aumento y los controles recibían solo `n_lags` rezagos. Para reproducir exactamente los resultados anteriores, pase `extra_lags=max(horizons), control_lags=n_lags`.
 
 > **No se admite agrupamiento (*clustering*).** Ni `lp_iv` ni `la_lp_iv` aceptan un argumento `cluster=`, y ningún estadístico de instrumentos débiles de esta página es robusto a agrupamiento: la varianza es Newey-West HAC en `lp_iv` y White en `la_lp_iv`. La inferencia de panel robusta a agrupamiento reside en `panel_lp` / `panel_lp_dk` (§ Proyecciones locales para paneles), que **no** calculan `mop_f` ni conjuntos AR. La función `puremacro.inference.weak_iv.olea_pflueger_f` sí acepta un arreglo `cluster=`, pero es un estadístico autónomo de primera etapa, no parte del flujo de LP-IV.
 

@@ -12,7 +12,8 @@ Key Features
 3. Nesterov / Hoffman-Gelman dual averaging step size adaptation targeting delta* = 0.80.
 4. Welford online diagonal mass matrix adaptation M^{-1} ≈ Var(theta) with Stan-style
    staged warmup schedule (fast buffer, doubling slow windows, final fast buffer).
-5. Comprehensive MCMC diagnostics: split-R_hat, bulk ESS, tail ESS, E-BFMI, and
+5. Comprehensive MCMC diagnostics: split-R_hat, bulk and tail ESS (single-chain
+   Geyer ESS summed over chains, not rank-normalised), E-BFMI, and
    NUTSResult container with visualization methods.
 """
 from __future__ import annotations
@@ -66,7 +67,15 @@ def compute_split_rhat(chains: np.ndarray) -> float:
 
 
 def compute_bulk_ess(chains: np.ndarray) -> float:
-    r"""Compute bulk Effective Sample Size across chains via Geyer's monotone sequence."""
+    r"""Effective sample size summed over chains.
+
+    The sum of the single-chain ESS of each chain, each from Geyer's initial
+    monotone sequence (:func:`puremacro.mcmc.effective_sample_size`). There
+    is no rank normalisation and no multi-chain between-variance term, so
+    this is **not** the bulk ESS of Vehtari et al. (2021, eq. 10) nor arviz's
+    ``ess_bulk``; for well-mixed chains the two are close, while chains
+    stuck in different regions are not penalised here.
+    """
     chains = np.asarray(chains, dtype=float)
     if chains.ndim == 1:
         chains = chains[None, :]
@@ -76,7 +85,13 @@ def compute_bulk_ess(chains: np.ndarray) -> float:
 
 
 def compute_tail_ess(chains: np.ndarray) -> float:
-    r"""Compute tail Effective Sample Size based on 5% and 95% quantile indicators."""
+    r"""Tail effective sample size from the 5% and 95% quantile indicators.
+
+    The smaller of :func:`compute_bulk_ess` of the indicators
+    ``1{theta <= q_0.05}`` and ``1{theta <= q_0.95}`` (quantiles of the pooled
+    draws), i.e. summed single-chain ESS without rank normalisation; like
+    :func:`compute_bulk_ess`, not arviz's ``ess_tail``.
+    """
     chains = np.asarray(chains, dtype=float)
     if chains.ndim == 1:
         chains = chains[None, :]

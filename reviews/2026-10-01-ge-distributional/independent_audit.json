@@ -1,0 +1,107 @@
+{
+  "status": "passed",
+  "independence": "artifact-only calculation; no imports of puremacro solvers, application or household welfare code",
+  "artifact_hashes_verified": 12,
+  "source_hashes_verified": 7,
+  "states": {
+    "baseline": {
+      "purchaser_budget_model_units": [
+        99.99999999999993,
+        100.00000000000003
+      ],
+      "factor_income_model_units": [
+        99.99999999999999,
+        99.99999999999999
+      ],
+      "intermediate_duties_model_units": [
+        0.0,
+        0.0
+      ],
+      "final_duties_model_units": [
+        0.0,
+        0.0
+      ],
+      "maximum_budget_residual_model_units": 5.684341886080802e-14
+    },
+    "counterfactual": {
+      "purchaser_budget_model_units": [
+        100.96889378089408,
+        100.00000000000998
+      ],
+      "factor_income_model_units": [
+        99.58263037139088,
+        100.00000000000995
+      ],
+      "intermediate_duties_model_units": [
+        0.4173696286677074,
+        0.0
+      ],
+      "final_duties_model_units": [
+        0.9688937808361722,
+        0.0
+      ],
+      "maximum_budget_residual_model_units": 6.787903572558207e-13
+    }
+  },
+  "closed_form_factor_return_change": -0.004173696286676192,
+  "incremental_tariff_revenue_mxn": 24975748018.307,
+  "aggregate_baseline_income_minus_consumption_mxn": -9.918212890625e-05,
+  "counterfactual_survey_minus_model_budget_mxn": 0.01171875,
+  "counterfactual_budget_relative_error": 6.442003364623666e-15,
+  "scenarios": [
+    {
+      "preferences": "cobb_douglas",
+      "rule": "bottom_four_deciles",
+      "maximum_ev_analytic_error_mxn": 1.48929757415317e-11,
+      "maximum_cv_analytic_error_mxn": 7.275957614183426e-12,
+      "maximum_ev_numerical_error_mxn": 2.944489096989855e-11,
+      "maximum_cv_numerical_error_mxn": 9.06948116607964e-09
+    },
+    {
+      "preferences": "cobb_douglas",
+      "rule": "equal_per_household",
+      "maximum_ev_analytic_error_mxn": 1.0672351891116705e-11,
+      "maximum_cv_analytic_error_mxn": 7.275957614183426e-12,
+      "maximum_ev_numerical_error_mxn": 1.5916157281026244e-11,
+      "maximum_cv_numerical_error_mxn": 9.06948116607964e-09
+    },
+    {
+      "preferences": "cobb_douglas",
+      "rule": "no_household_rebate",
+      "maximum_ev_analytic_error_mxn": 1.48929757415317e-11,
+      "maximum_cv_analytic_error_mxn": 7.332801033044234e-12,
+      "maximum_ev_numerical_error_mxn": 2.944489096989855e-11,
+      "maximum_cv_numerical_error_mxn": 9.069538009498501e-09
+    },
+    {
+      "preferences": "fixed_baskets",
+      "rule": "bottom_four_deciles",
+      "maximum_ev_analytic_error_mxn": 1.5688783605583012e-11,
+      "maximum_cv_analytic_error_mxn": 1.4551915228366852e-11,
+      "maximum_ev_numerical_error_mxn": 1.3301360013429075e-11,
+      "maximum_cv_numerical_error_mxn": 1.4551915228366852e-11
+    },
+    {
+      "preferences": "fixed_baskets",
+      "rule": "equal_per_household",
+      "maximum_ev_analytic_error_mxn": 1.4082957022765186e-11,
+      "maximum_cv_analytic_error_mxn": 1.4551915228366852e-11,
+      "maximum_ev_numerical_error_mxn": 1.2676082405960187e-11,
+      "maximum_cv_numerical_error_mxn": 1.4551915228366852e-11
+    },
+    {
+      "preferences": "fixed_baskets",
+      "rule": "no_household_rebate",
+      "maximum_ev_analytic_error_mxn": 1.5688783605583012e-11,
+      "maximum_cv_analytic_error_mxn": 1.4551915228366852e-11,
+      "maximum_ev_numerical_error_mxn": 1.3301360013429075e-11,
+      "maximum_cv_numerical_error_mxn": 1.4551915228366852e-11
+    }
+  ],
+  "limitations": [
+    "The no-rebate case retains revenue at the solved full-rebate GE prices; it is not another GE closure",
+    "Even full household rebates change group spending without feeding that demand back into GE",
+    "Other-factor exposures and common import-origin baskets are assumptions, not observed household accounts",
+    "EV and CV are monetary incidence measures; summing them does not identify a social welfare function"
+  ]
+}

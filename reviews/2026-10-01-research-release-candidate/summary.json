@@ -1,0 +1,90 @@
+{
+  "candidate_kind": "unpublished current-worktree research candidate",
+  "validation_stage": "after exact rendered-source parity repair",
+  "release_gate_log": "release-gate-after-exact-parity.log",
+  "original_validation_evidence": "original-validation-summary.json",
+  "original_gate_evidence_unchanged": true,
+  "second_gate_evidence_unchanged": true,
+  "second_validation_evidence": "second-validation-summary.json",
+  "provenance_sha256": {
+    "candidate-provenance.json": "207127aa9b0fcf4c0d0c93e04e20e70c0e32309382d9297b047fa0ff94f5a82a",
+    "docs-provenance.json": "87246099445ffb45100867a4790963f3cb8a98fa58f94d6cd0c5d6691ad0a4d2",
+    "final-source-match-third.json": "dcfb47f924c9f8e469cdfa044f707b8a3f9be4fc46100e1512f82e6fdb6c1f78",
+    "amended-candidate-provenance.json": "63dff358f4ea971d3003a272a0c29a915b371ceacff357598aa49d1dc8de3377",
+    "original-evidence-sha256.json": "b9039e7ad324306817856fd81edc6c4a0a6f55ac21c8d9085a4879f77fcafbaa",
+    "third-candidate-provenance.json": "b2cc7601b7081c512a3f61add73361d4aecd6bc9197791813b48d770412a48dc",
+    "second-evidence-sha256.json": "fedf122a906da91caa9d153d5adbfee4f972b15fbd0c2994572fe9d4e5e96c8c"
+  },
+  "package_version": "4.3.0",
+  "candidate_directory": "/tmp/puremacro-research-candidate-20261001T214014Z",
+  "software_validation_passed": true,
+  "full_release_gate_passed": true,
+  "full_suite_summary": "pytest: 11 failed, 18441 passed, 139 skipped, 202 deselected, 276 xfailed, 331 warnings in 2395.48s (0:39:55)",
+  "full_suite_counts": {
+    "failed": 11,
+    "passed": 18441,
+    "skipped": 139,
+    "deselected": 202,
+    "xfailed": 276
+  },
+  "known_failure_baseline_compared": true,
+  "unexpected_failure_nodeids": [],
+  "remaining_known_failure_nodeids": [
+    "tests/test_inference_extras_parity.py::TestCollinearity::test_bit_identity_on_near_collinear_designs",
+    "tests/test_inference_extras_parity.py::TestCollinearity::test_columns_sharing_a_large_mean_are_not_rejected",
+    "tests/test_m5_empirical_challenger2_icio.py::TestWelfareDecompositionEmpirical::test_welfare_decomposition_tariff_shock_and_additive_closure",
+    "tests/test_regress_quantile_parity.py::test_robust_sandwich_tie_convention_on_exact_zero_residuals",
+    "tests/test_tier5_solver_adversarial.py::TestAPIErgonomicsAndSerialization::test_dataclass_replace_on_all_configs",
+    "tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b06_technology_replace_alias_synchronization",
+    "tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b07_preference_replace_alias_synchronization",
+    "tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b08_preference_replace_with_mapping_and_array",
+    "tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b09_market_structure_replace_alias_synchronization",
+    "tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b10_market_structure_replace_variety_condensation",
+    "tests/test_v260_showcase_replication_e2e.py::TestTier2BoundaryAndCornerCases::test_t2_f4_harmonic_mean_collinear_parameter_draws_raises"
+  ],
+  "recovered_known_failure_nodeids": [],
+  "gate_reports": [
+    "Gate 1 (test baseline): PASS \u2014 11 known red, no new",
+    "Gate 2 (Pyodide contract): PASS",
+    "Gate 3 (public API snapshot): PASS",
+    "Gate 4 (version sync): PASS \u2014 all read 4.3.0",
+    "Gate 7 (min-Python 3.11 syntax): PASS \u2014 1653 files parse (ast.parse(feature_version=3.11); PEP 701 f-string scan)"
+  ],
+  "all_frozen_package_test_tool_sources_match": true,
+  "final_strict_docs_match": true,
+  "installed_wheel_validation_passed": true,
+  "strict_docs_passed": true,
+  "wheel_and_sdist_twine_passed": true,
+  "research_benchmarks_passed": 7,
+  "research_benchmarks_total": 8,
+  "research_benchmarks_overall_passed": false,
+  "documented_scientific_discrepancy": "RR2010 printed horizon-10 t-statistic misses the unchanged rounding tolerance",
+  "known_failure_whitelist_unchanged": true,
+  "api_legacy_entries_reconciled": 9,
+  "artifacts": [
+    {
+      "path": "/tmp/puremacro-research-candidate-20261001T214014Z/dist/puremacro-4.3.0-py3-none-any.whl",
+      "sha256": "191cafa80eef2f8663cd6301cc87a80dd69f1a87d8f94f91d4545705577d357c",
+      "bytes": 16861366,
+      "retained_path": "reviews/2026-10-01-research-release-candidate/artifacts/puremacro-research-candidate-20261001T214014Z/puremacro-4.3.0-py3-none-any.whl"
+    },
+    {
+      "path": "/tmp/puremacro-research-candidate-20261001T214014Z/dist/puremacro-4.3.0.tar.gz",
+      "sha256": "c15646a30d8342db8506cdcaf46439276cc9ede83232603a84ef625186d60267",
+      "bytes": 16472075,
+      "retained_path": "reviews/2026-10-01-research-release-candidate/artifacts/puremacro-research-candidate-20261001T214014Z/puremacro-4.3.0.tar.gz"
+    }
+  ],
+  "release_commit_created_by_validation": false,
+  "tagged": false,
+  "published": false,
+  "deployed": false,
+  "original_frozen_git_head": "f42226818bf67afc67af494e5b25ce5caecf1c5c",
+  "current_git_head": "87cf98d6b93775df47b99d5d0e9d70dc90f9dd36",
+  "limitations": [
+    "Includes earlier worktree changes; not a feature-only release",
+    "Fixed-DGP/oracle SW07 controls do not establish composite-null inference",
+    "Synthetic trade technology/sourcing and assumed factor exposure are not an estimated Mexican economy",
+    "Tiny installed simulations validate packaging, not scientific performance"
+  ]
+}

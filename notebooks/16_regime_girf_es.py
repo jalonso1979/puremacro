@@ -13,8 +13,7 @@
 # %% [markdown]
 # # Transmisión dependiente del estado, bien hecha
 #
-# **¿Golpea más fuerte el mismo choque cuando la economía ya está en un mal
-# estado?** Los modelos de regímenes — VAR de umbral, VAR con cambio de
+# **¿Cómo varía la transmisión macroeconómica de los choques estructurales entre regímenes, como condiciones financieras de calma y de estrés?** Los modelos de regímenes — VAR de umbral, VAR con cambio de
 # régimen markoviano, VECM de umbral — existen exactamente para responder
 # eso. Pero ajustar uno y luego empujar sus coeficientes por régimen a
 # través de una rutina de IRF *lineal* responde en silencio una pregunta
@@ -28,7 +27,7 @@
 # y Vigfusson (2011).
 
 # %% [markdown]
-# ## De la IRF lineal a la IRF generalizada en matemáticas
+# ## El método en matemáticas: de la IRF lineal a la IRF generalizada
 #
 # Un VAR de umbral con dos regímenes cambia su dinámica según una variable
 # de umbral rezagada $z_{t-d}$:
@@ -57,6 +56,17 @@
 # $GI(2\delta) = 2\,GI(\delta)$ y $GI(-\delta) = -GI(\delta)$, así que
 # graficar $GI(\delta)/\delta$ entre tamaños y signos mide cuán no lineal
 # es realmente la transmisión.
+#
+# ### Parámetros de la simulación base
+#
+# | Símbolo | Descripción del parámetro | Valor base | Unidades / Convención contable |
+# | :--- | :--- | :--- | :--- |
+# | $c^*$ | Parámetro de umbral verdadero que separa los regímenes | $0.00$ | Unidades del ICF simulado (innovación con desviación estándar 1) |
+# | $d$ | Parámetro de retardo del umbral | $1$ | Período de rezago ($z_{t-1}$) |
+# | $T$ | Longitud total de la simulación | $600$ | Trimestres ($150$ años) |
+# | $R$ | Trayectorias emparejadas de Monte Carlo por historia (GIRF principal) | $80$ | Trayectorias por historia; $40$ historias por régimen inicial |
+# | $A_{\text{calma}}$ | Matriz autorregresiva en régimen de calma | $[[0.5, 0], [-0.1, 0.4]]$ | Parámetros de transición de estado |
+# | $A_{\text{estrés}}$ | Matriz autorregresiva en régimen de estrés | $[[0.8, 0], [-0.5, 0.4]]$ | Persistencia elevada y mayor arrastre |
 
 # %% [markdown]
 # **Intuición.** Una IRF lineal es un solo número por horizonte porque un
@@ -73,6 +83,15 @@
 # mecánica. El precio es ruido de simulación; la recompensa es un objeto
 # que puede diferir honestamente entre regímenes, tamaños y signos — y una
 # banda de diferencias que te dice si lo hace.
+#
+# ### Referencias clave
+#
+# - **Koop, G., Pesaran, M. H., & Potter, S. M. (1996).** *Impulse response analysis in nonlinear multivariate models.* Journal of Econometrics, 74(1), 119–147.
+# - **Kilian, L., & Vigfusson, R. J. (2011).** *Are the responses of the U.S. economy asymmetric in energy price increases and decreases?* Quantitative Economics, 2(3), 419–453.
+# - **Tsay, R. S. (1998).** *Testing and modeling multivariate threshold models.* Journal of the American Statistical Association, 93(443), 1188–1202.
+# - **Hansen, B. E. (1999).** *Threshold effects in non-dynamic panels: Estimation, testing, and inference.* Journal of Econometrics, 93(2), 345–368.
+# - **Krolzig, H.-M. (1997).** *Markov-Switching Vector Autoregressions.* Lecture Notes in Economics and Mathematical Systems. Springer. doi:10.1007/978-3-642-51684-9
+# - **Caldara, D., Fuentes-Albero, C., Gilchrist, S., & Zakrajšek, E. (2016).** *The macroeconomic impact of financial and uncertainty shocks.* European Economic Review, 88, 185–207.
 
 # %% [markdown]
 # ## Preparación — una economía simulada con regímenes de calma y estrés
@@ -135,29 +154,53 @@ ax.set_title("Simulated FCI — shaded spans are stress quarters ($z_t > 0$)")
 #
 # `tvar_fit` busca en una malla el umbral $c$ y el rezago de decisión $d$
 # (Tsay 1998) y corre OLS por régimen. Nada le dice que la partición
-# verdadera está en cero con $d=1$ — tiene que encontrar eso, y la brecha
-# de coeficientes plantada, por su cuenta.
+# verdadera está en cero — tiene que encontrar eso, y la brecha de
+# coeficientes plantada, por su cuenta. Un detalle: `tvar_fit` solo prueba
+# rezagos $d \le p$ y descarta los demás sin avisar, así que con el orden
+# de rezagos verdadero $p=1$ el rezago queda fijo en 1 y no se puede
+# "encontrar". Usamos el ajuste con $p=1$ en el resto del notebook y
+# corremos la búsqueda del rezago como un chequeo aparte con $p=2$, donde
+# $d=2$ es un candidato real. Un segundo chequeo es independiente de
+# `puremacro`: MCO simple sobre la partición *verdadera* ($z_{t-1} > 0$),
+# que dice cuánto de cualquier error de estimación es ruido muestral en
+# esta única muestra y no efecto del umbral estimado.
 
 # %%
-fit = tvar_fit(Y, threshold_var_idx=0, p=1, delay_grid=(1, 2), n_threshold_grid=40)
-print(f"threshold c = {fit.threshold:+.3f} (true 0.0) | delay d = {fit.delay} (true 1)")
+fit = tvar_fit(Y, threshold_var_idx=0, p=1, delay_grid=(1,), n_threshold_grid=40)
+print(f"threshold c = {fit.threshold:+.3f} (true 0.0) | delay d = {fit.delay} (only d <= p = 1 is tried)")
 print(f"regime split: {fit.n_low} calm / {fit.n_high} stress quarters")
 print("A_low  (calm)  =", np.round(fit.A_low, 3).tolist())
 print("A_high (stress)=", np.round(fit.A_high, 3).tolist())
-assert fit.delay == 1
+
+# a delay search that can fail: at p = 2 both d = 1 and d = 2 are admissible
+fit_p2 = tvar_fit(Y, threshold_var_idx=0, p=2, delay_grid=(1, 2), n_threshold_grid=40)
+print(f"delay search at p = 2 over d in (1, 2): d = {fit_p2.delay} (true 1)")
+
+# independent check: OLS with intercept on the true stress quarters (z_{t-1} > 0)
+X_true = np.column_stack([np.ones(len(Y) - 1), Y[:-1]])
+in_stress = Y[:-1, 0] > 0.0
+B_true = np.linalg.lstsq(X_true[in_stress], Y[1:][in_stress], rcond=None)[0]
+print(f"OLS on the true split: stress FCI persistence = {B_true[1, 0]:.3f}, "
+      f"growth drag = {B_true[1, 1]:.3f} (true 0.8 and -0.5)")
+assert fit_p2.delay == 1                              # the true delay wins when d = 2 is allowed
 assert abs(fit.threshold) < 0.5                       # near the true zero
 assert fit.A_high[1, 0] < fit.A_low[1, 0] - 0.25      # planted cross-effect gap
 
 # %% [markdown]
-# **Lee la salida.** La malla aterriza cerca de la verdad: umbral cercano a
-# cero, rezago 1, y el régimen de estrés estimado lleva las dos huellas
-# plantadas — mayor persistencia del ICF ($\approx 0.7$ vs $0.5$) y el
-# arrastre sobre el crecimiento mucho más fuerte ($\approx -0.47$ vs
-# $-0.11$). La atenuación del estimador de persistencia (0.7, no 0.8) es el
-# precio habitual de las observaciones mal clasificadas cerca del umbral.
-# Hasta aquí esto es solo estimación; la pregunta es qué *significan* estos
-# dos bloques de coeficientes para un choque — y eso no se responde
-# alimentando cualquiera de los bloques a una IRF lineal.
+# **Lectura de los resultados.** El umbral cae en $+0.236$ (verdadero 0) y,
+# cuando un segundo rezago es admisible ($p=2$), la búsqueda elige $d=1$,
+# el rezago verdadero. El régimen de estrés estimado lleva las dos huellas
+# plantadas: persistencia del ICF de 0.691 frente a 0.526 en calma
+# (verdaderos 0.8 y 0.5), y un arrastre sobre el crecimiento de −0.472
+# frente a −0.11 (verdaderos −0.5 y −0.1). ¿Por qué 0.691 y no 0.8? Cerca
+# de la mitad de la brecha es ruido muestral en esta única muestra de 600
+# trimestres: MCO sobre la partición verdadera da 0.744. El resto viene del
+# umbral estimado. Con $c = +0.236$ el régimen de estrés conserva solo los
+# trimestres con $z_{t-1} > 0.236$, así que pierde trimestres de estrés
+# verdaderos en lugar de sumar trimestres de calma. Hasta aquí esto es solo
+# estimación; la pregunta es qué *significan* estos dos bloques de
+# coeficientes para un choque — y eso no se responde alimentando cualquiera
+# de los bloques a una IRF lineal.
 
 # %% [markdown]
 # ## La GIRF: historias, cambio endógeno, simulación emparejada
@@ -182,9 +225,13 @@ g_strs = res.girf_by_regime[1, 0]
 d_gr = res.difference[0, :, 1]
 d_lo = res.difference_lo[0, :, 1]
 d_hi = res.difference_hi[0, :, 1]
-print(f"growth response at h=2: calm {g_calm[2, 1]:+.3f} | stress {g_strs[2, 1]:+.3f}")
+print(f"growth response at h=2: calm {g_calm[2, 1]:+.3f} | stress {g_strs[2, 1]:+.3f} "
+      f"(ratio {g_strs[2, 1] / g_calm[2, 1]:.2f})")
 print(f"difference (stress-calm) at h=2: {d_gr[2]:+.3f}, 90% band "
       f"[{d_lo[2]:+.3f}, {d_hi[2]:+.3f}]")
+below = np.flatnonzero(d_hi < 0.0)
+print(f"band entirely below zero at {below.size} of {h.size} horizons: h = {below.tolist()}")
+print(f"FCI's own response at h=1: calm {g_calm[1, 0]:+.3f} | stress {g_strs[1, 0]:+.3f}")
 assert g_strs[2, 1] < g_calm[2, 1] - 0.10   # stress transmission is stronger...
 assert d_hi[2] < -0.10                      # ...and the band excludes zero
 
@@ -217,25 +264,31 @@ axes[1].set_xlabel("Horizon (quarters)")
 axes[1].set_ylabel("Difference in growth response")
 axes[1].set_title("Regime-dependent transmission test")
 axes[1].legend(fontsize=8)
+for a in axes:
+    a.set_xticks(h[::4])
 
 # %% [markdown]
-# **Lee la salida.** Panel izquierdo: el mismo choque financiero de +1
-# desviación estándar cuesta alrededor de **−0.42** de crecimiento en $h=2$
-# cuando aterriza en estrés frente a **−0.24** en calma — casi el doble de
-# daño, puramente por dónde aterriza. La línea ingenua de estrés congelado
-# sobrestima la respuesta de estrés (pérdida acumulada −2.6 vs −1.9): las
-# trayectorias reales *escapan* al régimen de calma conforme el ICF
-# revierte a la media, y la GIRF promedia esas salidas mientras que la
-# recursión congelada las prohíbe. Panel derecho: la diferencia
-# estrés-menos-calma es negativa y su banda al 90% queda **estrictamente
-# por debajo de cero** durante los dos primeros años — un contraste
-# bootstrap directo de transmisión dependiente del régimen, que aquí
-# rechaza correctamente la simetría porque la asimetría la plantamos
-# nosotros. Una sutileza que vale la pena saborear: la respuesta *propia*
-# del ICF difiere entre regímenes mucho menos de lo que sugieren los
-# coeficientes (0.7 vs 0.5), porque un choque positivo en calma empuja al
-# ICF a cruzar el umbral y entonces se propaga de todos modos con la
-# dinámica de estrés — el cambio endógeno en acción.
+# **Lectura de los resultados.** Panel izquierdo: el mismo choque financiero de +1
+# desviación estándar cuesta **−0.418** de crecimiento en $h=2$ cuando
+# aterriza en estrés frente a **−0.238** en calma — 1.75 veces el daño,
+# puramente por dónde aterriza. La línea ingenua de estrés congelado
+# sobrestima la respuesta de estrés (pérdida acumulada −2.56 frente a −1.93
+# de la GIRF): las trayectorias reales *escapan* al régimen de calma
+# conforme el ICF revierte a la media, y la GIRF promedia esas salidas
+# mientras que la recursión congelada las prohíbe. Panel derecho: la
+# diferencia estrés-menos-calma en $h=2$ es −0.179 con banda al 90% de
+# [−0.199, −0.163], y la banda queda enteramente por debajo de cero en los
+# horizontes 0 a 14. Eso recupera la asimetría que plantamos. Lee la banda
+# por lo que es: remuestrea historias y sorteos de simulación con los
+# coeficientes ajustados fijos, así que no lleva incertidumbre de
+# estimación y es más angosta de lo que sería un contraste completo de
+# transmisión dependiente del régimen (el ejercicio avanzado de abajo
+# muestra un caso en el que colapsa a una línea). Una sutileza que vale la
+# pena saborear: la respuesta *propia* del ICF en $h=1$ es +0.680 partiendo
+# de calma y +0.688 partiendo de estrés, mucho más cerca de lo que sugiere
+# la persistencia ajustada (0.526 frente a 0.691). Un choque positivo en
+# calma empuja al ICF a cruzar el umbral y entonces se propaga de todos
+# modos con la dinámica de estrés — el cambio endógeno en acción.
 
 # %% [markdown]
 # ## Asimetría de tamaño y signo, al estilo Kilian-Vigfusson
@@ -255,6 +308,8 @@ dev_size = np.abs(sc[1, :, 1] - sc[0, :, 1]).max()   # |GI(2d)/2 - GI(d)| gap
 dev_sign = np.abs(sc[2, :, 1] - sc[0, :, 1]).max()   # |GI(-d)/(-d) - GI(d)| gap
 print(f"max size deviation |GI(2)/2 - GI(1)|  (growth): {dev_size:.3f}")
 print(f"max sign deviation |GI(-1)/-1 - GI(1)| (growth): {dev_sign:.3f}")
+print("per-sd growth response at h=2: " + " | ".join(
+    f"{d:+.0f} sd {sc[s, 2, 1]:+.3f}" for s, d in enumerate(res.shock_sizes)))
 assert np.abs(sc[:, 0, :] - sc[0, 0, :]).max() < 1e-12  # impact IS proportional
 assert dev_size > 0.02 and dev_sign > 0.05              # dynamics are NOT
 
@@ -269,16 +324,19 @@ ax.set_title("Kilian-Vigfusson size/sign check: one curve iff linear")
 ax.legend(fontsize=8)
 
 # %% [markdown]
-# **Lee la salida.** En $h=0$ las cuatro curvas coinciden *exactamente* —
+# **Lectura de los resultados.** En $h=0$ las cuatro curvas coinciden *exactamente* —
 # la respuesta de impacto es $\mathrm{chol}(\Sigma_r)e_j\delta$,
 # proporcional por construcción — así que cualquier dispersión en
-# $h \geq 1$ es pura no linealidad de transmisión. Y se dispersa: los
-# choques positivos (que reclutan al régimen de estrés) transmiten más daño
-# por desviación estándar que los negativos (que huyen de él), y los
-# choques de $\pm 2$ desviaciones se desvían más que los de $\pm 1$, porque
-# los impulsos mayores reubican más trayectorias al otro lado del umbral.
-# Si alguien te entrega una sola IRF para un modelo de regímenes sin una
-# $\delta$ en la etiqueta, este gráfico es la pregunta que hay que hacer.
+# $h \geq 1$ es pura no linealidad de transmisión. Y se dispersa. En $h=2$
+# el costo en crecimiento por desviación estándar es −0.375 para un choque
+# de +2, −0.330 para +1, −0.232 para −1 y −0.195 para −2. Los choques
+# positivos, que reclutan al régimen de estrés, transmiten más daño por
+# desviación estándar que los negativos, que sacan trayectorias de él
+# (mayor brecha de signo 0.097). Duplicar el choque amplía la brecha en
+# ambas direcciones (mayor brecha de tamaño 0.045), porque los impulsos
+# mayores reubican más trayectorias al otro lado del umbral. Si alguien te
+# entrega una sola IRF para un modelo de regímenes sin una $\delta$ en la
+# etiqueta, este gráfico es la pregunta que hay que hacer.
 
 # %% [markdown]
 # ## El chequeo de cordura del límite lineal — validación que puedes repetir
@@ -316,7 +374,7 @@ for j, (name, sty) in enumerate([("FCI", "-"), ("growth", "--")]):
     ax.plot(h, closed_form[:, j], color=_nbstyle.TINTA, linestyle=sty, linewidth=1.6,
             label=f"linear IRF — {name}")
     ax.plot(h[::2], chk.girf_pooled[0, ::2, j], "o", color=_nbstyle.NOTA, markersize=4,
-            label=f"GIRF — {name}" if j == 0 else None)
+            label="GIRF (both series, every 2nd h)" if j == 0 else None)
 ax.set_xlabel("Horizon (quarters)")
 ax.set_ylabel("Response to a +1 sd FCI shock")
 ax.set_title("Linear limit: the GIRF collapses onto the closed form")
@@ -326,47 +384,80 @@ ax.legend(fontsize=8)
 # **El momento de validación.** Esta es la disciplina que el notebook
 # quiere que robes: todo estimador basado en simulación debería venir con
 # un límite en el que su respuesta se conoce *exactamente*. Para la GIRF de
-# KPP ese límite es "regímenes que no difieren", y la coincidencia a
-# precisión de máquina de arriba (del orden de $10^{-16}$, no de $10^{-2}$)
-# solo es posible porque el impulso se suma al choque identificado bajo
-# números aleatorios comunes — una decisión de diseño tomada *para* la
-# testeabilidad. Cuando el límite lineal se cumple y la asimetría plantada
-# se recupera con el signo correcto, la salida interesante (la banda de
-# diferencias) hereda esa credibilidad.
+# KPP ese límite es "regímenes que no difieren", y la coincidencia de
+# arriba es a precisión de máquina (del orden de $10^{-16}$, no de
+# $10^{-2}$). Eso solo es posible porque el impulso se suma al choque
+# identificado bajo números aleatorios comunes — una decisión de diseño
+# tomada *para* la testeabilidad. Ten claro qué tipo de oráculo es: ambos
+# lados son código de `puremacro` (`girf` contra `var.irf`), así que es un
+# chequeo de consistencia interna del simulador, no evidencia
+# independiente. Los anclajes independientes de este notebook son el
+# proceso generador de datos plantado y el MCO simple sobre la partición
+# verdadera. Cuando el límite lineal se cumple y la asimetría plantada se
+# recupera con el signo correcto, la banda de diferencias hereda esa
+# credibilidad — dentro de los límites de lo que la banda mide.
 
 # %% [markdown]
 # ## Tu turno — ¿qué tan grande debe ser un choque para romper la proporcionalidad?
 #
 # El ejercicio de abajo recalcula la GIRF para un tamaño de choque de tu
 # elección y la compara, por desviación estándar, contra el punto de
-# referencia de +1. La comparación de impacto debe coincidir *exactamente*
-# para cualquier $\delta$ (esa es la proporcionalidad de Cholesky que
-# verificaste arriba); el número interesante es cuánto se separan las
-# curvas en horizontes de ciclo económico.
+# referencia de +1. El impacto es proporcional por construcción, así que
+# la prueba es la *deriva* en horizontes de ciclo económico: la respuesta
+# del crecimiento por desviación estándar menos la de +1, promediada sobre
+# $h = 1,\dots,8$. **Predice su signo antes de correr.** Un choque mayor
+# que +1 empuja más trayectorias al estrés, donde el arrastre sobre el
+# crecimiento es cinco veces más fuerte, así que por desviación estándar
+# debería costar *más* crecimiento (deriva < 0). Un choque menor que +1, o
+# uno negativo, recluta menos trayectorias de estrés o las saca de él, así
+# que por desviación estándar debería costar *menos* (deriva > 0). El
+# `assert` califica esa predicción; se cumple para todo $\delta$ del rango
+# anunciado y falla cuando el modelo no tiene no linealidad de umbral en
+# su dinámica.
 
 # %%
-DELTA_TRY = 2.0   # ← change this: shock size in sd units (try 0.5, 3.0, -2.0, 5.0)
+DELTA_TRY = 2.0   # ← change this: shock size in sd, -5 <= delta <= 5 with |delta - 1| >= 0.5 and delta != 0 (try 0.5, 3.0, -2.0, 5.0)
+assert -5.0 <= DELTA_TRY <= 5.0 and abs(DELTA_TRY - 1.0) >= 0.5 and DELTA_TRY != 0.0, \
+    "outside the advertised range"
 res_try = girf(fit, Y, shock=0, horizon=16, n_hist=30, n_sim=60,
                shock_size=[1.0, DELTA_TRY], n_boot=100, rng=2)
 sc_try = res_try.scaled()
-drift = np.abs(sc_try[1, :, 1] - sc_try[0, :, 1])
-print(f"delta = {DELTA_TRY:+.1f} sd -> max per-sd growth drift vs +1 sd: "
-      f"{drift.max():.3f} at h = {int(drift.argmax())}")
-# Holds for the default and ANY delta you try: impact is exactly proportional.
-assert np.allclose(sc_try[1, 0], sc_try[0, 0], atol=1e-10)
+drift = sc_try[1, :, 1] - sc_try[0, :, 1]    # per-sd growth response minus the +1 sd benchmark
+mean_drift = drift[1:9].mean()              # the first two years after impact
+print(f"delta = {DELTA_TRY:+.1f} sd -> mean per-sd growth drift vs +1 sd over h = 1..8: "
+      f"{mean_drift:+.4f} (largest |drift| {np.abs(drift).max():.3f} at h = {int(np.abs(drift).argmax())})")
+# the prediction: drift has the sign of (1 - delta), and is not zero
+assert abs(mean_drift) > 1e-3 and np.sign(mean_drift) == np.sign(1.0 - DELTA_TRY), \
+    "prediction failed: explain why"
 
 # %% [markdown]
-# **Ejercicios.** (1) *Básico*: pon `DELTA_TRY = -2.0` y explica el signo
-# de la desviación usando el umbral: ¿qué régimen reclutan los choques
-# negativos del ICF, y por qué eso los hace *más débiles* por desviación
-# estándar? (2) *Intermedio*: reajusta el modelo con `delay_grid=(2,)` y
-# vuelve a correr la GIRF — ¿forzar el rezago equivocado encoge la banda de
-# la diferencia estrés-calma hacia cero, y qué enseña eso sobre
-# especificar mal $d$? (3) *Avanzado*: reemplaza `tvar_fit` por
-# `ms_var_fit(Y, K=2, p=1)` y llama a la *misma* función `girf`. La banda
-# de diferencias ahora refleja solo el Cholesky de impacto — explica por
-# qué la especificación markoviana con $A$ compartida no puede generar
-# asimetría de transmisión, y qué necesitaría el modelo para poder hacerlo.
+# **Ejercicios.** (1) *Básico*: antes de correr, predice el signo de la
+# deriva para `DELTA_TRY = -2.0` y para `0.5`, y luego corre ambos. ¿Qué
+# régimen reclutan los choques negativos del ICF, y por qué eso los hace
+# *más débiles* por desviación estándar? (2) *Intermedio*: fuerza el
+# rezago equivocado con
+# `fit_wrong = tvar_fit(Y, threshold_var_idx=0, p=2, delay_grid=(2,), n_threshold_grid=40)`
+# (un rezago de 2 necesita $p \ge 2$, porque `tvar_fit` descarta $d > p$).
+# Pasa `fit_wrong` a la GIRF de arriba con los ajustes principales
+# (`n_hist=40, n_sim=80, n_boot=300, rng=16`) y a la celda del ejercicio.
+# ¿La diferencia estrés-calma en $h=2$ se acerca a cero? ¿Sobrevive la
+# predicción de signo, y qué dice eso sobre qué conclusiones dependen de
+# acertar con $d$? (3) *Avanzado*: ajusta
+# `fit_ms = ms_var_fit(Y, K=2, p=1)` (impórtalo de `puremacro.var.regime`).
+# Es un MSIH(2)-VAR(1) en la notación de Krolzig (1997): interceptos
+# $\mu_k$ y covarianzas $\Sigma_k$ propios de cada régimen, una sola $A$
+# compartida, estimado por EM con el filtro de Hamilton. No es el modelo
+# de Hamilton (1989), que cambia la media de un proceso AR con varianza
+# constante. Pasa `fit_ms` a la *misma* `girf` en la celda del ejercicio y
+# predice, antes de correr, por qué el `assert` falla ahora para todo
+# $\delta$. Luego verifica que `girf(fit_ms, ...).difference[0]` (régimen
+# 1 menos régimen 0) es igual a
+# $A^h\big(\mathrm{chol}(\Sigma_1) - \mathrm{chol}(\Sigma_0)\big)e_0$ en
+# cada horizonte, a partir de `fit_ms.A` y `fit_ms.Sigma`, y que su banda
+# tiene ancho cero. Los datos se simularon con covarianza identidad en
+# ambos regímenes: ¿qué está captando esta "diferencia entre regímenes"?
+# ¿Persiste alguno de los regímenes ajustados (mira `fit_ms.P`)? ¿Qué
+# necesitaría el modelo para generar asimetría de transmisión?
 #
 # ## Por qué esto importa para la investigación de incertidumbre por regímenes
 #
@@ -387,11 +478,13 @@ assert np.allclose(sc_try[1, 0], sc_try[0, 0], atol=1e-10)
 # la diferencia entre regímenes con una banda, nunca una IRF de régimen
 # congelado.
 #
-# **¿Qué tan completo es esto?** `girf` despacha sobre los tres ajustes de
+# **¿Qué tan exhaustivo es esto?** `girf` despacha sobre los tres ajustes de
 # regímenes de `puremacro.var.regime` — `tvar_fit` (usado aquí),
 # `tvecm_fit` (cointegración con umbral, respuestas en niveles) y
-# `ms_var_fit` (trayectorias de régimen extraídas de la matriz de
-# transición ajustada). Las alternativas uniecuacionales viven en
+# `ms_var_fit` (un VAR MSIH con $A$ compartida, ajustado por EM;
+# trayectorias de régimen extraídas de la matriz de transición ajustada,
+# así que su GIRF difiere entre regímenes solo a través de
+# $\mathrm{chol}(\Sigma_k)$). Las alternativas uniecuacionales viven en
 # `puremacro.lp` (`lp_state_dep` para proyecciones locales dependientes del
 # estado al estilo Auerbach-Gorodnichenko); `puremacro.uncertainty.regimes`
 # fecha los regímenes mismos (quiebres de Bai-Perron, regímenes de

@@ -1,0 +1,1165 @@
+{
+  "schema_version": 1,
+  "runtime": "cpython",
+  "platform": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "loaded_at": "2026-10-04T03:19:48Z",
+  "python_version": "3.13.12",
+  "puremacro_version": "4.5.0",
+  "puremacro_file": "/Users/jalonso/Documents/RESEARCH/puremacro/puremacro/__init__.py",
+  "packages": {
+    "numpy": "2.4.6",
+    "scipy": "1.18.1",
+    "pandas": "3.0.6",
+    "matplotlib": "3.11.1",
+    "requests": "2.34.2"
+  },
+  "import_s": 0.5,
+  "n_cases": 114,
+  "n_passed": 114,
+  "n_failed": 0,
+  "gallery_s": 20.958,
+  "runtime_s": 21.544,
+  "cases": [
+    {
+      "id": "cointegration.fmols_planted_beta",
+      "subsystem": "cointegration",
+      "mechanism": "internal",
+      "tol": "numeric",
+      "passed": true,
+      "max_margin": -0.018558957674584146,
+      "error": "",
+      "seconds": 0.805972
+    },
+    {
+      "id": "cointegration.dols_planted_beta",
+      "subsystem": "cointegration",
+      "mechanism": "internal",
+      "tol": "numeric",
+      "passed": true,
+      "max_margin": -0.019372992132152593,
+      "error": "",
+      "seconds": 0.001174
+    },
+    {
+      "id": "cointegration.fmols_dols_agreement",
+      "subsystem": "cointegration",
+      "mechanism": "internal",
+      "tol": "numeric",
+      "passed": true,
+      "max_margin": -0.01927869546375308,
+      "error": "",
+      "seconds": 0.001237
+    },
+    {
+      "id": "cointegration.dols_mitigates_endogeneity_bias",
+      "subsystem": "cointegration",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1.01e-10,
+      "error": "",
+      "seconds": 0.001092
+    },
+    {
+      "id": "did.callaway_santanna_recovers_canonical_2x2",
+      "subsystem": "did",
+      "mechanism": "analytical",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -4.498346439639603e-10,
+      "error": "",
+      "seconds": 0.17101
+    },
+    {
+      "id": "did.sun_abraham_equals_callaway_santanna_2x2",
+      "subsystem": "did",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -4.498497429970967e-10,
+      "error": "",
+      "seconds": 0.013889
+    },
+    {
+      "id": "did.callaway_santanna_aggregations_match_cs2021_equations",
+      "subsystem": "did",
+      "mechanism": "analytical",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1.76e-10,
+      "error": "",
+      "seconds": 0.003134
+    },
+    {
+      "id": "did.sun_abraham_iw_event_study_matches_sa2021_eq27",
+      "subsystem": "did",
+      "mechanism": "analytical",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -2.01e-10,
+      "error": "",
+      "seconds": 0.002574
+    },
+    {
+      "id": "did.borusyak_jaravel_spiess_recovers_2x2",
+      "subsystem": "did",
+      "mechanism": "analytical",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -4.489264955486844e-06,
+      "error": "",
+      "seconds": 0.305798
+    },
+    {
+      "id": "did.synthetic_did_recovers_treatment_effect",
+      "subsystem": "did",
+      "mechanism": "internal",
+      "tol": "numeric",
+      "passed": true,
+      "max_margin": -0.03466451168164588,
+      "error": "",
+      "seconds": 0.080529
+    },
+    {
+      "id": "did.spatial_did_beyond_outer_ring_equals_two_way_fe",
+      "subsystem": "did",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -9.83574251081455e-09,
+      "error": "",
+      "seconds": 0.018346
+    },
+    {
+      "id": "did.spatial_did_naive_att_equals_pooled_two_way_fe",
+      "subsystem": "did",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -1.7309636847794358e-08,
+      "error": "",
+      "seconds": 0.051175
+    },
+    {
+      "id": "did.spatial_did_recovers_planted_ring_profile",
+      "subsystem": "did",
+      "mechanism": "analytical",
+      "tol": "coarse",
+      "passed": true,
+      "max_margin": -0.007241032220597,
+      "error": "",
+      "seconds": 0.025631
+    },
+    {
+      "id": "did.spatial_did_ring_adjustment_beats_naive_under_spillover",
+      "subsystem": "did",
+      "mechanism": "analytical",
+      "tol": "qualitative",
+      "passed": true,
+      "max_margin": -0.11251128699856858,
+      "error": "",
+      "seconds": 0.035105
+    },
+    {
+      "id": "did.spatial_did_no_spillover_leaves_naive_unbiased",
+      "subsystem": "did",
+      "mechanism": "analytical",
+      "tol": "qualitative",
+      "passed": true,
+      "max_margin": -0.0238275490197591,
+      "error": "",
+      "seconds": 0.029061
+    },
+    {
+      "id": "dsge.klein_forward_policy_loading",
+      "subsystem": "dsge",
+      "mechanism": "analytical",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -6.009999998889776e-07,
+      "error": "",
+      "seconds": 0.079406
+    },
+    {
+      "id": "dsge.gensys_forward_eigenvalues",
+      "subsystem": "dsge",
+      "mechanism": "analytical",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -6.009999998889776e-07,
+      "error": "",
+      "seconds": 0.000286
+    },
+    {
+      "id": "dsge.klein_gensys_cross_method",
+      "subsystem": "dsge",
+      "mechanism": "internal",
+      "tol": "numeric",
+      "passed": true,
+      "max_margin": -0.0001,
+      "error": "",
+      "seconds": 0.000335
+    },
+    {
+      "id": "dsge.gensys_shock_impact_identity",
+      "subsystem": "dsge",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -9.998889776975375e-13,
+      "error": "",
+      "seconds": 0.000166
+    },
+    {
+      "id": "dsge.statespace_kalman_loglik_ar1",
+      "subsystem": "dsge",
+      "mechanism": "analytical",
+      "tol": "numeric",
+      "passed": true,
+      "max_margin": -1.416324633284969,
+      "error": "",
+      "seconds": 0.008363
+    },
+    {
+      "id": "dsge.blanchard_kahn_stable_count",
+      "subsystem": "dsge",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1.01e-10,
+      "error": "",
+      "seconds": 0.001173
+    },
+    {
+      "id": "dynpanel.ab_recovers_rho",
+      "subsystem": "dynpanel",
+      "mechanism": "internal",
+      "tol": "coarse",
+      "passed": true,
+      "max_margin": -0.04956044905334607,
+      "error": "",
+      "seconds": 1.030151
+    },
+    {
+      "id": "dynpanel.bb_recovers_rho",
+      "subsystem": "dynpanel",
+      "mechanism": "internal",
+      "tol": "coarse",
+      "passed": true,
+      "max_margin": -0.04711207288888748,
+      "error": "",
+      "seconds": 0.451527
+    },
+    {
+      "id": "dynpanel.ab_within_sampling_band",
+      "subsystem": "dynpanel",
+      "mechanism": "internal",
+      "tol": "qualitative",
+      "passed": true,
+      "max_margin": -0.08759787355894662,
+      "error": "",
+      "seconds": 0.647456
+    },
+    {
+      "id": "dynpanel.ar_test_ar1_present_ar2_absent",
+      "subsystem": "dynpanel",
+      "mechanism": "internal",
+      "tol": "qualitative",
+      "passed": true,
+      "max_margin": -0.050000000000000044,
+      "error": "",
+      "seconds": 0.476799
+    },
+    {
+      "id": "dynpanel.hansen_j_does_not_reject",
+      "subsystem": "dynpanel",
+      "mechanism": "internal",
+      "tol": "qualitative",
+      "passed": true,
+      "max_margin": -0.9284631650619335,
+      "error": "",
+      "seconds": 0.458548
+    },
+    {
+      "id": "dynpanel.hansen_j_zero_when_exactly_identified",
+      "subsystem": "dynpanel",
+      "mechanism": "analytical",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1e-12,
+      "error": "",
+      "seconds": 0.038972
+    },
+    {
+      "id": "dynpanel.windmeijer_matches_finite_difference",
+      "subsystem": "dynpanel",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -5.21054104311164e-08,
+      "error": "",
+      "seconds": 0.107709
+    },
+    {
+      "id": "forecast.crps_gaussian_closed_form",
+      "subsystem": "forecast",
+      "mechanism": "analytical",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -9.447799090204365e-08,
+      "error": "",
+      "seconds": 0.001453
+    },
+    {
+      "id": "forecast.crps_gaussian_value_at_zero",
+      "subsystem": "forecast",
+      "mechanism": "analytical",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -2.346949772551091e-07,
+      "error": "",
+      "seconds": 8.1e-05
+    },
+    {
+      "id": "forecast.crps_ensemble_vs_gaussian",
+      "subsystem": "forecast",
+      "mechanism": "internal",
+      "tol": "numeric",
+      "passed": true,
+      "max_margin": -0.01065503420513541,
+      "error": "",
+      "seconds": 3.456631
+    },
+    {
+      "id": "forecast.pit_calibration_identity",
+      "subsystem": "forecast",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1e-12,
+      "error": "",
+      "seconds": 0.025266
+    },
+    {
+      "id": "forecast.diebold_mariano_sign_and_tie",
+      "subsystem": "forecast",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1.01e-10,
+      "error": "",
+      "seconds": 0.000351
+    },
+    {
+      "id": "forecast.mcs_retains_best_eliminates_worst",
+      "subsystem": "forecast",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1.01e-10,
+      "error": "",
+      "seconds": 0.011411
+    },
+    {
+      "id": "garch.params_vs_arch",
+      "subsystem": "garch",
+      "mechanism": "package",
+      "tol": "numeric",
+      "passed": true,
+      "max_margin": -0.0004564597704908906,
+      "error": "",
+      "seconds": 0.040072
+    },
+    {
+      "id": "garch.cond_vol_vs_arch",
+      "subsystem": "garch",
+      "mechanism": "package",
+      "tol": "numeric",
+      "passed": true,
+      "max_margin": -0.009107560900400642,
+      "error": "",
+      "seconds": 0.038807
+    },
+    {
+      "id": "garch.recursion_identity",
+      "subsystem": "garch",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -9.999946709294819e-10,
+      "error": "",
+      "seconds": 0.033711
+    },
+    {
+      "id": "garch.persistence_identity",
+      "subsystem": "garch",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1e-12,
+      "error": "",
+      "seconds": 0.037979
+    },
+    {
+      "id": "garch.simulate_then_recover",
+      "subsystem": "garch",
+      "mechanism": "internal",
+      "tol": "coarse",
+      "passed": true,
+      "max_margin": -0.0017221249129012774,
+      "error": "",
+      "seconds": 0.039085
+    },
+    {
+      "id": "garch.loglik_self_consistency",
+      "subsystem": "garch",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -0.009429867555603271,
+      "error": "",
+      "seconds": 0.115456
+    },
+    {
+      "id": "garch.midas_variance_decomposition_identity",
+      "subsystem": "garch",
+      "mechanism": "analytical",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -9.999999457898914e-13,
+      "error": "",
+      "seconds": 0.205511
+    },
+    {
+      "id": "inference.ols_hac_vs_statsmodels",
+      "subsystem": "inference",
+      "mechanism": "package",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -8.475712558783111e-08,
+      "error": "",
+      "seconds": 0.000738
+    },
+    {
+      "id": "inference.newey_west_vs_statsmodels",
+      "subsystem": "inference",
+      "mechanism": "package",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -8.475712558783111e-08,
+      "error": "",
+      "seconds": 0.00027
+    },
+    {
+      "id": "inference.stock_yogo_published_cv",
+      "subsystem": "inference",
+      "mechanism": "published",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -5.4e-10,
+      "error": "",
+      "seconds": 3.6e-05
+    },
+    {
+      "id": "inference.cragg_donald_just_identified_F",
+      "subsystem": "inference",
+      "mechanism": "analytical",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -0.000746511017622243,
+      "error": "",
+      "seconds": 0.000228
+    },
+    {
+      "id": "inference.newey_west_bw0_equals_hc0",
+      "subsystem": "inference",
+      "mechanism": "analytical",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -1.2846919541484048e-07,
+      "error": "",
+      "seconds": 0.000228
+    },
+    {
+      "id": "inference.driscoll_kraay_reduces_to_newey_west",
+      "subsystem": "inference",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -2.2129494506702112e-09,
+      "error": "",
+      "seconds": 0.000472
+    },
+    {
+      "id": "inference.supt_plugin_iid_closed_form",
+      "subsystem": "inference",
+      "mechanism": "analytical",
+      "tol": "numeric",
+      "passed": true,
+      "max_margin": -0.020518037288419957,
+      "error": "",
+      "seconds": 0.015517
+    },
+    {
+      "id": "inference.supt_monotonic_over_pointwise",
+      "subsystem": "inference",
+      "mechanism": "internal",
+      "tol": "qualitative",
+      "passed": true,
+      "max_margin": -0.7223810626943068,
+      "error": "",
+      "seconds": 0.016991
+    },
+    {
+      "id": "inference.fixed_b_kv2005_table1",
+      "subsystem": "inference",
+      "mechanism": "published",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1.871e-10,
+      "error": "",
+      "seconds": 0.00013
+    },
+    {
+      "id": "lp.jorda_hac_beta_vs_statsmodels",
+      "subsystem": "lp",
+      "mechanism": "package",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -1.9943857328107063e-07,
+      "error": "",
+      "seconds": 0.00872
+    },
+    {
+      "id": "lp.jorda_hac_se_vs_statsmodels",
+      "subsystem": "lp",
+      "mechanism": "package",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -5.589546432598678e-08,
+      "error": "",
+      "seconds": 0.004953
+    },
+    {
+      "id": "lp.iv_beta_vs_linearmodels_iv2sls",
+      "subsystem": "lp",
+      "mechanism": "package",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -1.1505740991557395e-07,
+      "error": "",
+      "seconds": 0.007029
+    },
+    {
+      "id": "lp.panel_two_way_fe_beta_vs_linearmodels",
+      "subsystem": "lp",
+      "mechanism": "package",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -1.0138506873679877e-07,
+      "error": "",
+      "seconds": 0.014315
+    },
+    {
+      "id": "lp.iv_reduces_to_ols_when_instrument_is_regressor",
+      "subsystem": "lp",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -9.999997779553951e-10,
+      "error": "",
+      "seconds": 0.012137
+    },
+    {
+      "id": "lp.panel_dk_positive_definite",
+      "subsystem": "lp",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1.01e-10,
+      "error": "",
+      "seconds": 0.021369
+    },
+    {
+      "id": "narrative.count_keywords_known_counts",
+      "subsystem": "narrative",
+      "mechanism": "analytical",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1e-12,
+      "error": "",
+      "seconds": 0.05176
+    },
+    {
+      "id": "narrative.count_keywords_negation",
+      "subsystem": "narrative",
+      "mechanism": "analytical",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1.01e-10,
+      "error": "",
+      "seconds": 6.1e-05
+    },
+    {
+      "id": "narrative.epu_cooccurrence_raw_mean",
+      "subsystem": "narrative",
+      "mechanism": "analytical",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -6.676666666666666e-07,
+      "error": "",
+      "seconds": 0.001438
+    },
+    {
+      "id": "narrative.wui_length_normalized_value",
+      "subsystem": "narrative",
+      "mechanism": "analytical",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -0.00028571528571428575,
+      "error": "",
+      "seconds": 0.000851
+    },
+    {
+      "id": "narrative.wui_zscore_fixed_point",
+      "subsystem": "narrative",
+      "mechanism": "internal",
+      "tol": "numeric",
+      "passed": true,
+      "max_margin": -9.999999999981497e-05,
+      "error": "",
+      "seconds": 0.001082
+    },
+    {
+      "id": "narrative.wui_bbd100_fixed_point",
+      "subsystem": "narrative",
+      "mechanism": "internal",
+      "tol": "numeric",
+      "passed": true,
+      "max_margin": -0.5000999999999929,
+      "error": "",
+      "seconds": 0.001017
+    },
+    {
+      "id": "narrative.wui_monotone_in_frequency",
+      "subsystem": "narrative",
+      "mechanism": "internal",
+      "tol": "qualitative",
+      "passed": true,
+      "max_margin": -150.0,
+      "error": "",
+      "seconds": 0.001424
+    },
+    {
+      "id": "spatial.morans_i_vs_esda",
+      "subsystem": "spatial",
+      "mechanism": "package",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -1.664179826084588e-08,
+      "error": "",
+      "seconds": 0.00158
+    },
+    {
+      "id": "spatial.gearys_c_vs_esda",
+      "subsystem": "spatial",
+      "mechanism": "package",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -1.606309550291029e-08,
+      "error": "",
+      "seconds": 0.001091
+    },
+    {
+      "id": "spatial.conley_cutoff0_equals_hc0",
+      "subsystem": "spatial",
+      "mechanism": "analytical",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -2.619394502288446e-09,
+      "error": "",
+      "seconds": 0.000247
+    },
+    {
+      "id": "spatial.conley_equals_double_loop",
+      "subsystem": "spatial",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -1.9386362611882265e-09,
+      "error": "",
+      "seconds": 0.007417
+    },
+    {
+      "id": "spatial.space_time_hac_flat_kernel_equals_driscoll_kraay",
+      "subsystem": "spatial",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -4.3127806125052814e-05,
+      "error": "",
+      "seconds": 0.00067
+    },
+    {
+      "id": "spatial.concentrated_loglik_at_zero_equals_ols",
+      "subsystem": "spatial",
+      "mechanism": "analytical",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -5.483995377219307e-05,
+      "error": "",
+      "seconds": 0.009728
+    },
+    {
+      "id": "spatial.sdm_equals_sar_on_augmented_design",
+      "subsystem": "spatial",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -1.6745599662134012e-09,
+      "error": "",
+      "seconds": 0.006582
+    },
+    {
+      "id": "spatial.slx_equals_ols_on_augmented_design",
+      "subsystem": "spatial",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -2.2015285767480993e-07,
+      "error": "",
+      "seconds": 0.002353
+    },
+    {
+      "id": "spatial.effects_equal_dense_impact_matrix",
+      "subsystem": "spatial",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -5.556277897310077e-07,
+      "error": "",
+      "seconds": 0.001561
+    },
+    {
+      "id": "spatial.panel_null_loglik_equals_two_way_fe",
+      "subsystem": "spatial",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -0.00013867487660194086,
+      "error": "",
+      "seconds": 0.006302
+    },
+    {
+      "id": "spatial.lee_yu_correction_rescales_sigma2_only",
+      "subsystem": "spatial",
+      "mechanism": "analytical",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -3.7405830611640075e-07,
+      "error": "",
+      "seconds": 0.013693
+    },
+    {
+      "id": "spatial.spatial_lp_without_spillover_equals_panel_lp",
+      "subsystem": "spatial",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -3.6154125901338575e-12,
+      "error": "",
+      "seconds": 0.028286
+    },
+    {
+      "id": "spectral.welch_psd_vs_scipy",
+      "subsystem": "spectral",
+      "mechanism": "scipy",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -1e-09,
+      "error": "",
+      "seconds": 0.00169
+    },
+    {
+      "id": "spectral.welch_cross_vs_scipy_csd",
+      "subsystem": "spectral",
+      "mechanism": "scipy",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -1e-09,
+      "error": "",
+      "seconds": 0.00082
+    },
+    {
+      "id": "spectral.coherence_vs_scipy",
+      "subsystem": "spectral",
+      "mechanism": "scipy",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -4.113848635174385e-07,
+      "error": "",
+      "seconds": 0.001106
+    },
+    {
+      "id": "spectral.band_power_vs_scipy",
+      "subsystem": "spectral",
+      "mechanism": "scipy",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -7.90610745920265e-07,
+      "error": "",
+      "seconds": 0.00052
+    },
+    {
+      "id": "spectral.full_band_power_is_one",
+      "subsystem": "spectral",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1.01e-10,
+      "error": "",
+      "seconds": 0.000214
+    },
+    {
+      "id": "spectral.coherence_in_unit_interval",
+      "subsystem": "spectral",
+      "mechanism": "internal",
+      "tol": "qualitative",
+      "passed": true,
+      "max_margin": -0.13304812311490366,
+      "error": "",
+      "seconds": 0.000314
+    },
+    {
+      "id": "filter_local_level_vs_statsmodels",
+      "subsystem": "state_space",
+      "mechanism": "package",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -1.6222313741896847e-07,
+      "error": "",
+      "seconds": 0.002107
+    },
+    {
+      "id": "smoother_ar1_vs_statsmodels",
+      "subsystem": "state_space",
+      "mechanism": "package",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -6.602721447228508e-09,
+      "error": "",
+      "seconds": 0.003825
+    },
+    {
+      "id": "loglik_prediction_error_decomposition",
+      "subsystem": "state_space",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1.0784046726587073e-08,
+      "error": "",
+      "seconds": 0.003713
+    },
+    {
+      "id": "rts_terminal_matches_filter",
+      "subsystem": "state_space",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1e-12,
+      "error": "",
+      "seconds": 0.00375
+    },
+    {
+      "id": "smoother_variance_le_filter",
+      "subsystem": "state_space",
+      "mechanism": "internal",
+      "tol": "qualitative",
+      "passed": true,
+      "max_margin": 0.0,
+      "error": "",
+      "seconds": 0.003798
+    },
+    {
+      "id": "smoother_recovers_latent_state",
+      "subsystem": "state_space",
+      "mechanism": "internal",
+      "tol": "qualitative",
+      "passed": true,
+      "max_margin": -0.16249017426283846,
+      "error": "",
+      "seconds": 0.003754
+    },
+    {
+      "id": "trade.oecd2020_aggregation_conserves_native_world_totals",
+      "subsystem": "Trade",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -79.70914672249884,
+      "error": "",
+      "seconds": 0.0232
+    },
+    {
+      "id": "trade.oecd2020_columns_balance_and_value_added_is_positive",
+      "subsystem": "Trade",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -9.999997620535613e-10,
+      "error": "",
+      "seconds": 0.02235
+    },
+    {
+      "id": "trade.oecd2020_base_equilibrium_is_the_calibration_point",
+      "subsystem": "Trade",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -9.999960031971114e-10,
+      "error": "",
+      "seconds": 0.066517
+    },
+    {
+      "id": "trade.oecd2020_base_equilibrium_matches_matlab_reference",
+      "subsystem": "Trade",
+      "mechanism": "package",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -1e-09,
+      "error": "",
+      "seconds": 0.078785
+    },
+    {
+      "id": "unit_root.dfgls_gls_detrend_recovers_trend",
+      "subsystem": "unit_root",
+      "mechanism": "analytical",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -5.00999999666933e-07,
+      "error": "",
+      "seconds": 0.000885
+    },
+    {
+      "id": "unit_root.dfgls_gls_mean_of_constant",
+      "subsystem": "unit_root",
+      "mechanism": "analytical",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -3.251e-06,
+      "error": "",
+      "seconds": 4.2e-05
+    },
+    {
+      "id": "unit_root.ng_perron_mzt_equals_mza_times_msb",
+      "subsystem": "unit_root",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1.4686630551230065e-10,
+      "error": "",
+      "seconds": 0.000667
+    },
+    {
+      "id": "var.fevd_sums_to_one",
+      "subsystem": "var",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1.0099988897769754e-10,
+      "error": "",
+      "seconds": 0.000831
+    },
+    {
+      "id": "var.stability_iff_spectral_radius",
+      "subsystem": "var",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1.01e-10,
+      "error": "",
+      "seconds": 0.000449
+    },
+    {
+      "id": "var.cholesky_irf_vs_statsmodels",
+      "subsystem": "var",
+      "mechanism": "package",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -1e-09,
+      "error": "",
+      "seconds": 0.008534
+    },
+    {
+      "id": "var.sign_restrictions_impact_signs",
+      "subsystem": "var",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1.01e-10,
+      "error": "",
+      "seconds": 0.001744
+    },
+    {
+      "id": "var.sign_zero_orthogonality",
+      "subsystem": "var",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -1e-09,
+      "error": "",
+      "seconds": 0.001016
+    },
+    {
+      "id": "var.rigobon_hetero_positive_variances",
+      "subsystem": "var",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1.01e-10,
+      "error": "",
+      "seconds": 0.00121
+    },
+    {
+      "id": "var.bvar_minnesota_diffuse_limit",
+      "subsystem": "var",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -9.668078287662355e-10,
+      "error": "",
+      "seconds": 0.003301
+    },
+    {
+      "id": "var.narrative_sign_restrictions",
+      "subsystem": "var",
+      "mechanism": "internal",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1.01e-10,
+      "error": "",
+      "seconds": 0.010343
+    },
+    {
+      "id": "var.bvar_minnesota_analytical_posterior",
+      "subsystem": "var",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -1e-09,
+      "error": "",
+      "seconds": 0.00281
+    },
+    {
+      "id": "var.gvar_empty_star_block_decouples",
+      "subsystem": "var",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -4.0980805335911724e-09,
+      "error": "",
+      "seconds": 0.00875
+    },
+    {
+      "id": "var.gvar_global_link_identity",
+      "subsystem": "var",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -2.1174861252249426e-09,
+      "error": "",
+      "seconds": 0.026737
+    },
+    {
+      "id": "var.gvar_persistence_profile_unit_at_impact",
+      "subsystem": "var",
+      "mechanism": "analytical",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1.01e-10,
+      "error": "",
+      "seconds": 0.006167
+    },
+    {
+      "id": "var.gvar_gfevd_rows_sum_to_one",
+      "subsystem": "var",
+      "mechanism": "analytical",
+      "tol": "exact",
+      "passed": true,
+      "max_margin": -1.0099977795539508e-10,
+      "error": "",
+      "seconds": 0.009019
+    },
+    {
+      "id": "var.gvar_single_country_girf_vs_var_irf",
+      "subsystem": "var",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -1.191994571296334e-09,
+      "error": "",
+      "seconds": 0.015155
+    },
+    {
+      "id": "var.gvar_single_country_gfevd_vs_var_gfevd",
+      "subsystem": "var",
+      "mechanism": "internal",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -3.95117429037003e-09,
+      "error": "",
+      "seconds": 0.014998
+    },
+    {
+      "id": "vfi.rouwenhorst_ar1_moments",
+      "subsystem": "vfi",
+      "mechanism": "analytical",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -9.99999970509701e-10,
+      "error": "",
+      "seconds": 0.054158
+    },
+    {
+      "id": "vfi.tauchen_ar1_moments",
+      "subsystem": "vfi",
+      "mechanism": "analytical",
+      "tol": "numeric",
+      "passed": true,
+      "max_margin": -9.999999999991574e-05,
+      "error": "",
+      "seconds": 0.037603
+    },
+    {
+      "id": "vfi.markov_stationary_left_eigvec",
+      "subsystem": "vfi",
+      "mechanism": "scipy",
+      "tol": "tight",
+      "passed": true,
+      "max_margin": -1.0241906150474508e-08,
+      "error": "",
+      "seconds": 0.002587
+    },
+    {
+      "id": "vfi.neoclassical_brock_mirman_policy",
+      "subsystem": "vfi",
+      "mechanism": "analytical",
+      "tol": "numeric",
+      "passed": true,
+      "max_margin": -0.0008925570071049011,
+      "error": "",
+      "seconds": 3.440101
+    },
+    {
+      "id": "vfi.egm_matches_vfi_policy",
+      "subsystem": "vfi",
+      "mechanism": "internal",
+      "tol": "numeric",
+      "passed": true,
+      "max_margin": -0.0022951607521858597,
+      "error": "",
+      "seconds": 8.001877
+    }
+  ]
+}

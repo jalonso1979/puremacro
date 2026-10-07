@@ -1,0 +1,46 @@
+== Pyodide (Node-hosted) ==
+    Pyodide 314.0.5 on Node v26.10.0, Python 3.14.2; wheel puremacro-4.5.0-py3-none-any.whl (sha256 34db88cec2e1...)
+    boot 1.25 s, micropip install 3.51 s, import + discovery 1.58 s
+    packages: matplotlib 3.10.8, numpy 2.4.6, pandas 3.0.2, puremacro 4.5.0, requests 2.33.1, scipy 1.18.0
+    cases 110, passed 110, failed 0; gallery 34.632 s, total runner wall time 41.024 s
+  by subsystem:
+    subsystem      cases  passed  seconds
+    -------------  -----  ------  -------
+    cointegration  4      4       1.904  
+    did            11     11      1.641  
+    dsge           6      6       0.681  
+    dynpanel       7      7       9.677  
+    forecast       6      6       2.627  
+    garch          7      7       0.532  
+    inference      9      9       0.043  
+    lp             6      6       0.146  
+    narrative      7      7       0.247  
+    spatial        12     12      0.133  
+    spectral       6      6       0.014  
+    state_space    6      6       0.034  
+    unit_root      3      3       0.008  
+    var            15     15      0.111  
+    vfi            5      5       16.835 
+  by mechanism:
+    mechanism   cases  passed  seconds
+    ----------  -----  ------  -------
+    analytical  31     31      8.169  
+    internal    59     59      26.231 
+    package     13     13      0.215  
+    published   2      2       0.000  
+    scipy       5      5       0.018  
+  10 slowest cases:
+    case                                          subsystem      seconds
+    --------------------------------------------  -------------  -------
+    vfi.egm_matches_vfi_policy                    vfi            11.325 
+    vfi.neoclassical_brock_mirman_policy          vfi            5.289  
+    dynpanel.ab_recovers_rho                      dynpanel       4.421  
+    forecast.crps_ensemble_vs_gaussian            forecast       2.550  
+    dynpanel.ab_within_sampling_band              dynpanel       2.078  
+    cointegration.fmols_planted_beta              cointegration  1.891  
+    dynpanel.hansen_j_does_not_reject             dynpanel       1.226  
+    dynpanel.ar_test_ar1_present_ar2_absent       dynpanel       1.219  
+    did.callaway_santanna_recovers_canonical_2x2  did            0.788  
+    dsge.klein_forward_policy_loading             dsge           0.662  
+  failures: none
+exit=0

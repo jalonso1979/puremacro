@@ -1,0 +1,4 @@
+Number	Name	CodeNr	CodeTxt
+1	Cultivation of paddy rice	i01.a	A_PARI
+2	Manure treatment (conventional), storage and land application	i01.w.1	A_MANC
+3	Other land transport	i60.2	A_TLND

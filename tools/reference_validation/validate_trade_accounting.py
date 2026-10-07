@@ -116,6 +116,6 @@ if __name__ == "__main__":
     result = validate()
     content = json.dumps(result, indent=2)+"\n"
     if args.output:
-        args.output.write_text(content)
+        args.output.write_text(content, encoding="utf-8")
     print(content)
     raise SystemExit(0 if result["passed"] else 1)

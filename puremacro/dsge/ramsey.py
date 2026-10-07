@@ -1,17 +1,22 @@
-"""Nonlinear Ramsey optimal policy engine and Balanced Growth Path (BGP) detrending.
+"""Linear-quadratic Ramsey optimal policy engine and Balanced Growth Path (BGP) detrending.
 
 Implements:
-1. Ramsey optimal policy under commitment and the timeless perspective:
+1. Optimal policy under commitment (Ramsey), linear-quadratic:
    - Automated formation of the planner's Lagrangian:
      L = E_0 sum_{t=0}^infty beta^t [ U(y_t) + lambda_t^T f(y_{t+1}, y_t, y_{t-1}, u_t) ]
-   - Exact symbolic derivation of the first-order conditions (FOCs) w.r.t
-     all endogenous variables and Lagrange multipliers over the AST DAG:
+   - Symbolic derivation of the first-order conditions (FOCs) w.r.t
+     all endogenous variables and Lagrange multipliers over the AST DAG, for
+     display (``RamseyResult.focs``, ``RamseyResult.foc_nodes``):
      d L / d y_t = d U / d y_t + lambda_t^T (d f_t / d y_t)
                    + beta^(-1) lambda_{t-1}^T (d f_{t-1} / d y_{t+1})
                    + beta E_t [ lambda_{t+1}^T (d f_{t+1} / d y_{t-1}) ] = 0
      and d L / d lambda_t = f_t = 0.
-   - 2N-dimensional (or (N+M)-dimensional) augmented commitment saddle-path
-     system in (y_t, lambda_t) solved via Klein (2000) QZ under the timeless perspective.
+   - The (N+M)-dimensional augmented saddle-path system in (y_t, lambda_t),
+     assembled numerically from the linearised constraint matrices and the
+     Hessian of the objective at the steady state, solved by Klein (2000) QZ.
+     Its law of motion is shared by the Ramsey plan and the timeless-perspective
+     rule; impulse responses start from lambda_{-1} = 0 at the steady state,
+     where the two coincide.
    - RamseyResult presentation contract (.summary(), .irf(), .simulate(),
      .plot(), .to_markdown(), .to_latex(), .to_typst()).
 2. Balanced Growth Path (BGP) detrending:
@@ -34,6 +39,7 @@ from __future__ import annotations
 
 import math
 import re
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
@@ -154,6 +160,266 @@ def _identify_policy_equations(
     return chosen
 
 
+# ---------------------------------------------------------------------------
+# Readable rendering of first-order conditions
+# ---------------------------------------------------------------------------
+#
+# The AST nodes are frozen dataclasses whose repr is the raw tree
+# (``BinOp(op='+', left=...)``). The helpers below print an expression as a sum
+# of monomials, each a numeric coefficient times a product of factors, with
+# constants folded and like monomials combined. The text form uses Dynare
+# syntax (``x(+1)``, ``mult_0(-1)``, ``^``) and parses back to the same value
+# with ``puremacro.dsge._parser.Parser``; the LaTeX form writes x(+1) as
+# x_{t+1}. Only the display is simplified; the nodes are never modified.
+
+_GREEK = frozenset({
+    "alpha", "beta", "gamma", "delta", "epsilon", "varepsilon", "zeta", "eta", "theta",
+    "vartheta", "iota", "kappa", "lambda", "mu", "nu", "xi", "pi", "rho", "sigma", "tau",
+    "upsilon", "phi", "varphi", "chi", "psi", "omega", "Gamma", "Delta", "Theta", "Lambda",
+    "Xi", "Pi", "Sigma", "Upsilon", "Phi", "Psi", "Omega",
+})
+
+
+_COMPARISON_OPS = frozenset({"==", "!=", "<", "<=", ">", ">="})
+
+
+def _format_number(value: float) -> str:
+    """Ten significant digits, the precision the display promises."""
+    return f"{float(value):.10g}"
+
+
+def _sum_terms(node: Node, sign: float = 1.0, out: list | None = None) -> list[tuple[float, Node]]:
+    """Flatten nested +, - and unary minus into signed terms."""
+    out = [] if out is None else out
+    if isinstance(node, BinOp) and node.op in ("+", "-"):
+        _sum_terms(node.left, sign, out)
+        _sum_terms(node.right, sign if node.op == "+" else -sign, out)
+    elif isinstance(node, UnaryOp) and node.op in ("+", "-"):
+        _sum_terms(node.expr, sign if node.op == "+" else -sign, out)
+    else:
+        out.append((sign, node))
+    return out
+
+
+def _product_factors(node: Node) -> tuple[float, list[Node]]:
+    """Split a product into its folded numeric coefficient and remaining factors."""
+    if isinstance(node, Const):
+        return float(node.value), []
+    if isinstance(node, UnaryOp) and node.op in ("+", "-"):
+        coef, factors = _product_factors(node.expr)
+        return (-coef if node.op == "-" else coef), factors
+    if isinstance(node, BinOp) and node.op == "*":
+        c_left, f_left = _product_factors(node.left)
+        c_right, f_right = _product_factors(node.right)
+        return c_left * c_right, f_left + f_right
+    if isinstance(node, BinOp) and node.op == "/":
+        # Pull numeric coefficients (and signs) out of both sides: -a/(2*b) -> -0.5 * a/b.
+        c_num, f_num = _product_factors(node.left)
+        c_den, f_den = _product_factors(node.right)
+        if c_den == 0.0:
+            return 1.0, [node]
+        numerator = _rebuild_product(f_num)
+        if not f_den:
+            return c_num / c_den, list(f_num)
+        return c_num / c_den, [BinOp("/", numerator, _rebuild_product(f_den))]
+    return 1.0, [node]
+
+
+def _rebuild_product(factors: Sequence[Node]) -> Node:
+    if not factors:
+        return Const(1)
+    out = factors[0]
+    for f in factors[1:]:
+        out = BinOp("*", out, f)
+    return out
+
+
+def _monomials(node: Node) -> list[tuple[float, tuple[Node, ...]]]:
+    """Signed monomials (coefficient, factors) with like factors combined, zeros dropped."""
+    combined: dict[tuple[Node, ...], float] = {}
+    for sign, term in _sum_terms(node):
+        coef, factors = _product_factors(term)
+        key = tuple(factors)
+        combined[key] = combined.get(key, 0.0) + sign * coef
+    return [(coef, key) for key, coef in combined.items() if coef != 0.0]
+
+
+def _is_atom(node: Node) -> bool:
+    return isinstance(node, (Var, Param, Call)) or (
+        isinstance(node, Const) and float(node.value) >= 0.0
+    )
+
+
+class _TextStyle:
+    """Dynare syntax: x(+1), a*b, a/b, a^b, exp(x)."""
+
+    mul = "*"
+
+    @staticmethod
+    def number(value: float) -> str:
+        return _format_number(value)
+
+    @staticmethod
+    def var(name: str, lead: int) -> str:
+        return name if lead == 0 else f"{name}({lead:+d})"
+
+    @staticmethod
+    def param(name: str) -> str:
+        return name
+
+    @staticmethod
+    def paren(s: str) -> str:
+        return f"({s})"
+
+    @staticmethod
+    def div(num: str, den: str, den_is_atom: bool) -> str:
+        return f"{num}/{den if den_is_atom else '(' + den + ')'}"
+
+    @staticmethod
+    def power(base: str, exponent: str) -> str:
+        return f"{base}^{exponent}"
+
+    @staticmethod
+    def call(func: str, args: list[str]) -> str:
+        return f"{func}({', '.join(args)})"
+
+
+def _latex_name(name: str) -> str:
+    if name in _GREEK:
+        return "\\" + name
+    if len(name) == 1:
+        return name
+    return r"\mathrm{" + name.replace("_", r"\_") + "}"
+
+
+class _LatexStyle:
+    """LaTeX: x_{t+1}, a \\, b, \\frac{a}{b}, {a}^{b}, \\exp\\left(x\\right)."""
+
+    mul = r" \, "
+
+    @staticmethod
+    def number(value: float) -> str:
+        s = _format_number(value)
+        if "e" in s:
+            mantissa, exponent = s.split("e")
+            return rf"{mantissa} \times 10^{{{int(exponent)}}}"
+        return s
+
+    @staticmethod
+    def var(name: str, lead: int) -> str:
+        base = _latex_name(name)
+        if lead == 0:
+            return f"{base}_{{t}}"
+        return f"{base}_{{t{lead:+d}}}"
+
+    @staticmethod
+    def param(name: str) -> str:
+        return _latex_name(name)
+
+    @staticmethod
+    def paren(s: str) -> str:
+        return rf"\left({s}\right)"
+
+    @staticmethod
+    def div(num: str, den: str, den_is_atom: bool) -> str:
+        return rf"\frac{{{num}}}{{{den}}}"
+
+    @staticmethod
+    def power(base: str, exponent: str) -> str:
+        return f"{{{base}}}^{{{exponent}}}"
+
+    @staticmethod
+    def call(func: str, args: list[str]) -> str:
+        fn = func.lower()
+        named = {"exp": r"\exp", "log": r"\ln", "ln": r"\ln", "sin": r"\sin", "cos": r"\cos"}
+        if fn == "sqrt" and len(args) == 1:
+            return rf"\sqrt{{{args[0]}}}"
+        head = named.get(fn, r"\operatorname{" + func.replace("_", r"\_") + "}")
+        return rf"{head}\left({', '.join(args)}\right)"
+
+
+def _render_factor(node: Node, style: Any) -> str:
+    """One factor of a monomial, parenthesised when it is itself a sum."""
+    if isinstance(node, Var):
+        return style.var(node.name, int(node.lead))
+    if isinstance(node, Param):
+        return style.param(node.name)
+    if isinstance(node, Const):
+        s = style.number(abs(float(node.value)))
+        return style.paren("-" + s) if float(node.value) < 0 else s
+    if isinstance(node, Call):
+        return style.call(node.func, [_render_expr(a, style) for a in node.args])
+    if isinstance(node, BinOp) and node.op == "/":
+        num = _render_expr(node.left, style)
+        if len(_monomials(node.left)) > 1 and style is _TextStyle:
+            num = style.paren(num)
+        den_is_atom = _is_atom(node.right) or (isinstance(node.right, BinOp) and node.right.op == "^")
+        return style.div(num, _render_expr(node.right, style), den_is_atom)
+    if isinstance(node, BinOp) and node.op == "^":
+        base = _render_expr(node.left, style)
+        exponent = _render_expr(node.right, style)
+        if not _is_atom(node.left):
+            base = style.paren(base)
+        if not _is_atom(node.right) and style is _TextStyle:
+            exponent = style.paren(exponent)
+        return style.power(base, exponent)
+    if isinstance(node, (BinOp, UnaryOp)) and node.op in ("+", "-"):
+        # A sum nested inside a product: render it as a whole signed sum, so that
+        # a*(b - (c + d)) prints as a*(b - c - d), never as a*(b - c + d).
+        return style.paren(_render_expr(node, style))
+    if isinstance(node, BinOp) and node.op in _COMPARISON_OPS:
+        # Comparisons bind more loosely than + and -, so each side is a plain sum.
+        return style.paren(f"{_render_expr(node.left, style)} {node.op} {_render_expr(node.right, style)}")
+    # Unknown node type: fall back to its own repr rather than recursing forever.
+    return style.paren(repr(node))
+
+
+def _render_expr(node: Node, style: Any) -> str:
+    """Render an expression as a signed sum of monomials in the given style."""
+    terms = _monomials(node)
+    if not terms:
+        return style.number(0.0)
+    pieces: list[str] = []
+    for k, (coef, factors) in enumerate(terms):
+        magnitude = style.number(abs(coef))
+        body = ""
+        for j, f in enumerate(factors):
+            is_reciprocal = (
+                style is _TextStyle and j > 0 and isinstance(f, BinOp) and f.op == "/"
+                and isinstance(f.left, Const) and float(f.left.value) == 1.0
+            )
+            if is_reciprocal:  # a * 1/b  ->  a/b
+                body += _render_factor(f, style)[1:]
+            else:
+                body += (style.mul if j > 0 else "") + _render_factor(f, style)
+        if not factors:
+            text = magnitude
+        elif magnitude == "1":
+            text = body
+        else:
+            text = f"{magnitude}{style.mul}{body}"
+        if k == 0:
+            pieces.append(("-" if coef < 0 else "") + text)
+        else:
+            pieces.append((" - " if coef < 0 else " + ") + text)
+    return "".join(pieces)
+
+
+def _format_equation(node: Node) -> str:
+    """Readable Dynare-syntax text of an AST expression (e.g. ``2*pi + mult_0 - mult_0(-1)``).
+
+    Constants inside products are folded and like monomials are combined, so
+    the text is algebraically equal to ``node`` (to the ten significant digits
+    printed) and parses back with the Dynare expression parser.
+    """
+    return _render_expr(node, _TextStyle)
+
+
+def _format_equation_latex(node: Node) -> str:
+    """LaTeX form of an AST expression, with x(+1) written as x_{t+1}."""
+    return _render_expr(node, _LatexStyle)
+
+
 def _is_zero(node: Node) -> bool:
     """Check if an AST node is identically zero."""
     if isinstance(node, Const):
@@ -224,11 +490,23 @@ def derive_ramsey_focs(
     Returns
     -------
     foc_nodes : list[Node]
-        AST expression nodes for d L / d y_k = 0.
+        AST expression nodes for d L / d y_k = 0, one per entry of ``variables``.
     foc_strings : list[str]
-        Human-readable equation strings for all FOCs (variables + multipliers).
+        Readable equations, first ``"d L / d y_k = <expr> = 0"`` for every
+        variable, then ``"d L / d mult_i = f_i = 0"`` for every constraint.
+        ``<expr>`` is Dynare syntax (``x(+1)``, ``mult_0(-1)``) with constants
+        folded and like terms combined, printed to ten significant digits; it
+        parses back to the same expression (see ``_format_equation``).
     mult_names : list[str]
         Names of the created Lagrange multiplier variables.
+
+    Notes
+    -----
+    With L = E_0 sum_t beta^t [U(y_t) + lambda_t' f_t], the derivative of L
+    with respect to y_{k,t} collects f_t, f_{t+1} (where y_{k,t} appears as a
+    lag) and f_{t-1} (where it appears as a lead), divided by beta^t:
+    dU/dy_{k,t} + lambda_t' df_t/dy_{k,t} + beta^{-1} lambda_{t-1}' df_{t-1}/dy_{k,t}
+    + beta E_t[lambda_{t+1}' df_{t+1}/dy_{k,t}].
     """
     M = len(constraints)
     mult_names = [f"{multiplier_prefix}{i}" for i in range(M)]
@@ -267,26 +545,37 @@ def derive_ramsey_focs(
 
         foc_k = term.simplify()
         foc_nodes.append(foc_k)
-        foc_strings.append(f"d L / d {y_k} = {foc_k} = 0")
+        foc_strings.append(f"d L / d {y_k} = {_format_equation(foc_k)} = 0")
 
     # Constraint FOCs: d L / d lambda_i = f_i = 0
     for i, f_i in enumerate(constraints):
-        foc_strings.append(f"d L / d {mult_names[i]} = {f_i.simplify()} = 0")
+        foc_strings.append(f"d L / d {mult_names[i]} = {_format_equation(f_i.simplify())} = 0")
 
     return foc_nodes, foc_strings, mult_names
 
 
 @dataclass
 class RamseyResult:
-    """Encapsulates a solved Ramsey optimal commitment policy and timeless perspective dynamics.
+    """A solved linear-quadratic optimal commitment (Ramsey) policy.
+
+    The augmented model's law of motion is shared by the Ramsey plan chosen at
+    t0 and by the timeless-perspective rule; the two differ only in the initial
+    multipliers. Impulse responses start from the steady state, with lagged
+    variables and multipliers at zero (lambda_{-1} = 0), where the two
+    coincide.
 
     Attributes
     ----------
     focs : list[str]
-        Exact symbolic first-order conditions w.r.t all variables and multipliers.
+        Readable first-order conditions, one ``"d L / d y = <expr> = 0"`` line per
+        variable followed by one ``"d L / d mult_i = f_i = 0"`` line per
+        constraint. ``<expr>`` is Dynare syntax (``x(+1)``, ``mult_0(-1)``),
+        printed to ten significant digits.
     augmented_model : LinearModel
         The solved augmented saddle-path linear DSGE model containing both endogenous
-        variables and policy multipliers as accessible state-space variables.
+        variables and policy multipliers as accessible state-space variables. It is
+        assembled from the linear constraint matrices and the Hessian of the
+        objective, not from ``foc_nodes``.
     multipliers : list[str]
         Names of the policy Lagrange multipliers (mult_*).
     steady_state : pd.Series
@@ -301,6 +590,14 @@ class RamseyResult:
         Policy instruments removed from private sector constraints.
     decision_rules : pd.DataFrame, optional
         Policy reaction function table mapping predetermined states to instruments.
+    loss : float, optional
+        Not computed by ``ramsey_model`` (None); use ``lq_commitment`` for the
+        unconditional and conditional losses of the same plan.
+    foc_nodes : list[Node], optional
+        AST nodes of d L / d y_k, one per model variable in model order, for
+        display and inspection (e.g. ``node.diff("mult_0", -1)``). They are the
+        symbolic form of the rows the solver assembles numerically, but the
+        solution is not computed from them.
     """
 
     focs: list[str]
@@ -475,7 +772,7 @@ class RamseyResult:
     def to_markdown(self, **kwargs) -> str:
         """Render markdown representation of the Ramsey optimal policy solution."""
         md = [
-            "## Ramsey Optimal Policy Solution (Timeless Perspective)",
+            "## Ramsey Optimal Policy Solution (commitment from the steady state; timeless-perspective law of motion)",
             "",
             f"- **Planner Discount**: `{self.planner_discount}`",
             f"- **Objective**: `{self.objective if self.objective else 'N/A'}`",
@@ -494,15 +791,34 @@ class RamseyResult:
         return "\n".join(md)
 
     def to_latex(self, **kwargs) -> str:
-        """Render LaTeX representation of the Ramsey optimal policy problem."""
+        """Render the Lagrangian and every first-order condition as LaTeX.
+
+        Each condition is written from its AST node (``foc_nodes`` and, for
+        results built by :func:`ramsey_model`, the constraint nodes), with
+        x(+1) printed as x_{t+1}. Results built by hand from strings only fall
+        back to the escaped ``focs`` text.
+        """
         lines = [
             r"\begin{aligned}",
-            r"\max_{\{y_t\}_{t=0}^\infty} \mathbb{E}_0 \sum_{t=0}^\infty \beta^t U(y_t) \quad \text{s.t.} \quad f(y_{t+1}, y_t, y_{t-1}, u_t) = 0 \\",
-            r"\text{Lagrange Multipliers: } & " + ", ".join(self.multipliers) + r" \\",
+            r"\mathcal{L} &= \mathbb{E}_0 \sum_{t=0}^{\infty} \beta^t \left[ U(y_t)"
+            r" + \lambda_t^\top f(y_{t+1}, y_t, y_{t-1}, u_t) \right] \\",
         ]
-        for foc in self.focs[:min(8, len(self.focs))]:
-            clean_foc = foc.replace("_", r"\_").replace("*", r" \cdot ")
-            lines.append(rf"\text{{FOC: }} & {clean_foc} \\")
+        if self.multipliers:
+            lines.append(
+                r"\text{multipliers: } & "
+                + ", ".join(_LatexStyle.var(m, 0) for m in self.multipliers) + r" \\"
+            )
+        nodes = list(self.foc_nodes or []) + list(getattr(self, "_constraint_nodes", None) or [])
+        use_nodes = len(nodes) == len(self.focs)
+        for k, foc in enumerate(self.focs):
+            match = re.match(r"^d L / d (\S+) = ", foc)
+            if use_nodes and match:
+                name = match.group(1)
+                lhs = rf"\frac{{\partial \mathcal{{L}}}}{{\partial {_LatexStyle.var(name, 0)}}}"
+                lines.append(rf"{lhs} &= {_format_equation_latex(nodes[k])} = 0 \\")
+            else:
+                clean_foc = foc.replace("_", r"\_").replace("*", r" \cdot ")
+                lines.append(rf"\text{{FOC: }} & {clean_foc} \\")
         lines.append(r"\end{aligned}")
         return "\n".join(lines)
 
@@ -510,7 +826,7 @@ class RamseyResult:
         """Render Typst representation of the Ramsey optimal policy problem."""
         typ = [
             "#block[",
-            "  *Ramsey Optimal Policy Solution (Timeless Perspective)*",
+            "  *Ramsey Optimal Policy Solution (commitment from the steady state; timeless-perspective law of motion)*",
             f"  - Planner Discount: ${self.planner_discount}$",
             f"  - Multipliers: {', '.join(self.multipliers)}",
             "  #table(",
@@ -545,15 +861,55 @@ def ramsey_model(
     *,
     strict: bool = False,
     multiplier_prefix: str = "mult_",
-    timeless: bool = True,
+    timeless: bool | None = None,
 ) -> RamseyResult:
-    """Solve the social planner's Ramsey optimal commitment problem under the timeless perspective.
+    """Solve the planner's linear-quadratic optimal commitment (Ramsey) problem.
 
-    Automatically constructs the planner's Lagrangian:
+    Forms the planner's Lagrangian
         L = E_0 sum_{t=0}^infty beta^t [ U(y_t) + lambda_t^T f(y_{t+1}, y_t, y_{t-1}, u_t) ]
-    symbolically derives the first-order conditions with respect to all endogenous
-    variables and Lagrange multipliers over the Expression DAG, and solves the
-    augmented saddle-path system via Klein QZ.
+    and returns its first-order conditions twice: symbolically, for display
+    (``focs`` and ``foc_nodes``, see :func:`derive_ramsey_focs`), and
+    numerically, as the augmented (N + M)-dimensional system in (y_t, lambda_t)
+    that is actually solved by Klein (2000) QZ:
+
+        [constraints]  A_+ E_t y_{t+1} + A_0 y_t + A_- y_{t-1} + B_u u_t = 0
+        [planner FOCs] W y_t + A_0' lambda_t + beta^{-1} A_+' lambda_{t-1}
+                       + beta A_-' E_t lambda_{t+1} = 0
+
+    How the system is built:
+
+    * The constraint matrices A_+, A_0, A_-, B_u are the model's linear
+      matrices with the instrument's policy-rule row removed (a LinearModel),
+      or the derivatives of each DAG equation evaluated at the steady state
+      (a ParsedModelDAG or .mod text). Constraints are therefore always
+      linearised at the model's steady state.
+    * W is the Hessian of the objective evaluated at the steady state, and the
+      steady-state multipliers are set to zero. This is the exact solution when
+      the objective is a quadratic loss centred on the steady state (e.g.
+      ``"pi^2 + 0.25*x^2"`` around a zero-inflation steady state). For a
+      general nonlinear welfare objective with non-zero steady-state
+      multipliers it is only a linear-quadratic approximation, without the
+      second-order correction terms of a full Ramsey linearisation.
+    * ``foc_nodes`` and ``focs`` are not used to build or solve the system;
+      they are for display. They are the symbolic form of the same rows (their
+      derivatives at the steady state equal the assembled FOC rows), so the
+      solution coincides with :func:`puremacro.dsge.policy.lq_commitment` on
+      the same model: the two routes share the matrices and the QZ solver and
+      differ only in how the objective is read. Here W is the Hessian of
+      ``objective``; there it is the weights, with a 1/2 in front of the loss.
+      For ``objective = sum_i w_i y_i^2`` the Hessian is 2 x weights, which
+      doubles the multipliers and leaves the allocation unchanged.
+
+    Ramsey versus timeless perspective. The returned law of motion is the same
+    for both; they differ only in the initial multiplier lambda_{-1}. The
+    Ramsey plan chosen at t0 sets lambda_{-1} = 0 whatever the history; the
+    timeless perspective applies the t >= 1 condition at t0 as well, i.e. uses
+    the multiplier implied by past policy (Jensen and McCallum 2002, eqs. 4a-4c
+    and 5). ``irf`` starts from the steady state with lambda_{-1} = 0, where
+    the two coincide because the multiplier implied by a steady-state history
+    is zero. ``simulate`` starts there too and discards a burn-in, so the
+    returned sample follows the timeless rule with its multipliers carried
+    along.
 
     Parameters
     ----------
@@ -570,14 +926,35 @@ def ramsey_model(
         If True, raises BlanchardKahnError on saddle-path determinacy failures.
     multiplier_prefix : str, default "mult_"
         Prefix for naming the Lagrange multipliers.
-    timeless : bool, default True
-        If True, enforces timeless-perspective stationary initial conditions.
+    timeless : bool, optional
+        Deprecated; it never changed the result and passing it (either value)
+        emits a FutureWarning. The solved law of motion is common to the Ramsey
+        plan and the timeless-perspective rule (see above), and impulse
+        responses start from the steady state, where they coincide.
 
     Returns
     -------
     RamseyResult
         Solved commitment policy result with access to multipliers, IRFs, and moments.
+
+    References
+    ----------
+    Jensen, C., and McCallum, B. T. (2002). The non-optimality of proposed
+        monetary policy rules under timeless-perspective commitment. Economics
+        Letters, 77(2), 163-168 (NBER Working Paper 8882).
+    Klein, P. (2000). Using the generalized Schur form to solve a multivariate
+        linear rational expectations model. Journal of Economic Dynamics and
+        Control, 24(10), 1405-1423.
     """
+    if timeless is not None:
+        warnings.warn(
+            "ramsey_model(timeless=...) is deprecated and has no effect: the solved law of "
+            "motion is the same for the Ramsey plan and the timeless-perspective rule, and "
+            "impulse responses start from the steady state (lambda_{-1} = 0), where the two "
+            "coincide. Omit the argument.",
+            FutureWarning,
+            stacklevel=2,
+        )
     beta = float(planner_discount)
     if beta <= 0.0:
         raise ValueError(f"Planner discount factor beta must be positive, got {beta}")
@@ -758,13 +1135,15 @@ def ramsey_model(
         A_minus_priv = np.zeros((M, N))
         B_u_priv = np.zeros((M, n_u))
 
+        # Shocks are zero at the steady state (they may appear inside nonlinear terms).
+        ss_point = {**{shk: 0.0 for shk in shocks}, **steady_state_dict}
         for i, eq in enumerate(constraint_nodes):
             for j, v in enumerate(variables):
-                A_plus_priv[i, j] = eq.diff(v, 1).eval(steady_state_dict, params)
-                A_0_priv[i, j] = eq.diff(v, 0).eval(steady_state_dict, params)
-                A_minus_priv[i, j] = eq.diff(v, -1).eval(steady_state_dict, params)
+                A_plus_priv[i, j] = eq.diff(v, 1).eval(ss_point, params)
+                A_0_priv[i, j] = eq.diff(v, 0).eval(ss_point, params)
+                A_minus_priv[i, j] = eq.diff(v, -1).eval(ss_point, params)
             for s, shk in enumerate(shocks):
-                B_u_priv[i, s] = eq.diff(shk, 0).eval(steady_state_dict, params)
+                B_u_priv[i, s] = eq.diff(shk, 0).eval(ss_point, params)
 
     # 5. Symbolic derivation of FOCs over Expression DAG
     foc_nodes, foc_strings, mult_names = derive_ramsey_focs(
@@ -777,10 +1156,11 @@ def ramsey_model(
 
     # 6. Evaluate Objective Hessian W = d^2 U / (d y_i d y_j) at steady state
     W = np.zeros((N, N))
+    ss_point_obj = {**{shk: 0.0 for shk in shocks}, **steady_state_dict}
     for i, v1 in enumerate(variables):
         dU_dv1 = U.diff(v1, 0)
         for j, v2 in enumerate(variables):
-            W[i, j] = dU_dv1.diff(v2, 0).eval(steady_state_dict, params)
+            W[i, j] = dU_dv1.diff(v2, 0).eval(ss_point_obj, params)
 
     # 7. Assemble the augmented (N + M)-dimensional companion matrices
     # cal_A_+ E_t X_{t+1} + cal_A_0 X_t + cal_A_- X_{t-1} + cal_B_u u_t = 0
@@ -880,7 +1260,7 @@ def ramsey_model(
         timing="dynare",
     )
 
-    return RamseyResult(
+    result = RamseyResult(
         focs=foc_strings,
         augmented_model=m_augmented,
         multipliers=mult_names,
@@ -892,6 +1272,9 @@ def ramsey_model(
         decision_rules=df_policy_rules,
         foc_nodes=foc_nodes,
     )
+    # Constraint nodes for RamseyResult.to_latex (not a dataclass field).
+    result._constraint_nodes = [node.simplify() for node in constraint_nodes]
+    return result
 
 
 def detrend_bgp(

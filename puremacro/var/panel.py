@@ -13,7 +13,8 @@ country-level IRFs (percentiles across i), following Canova-Ciccarelli (2013).
 Supported identification schemes
 ---------------------------------
 'cholesky'   : Cholesky (recursive)
-'bq'         : Blanchard-Quah long-run
+'bq'         : Blanchard-Quah long-run (``cumulate=`` selects the rows
+               cumulated to levels, as in ``var.identify.bq.bq_svar``)
 'proxy'      : Proxy-SVAR / external instrument
 'maxshare'   : Faust-Uhlig max-FEV-share
 'rigobon'    : Rigobon heteroskedasticity
@@ -52,13 +53,14 @@ class PanelSVARResult:
 
     Attributes
     ----------
-    irf_mean : ndarray (n, n, H+1)
-        Mean-group IRF: simple average across country-level IRFs.
-    irf_lo : ndarray (n, n, H+1)
+    irf_mean : ndarray (H+1, n, n)
+        Mean-group IRF: simple average across country-level IRFs,
+        indexed ``[h, response i, shock j]``.
+    irf_lo : ndarray (H+1, n, n)
         Lower band from cross-country percentile distribution.
-    irf_hi : ndarray (n, n, H+1)
+    irf_hi : ndarray (H+1, n, n)
         Upper band from cross-country percentile distribution.
-    country_irfs : ndarray (N, n, n, H+1)
+    country_irfs : ndarray (N, H+1, n, n)
         Country-level IRFs stacked along the first axis.
     country_ids : list of str
         Country identifiers in the order they appear in ``country_irfs``.
@@ -71,7 +73,7 @@ class PanelSVARResult:
     ci : float
         Confidence level for the cross-country distribution bands.
     """
-    irf_mean: np.ndarray        # (N, H+1, n, n) -> averaged (H+1, n, n)
+    irf_mean: np.ndarray        # (H+1, n, n): mean of country_irfs over axis 0
     irf_lo: np.ndarray          # (H+1, n, n)
     irf_hi: np.ndarray          # (H+1, n, n)
     country_irfs: np.ndarray    # (N, H+1, n, n)
@@ -105,12 +107,19 @@ def _cholesky_irf(Y: np.ndarray, p: int, horizon: int, **kwargs) -> np.ndarray:
 
 
 def _bq_irf(Y: np.ndarray, p: int, horizon: int, **kwargs) -> np.ndarray:
-    """BQ long-run-identified IRF. Returns (H+1, n, n)."""
-    from .identify.bq import _bq_impact
+    """BQ long-run-identified IRF. Returns (H+1, n, n).
+
+    Optional kwargs: ``permanent_var_idx`` (default 0) and ``cumulate``
+    (default ``True``), with the meaning they have in
+    :func:`puremacro.var.identify.bq.bq_svar`: the selected response rows
+    are cumulated over the horizon, the others are raw responses.
+    """
+    from .identify.bq import _bq_impact, _cumulate_mask, _cumulate_rows
     permanent_var_idx = kwargs.get("permanent_var_idx", 0)
     A_list, c, Sigma, resid, _ = estimate_var(Y, p)
+    mask = _cumulate_mask(kwargs.get("cumulate", True), Sigma.shape[0])
     B = _bq_impact(A_list, Sigma, permanent_var_idx)
-    return np.cumsum(compute_irf(A_list, B, horizon), axis=0)
+    return _cumulate_rows(compute_irf(A_list, B, horizon), mask)
 
 
 def _proxy_irf(Y: np.ndarray, p: int, horizon: int, **kwargs) -> np.ndarray:
@@ -187,11 +196,25 @@ def mean_group_svar(
     seed : int
         Random seed.
     **id_kwargs
-        Forwarded to the country-level identification function.
+        Forwarded to the country-level identification function. For
+        ``'bq'``: ``permanent_var_idx`` (default 0) and ``cumulate``
+        (default ``True``; ``True``/``False``, a list of variable indices
+        or a boolean mask, as in :func:`puremacro.var.identify.bq.bq_svar`).
+        Cumulate only first-differenced variables: with
+        ``Y = [dlog GDP, unemployment rate]`` pass ``cumulate=[0]``, or
+        the unemployment response becomes the running sum of the true one.
 
     Returns
     -------
     PanelSVARResult
+
+    Raises
+    ------
+    ValueError, TypeError
+        For ``'bq'``, if ``cumulate`` is malformed. It is checked once,
+        before the country loop, so it is not mistaken for a
+        country-level identification failure (those are replaced by
+        zeros with a warning).
     """
     if identification not in _IDENTIFICATION_MAP:
         raise KeyError(
@@ -212,6 +235,9 @@ def mean_group_svar(
             f"All countries must have the same number of variables; found {n_vars}."
         )
     n = n_vars.pop()
+    if identification == "bq":
+        from .identify.bq import _cumulate_mask
+        _cumulate_mask(id_kwargs.get("cumulate", True), n)
 
     country_irfs_list: list[np.ndarray] = []
     for cid in country_ids:

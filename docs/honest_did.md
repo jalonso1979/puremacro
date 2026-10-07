@@ -150,9 +150,9 @@ honest_did(
 ```
 
 #### Parameters:
-- `b_hat` / `result`: Vector of event-study coefficients, or a result object from `puremacro.did.callaway_santanna` or `puremacro.did.sun_abraham`.
-- `sigma`: Full asymptotic covariance matrix $(T, T)$ of event study coefficients.
-- `se`: Standard error vector (used if `sigma` is diagonal or unavailable).
+- `b_hat` / `result`: Vector of event-study coefficients, or a result object from `puremacro.did.callaway_santanna` or `puremacro.did.sun_abraham`. A result object passed on its own supplies the `att` and `se` columns of its `att_event_study`, so the coefficients are treated as uncorrelated, $\hat\Sigma = \text{diag}(\text{se}^2)$. Both results also carry `event_study_vcov`, the bootstrap covariance matrix of the event-study coefficients, indexed by event time in the row order of `att_event_study`. Pass it to use the full covariance: `honest_did(res, sigma=res.event_study_vcov)`. The coefficients are estimated from the same units and are correlated, which the diagonal form ignores.
+- `sigma`: Full asymptotic covariance matrix $(T, T)$ of event study coefficients (for a `callaway_santanna` or `sun_abraham` result, `res.event_study_vcov`).
+- `se`: Standard error vector; when `sigma` is not given, $\hat\Sigma = \text{diag}(\text{se}^2)$.
 - `method`: Sensitivity restriction class:
   - `'smoothness'`: Bounded second differences ($\Delta^{SD}(M)$).
   - `'relative_magnitude'`: Bounds proportional to maximum pre-trend ($\Delta^{RM}(\bar{M})$).

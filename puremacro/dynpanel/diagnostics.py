@@ -19,6 +19,7 @@ Roodman, D. (2009). How to do xtabond2: an introduction to difference
 """
 from __future__ import annotations
 
+import warnings
 from typing import Iterable
 
 import numpy as np
@@ -155,41 +156,62 @@ def windmeijer_correction(
     cov_uncorrected: np.ndarray,
     diff_rows: list,
     cov_step1: np.ndarray | None = None,
+    *,
+    residuals_step1: np.ndarray | None = None,
 ) -> np.ndarray:
-    """Apply the Windmeijer (2005) finite-sample correction to a
-    two-step GMM covariance matrix.
+    """Windmeijer (2005) finite-sample corrected ("WC-robust") covariance
+    of the linear two-step efficient GMM estimator.
 
-    The standard two-step sandwich SE underestimates the true variance
-    in finite samples because the optimal weight ``W_2 = W_2(β̂_1)``
-    is treated as fixed when in fact it depends on first-step β̂_1.
-    Windmeijer (2005) Theorem 1 / eq. (2.5) gives an analytic correction:
+    The two-step estimator uses the weight ``W_2 = S(beta_1)^{-1}`` with
+    ``S(b) = sum_i Z_i' u_i(b) u_i(b)' Z_i`` and ``u_i(b) = y_i - X_i b``,
+    i.e. the weight is a function of the ONE-STEP estimate ``beta_1``.
+    The conventional two-step variance ``V_2 = (X'Z W_2 Z'X)^{-1}`` treats
+    that weight as fixed and is downward biased in finite samples.
+    Windmeijer (2000, IFS WP00/19, eqs. (3.2)-(3.3); 2005, J. Econometrics
+    126) expands ``beta_2`` in ``beta_1 - beta_0`` and obtains
 
-        Var_W = V_2 + D · V_2 + V_2 · D' + D · V_1 · D'
+        Var_c(beta_2) = V_2 + D V_2 + V_2 D' + D V_1 D'
 
-    with the analytical Jacobian (Windmeijer 2005 eq. (2.5), Roodman
-    2009 eq. (16) up to sign convention):
+    where ``V_1`` is the one-step robust (panel-clustered) covariance and
+    ``D`` is the derivative of the two-step estimator with respect to the
+    argument of its weight matrix, ``D = d beta_2(W(b)) / d b'`` at
+    ``b = beta_1``. For linear moments its k-th column is
 
-        D[:, k] = -V_2 · (X'Z) · W_2 · ∂S/∂β_k · W_2 · (Z'û_2)
+        D[:, k] = -V_2 X'Z W_2 (dS/db_k)|_{b = beta_1} W_2 Z'u_2,
+        (dS/db_k)|_{beta_1} = -sum_i Z_i' (x_ik u1_i' + u1_i x_ik') Z_i,
 
-    where
-        V_2 = (X'Z W_2 Z'X)^{-1}
-        S(β) = Σ_i Z_i' u_i(β) u_i(β)' Z_i
-        ∂S/∂β_k = -Σ_i ( Z_i' x_{ik} u_i' Z_i + Z_i' u_i x_{ik}' Z_i )
+    with ``u1 = y - X beta_1`` the STEP-1 residuals (the point at which
+    ``W_2`` is evaluated) and ``u_2 = y - X beta_2`` the step-2 residuals
+    (which enter only through ``Z'u_2``). Evaluating ``dS/db`` at the
+    step-2 residuals instead is not Windmeijer's derivative: on Stata's
+    ``abdata`` it inflates the [XT] xtabond Example 4 WC-robust standard
+    errors by factors 1.01-1.68, whereas the step-1 form reproduces them
+    to about 1e-6 (``tests/test_dynpanel/test_fix_dynpanel_stata_xtabond.py``).
+
+    Scaling: ``S``, ``W_2`` and ``V_2`` are used without the 1/N factors of
+    the paper; ``D`` is invariant to that common scaling.
 
     Parameters
     ----------
-    beta_hat : (k,) two-step estimate (β̂_2).
-    Z : (n, m) instrument matrix.
-    X_diff : (n, k) design matrix.
-    y_diff : (n,) outcome (unused but kept for API symmetry).
-    W2 : (m, m) two-step weight matrix.
-    residuals_step2 : (n,) two-step residuals û_2 = y - X β̂_2.
-    cov_uncorrected : (k, k) the standard two-step sandwich covariance V_2.
-    diff_rows : list of dicts with keys ``panel`` and ``t``; used to
-        partition rows by panel for the Σ_i sums.
+    beta_hat : (k,) two-step estimate beta_2 (kept for API symmetry).
+    Z : (n, m) instrument matrix (difference, or stacked system, rows).
+    X_diff : (n, k) regressor matrix matching the rows of ``Z``.
+    y_diff : (n,) outcome (unused; kept for API symmetry).
+    W2 : (m, m) two-step weight ``S(beta_1)^{-1}``.
+    residuals_step2 : (n,) two-step residuals ``y - X beta_2``.
+    cov_uncorrected : (k, k) conventional two-step covariance ``V_2``.
+    diff_rows : list of dicts with key ``panel``; rows are clustered by
+        panel for the ``sum_i`` terms.
     cov_step1 : (k, k) or None
-        The first-step robust covariance V_1. If None, V_2 is used
-        (Roodman 2009 simplification — xtabond2 default).
+        One-step robust covariance ``V_1`` (Windmeijer's var(beta_1)).
+        If None, ``V_2`` is substituted -- an approximation that does not
+        reproduce Stata; ``ab_gmm``/``bb_gmm`` always pass ``V_1``.
+    residuals_step1 : (n,) or None, keyword-only
+        One-step residuals ``y - X beta_1``, the evaluation point of
+        ``dS/db``. Required for the correct correction. If omitted, a
+        ``FutureWarning`` is issued and the step-2 residuals are used, which
+        reproduces the (incorrect) behaviour of puremacro 4.3.0 and
+        earlier.
 
     Returns
     -------
@@ -197,54 +219,61 @@ def windmeijer_correction(
 
     References
     ----------
+    Windmeijer, F. (2000). A finite sample correction for the variance of
+        linear two-step GMM estimators. IFS Working Paper W00/19,
+        eqs. (2.3)-(2.4) and (3.2)-(3.3).
     Windmeijer, F. (2005). A finite sample correction for the variance
         of linear efficient two-step GMM estimators. Journal of
         Econometrics 126, 25-51.
-    Roodman, D. (2009). How to do xtabond2. Stata Journal 9(1), 86-136.
+    StataCorp. Stata [XT] xtabond, Example 4 (WC-robust VCE on abdata).
     """
     n, k = X_diff.shape
     m = Z.shape[1]
     V_2 = cov_uncorrected
     V_1 = cov_step1 if cov_step1 is not None else V_2
 
+    if residuals_step1 is None:
+        warnings.warn(
+            "windmeijer_correction called without residuals_step1: the "
+            "derivative of the weight matrix is evaluated at the step-2 "
+            "residuals, which is not Windmeijer's (2005) correction and does "
+            "not reproduce Stata's WC-robust standard errors. Pass "
+            "residuals_step1=y - X @ beta_step1.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        u_w = np.asarray(residuals_step2, dtype=float)
+    else:
+        u_w = np.asarray(residuals_step1, dtype=float)
+        if u_w.shape != np.shape(residuals_step2):
+            raise ValueError(
+                f"residuals_step1 has shape {u_w.shape}; expected "
+                f"{np.shape(residuals_step2)} (one residual per row of Z)."
+            )
+
     # Group rows by panel
     panel_groups: dict[object, list[int]] = {}
     for r, drow in enumerate(diff_rows):
         panel_groups.setdefault(drow["panel"], []).append(r)
 
-    # Pre-compute X'Z, Z'û_2
-    XZ = X_diff.T @ Z  # (k, m)
-    Zu = Z.T @ residuals_step2  # (m,)
-
-    # Common factor h = X'Z W_2  ∈ R^{k × m}
-    XZW = XZ @ W2
+    # v = W_2 Z'u_2 (step-2 residuals) and h = X'Z W_2
+    XZW = (X_diff.T @ Z) @ W2  # (k, m)
+    v = W2 @ (Z.T @ residuals_step2)  # (m,)
 
     D = np.zeros((k, k))
-    # For each k_idx, build dS/dβ_k and assemble.
     for k_idx in range(k):
-        # ∂S/∂β_k = -Σ_i ( Z_i' x_{ik} u_i' Z_i + Z_i' u_i x_{ik}' Z_i )
-        # We need the action of dS on W_2 Z'û_2. Define v = W_2 Z'û_2 ∈ R^m.
-        v = W2 @ Zu  # (m,)
-        # ∂S/∂β_k · v = -Σ_i ( Z_i' x_{ik} (u_i' Z_i v) + Z_i' u_i (x_{ik}' Z_i v) )
-        # The result is a vector in R^m.
+        # (dS/db_k)|_{beta_1} v
+        #   = -sum_i [ Z_i'x_ik (u1_i'Z_i v) + Z_i'u1_i (x_ik'Z_i v) ]
         out = np.zeros(m)
-        for pid, rows in panel_groups.items():
+        for rows in panel_groups.values():
             Zi = Z[rows]
-            xi = X_diff[rows, k_idx]  # (n_i,)
-            ui = residuals_step2[rows]  # (n_i,)
-            ZiTxi = Zi.T @ xi  # (m,)
-            ZiTui = Zi.T @ ui  # (m,)
-            scalar1 = float(ui @ (Zi @ v))  # u_i' Z_i v
-            scalar2 = float(xi @ (Zi @ v))  # x_{ik}' Z_i v
-            out += -(ZiTxi * scalar1 + ZiTui * scalar2)
-        # D[:, k_idx] = -V_2 · X'Z · W_2 · (∂S/∂β_k · v)... but wait,
-        # the factor structure from Windmeijer (2005) eq. 2.5 is:
-        #   D[:, k] = -V_2 · X'Z · W_2 · (∂S/∂β_k) · v
-        #          = -V_2 · XZW · (out / matrix collapsed)
-        # We've already computed (∂S/∂β_k) · v = out. So:
+            xi = X_diff[rows, k_idx]
+            ui = u_w[rows]
+            Ziv = Zi @ v
+            out -= (Zi.T @ xi) * float(ui @ Ziv) + (Zi.T @ ui) * float(xi @ Ziv)
         D[:, k_idx] = -V_2 @ (XZW @ out)
 
-    # Windmeijer (2005) eq. (2.7) / Roodman 2009 eq. (16):
+    # Windmeijer (2000) eq. (3.3): Var_c = V_2 + D V_2 + V_2 D' + D V_1 D'
     cov_corr = V_2 + D @ V_2 + V_2 @ D.T + D @ V_1 @ D.T
     cov_corr = 0.5 * (cov_corr + cov_corr.T)
     return cov_corr

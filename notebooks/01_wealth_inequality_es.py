@@ -13,20 +13,21 @@
 # %% [markdown]
 # # ¿De dónde proviene la desigualdad de riqueza?
 #
+# **¿Cómo surge la desigualdad de riqueza y por qué el riesgo de ingreso idiosincrático no asegurable sitúa la tasa de interés de equilibrio general estrictamente por debajo de la tasa de preferencia temporal de mercados completos?**
+#
 # El riesgo idiosincrático de ingresos combinado con una restricción de
 # endeudamiento lleva a los hogares a ahorrar por motivos precautorios, lo que
 # genera una distribución no degenerada de riqueza incluso cuando todos son
 # *ex-ante* idénticos. Resolvemos el equilibrio general de **Aiyagari (1994)**,
 # lo contrastamos con la economía de bonos de **Huggett (1993)**, y mostramos
-# que incorporar heterogeneidad *ex-ante* en la paciencia (β) engrosa la cola
+# que incorporar heterogeneidad *ex-ante* en la paciencia ($\beta$) engrosa la cola
 # superior — la razón canónica por la que los modelos cuantitativos necesitan
-# heterogeneidad permanente para replicar los datos. Todo con `puremacro.vfi`.
-
-# %% [markdown]
-# ## El modelo en tres ecuaciones
+# heterogeneidad permanente para replicar los datos (Bewley 1986; Castañeda, Díaz-Giménez & Ríos-Rull 2003). Todo con `puremacro.vfi`.
+#
+# ## El método en matemáticas
 #
 # **Hogares.** Un continuo de hogares enfrentan riesgo idiosincrático de productividad laboral $z$
-# (un AR(1), discretizado por Tauchen) y no pueden endeudarse. Resuelven
+# (un AR(1), discretizado por Tauchen 1986) y no pueden endeudarse. Resuelven
 # $$ V(a,z) = \max_{a'\ge 0}\; u(c) + \beta\,\mathbb{E}\!\left[V(a',z')\mid z\right]
 # \quad\text{s.a.}\quad c = w\,e^{z} + (1+r)\,a - a', $$
 # con $u(c)=\log c$ aquí ($\gamma=1$). La restricción $a'\ge 0$ es el motor del modelo.
@@ -40,6 +41,21 @@
 # activo es un bono de oferta neta cero, de modo que el vaciamiento es $\int a\,d\mu = 0$ y
 # la tasa de equilibrio se sitúa estrictamente por debajo de $1/\beta-1$.
 #
+# ### Parámetros del modelo base
+#
+# | Parámetro | Símbolo | Interpretación Económica | Valor Base | Unidades |
+# |---|---|---|---|---|
+# | Factor de descuento | $\beta$ | Tasa subjetiva de preferencia temporal | 0.96 | Adimensional (anual) |
+# | Aversión al riesgo | $\gamma$ | Curvatura de aversión relativa al riesgo (utilidad log) | 1.00 | Adimensional |
+# | Participación del capital | $\alpha$ | Elasticidad producto del capital Cobb-Douglas | 0.36 | Fracción adimensional |
+# | Depreciación | $\delta$ | Tasa anual de depreciación de capital físico | 0.08 | Tasa anual |
+# | Persistencia del ingreso | $\rho_z$ | Persistencia AR(1) de la productividad laboral | 0.60 | Autocorrelación adimensional |
+# | Volatilidad de innovación | $\sigma_z$ | Desviación estándar del choque de productividad | 0.20 | Desviación estándar |
+# | Límite de endeudamiento | $a_{\min}$ | Restricción estricta sobre riqueza neta | 0.00 | Unidades de capital |
+# | Límite superior de activos | $a_{\max}$ | Cota superior de truncamiento de la grilla de activos | 60.00 | Unidades de capital |
+# | Nodos de grilla de activos | $n_a$ | Cantidad de puntos discretos de activos | 120 | Recuento entero |
+# | Estados de productividad | $n_z$ | Cantidad de estados de Tauchen | 5 | Recuento entero |
+#
 # **Intuición.** Sin posibilidad de endeudarse y con riesgo de ingresos no asegurable, los
 # hogares se auto-aseguran acumulando una reserva precautoria de activos. Esa reserva explica
 # por qué emerge una distribución de riqueza no degenerada aunque todos sean *ex-ante*
@@ -47,6 +63,14 @@
 # completos $1/\beta-1$: el exceso de deseo de ahorrar comprime la rentabilidad. Las
 # diferencias permanentes en paciencia $\beta$ estiran aún más la distribución — los hogares
 # pacientes escalan la grilla de activos, los impacientes se acumulan cerca de la restricción.
+#
+# ### Referencias clave
+#
+# - Aiyagari (1994). Uninsured idiosyncratic risk and aggregate saving. *Quarterly Journal of Economics*, 109(3), 659–684.
+# - Bewley (1986). Stationary monetary equilibrium with a continuum of independently fluctuating consumers. *Contributions to Mathematical Economics in Honor of Gérard Debreu*, 79–102.
+# - Castañeda, Díaz-Giménez & Ríos-Rull (2003). Accounting for the US earnings and wealth inequality. *Journal of Political Economy*, 111(4), 818–857.
+# - Huggett (1993). The risk-free rate in heterogeneous-agent incomplete-insurance economies. *Journal of Economic Dynamics and Control*, 17(5-6), 953–969.
+# - Tauchen (1986). Finite state markov-chain approximations to univariate and vector autoregressions. *Economics Letters*, 20(2), 177–181.
 
 # %%
 import sys
@@ -83,7 +107,7 @@ print(f"Aiyagari:  r* = {ai['r']:.4f},  K = {ai['K']:.2f},  wealth Gini = {gini_
 assert 0.40 < gini_ai < 0.80, gini_ai   # docstring: n_z=5 gives a stable Gini ~0.6
 
 # %% [markdown]
-# **Lee el resultado.** El punto de referencia de mercados completos es $1/\beta-1 = 1/0.96-1 \approx 0.042$.
+# **Lectura de los resultados.** El punto de referencia de mercados completos es $1/\beta-1 = 1/0.96-1 \approx 0.042$.
 # El $r^*$ de equilibrio impreso arriba se sitúa *por debajo* de ese valor: esa brecha es la
 # cuña precautoria — la demanda de activos para auto-asegurarse comprime la tasa de retorno.
 # El índice de Gini de riqueza cercano a $0.6$ se genera únicamente por el riesgo idiosincrático
@@ -224,7 +248,7 @@ assert gini_you > gini_ai, f"{gini_you:.3f} ≤ {gini_ai:.3f}: a near-unit-root 
 # EG): llama a `aiyagari_steady_state(..., sigma=0.30)` para aumentar el riesgo de ingresos y
 # compara `wealth_gini` con el caso base `sigma=0.2`.
 #
-# **¿Qué tan completa es la biblioteca?** `puremacro.vfi` es un kit de herramientas completo
+# **¿Qué tan exhaustivo es esto?** `puremacro.vfi` es un kit de herramientas completo
 # para agentes heterogéneos. El mismo ciclo `VFIProblem` → solución → distribución estacionaria
 # → vaciamiento de mercado impulsa los demás cuadernos de muestra: **Krusell-Smith** con riesgo
 # agregado y trayectorias de transición (NB02), **ciclo de vida / OLG** con mortalidad (NB03),

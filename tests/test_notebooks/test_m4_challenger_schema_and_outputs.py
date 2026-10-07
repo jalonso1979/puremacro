@@ -43,6 +43,30 @@ TARGET_15_NOTEBOOKS = [
     "62_flexible_trade_cge_es.ipynb",
 ]
 
+# Embedded ``image/png`` outputs per target notebook. The total is derived from this
+# table (37 on the 2026-09-20 notebook batch) instead of being hard-coded, so an
+# edited notebook fails with its own name. 34_penalized_macro_forecasting went from
+# 2 to 3 figures when the held-out forecast-evaluation panel was added (the 2026-09-20
+# notebook review); every other target is unchanged since 4.2.0.
+EXPECTED_FIGURES_PER_TARGET = {
+    "00_whats_new_in_puremacro_2_0.ipynb": 0,
+    "00_whats_new_in_puremacro_2_0_es.ipynb": 0,
+    "00_whats_new_in_puremacro_3_0.ipynb": 6,
+    "00_whats_new_in_puremacro_3_0_es.ipynb": 6,
+    "31_sequence_space_hank.ipynb": 3,
+    "32_climate_macro_dice.ipynb": 3,
+    "33_gdp_nowcasting_news.ipynb": 2,
+    "34_penalized_macro_forecasting.ipynb": 3,
+    "36_climate_sovereign_debt_risk_es.ipynb": 2,
+    "37_central_bank_narrative_sentiment.ipynb": 1,
+    "37_central_bank_narrative_sentiment_es.ipynb": 1,
+    "43_dsge_nuts_and_analytic_gradients.ipynb": 1,
+    "43_dsge_nuts_and_analytic_gradients_es.ipynb": 1,
+    "62_flexible_trade_cge.ipynb": 4,
+    "62_flexible_trade_cge_es.ipynb": 4,
+}
+EXPECTED_TOTAL_FIGURES = sum(EXPECTED_FIGURES_PER_TARGET.values())
+
 
 def _get_all_notebooks() -> list[Path]:
     showcase = [
@@ -136,12 +160,19 @@ def test_json_nbformat_schema_repository_wide():
 
 
 def test_target_15_png_opacity_and_contrast():
-    """Assert all embedded PNGs in the 15 compiled notebooks are 100% opaque and high contrast."""
+    """Assert all embedded PNGs in the 15 compiled notebooks are 100% opaque and high contrast.
+
+    The figure count is checked per notebook against ``EXPECTED_FIGURES_PER_TARGET`` so
+    that a re-executed notebook with a new or dropped panel fails by name.
+    """
+    assert set(EXPECTED_FIGURES_PER_TARGET) == set(TARGET_15_NOTEBOOKS)
     figures_found = 0
+    per_notebook: dict[str, int] = {}
     for rel_name in TARGET_15_NOTEBOOKS:
         p = NB_DIR / rel_name
         with open(p, "r", encoding="utf-8") as f:
             nb = json.load(f)
+        per_notebook[rel_name] = 0
         for c_idx, cell in enumerate(nb.get("cells", [])):
             for o_idx, out in enumerate(cell.get("outputs", [])):
                 data = out.get("data", {})
@@ -160,8 +191,20 @@ def test_target_15_png_opacity_and_contrast():
                     rgb_std = float(arr[:, :, :3].std())
                     assert rgb_std > 5.0, f"Degenerate figure in {rel_name} cell {c_idx}"
                     figures_found += 1
+                    per_notebook[rel_name] += 1
 
-    assert figures_found == 36, f"Expected 36 figures across target 15 notebooks, found {figures_found}"
+    mismatched = {
+        name: (per_notebook[name], expected)
+        for name, expected in EXPECTED_FIGURES_PER_TARGET.items()
+        if per_notebook[name] != expected
+    }
+    assert not mismatched, (
+        "Embedded figure count changed (found, expected) in: "
+        f"{mismatched}; update EXPECTED_FIGURES_PER_TARGET if the notebook edit is intended"
+    )
+    assert figures_found == EXPECTED_TOTAL_FIGURES, (
+        f"Expected {EXPECTED_TOTAL_FIGURES} figures across target 15 notebooks, found {figures_found}"
+    )
 
 
 def test_bilingual_target_pairs_parity():

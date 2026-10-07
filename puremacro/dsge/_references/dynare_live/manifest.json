@@ -1,0 +1,110 @@
+{
+  "origin": "Live Dynare execution; not puremacro-generated",
+  "run_id": "20260920_161322_166",
+  "burn": 500,
+  "periods": 2500,
+  "atol": 1e-10,
+  "rtol": 1e-09,
+  "cases": {
+    "correlated_cubic_order2": {
+      "dynare_version": "7.0",
+      "matlab_version": "26.1.0.3346908 (R2026a) Update 5",
+      "order": 2,
+      "model": "correlated_cubic.mod",
+      "model_sha256": "dea8a73b2f9db6bdf1e229358b4c31a882da4c8a4e2f3c9521d0b55280a43a63",
+      "innovations_sha256": "8602099910a676e312cee30485346b4cba370c2d66034970ecf339dace845dcc",
+      "raw_mat_sha256": "11ea45730775f1b1e17f7bb0fec29ae49e4cc062a04d2a516e784a93369dbeae",
+      "reference_sha256": "e3340f6bda44a4e619b5bc661fd76dff661c230c1fc017c29f1a4f2817af1f9a"
+    },
+    "correlated_cubic_order3": {
+      "dynare_version": "7.0",
+      "matlab_version": "26.1.0.3346908 (R2026a) Update 5",
+      "order": 3,
+      "model": "correlated_cubic.mod",
+      "model_sha256": "dea8a73b2f9db6bdf1e229358b4c31a882da4c8a4e2f3c9521d0b55280a43a63",
+      "innovations_sha256": "8602099910a676e312cee30485346b4cba370c2d66034970ecf339dace845dcc",
+      "raw_mat_sha256": "f19138022d8bd0c7778c27df2e55b007fbec5867e2184f37ca2d2c09562c6b57",
+      "reference_sha256": "c536f7cf4354b4018512fa33fc9771b0b6f786790860597c49da8ef2d5ee5afc"
+    },
+    "nonlinear_multishock_order2": {
+      "dynare_version": "7.0",
+      "matlab_version": "26.1.0.3346908 (R2026a) Update 5",
+      "order": 2,
+      "model": "nonlinear_multishock.mod",
+      "model_sha256": "eba5a04e6c180d9b49bff5e69cc2ffe5f4de516c263e9f77cd98654e5c959558",
+      "innovations_sha256": "934ac4b2035a9bfe6c7d440957f622da506a039e1cc9102fb28464c7b1cec27c",
+      "raw_mat_sha256": "c49a3081aa60e7a8977317b093e225a3cbef437659164578b59020c307b34f70",
+      "reference_sha256": "92c80c068dc4a390ee87001d6004038312be50299c41d514e43fbb942a6fe4ba"
+    },
+    "nonlinear_multishock_order3": {
+      "dynare_version": "7.0",
+      "matlab_version": "26.1.0.3346908 (R2026a) Update 5",
+      "order": 3,
+      "model": "nonlinear_multishock.mod",
+      "model_sha256": "eba5a04e6c180d9b49bff5e69cc2ffe5f4de516c263e9f77cd98654e5c959558",
+      "innovations_sha256": "934ac4b2035a9bfe6c7d440957f622da506a039e1cc9102fb28464c7b1cec27c",
+      "raw_mat_sha256": "31897233564ee5d4d1a5f88a61a6a2c7c4522f76b337207af2eddd69b4273a51",
+      "reference_sha256": "d7b4b0e58fef0efd146b780044d760e9a42e94a3c8792955396a78a47313c3fa"
+    },
+    "nonlinear_state_order2": {
+      "dynare_version": "7.0",
+      "matlab_version": "26.1.0.3346908 (R2026a) Update 5",
+      "order": 2,
+      "model": "nonlinear_state.mod",
+      "model_sha256": "156b5e4e54dfc6dc5ba591e1a1ad8dd96828218905e360e4c0a094755a614261",
+      "innovations_sha256": "8f13cdc76b1370d6f9df35c59c9e7bca5636d4e8abb673292ac623bd76004468",
+      "raw_mat_sha256": "22f294b22c1eb7452005a4cdb027daaee866d04b4e630b42d7e2ddb98555a979",
+      "reference_sha256": "916fe37b498ec6ea196b5c4a8acfafe03be82a3f36759e92e180576499f983e5"
+    },
+    "nonlinear_state_order3": {
+      "dynare_version": "7.0",
+      "matlab_version": "26.1.0.3346908 (R2026a) Update 5",
+      "order": 3,
+      "model": "nonlinear_state.mod",
+      "model_sha256": "156b5e4e54dfc6dc5ba591e1a1ad8dd96828218905e360e4c0a094755a614261",
+      "innovations_sha256": "8f13cdc76b1370d6f9df35c59c9e7bca5636d4e8abb673292ac623bd76004468",
+      "raw_mat_sha256": "3bea080a1e68e8f94af9962e5c694137a9b2e2bb1c5e1d21a4c942a196266ff7",
+      "reference_sha256": "8bd95dad383a39a25f28cea038eab5260f96acb307e18faa02e1518e6c69a404"
+    },
+    "quadratic_feedback_order2": {
+      "dynare_version": "7.0",
+      "matlab_version": "26.1.0.3346908 (R2026a) Update 5",
+      "order": 2,
+      "model": "quadratic_feedback.mod",
+      "model_sha256": "54de5832b96ba9d4b67d079903c38421ff425859ad4438ac172ff501cd7332ad",
+      "innovations_sha256": "94074d19577279a3756185a468fb072d0c72154b28d2530fa966434a35db4731",
+      "raw_mat_sha256": "87b18d3948099376942d9d951cce72f7c5802bedce5b07f4240a3cd1b7827ae6",
+      "reference_sha256": "bc80e6eae8122a509f4c3d2b0692645a83d5e82b38b1d853960daded5add9dd5"
+    },
+    "quadratic_feedback_order3": {
+      "dynare_version": "7.0",
+      "matlab_version": "26.1.0.3346908 (R2026a) Update 5",
+      "order": 3,
+      "model": "quadratic_feedback.mod",
+      "model_sha256": "54de5832b96ba9d4b67d079903c38421ff425859ad4438ac172ff501cd7332ad",
+      "innovations_sha256": "94074d19577279a3756185a468fb072d0c72154b28d2530fa966434a35db4731",
+      "raw_mat_sha256": "b7dd752c2c46db823066f846ab48d315a0cce25e9b8bd5c4aa2e8881d7bddff7",
+      "reference_sha256": "5de06df539232072604ff2f92f2069ff6f33da756bcffa1163ecc2516b42052f"
+    },
+    "rbc_order2": {
+      "dynare_version": "7.0",
+      "matlab_version": "26.1.0.3346908 (R2026a) Update 5",
+      "order": 2,
+      "model": "rbc.mod",
+      "model_sha256": "53ce52da5d0ca08c6156a68b14bc6fb7b1f1ef5dd63ee168b7c67c67fb262592",
+      "innovations_sha256": "7b9b79a04c92b6b9c46f0575e15eed992f0651f5d939d9cc8f2d0f9df889273d",
+      "raw_mat_sha256": "df41c2dc0419050a1ecea735ccd863d9a0eae3bb88a5ad570e983e2f0d38a91c",
+      "reference_sha256": "eb7ddf55b223fae31b2664e16ec7970848c816020544b46822eca05e52926d72"
+    },
+    "rbc_order3": {
+      "dynare_version": "7.0",
+      "matlab_version": "26.1.0.3346908 (R2026a) Update 5",
+      "order": 3,
+      "model": "rbc.mod",
+      "model_sha256": "53ce52da5d0ca08c6156a68b14bc6fb7b1f1ef5dd63ee168b7c67c67fb262592",
+      "innovations_sha256": "7b9b79a04c92b6b9c46f0575e15eed992f0651f5d939d9cc8f2d0f9df889273d",
+      "raw_mat_sha256": "10c0c3a2609156eede19b3f77c2296676eb66a65eb4ad9d41a01734581453662",
+      "reference_sha256": "558461f1a27a4a297466cc0926807db6ce9f7a32a4930851c1ab621abcae2ee5"
+    }
+  }
+}

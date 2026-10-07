@@ -96,6 +96,7 @@ in a Taylor rule) move that equation's variables at ``h=0`` too.
 """
 from __future__ import annotations
 
+import dataclasses
 import warnings
 from dataclasses import dataclass
 import math
@@ -325,6 +326,20 @@ class LinearModel:
         """Shock loading Jacobian matrix u_t, or None if not lead-lag solved."""
         return self._B_u
 
+    @property
+    def steady_state_info(self) -> dict | None:
+        """The ``info`` dict of the steady-state solve this model was built from.
+
+        What :func:`~puremacro.dsge.steady.steady` reported when ``build``,
+        ``build_dynare`` or ``load_mod`` solved for the steady state from a
+        guess: ``solve_algo``, ``converged``, ``max_residual`` and, for the
+        block solver, ``structurally_singular``, ``fallback_from_block``,
+        ``full_system_polish`` and the singularity diagnosis when there is
+        one. ``None`` when the steady state was supplied (``steady_state=`` or
+        a ``steady_state_model`` block) rather than solved for.
+        """
+        return getattr(self, "_steady_state_info", None)
+
     def check(self, *, qz_criterium: float = 1.0 + 1e-6) -> EigenvalueTable:
         """Evaluate Blanchard-Kahn determinacy and generalized eigenvalue spectrum.
 
@@ -398,15 +413,27 @@ class LinearModel:
         tol: float = 1e-8,
         prior_mc: int = 0,
         seed: int = 0,
+        fixed_params: Mapping[str, float] | None = None,
+        measurement_error: Mapping[str, float] | None = None,
+        n_freq: int = 16,
+        frequencies: Sequence[float] | None = None,
+        freq_type: str = "uniform",
     ) -> IdentificationResult:
         """Perform Iskrev (2010) and Ratto (2011) parameter identification analysis.
+
+        A thin wrapper around :func:`puremacro.dsge.identification.identification`;
+        every argument is forwarded unchanged, and that function documents
+        the evaluation point theta_0 and the Jacobians in full.
 
         Parameters
         ----------
         varobs : Sequence[str], optional
             Observable variable names. Defaults to model._varobs or all model variables.
         params : Sequence[str] | Mapping[str, float] | EstimatedParams, optional
-            Parameters to evaluate. Defaults to model._estimated_params or calibrated parameters.
+            Parameters to analyse; a Mapping (or EstimatedParams starts) also
+            sets their values at the single evaluation point theta_0 -- see
+            :func:`puremacro.dsge.identification.identification`. Defaults to
+            model._estimated_params or the calibrated parameters.
         lags : int, default 1
             Autocovariance lags included in moment Jacobian J2.
         tol : float, default 1e-8
@@ -415,6 +442,18 @@ class LinearModel:
             Number of prior Monte Carlo draws to evaluate.
         seed : int, default 0
             Random seed for prior Monte Carlo.
+        fixed_params : Mapping[str, float], optional
+            Structural values held fixed at theta_0 (not differentiated),
+            applied on top of the calibration.
+        measurement_error : Mapping[str, float], optional
+            Measurement-error standard deviations by observable at theta_0.
+        n_freq : int, default 16
+            Number of frequency grid points in (0, pi) for the Komunjer-Ng
+            criteria (JH, JS).
+        frequencies : Sequence[float], optional
+            Custom grid of evaluation frequencies in (0, pi); overrides ``n_freq``.
+        freq_type : {"uniform", "gauss_legendre"}, default "uniform"
+            Type of automatic frequency grid in (0, pi).
 
         Returns
         -------
@@ -431,6 +470,11 @@ class LinearModel:
             tol=tol,
             prior_mc=prior_mc,
             seed=seed,
+            fixed_params=fixed_params,
+            measurement_error=measurement_error,
+            n_freq=n_freq,
+            frequencies=frequencies,
+            freq_type=freq_type,
         )
 
     def osr(
@@ -443,12 +487,17 @@ class LinearModel:
         optimizer: str = "Nelder-Mead",
         maxiter: int = 1000,
         penalty: float = 1e6,
+        xatol: float = 1e-8,
+        fatol: float | None = None,
+        options: Mapping[str, Any] | None = None,
     ) -> OSRResult:
         """Optimize policy rule parameters against theoretical variance loss.
 
         Minimizes quadratic loss L(gamma) = sum_i w_i Var(y_i; gamma) subject to
         Blanchard-Kahn determinacy, penalizing determinacy failures with a continuous
-        numerical penalty surface.
+        numerical penalty surface. Forwards every argument to
+        :func:`puremacro.dsge.policy.osr`, which documents the achievable
+        accuracy and the failure behaviour.
 
         Parameters
         ----------
@@ -465,13 +514,25 @@ class LinearModel:
         maxiter : int, default 1000
             Maximum optimizer iterations.
         penalty : float, default 1e6
-            Finite numerical penalty baseline when Blanchard-Kahn condition fails.
+            Unused; kept for backward compatibility (see
+            :func:`puremacro.dsge.policy.osr`).
+        xatol : float, default 1e-8
+            Nelder-Mead only: absolute tolerance on the rule coefficients, in
+            their own units, so it should scale with them.
+        fatol : float, optional
+            Nelder-Mead only: absolute tolerance on the spread of the loss
+            across the simplex. Default ``1e-12 * max(1, |initial loss|)``.
+        options : Mapping[str, Any], optional
+            Passed to ``scipy.optimize.minimize(options=...)`` last, so it
+            overrides ``maxiter``, ``xatol`` and ``fatol`` (e.g.
+            ``{"xtol": ..., "ftol": ...}`` for Powell).
 
         Returns
         -------
         OSRResult
             Frozen dataclass with optimal coefficients, loss comparison, variance table,
-            and presentation methods.
+            and presentation methods. ``loss_initial`` / ``loss_opt`` are NaN,
+            with a RuntimeWarning, when they cannot be computed.
         """
         from puremacro.dsge.policy import osr as _osr
 
@@ -484,6 +545,9 @@ class LinearModel:
             optimizer=optimizer,
             maxiter=maxiter,
             penalty=penalty,
+            xatol=xatol,
+            fatol=fatol,
+            options=options,
         )
 
     def optimal_policy(
@@ -908,13 +972,17 @@ class LinearModel:
             Defaults to the model's own ``varobs`` declaration.
         fixed_params : Mapping[str, float], optional
             Parameter overrides held fixed during estimation, applied on top
-            of the model's calibration.
+            of the model's calibration. Every name must be a model parameter
+            (``ValueError`` otherwise).
         mode_compute : str, default 'lbfgs'
             See :mod:`puremacro.dsge.mode`.
         check_identification : bool | str, default False
             If True or 'warn', runs pre-flight identification check and emits
             a warning if unidentified parameters are found. If 'raise', raises
-            ValueError.
+            ValueError. The check runs at the point the estimation starts
+            from: every estimated parameter at its spec ``start`` (its
+            ``INITVAL`` when declared, else its prior mean), ``fixed_params``
+            and ``measurement_error`` as given, the calibration for the rest.
 
         Returns
         -------
@@ -926,12 +994,30 @@ class LinearModel:
         shock standard deviation, a shock correlation and a measurement-error
         standard deviation are written straight into ``Q`` and ``H``. Each
         re-solve warm-starts its steady-state search from the previous one.
+        Every draw uses the same predetermined set: the model's states plus
+        every variable that enters with a lag (Dynare's ``M_.state_var``), so
+        a lag whose coefficient is calibrated to 0 but estimated (SW07's
+        ``crhoms``, ``crhopinf``, ``crhow``, ``cmap``, ``cmaw``) is part of
+        the model at every draw. Up to and including 4.3.0 the set detected
+        at the calibration was reused and such lags were dropped.
+
+        ``fixed_params`` names that are not model parameters raise
+        ``ValueError``. The fixed values reach every likelihood the
+        estimation evaluates (the mode search, the sampler and, with
+        ``method="nuts"``, the analytic gradient), and they appear in the
+        result's ``mode`` next to the estimated parameters. With
+        ``method="nuts"`` the likelihood gradient is analytic only when every
+        estimated parameter is structural and there is no
+        ``measurement_error``, ``prefilter`` or ``ridge``; otherwise it is a
+        finite difference of the same log-posterior the mode search uses.
 
         A ``steady_state_model`` block in the .mod file is used for the
         *initial* solve only. Re-solving at a new draw goes through the
-        numerical steady-state solver warm-started from the previous draw,
-        because the block's analytic formulas are evaluated once at parse time
-        and are not re-evaluated per draw.
+        numerical steady-state solver warm-started from the previous draw.
+        When the steady state is locally unique that converges to the root
+        the block would give; a model with several steady states can land
+        on a different one (the block itself is re-evaluated at new
+        parameters by ``load_mod(params=)`` and by the other re-solve paths).
 
         There is no ``diffuse_filter`` argument. The Kalman recursion starts
         from the unconditional distribution and falls back to the diffuse
@@ -1010,10 +1096,31 @@ class LinearModel:
                 "declaration. Pass varobs=[...] explicitly."
             )
 
+        # A fixed value for a name the model does not have could change
+        # nothing the solver sees; silently ignoring it would estimate a
+        # different model from the one the caller asked for.
+        unknown_fixed = sorted(
+            str(k) for k in (fixed_params or {}) if k not in (self._params or {})
+        )
+        if unknown_fixed:
+            raise ValueError(
+                f"estimate(): fixed_params names {unknown_fixed}, which are not "
+                f"parameters of this model, so holding them fixed could not change "
+                f"the model that is estimated. Model parameters: "
+                f"{sorted(self._params or {})}."
+            )
+
         if check_identification:
             from .identification import identification as _identification
 
-            ident_res = _identification(self, varobs=obs, params=specs)
+            # Evaluated at one point: the specs' starts on top of the
+            # calibration and the fixed overrides the estimation itself uses
+            # (_make_observation_eq), not at the calibration.
+            ident_res = _identification(
+                self, varobs=obs, params=specs,
+                fixed_params=fixed_params,
+                measurement_error=measurement_error,
+            )
             if not ident_res.is_identified:
                 unident_count = max(
                     ident_res.j1_n_params - ident_res.j1_rank,
@@ -1048,17 +1155,39 @@ class LinearModel:
             trend = _trend_matrix(observation_trends, obs, len(data))
             frame[obs] = frame[obs].to_numpy(dtype=float) - trend
 
+        # method="nuts" differentiates the likelihood analytically through
+        # model_template (puremacro.dsge._gradients), which re-solves only
+        # structural parameters and builds the state space with the declared
+        # shock covariance, no measurement error, no prefilter and no ridge.
+        # When the estimation needs any of those, the analytic target would
+        # be a different likelihood from observation_eq's, so NUTS falls back
+        # to finite differences of observation_eq's log-posterior instead.
+        # fixed_params is not in that list because it reaches both targets:
+        # observation_eq has it in its base parameters, and estimate_dsge
+        # passes it to the analytic target (and to the OccBin re-solves,
+        # which also start from model_template). Up to 4.3.0 it was given
+        # to observation_eq only, so NUTS sampled the posterior at the
+        # calibrated values of the parameters the mode search held fixed.
+        analytic_ok = (
+            all(sp.kind == "param" for sp in specs)
+            and not measurement_error
+            and not prefilter
+            and not ridge
+        )
+        template = self if (method != "nuts" or analytic_ok) else None
+
         return estimate_dsge(
             frame,
             observation_eq=observation_eq,
             priors=prior_dict,
             observed_vars=obs,
             initial_params=initial,
+            fixed_params=dict(fixed_params) if fixed_params else None,
             model_name=model_name or "mod",
             mode_compute=mode_compute,
             n_draws=n_draws, n_chains=n_chains, burn_in=burn_in, seed=seed,
             method=method,
-            model_template=self,
+            model_template=template,
             **kwargs,
         )
 
@@ -1387,6 +1516,7 @@ class LinearModel:
         contemporaneous_correlation: bool = True,
         ar: int | None = None,
         qz_criterium: float = 1.0 + 1e-8,
+        pruning: bool = False,
     ) -> StochSimulResult:
         """Execute Dynare-compatible stoch_simul routine.
 
@@ -1432,6 +1562,11 @@ class LinearModel:
             Number of autocorrelation lags (overrides ``lags`` if specified).
         qz_criterium : float, default 1.0 + 1e-8
             Eigenvalue cutoff for generalized Schur decomposition.
+        pruning : bool, default False
+            At order 2, report the exact moments of the pruned solution, as
+            Dynare's ``stoch_simul(order=2, pruning)`` does, instead of
+            first-order second moments with the second-order mean. Simulations
+            at order 2 are always pruned. No effect at order 1.
 
         Returns
         -------
@@ -1448,6 +1583,7 @@ class LinearModel:
                 seed=seed,
                 burn=burn,
                 lags=lags if ar is None else int(ar),
+                pruning=pruning,
             )
         elif order != 1:
             raise ValueError(f"unsupported perturbation order {order}; must be 1 or 2")
@@ -1857,8 +1993,13 @@ class LinearModel:
         Returns
         -------
         PrunedDSGESolution
-            Second-order solution equipped with `.simulate()`, `.girf()`, and
-            `.stochastic_steady_state()`.
+            Second-order solution equipped with `.simulate()` and `.girf()`.
+            Its steady-state summaries are `.ergodic_mean()` (alias
+            `.stochastic_steady_state()`), the unconditional mean of the
+            pruned solution; `.risky_steady_state()`, the zero-shock fixed
+            point where only the risk term ``0.5 ghs2 sigma^2`` acts; and
+            `.risk_decomposition()`, which splits the ergodic mean into that
+            risk term and the state and shock curvature terms.
         """
         if self._dynare_equations is None:
             raise ModelError(
@@ -1878,6 +2019,80 @@ class LinearModel:
             shock_cov=cov,
             method=self.method,
         )
+
+
+def _resolve_build_model(model, params, *, strict: bool = True,
+                         qz_criterium: float | None = None,
+                         shock_cov: np.ndarray | None = None,
+                         previous_ss: Mapping[str, float] | None = None,
+                         allow_singular: bool | None = None) -> "LinearModel":
+    """Re-solve a :func:`build` model (first order) at new parameter values.
+
+    ``params`` override the calibration. The stored steady state (or
+    ``previous_ss``, when given) is reused when it still solves the model at
+    the new parameters (to ``build``'s own tolerance) and is otherwise the
+    guess the steady state is solved for from, so the Jacobians are never
+    taken at a stale point. The model's own linearisation (``"log"``/
+    ``"level"``), differentiation method, QZ criterium, anticipated shocks,
+    declared shock covariance (``shock_cov`` replaces it) and
+    structural-singularity opt-in (``build(..., allow_singular=)``;
+    ``allow_singular`` replaces it) are kept; derivatives are not re-verified.
+    """
+    if getattr(model, "_equations", None) is None:
+        raise ModelError("_resolve_build_model needs a model built with build().")
+    merged = dict(getattr(model, "_params", None) or {})
+    merged.update({k: float(v) for k, v in dict(params).items()})
+    variables = list(model.variables)
+    shocks = list(model.shocks)
+    ss = {str(k): float(v) for k, v in model.steady_state.items()}
+    if previous_ss is not None:
+        ss.update({str(k): float(v) for k, v in dict(previous_ss).items() if k in ss})
+    lin = getattr(model, "_linearize", None)
+    if lin not in ("log", "level"):
+        lin = "log" if any(u == "log" for u in (model.units or {}).values()) else "level"
+    tol = 1e-9
+    try:
+        x = _Vec(variables, np.array([ss[v] for v in variables]))
+        par = _Vec(tuple(merged), list(merged.values()), "parameter")
+        with np.errstate(all="ignore"):
+            res = np.asarray(
+                model._equations(x, x, _Vec(shocks, np.zeros(len(shocks)), "shock"), par),
+                dtype=float,
+            )
+        exact = res.shape == (len(variables),) and bool(np.all(np.isfinite(res))) \
+            and float(np.max(np.abs(res), initial=0.0)) <= tol
+    except Exception:
+        exact = False
+    qz = qz_criterium
+    if qz is None:
+        qz = getattr(model, "_qz_criterium", None) or 1.0 + 1e-8
+    singular = getattr(model, "_allow_singular", None) if allow_singular is None else allow_singular
+    solved = build(
+        model._equations,
+        variables=variables,
+        states=list(model.states),
+        shocks=shocks,
+        params=merged,
+        steady_state=ss if exact else None,
+        guess=None if exact else ss,
+        linearize=lin,
+        method=model.method,
+        verify_derivatives=False,
+        strict=strict,
+        tol=tol,
+        qz_criterium=qz,
+        anticipated_shocks=getattr(model, "anticipated_shocks", None),
+        allow_singular=singular,
+    )
+    cov = getattr(model, "_shock_cov", None) if shock_cov is None else shock_cov
+    if cov is not None:
+        extra = {a: getattr(solved, a) for a in ("_qz_criterium", "_steady_state_info", "_linearize",
+                                                  "_allow_singular")
+                 if hasattr(solved, a)}
+        solved = dataclasses.replace(solved, _shock_cov=np.asarray(cov, dtype=float))
+        for a, v in extra.items():
+            object.__setattr__(solved, a, v)
+    return solved
 
 
 def _make_observation_eq(model, specs, varobs, *, fixed_params=None,
@@ -1903,8 +2118,19 @@ def _make_observation_eq(model, specs, varobs, *, fixed_params=None,
 
     ``observation_eq.n_solves`` is a documented test hook, not incidental
     state.
+
+    Every draw is solved with one predetermined set,
+    :func:`puremacro.dsge.dynare._resolve_states`: the model's states plus every
+    variable that enters with a lag (the symbolic lag incidence of a .mod, as
+    Dynare's ``M_.state_var``). ``model.states`` alone was detected at the
+    calibration, where SW07's estimated ``crhoms``, ``crhopinf``, ``crhow``,
+    ``cmap`` and ``cmaw`` are 0, and re-solving with it dropped those five lags
+    at every draw. A lag the set still misses (possible only for a callable
+    whose coefficient is 0 even at a generic parameter point) is caught after
+    the solve, added, and the draw re-solved.
     """
     from .observation import make_state_space_from_varobs
+    from .dynare import _live_lag_columns, _resolve_states
 
     if model._dynare_equations is None:
         raise ModelError(
@@ -1935,6 +2161,7 @@ def _make_observation_eq(model, specs, varobs, *, fixed_params=None,
     base_me = dict(measurement_error or {})
 
     cache: dict = {}
+    state_set = list(_resolve_states(model))
 
     def observation_eq(params):
         key = tuple(float(params[n]) for n in structural)
@@ -1945,24 +2172,36 @@ def _make_observation_eq(model, specs, varobs, *, fixed_params=None,
 
             merged = dict(base_params)
             merged.update({n: float(params[n]) for n in structural})
-            solved = build_dynare(
-                model._dynare_equations,
-                variables=model.variables,
-                shocks=model.shocks,
-                params=merged,
-                # `guess=`, never `steady_state=`: the previous draw's steady
-                # state is a starting point, and handing it over as exact would
-                # fail the residual check at every new parameter vector.
-                guess=observation_eq._last_ss,
-                states=model.states,
-                order=1,
-                method=model.method,
-                # The equations are the ones this model was already built and
-                # verified with; re-checking the Jacobians on every draw would
-                # double the cost to re-learn the same answer.
-                verify_derivatives=False,
-                strict=True,
-            )
+
+            def _solve():
+                return build_dynare(
+                    model._dynare_equations,
+                    variables=model.variables,
+                    shocks=model.shocks,
+                    params=merged,
+                    # `guess=`, never `steady_state=`: the previous draw's steady
+                    # state is a starting point, and handing it over as exact
+                    # would fail the residual check at every new parameter vector.
+                    guess=observation_eq._last_ss,
+                    states=state_set,
+                    order=1,
+                    method=model.method,
+                    # The equations are the ones this model was already built
+                    # and verified with; re-checking the Jacobians on every draw
+                    # would double the cost to re-learn the same answer.
+                    verify_derivatives=False,
+                    strict=True,
+                    # The model's own structural-singularity opt-in
+                    # (build_dynare / load_mod allow_singular=).
+                    allow_singular=getattr(model, "_allow_singular", None),
+                )
+
+            solved = _solve()
+            missed = _live_lag_columns(solved._A_minus, list(model.variables)) - set(state_set)
+            if missed:
+                grown = set(state_set) | missed
+                state_set[:] = [v for v in model.variables if v in grown]
+                solved = _solve()
             cache[key] = solved
             observation_eq._last_ss = solved.steady_state.to_dict()
             observation_eq.n_solves += 1
@@ -2322,9 +2561,11 @@ def _check_equation_count(resid: np.ndarray, n: int) -> None:
 def _solve_steady_state(f, variables, shocks, params, guess, tol,
                         solve_algo: str = "block",
                         homotopy: Mapping[str, tuple[float, float]] | None = None,
-                        homotopy_steps: int = 10) -> np.ndarray:
+                        homotopy_steps: int = 10,
+                        allow_singular: bool | None = None) -> tuple[np.ndarray, dict]:
+    """``(ss, info)`` from :func:`~puremacro.dsge.steady.steady`."""
     from .steady import steady
-    ss, _ = steady(
+    return steady(
         f,
         variables=variables,
         guess=guess,
@@ -2334,8 +2575,8 @@ def _solve_steady_state(f, variables, shocks, params, guess, tol,
         homotopy=homotopy,
         homotopy_steps=homotopy_steps,
         tol=tol,
+        allow_singular=allow_singular,
     )
-    return ss
 
 
 def build(equations: Callable, *, variables: Sequence[str],
@@ -2352,7 +2593,8 @@ def build(equations: Callable, *, variables: Sequence[str],
           strict: bool = True,
           tol: float = 1e-9,
           qz_criterium: float = 1.0 + 1e-8,
-          anticipated_shocks: dict | None = None) -> LinearModel:
+          anticipated_shocks: dict | None = None,
+          allow_singular: bool | None = None) -> LinearModel:
     """Linearise and solve a model written as an equilibrium-condition function.
 
     Parameters
@@ -2409,10 +2651,25 @@ def build(equations: Callable, *, variables: Sequence[str],
         solved for. It is *not* passed to the root finder, which always
         works to ~1e-12 — a loose ``tol`` widens what is accepted, it does
         not buy a sloppier solve.
+    allow_singular : bool or None, default None
+        Forwarded to :func:`~puremacro.dsge.steady.steady` when the steady
+        state is solved for from ``guess``: what to do when the static
+        system is structurally singular (its steady state is not locally
+        unique). ``None`` uses the ambient
+        :func:`~puremacro.dsge.steady.allow_structural_singularity` setting,
+        which by default accepts a unit-root law of motion with a
+        :class:`~puremacro.dsge.steady.StructuralSingularityWarning` and
+        raises :class:`~puremacro.dsge.steady.StructuralSingularityError`
+        for any other structure; ``True`` accepts any structure the
+        full-system solve can satisfy, with the warning; ``False`` raises
+        for every structurally singular model.
 
     Returns
     -------
     LinearModel
+        The solver's ``info`` dict is kept as
+        :attr:`LinearModel.steady_state_info` (``None`` when ``steady_state``
+        was supplied).
 
     Raises
     ------
@@ -2451,11 +2708,13 @@ def build(equations: Callable, *, variables: Sequence[str],
             np.asarray(equations(guess_vec, guess_vec,
                                  _Vec(shocks, np.zeros(n_e), "shock"), par),
                        dtype=float), n)
-        ss = _solve_steady_state(
+        ss, ss_info = _solve_steady_state(
             equations, variables, shocks, par, guess, tol,
             solve_algo=solve_algo, homotopy=homotopy, homotopy_steps=homotopy_steps,
+            allow_singular=allow_singular,
         )
     else:
+        ss_info = None
         missing = [v for v in variables if v not in steady_state]
         if missing:
             raise ModelError(f"steady_state is missing values for {missing}")
@@ -2576,4 +2835,10 @@ def build(equations: Callable, *, variables: Sequence[str],
         anticipated_shocks=anticipated_shocks,
     )
     object.__setattr__(model, "_qz_criterium", qz_criterium)
+    object.__setattr__(model, "_steady_state_info", ss_info)
+    object.__setattr__(model, "_linearize", linearize)
+    # Kept so that every re-solve at other parameter values
+    # (_resolve_build_model: osr, widgets, estimation, SMC, gradients)
+    # honours the caller's structural-singularity opt-in.
+    object.__setattr__(model, "_allow_singular", allow_singular)
     return model

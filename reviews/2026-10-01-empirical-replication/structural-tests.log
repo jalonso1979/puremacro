@@ -1,0 +1,21 @@
+........................................................................ [ 56%]
+.......................................................                  [100%]
+=============================== warnings summary ===============================
+tests/test_structural_empirical_sw07.py::test_nonstationary_economic_solution_not_silently_repaired
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/smets_wouters.py:725: RuntimeWarning: klein_solve: 1 generalised eigenvalue(s) lie in [1, div=1.00000001) and were admitted to the stable block, so the returned state transition G has a root on or outside the unit circle. The solution is a valid non-explosive rational-expectations path, but the model is NOT stationary: unconditional moments, the unconditional variance decomposition and the Lyapunov variance do not exist for it. Pass div=1.0 to refuse such models instead.
+    sol_klein = klein_solve(G0, G1, n_pre=_N_PRE, C=Psi, strict=False)
+
+tests/test_dsge/test_sw07_observation.py::test_make_state_space_log_likelihood_finite_at_mode
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dsge/test_sw07_observation.py:69: UserWarning: Could not infer format, so each element will be parsed individually, falling back to `dateutil`. To ensure parsing is consistent and as-expected, please specify a format.
+    df = pd.read_csv(pkg / "_sw07_data.csv", comment="#", parse_dates=["date"], index_col="date")
+
+tests/test_dsge/test_sw07_data.py::test_bundled_sw07_data_loads
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dsge/test_sw07_data.py:13: UserWarning: Could not infer format, so each element will be parsed individually, falling back to `dateutil`. To ensure parsing is consistent and as-expected, please specify a format.
+    df = pd.read_csv(csv_path, comment="#", parse_dates=["date"], index_col="date")
+
+tests/test_dsge/test_sw07_data.py::test_bundled_sw07_data_date_range
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dsge/test_sw07_data.py:24: UserWarning: Could not infer format, so each element will be parsed individually, falling back to `dateutil`. To ensure parsing is consistent and as-expected, please specify a format.
+    df = pd.read_csv(pkg / "_sw07_data.csv", comment="#", parse_dates=["date"], index_col="date")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+127 passed, 1 deselected, 4 warnings in 7.67s

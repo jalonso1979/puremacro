@@ -159,14 +159,18 @@ def test_fevd_smets_wouters():
     assert len(lag_rows) > 0
     for key in lag_rows:
         assert table.loc[key].isna().all(), key
-    # The hand-coded SW07 state space also carries the two ARMA markup
-    # processes (spinf, sw) whose innovation enters through a lagged
-    # auxiliary, so their 1-step forecast error is zero as well. Undefined
-    # rows are allowed only at horizon 1 and only when the whole row is NaN.
+    # These are the only undefined rows. The ARMA(1,1) markup processes
+    # (spinf, sw) take their innovation contemporaneously,
+    # spinf_t = crhopinf*spinf_{t-1} + epinf_t - cmap*epinf_{t-1}, so they
+    # respond on impact and their 1-step forecast error is entirely their own
+    # innovation. Through 4.3.0 the innovation entered one quarter late, which
+    # made spinf and sw undefined at horizon 1 too.
     nan_rows = table[table.isna().any(axis=1)]
     assert nan_rows.isna().all(axis=1).all()
     assert set(nan_rows.index.get_level_values(1)) == {1}
-    assert set(lag_rows) <= set(nan_rows.index)
+    assert set(nan_rows.index) == set(lag_rows)
+    assert table.loc[("spinf", 1), "epinf"] == pytest.approx(1.0, abs=1e-12)
+    assert table.loc[("sw", 1), "ew"] == pytest.approx(1.0, abs=1e-12)
     defined = table.dropna(how="any")
     assert len(defined) == len(table) - len(nan_rows)
     table = defined

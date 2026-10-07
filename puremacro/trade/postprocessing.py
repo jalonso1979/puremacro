@@ -441,6 +441,11 @@ def postprocess_trade_equilibrium(
 
     meta.update(flows.get("accounting_metadata", {}))
     if meta.get("accounting") == "consistent":
+        # Independent acceptance audit. The consistent-mode Newton, sparse-LU,
+        # Broyden, Krylov and Keller solvers stop on this same residual set
+        # (solver._consistent_acceptor), so for them it can only flip the flag
+        # for demand-infeasible roots; SciPy hybr/lm use their own termination
+        # tests and are audited here.
         tolerance = float(meta.get("tol", 1e-8))
         physical = meta["physical_residuals"]
         converged = bool(converged and meta["demand_feasible"] and np.isfinite(physical).all()

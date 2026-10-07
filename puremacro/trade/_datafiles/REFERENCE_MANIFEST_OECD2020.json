@@ -1,0 +1,81 @@
+{
+  "file": "trade_reference_solutions_oecd2020.npz",
+  "built": "2026-10-04",
+  "builder": "tools/extract_trade_references.py",
+  "scenarios_present": [
+    "base"
+  ],
+  "scenarios_absent": [
+    "t10",
+    "t10_25",
+    "t10_54",
+    "t10_75",
+    "t10_125",
+    "t10_145"
+  ],
+  "scenarios_unconverged_not_bundled": {},
+  "arrays_per_scenario": [
+    "XN_sol",
+    "c_sol",
+    "pfd_sol",
+    "xx_sol",
+    "w_sol",
+    "ytot_sol",
+    "T_sol",
+    "r_sol",
+    "p_sol",
+    "tau_a",
+    "taufd_a",
+    "ff",
+    "ff_sol",
+    "tauf",
+    "tauf_fd",
+    "Reciprocal_Tariff"
+  ],
+  "arrays_base_only": [
+    "afd",
+    "alpha",
+    "beta",
+    "KT",
+    "LT",
+    "invforT",
+    "tax",
+    "tax_fd",
+    "theta",
+    "ytot",
+    "TT",
+    "TTfd",
+    "dM0",
+    "dMFD",
+    "dX0",
+    "dXFD"
+  ],
+  "arrays_omitted": [
+    "a",
+    "data_calibra",
+    "data_model_vf",
+    "data_tariff_vf",
+    "Pfd_final",
+    "qxX0_sol",
+    "qxFD0_sol",
+    "qxX0",
+    "qxFD0"
+  ],
+  "arrays_omitted_reason": "dense, incompressible arrays recomputed by calibrate_trade_model from the bundled table (a, data_calibra) or post-processing outputs; left out to keep the wheel small",
+  "naming": "<scenario>__<array>",
+  "runs": {
+    "base": {
+      "converged": true,
+      "newton_iterations": 1,
+      "final_residual_l1": 1.4792014302322798e-07,
+      "source_file": "results_77c_11s_base_clean.mat",
+      "source_sha256": "395a62a45d969514b1869cc6b34e9b26096a0af26133032fef550b497f3ef440"
+    }
+  },
+  "sha256": "51ada82a44c63b872e95c2bb5f596e6cc9587dd9971d2d2276a158f8bc4d34bc",
+  "solved_on_table": "icio_77c_11s_oecd2020.npz",
+  "table_sha256_array": "91d208be1011a0478b4329c2b995c075e61d62ae3e2ecb97668621d8480ce74d",
+  "provenance": "Verbatim copies (dtype included) of the MATLAB results_77c_11s_<scenario>_clean.mat outputs of the author's legacy trade model (calibrar.m, ff_equi.m, ff_eval.m, unchanged) run in MATLAB R2026a on the clean OECD 2020 table by tools/reference_validation/trade_clean_table/run_scenarios_clean.m. These remain an EXTERNAL check on puremacro, not puremacro's own output.",
+  "license": "MIT, same as puremacro's own code (author: Jorge Alonso-Ortiz)",
+  "see_also": "SOURCES.md in this directory"
+}

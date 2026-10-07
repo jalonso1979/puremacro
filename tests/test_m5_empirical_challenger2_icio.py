@@ -49,7 +49,7 @@ from puremacro.trade.solver import build_initial_guess, solve_trade_equilibrium
 @pytest.fixture(scope="module")
 def empirical_calib() -> TradeCalibrationResult:
     """Load empirical 77-country, 11-sector OECD ICIO calibration."""
-    raw = load_icio_data()
+    raw = load_icio_data(source="legacy")
     return calibrate_trade_model(raw, ns=11, nc=77, nfd=3, validate=True)
 
 
@@ -129,7 +129,13 @@ class TestSummaryMarkupsEmpirical:
         cfg = FlexibleTradeModelConfig(
             market_structure=FlexibleMarketStructureConfig(variable_markups=True, sigma_j=6.0, theta_j=2.0)
         )
-        res = solve_flexible_trade_equilibrium(empirical_calib, config=cfg, tol=2.5e-3, max_iter=5)
+        # Active flexible settings above 100 cells need the quasi-condensed route; before the
+        # fix this call silently solved the legacy Cobb-Douglas/Leontief equilibrium.
+        res = solve_flexible_trade_equilibrium(
+            empirical_calib, config=cfg, method="quasi_condensed", tol=2.5e-3, max_iter=5
+        )
+        assert res.converged
+        assert res.metadata["flexible_settings_applied"] is True
         df_sec = res.summary_markups(by_sector=True)
         assert len(df_sec) == 11
         assert np.all(df_sec["mean"] >= 1.0)
@@ -187,7 +193,10 @@ class TestWelfareDecompositionEmpirical:
         eff = df["efficiency"].to_numpy()
         max_closure_err = np.max(np.abs(ev - (tot + eff)))
         rel_closure_err = max_closure_err / np.max(np.abs(ev))
-        assert max_closure_err < 1e-8, f"Max closure error {max_closure_err:.4e} exceeds 1e-8"
+        # Channels reach 5e8 monetary units, where one rounding of tot + eff is
+        # 3e-8 (observed: exactly 2**-25), so the bound scales with the magnitude.
+        rounding = 4.0 * np.finfo(float).eps * np.max(np.abs(tot) + np.abs(eff))
+        assert max_closure_err <= rounding, f"Max closure error {max_closure_err:.4e} exceeds {rounding:.4e}"
         assert rel_closure_err < 1e-14, f"Relative closure error {rel_closure_err:.4e} exceeds 1e-14"
 
     def test_welfare_decomposition_incompatible_dimension_raises(

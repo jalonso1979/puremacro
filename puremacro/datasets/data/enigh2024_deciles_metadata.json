@@ -1,0 +1,57 @@
+{
+  "source": "INEGI ENIGH 2024, Tabulados basicos, Cuadros 3.2 and 4.2",
+  "source_url": "https://www.inegi.org.mx/contenidos/programas/enigh/nc/2024/tabulados/enigh2024_ns_basicos_tabulados.xlsx",
+  "source_sha256": "7af7850495255fb1e6a9cb139cf531e5a62c7fd2a9a1de5ba0503f03aa82490b",
+  "accessed": "2026-10-01",
+  "survey_year": 2024,
+  "monetary_unit": "MXN",
+  "period": "quarter",
+  "population_unit": "households",
+  "value_semantics": "MXN per household per quarter, averaged over ALL households in each income decile",
+  "decile_definition": "National household deciles ordered by total current quarterly income",
+  "population_source": "Cuadro 3.2, HOGARES under INGRESO CORRIENTE (38,830,230 households)",
+  "national_monetary_expenditure_mxn": 1851206621945.59,
+  "national_food_expenditure_mxn": 698246718791.5,
+  "categories": {
+    "food": "ALIMENTOS, BEBIDAS Y TABACO",
+    "clothing": "VESTIDO Y CALZADO",
+    "housing": "VIVIENDA Y SERVICIOS DE CONSERVACIÓN",
+    "household_goods": "ARTÍCULOS Y SERVICIOS PARA LA LIMPIEZA",
+    "health": "CUIDADOS DE LA SALUD",
+    "transport": "TRANSPORTE; ADQUISICIÓN",
+    "education_recreation": "SERVICIOS DE EDUCACIÓN",
+    "personal": "CUIDADOS PERSONALES"
+  },
+  "source_rows_1based": {
+    "food": 11,
+    "clothing": 65,
+    "housing": 86,
+    "household_goods": 101,
+    "health": 113,
+    "transport": 140,
+    "education_recreation": 158,
+    "personal": 170
+  },
+  "cash_wage_rows_1based": [
+    17,
+    20,
+    23,
+    26,
+    29,
+    32
+  ],
+  "transformations": [
+    "Multiply published totals in thousands of MXN by 1000, divide by all-household decile expansion counts",
+    "Exclude outward expenditure transfers from the eight-category consumption basket; retain separately",
+    "Sum six monetary subordinate-employment remuneration categories for cash_wages; exclude in-kind remuneration"
+  ],
+  "limitations": [
+    "Group means do not recover within-decile heterogeneity or survey sampling covariance",
+    "Broad consumption categories are not an industry concordance or measured import shares",
+    "Monetary consumption excludes imputed rent, own production and other nonmonetary consumption",
+    "No trade elasticity, pass-through, policy shock, or factor-price response is identified by these tables",
+    "Applying income changes to consumption assumes the user-specified spending response; the example spends all incremental cash wages"
+  ],
+  "is_synthetic": false,
+  "csv_sha256": "7755bf36cae08e37174705cb0dd048020930d569917fc6f826b7b2c46c15a606"
+}

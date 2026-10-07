@@ -13,30 +13,31 @@
 # %% [markdown]
 # # Applied Fiscal Multipliers and Debt Sustainability Analysis
 #
-# **How much does output expand per dollar of government spending or contract per dollar of tax hike across competing identification paradigms (SVAR, Local Projections, and Narrative IV), and how can sovereign debt managers project debt sustainability under joint growth, inflation, and interest rate stress?**
+# **How do tax-response estimates change across identification assumptions, and how does a calibrated primary-balance adjustment affect debt risk?**
 #
-# This applied frontier showcase bridges structural fiscal econometrics with policy sovereign debt stress testing. We implement the three canonical identification paradigms on unified US quarterly fiscal accounts: Blanchard and Perotti (2002) SVAR with institutional elasticity $\theta = 2.08$, Romer and Romer (2010) narrative local projections, and Mertens and Ravn (2013) external instrument LP-IV. We then feed these dynamic multipliers into a stochastic sovereign Debt Sustainability Analysis (DSA) simulator running 1,000 Monte Carlo paths under joint growth, interest rate, and primary deficit innovations.
+# The fiscal block uses frozen US quarterly aggregates and observed narrative tax series from the bundled `tax14` data. It compares a Blanchard-Perotti-style SVAR, Romer-Romer narrative LPs, and LP-IV using the observed Mertens-Ravn unanticipated series. These simplified specifications are teaching examples, not exact replications of all three papers.
+#
+# A separate, fixed-seed debt simulation uses calibrated growth, interest-rate and primary-balance dynamics. It does not incorporate the estimated multipliers or their uncertainty. Connecting the two blocks requires an explicit policy-to-growth channel, explored in the final exercise.
 
 # %% [markdown]
 # ## The method in math
 #
-# **1. Blanchard-Perotti (2002) Institutional SVAR.** Starting from the reduced-form VAR in $X_t = (\tau_t, g_t, y_t)'$ (log real federal taxes, spending, GDP):
-# $$ u_t = B \varepsilon_t, \qquad u_t^\tau = \theta u_t^y + \varepsilon_t^\tau, \qquad u_t^g = \varepsilon_t^g, \qquad u_t^y = b_1 u_t^\tau + b_2 u_t^g + \varepsilon_t^y, $$
-# with institutional elasticity $\theta = 2.08$ measured from statutory tax codes. The cyclically adjusted shock $\varepsilon_t^\tau = u_t^\tau - \theta u_t^y$ instruments the output equation.
+# The fiscal VAR contains $X_t=(\tau_t,g_t,y_t)'$, with each series expressed as 100 times its real log. The institutional tax elasticity is $\theta=2.08$, giving the adjusted tax residual $e_t^\tau=u_t^\tau-\theta u_t^y$. The SVAR identifies a tax shock using that restriction and predetermined spending.
 #
-# **2. Romer-Romer (2010) Narrative Local Projections.** Pure narrative shocks $z_t$ enter Jordà (2005) lag-augmented local projections directly:
-# $$ y_{t+h} - y_{t-1} = \mu_h + m_{\text{RR}}(h) z_t + \sum_{l=1}^p \Gamma_{l, h} X_{t-l} + e_{t+h}, $$
-# where $m_{\text{RR}}(h)$ represents the multiplier path per 1%-of-GDP tax change.
+# Narrative LPs regress $y_{t+h}-y_{t-1}$ on observed exogenous tax changes, measured in percent of GDP, with four lags plus one augmentation lag of GDP and the tax series at every horizon and Eicker-Huber-White standard errors (lag-augmented LP, Montiel Olea and Plagborg-Møller 2021). LP-IV instead instruments the raw VAR tax residual with the observed unanticipated narrative measure:
+# $$\widehat m_{IV}(h)=\frac{1}{\overline{T/Y}}\frac{\widehat{\operatorname{Cov}}(y_{t+h}-y_{t-1},z_t\mid W_t)}{\widehat{\operatorname{Cov}}(u_t^\tau,z_t\mid W_t)}.$$
+# A large first stage does not establish exclusion. We report horizon-specific HAC effective $F$ statistics, their MOP critical values, and Anderson-Rubin confidence-set types rather than enforce an $F>10$ threshold. Different controls and estimation samples also affect comparisons.
 #
-# **3. Mertens-Ravn (2013) Narrative LP-IV.** The narrative series $z_t$ acts as an external instrument for the endogenous tax innovation $u_t^\tau$:
-# $$ \hat{m}_{\text{MR}}(h) = \frac{\widehat{\operatorname{Cov}}(y_{t+h} - y_{t-1}, z_t \mid \text{controls})}{\widehat{\operatorname{Cov}}(u_t^\tau, z_t \mid \text{controls})}, \qquad \text{First-Stage } F = \left(\frac{\hat{\pi}_z}{\text{SE}(\hat{\pi}_z)}\right)^2 > 10. $$
+# Panel (b) reports average GDP level responses $\bar m(H)=(H+1)^{-1}\sum_{h=0}^H m(h)$. A cumulative fiscal multiplier instead requires the ratio of cumulative output changes to cumulative fiscal changes in compatible units; the average here is not that ratio.
 #
-# **4. Cumulative Multipliers and Stochastic Debt Sustainability Analysis (DSA).** Cumulative multipliers average output gains over horizon $H$: $\mathcal{M}(H) = \frac{1}{H+1} \sum_{h=0}^H m(h)$. Sovereign debt-to-GDP dynamics follow the snowball accumulation equation:
-# $$ d_t = \frac{1 + r_t}{1 + g_t} d_{t-1} - pb_t + sf_t \approx d_{t-1} + (r_t - g_t) d_{t-1} - pb_t, $$
-# where $(r_t - g_t)$ is the snowball differential and $pb_t$ is the primary balance (% of GDP). Across $M = 1,000$ joint macroeconomic simulation paths, we quantify the probability of breaching a prudent debt ceiling $\mathbb{P}(\max_{t \le H} d_t > 80\%)$ and debt non-stabilization $\mathbb{P}(d_{t+H} > d_t)$.
+# The calibrated DSA uses annual growth/rate percentages and an annual primary balance in percentage points of GDP:
+# $$d_t\approx d_{t-1}\left[1+\frac{r_t-g_t}{400}\right]-\frac{pb_t}{400}.$$
+# Thus `pb_shift=1.0` improves the annual primary balance by one percentage point of GDP. Debt `d0=0.65` is a ratio. The 80% debt threshold is illustrative, not a universal prudential limit.
 
 # %% [markdown]
-# **Intuition.** Estimating the economic return to fiscal policy is plagued by simultaneity: tax revenues collapse automatically in recessions through built-in stabilizers, while legislative fiscal packages respond endogenously to the business cycle. Blanchard-Perotti break this loop using institutional knowledge of the tax schedule; Romer-Romer read legislative records to filter out cyclical bills; and Mertens-Ravn use narrative dates as instruments to purge measurement error. When fiscal expansion is debt-financed, these estimated multipliers directly govern sovereign solvency: if the growth dividend fails to outweigh the snowball debt differential $(r - g)$, the debt-to-GDP ratio enters an unstable trajectory. Stochastic DSA translates macro-fiscal econometric estimates into actionable debt risk bounds for ministries of finance and central banks.
+# **Intuition.** Fiscal revenues and output move together even without discretionary tax changes, so identifying a causal response requires assumptions beyond regression fit. The narrative instrument must originate in the historical record; constructing it from the tax residual would mechanically create relevance without supplying exogeneity. A weak first stage can make LP-IV point estimates unstable.
+#
+# The debt simulation isolates a different mechanism: holding the growth and rate paths fixed, a higher primary balance reduces debt. Its risk probabilities describe this calibration and omit fiscal feedback onto growth, default, and parameter uncertainty.
 
 # %%
 import sys
@@ -57,8 +58,6 @@ from puremacro.var.estimate import estimate_var
 from puremacro.var.irf import irf as var_irf
 from puremacro.lp.la_lp import la_lp
 from puremacro.lp.iv import lp_iv
-
-rng = np.random.default_rng(42)
 
 # --- 1. Load Empirical Fiscal Panel and Narrative Tax Records ---------------
 # Load frozen quarterly US fiscal aggregates (taxes, spending, GDP, deflator)
@@ -111,31 +110,54 @@ irfs_bp = var_irf(A_list, B_bp, horizon=H)
 c_bp = SCALE / irfs_bp[0, 0, 0]
 m_bp = irfs_bp[:, 2, 0] * c_bp
 
-# (b) Romer-Romer (2010) Narrative Local Projections
+# (b) Romer-Romer (2010) narrative local projections, lag-augmented: n_lags=4 plus the
+# default single extra lag (Montiel Olea-Plagborg-Moller 2021), EHW standard errors.
 lp_rr = la_lp(d, y="y", x="rr", horizons=range(0, H + 1), n_lags=4, alpha=0.10)
 m_rr = lp_rr["beta"].to_numpy()
 
-# (c) Mertens-Ravn (2013) Narrative LP-IV
-d["tax_innovation"] = 0.0
-d.iloc[4:, d.columns.get_loc("tax_innovation")] = e_tau
-nz = d["rr"] != 0
-d["z_narrative"] = 0.0
-d.loc[nz, "z_narrative"] = d.loc[nz, "tax_innovation"] * 0.85 + rng.normal(0, 0.35, size=nz.sum())
-res_iv = lp_iv(d, y="y", x="tax_innovation", z="z_narrative", horizons=range(0, H + 1), n_lags=2)
-f_stat_iv = float(res_iv.iloc[0]["first_stage_f"])
+# (c) LP-IV with the observed Mertens-Ravn unanticipated narrative series.
+# Instrument the raw tax residual; unavailable presample residuals remain missing.
+d["tax_innovation"] = np.nan
+d.iloc[4:, d.columns.get_loc("tax_innovation")] = u_tau
+d["z_narrative"] = d["mtu"]
+res_iv = lp_iv(
+    d, y="y", x="tax_innovation", z="z_narrative",
+    horizons=range(0, H + 1), n_lags=2, anderson_rubin=True,
+)
+f_stat_iv = float(res_iv.iloc[0]["mop_f"])
 m_iv = res_iv["beta"].to_numpy() * SCALE
 
-print(f"LP-IV First-Stage F-Statistic: {f_stat_iv:.2f}")
+print(f"LP-IV Impact Effective F: {f_stat_iv:.2f}; 10% bias critical value: {res_iv.iloc[0]['mop_cv_10']:.2f}")
+print(res_iv[["h", "mop_f", "mop_cv_10", "ar_set_type"]].to_string(index=False))
 print(f"Impact Multipliers (h=0): BP = {m_bp[0]:.2f} | MR = {m_iv[0]:.2f} | RR = {m_rr[0]:.2f}")
 print(f"2-Year Multipliers (h=8): BP = {m_bp[8]:.2f} | MR = {m_iv[8]:.2f} | RR = {m_rr[8]:.2f}")
 
+# Influence check: how much of the LP-IV first stage does one quarter carry?
+big_q = d["z_narrative"].abs().idxmax()
+d_drop = d.assign(z_narrative=d["z_narrative"].where(d.index != big_q, 0.0))
+f_drop = float(lp_iv(d_drop, y="y", x="tax_innovation", z="z_narrative",
+                     horizons=[0], n_lags=2).iloc[0]["mop_f"])
+print(f"Largest unanticipated change: {big_q.year}Q{big_q.quarter} "
+      f"({d.loc[big_q, 'z_narrative']:+.2f}% of GDP); impact effective F without it: {f_drop:.3f}")
+
 # Headline assertions
 assert -2.0 <= m_bp[0] <= 0.0, "Impact tax multiplier in BP SVAR must be negative and bounded"
-assert f_stat_iv > 10.0, f"LP-IV first stage F must exceed 10 (got {f_stat_iv:.2f})"
+assert np.isfinite(res_iv["mop_f"]).all() and (res_iv["mop_f"] >= 0).all()
+np.testing.assert_array_equal(d["z_narrative"], d["mtu"])
+assert d["tax_innovation"].iloc[:4].isna().all()
 assert m_rr[8] < m_bp[8], "Romer-Romer 2-year multiplier must be more contractionary than BP"
+assert f_drop < 0.1 * f_stat_iv, "the LP-IV first stage should rest on a single quarter"
 
 # --- 3. Stochastic Sovereign Debt Sustainability Simulator (DSA) -------------
-def simulate_stochastic_dsa(d0=0.65, horizon_quarters=20, n_sims=1000, seed=42, pb_shift=0.0):
+def simulate_stochastic_dsa(d0=0.65, horizon_quarters=20, n_sims=1000, seed=42, pb_shift=0.0,
+                            m=0.0, shocks=True):
+    """Quarterly debt paths; pb_shift is in annual percentage points of GDP.
+
+    Used by the final exercise only: m > 0 lowers annual growth by m * pb_shift points
+    in quarters 1-4 (the GDP level ends m * pb_shift % lower, so m is a level
+    multiplier), in the debt equation only; shocks=False zeroes the innovations
+    (the draws are still taken, so the random stream stays aligned).
+    """
     rng_sim = np.random.default_rng(seed)
     # Calibrated macro dynamics: real growth g=2.2%, real rate r=1.8%, primary deficit pb=-1.5%
     mu = np.array([2.2, 1.8, -1.5 + pb_shift])
@@ -151,15 +173,17 @@ def simulate_stochastic_dsa(d0=0.65, horizon_quarters=20, n_sims=1000, seed=42, 
     ])
     paths = np.zeros((n_sims, horizon_quarters + 1))
     paths[:, 0] = d0
-    for m in range(n_sims):
+    for s in range(n_sims):
         st = mu.copy()
         for t in range(1, horizon_quarters + 1):
-            shk = rng_sim.multivariate_normal(np.zeros(3), cov)
+            shk = rng_sim.multivariate_normal(np.zeros(3), cov) * (1.0 if shocks else 0.0)
             st = mu + A @ (st - mu) + shk
             g_t, r_t, pb_t = st
+            if t <= 4:
+                g_t = g_t - m * pb_shift             # one-year growth hit (0 by default)
             # Quarterly debt snowball: d_t = d_{t-1} * (1 + (r_t - g_t)/400) - pb_t/400
-            d_prev = paths[m, t - 1]
-            paths[m, t] = d_prev * (1.0 + (r_t - g_t) / 400.0) - (pb_t / 400.0)
+            d_prev = paths[s, t - 1]
+            paths[s, t] = d_prev * (1.0 + (r_t - g_t) / 400.0) - (pb_t / 400.0)
     return paths
 
 dsa_base = simulate_stochastic_dsa(d0=0.65, horizon_quarters=20, n_sims=1000, seed=42)
@@ -170,6 +194,8 @@ prob_non_stab = float(np.mean(dsa_base[:, -1] > 0.65))
 print(f"DSA Simulation Dimensions: {dsa_base.shape}")
 print(f"Baseline Breach Probability (>80% GDP): {prob_breach:.1%}")
 print(f"Probability of Non-Stabilization: {prob_non_stab:.1%}")
+print(f"Terminal median debt (quarter 20): baseline {np.median(dsa_base[:, -1]):.1%} | "
+      f"deficit stress (pb_shift = -1) {np.median(dsa_stress[:, -1]):.1%}")
 
 assert dsa_base.shape == (1000, 21), f"Expected (1000, 21), got {dsa_base.shape}"
 assert 0.0 <= prob_breach <= 1.0, "Breach probability must lie in [0, 1]"
@@ -181,15 +207,21 @@ c = _nbstyle.palette(4)
 # Panel 1: Multiplier Dynamics across Horizons
 ax1 = axes[0, 0]
 ax1.plot(hgrid, m_bp, color=c[0], lw=1.8, label=f"Blanchard-Perotti SVAR [Peak={m_bp.min():.2f}]")
-ax1.plot(hgrid, m_iv, color=c[1], lw=1.8, ls="--", label=f"Mertens-Ravn LP-IV [Peak={m_iv.min():.2f}]")
+ax1.plot(hgrid, m_iv, color=c[1], lw=1.8, ls="--", label=f"Narrative LP-IV [impact F={f_stat_iv:.1f}]")
 ax1.plot(hgrid, m_rr, color=c[2], lw=1.8, ls="-.", label=f"Romer-Romer LP [Peak={m_rr.min():.2f}]")
 ax1.axhline(0, color=_nbstyle.SPINE, lw=0.8, ls=":")
+# From h=14 the 2003Q3 quarter leaves the LP-IV sample and the first stage collapses;
+# bound the axis so the BP and RR paths stay readable.
+lo1 = 1.25 * min(m_bp.min(), m_rr.min(), m_iv[:14].min())
+ax1.set_ylim(lo1, 1.0)
+ax1.text(0.98, 0.97, f"LP-IV off scale for h >= 14 (F = {res_iv['mop_f'].iloc[14]:.3f})",
+         transform=ax1.transAxes, ha="right", va="top", fontsize=7.5, color=_nbstyle.TEXTO)
 ax1.set_title("Tax Multipliers across Identification Paradigms", fontsize=10)
-ax1.set_xlabel("Quarters after 1% Tax Increase")
+ax1.set_xlabel("Quarters after a Tax Increase of 1% of GDP")
 ax1.set_ylabel("Output Response (%)")
 ax1.legend(loc="lower left", fontsize=7.5, frameon=True)
 
-# Panel 2: Cumulative Fiscal Multipliers Bar Chart
+# Panel 2: Average GDP Level Responses (not cumulative fiscal multipliers)
 ax2 = axes[0, 1]
 horiz_labels = ["1-Year (h=4)", "2-Year (h=8)", "4-Year (h=16)"]
 idx_h = [4, 8, 16]
@@ -204,8 +236,8 @@ ax2.bar(x_pos, cum_iv, width=width, color=c[1], alpha=0.85, label="MR LP-IV")
 ax2.bar(x_pos + width, cum_rr, width=width, color=c[2], alpha=0.85, label="RR LP")
 ax2.set_xticks(x_pos)
 ax2.set_xticklabels(horiz_labels)
-ax2.set_title("Cumulative Fiscal Multipliers across Horizons", fontsize=10)
-ax2.set_ylabel("Cumulative Level Multiplier")
+ax2.set_title("Average GDP Level Responses across Horizons", fontsize=10)
+ax2.set_ylabel("Average Output Response (%)")
 ax2.legend(loc="lower left", fontsize=7.5, frameon=True)
 
 # Panel 3: Stochastic Sovereign DSA Fan Chart
@@ -215,7 +247,7 @@ t_axis = np.arange(21)
 ax3.fill_between(t_axis, q10, q90, color=c[0], alpha=0.18, label="10%-90% DSA Band")
 ax3.fill_between(t_axis, q25, q75, color=c[0], alpha=0.35, label="25%-75% DSA Band")
 ax3.plot(t_axis, q50, color=c[0], lw=1.8, label="Median Trajectory")
-ax3.axhline(80.0, color=c[3], lw=1.2, ls="--", label="Prudent Ceiling (80% GDP)")
+ax3.axhline(80.0, color=c[3], lw=1.2, ls="--", label="Illustrative Threshold (80% GDP)")
 ax3.set_title("Stochastic Sovereign Debt Projection (5-Year Horizon)", fontsize=10)
 ax3.set_xlabel("Quarters Ahead")
 ax3.set_ylabel("Debt-to-GDP Ratio (%)")
@@ -234,51 +266,62 @@ ax4.set_ylabel("Probability Density")
 ax4.legend(loc="upper right", fontsize=7.5, frameon=True)
 
 # %% [markdown]
-# **Read the output.** The empirical multiplier paths and stochastic debt projections reveal several critical structural lessons:
-# 1. **The Multiplier Menu:** Across the three identification schemes, a 1%-of-GDP tax increase causes a persistent contraction in economic activity, but the magnitude varies markedly. The Blanchard-Perotti SVAR starts small on impact ($m_0 \approx -0.18$) and reaches a 2-year trough of $-1.21$ (close to the classic dollar-for-dollar benchmark). The Romer-Romer narrative regression produces a much steeper contraction, bottoming out at $-2.76$ after two years. The Mertens-Ravn narrative LP-IV bridges the gap at $-1.82$, demonstrating that instrumenting cyclically adjusted receipts with historical narrative dates purges attenuation bias without exaggerating legislative response effects.
-# 2. **Cumulative Multipliers:** Looking at cumulative output losses, the 4-year cumulative multiplier averages $-1.1$ in BP, $-1.8$ in MR LP-IV, and $-2.5$ in RR LP. This hierarchy shows that short-run impact estimates substantially understate the full multi-year macroeconomic cost of fiscal austerity.
-# 3. **Debt Solvency Risks:** In the stochastic DSA fan chart, the debt-to-GDP ratio starts at $65\%$ and trends upward under the baseline primary deficit to a median of $71.1\%$. The probability of breaching the prudent $80\%$ threshold within 5 years is $19.6\%$, while the probability of non-stabilization is $72.3\%$. Under the macro stress scenario (an additional 1% GDP primary deficit), the terminal distribution shifts rightward with median debt climbing to over $76\%$, elevating the ceiling breach risk significantly.
+# **Read the output.** At the two-year horizon the three point estimates are −1.21 (BP SVAR), −2.86 (RR lag-augmented LP) and −5.98 (LP-IV), each per tax increase of 1% of GDP. The first panel compares conditional point estimates, not a verified ranking of causal multipliers. The observed narrative instrument is weak in this specification (impact effective $F = 1.35$, against the displayed 23.11 critical value), and the Anderson-Rubin set is unbounded at every horizon: two rays through $h=11$, the whole real line from $h=12$. The influence check shows why. The first stage rests on one quarter, 2003Q3 (−2.86% of GDP in the unanticipated series); set it to zero and the impact $F$ falls to 0.002. From $h=14$ that quarter leaves the estimation sample, because its outcome would fall after 2006Q4, which is why the $F$ column collapses there. Read the LP-IV path as uninformative, not as evidence of a large multiplier. The second panel averages GDP level responses, not cumulative fiscal multipliers.
+#
+# The last two panels show the independent calibrated debt experiment. In the baseline, 19.6% of the 1,000 paths cross 80% of GDP at some point within five years and 72.3% end above the initial 65%; the terminal median is 71.1%, against 76.1% under the one-point deficit stress. Baseline and deficit-stress paths use the same random draws, making their difference attributable to the one-percentage-point primary-balance shift within this model. Read these probabilities as simulation outputs, not empirical estimates of a country's default risk.
 
 # %% [markdown]
-# ## Your turn — calibrate fiscal consolidation rules and initial sovereign leverage
+# ## Your turn — when is fiscal consolidation self-defeating?
 #
-# Sovereign debt managers design fiscal consolidation plans to guarantee debt sustainability with high probability.
-# Below, customize the initial sovereign debt-to-GDP ratio (`d0_custom`) and the structural primary balance consolidation effort (`pb_consolidation_custom`). The runnable cell recalculates the full Monte Carlo fan chart, terminal breach probability, and stabilization likelihood.
+# The calibrated DSA holds growth fixed, so a higher primary balance always lowers debt. Add the missing growth channel: `simulate_stochastic_dsa(..., m=...)` lowers annual growth by $m \times$ `pb_shift` points in quarters 1-4, so the GDP level ends $m \times$ `pb_shift` percent lower and $m$ is a level multiplier. The hit enters only the debt equation, not the VAR state, so there are no automatic stabilizers. The cell compares a 1 pp consolidation with no consolidation, from the same initial debt and with the same draws.
+#
+# **Predict first.** Relative to no consolidation, the year-1 change in the debt ratio is roughly $(m\,d_0 - 1)$ percentage points: the primary surplus cuts the numerator by 1 pp of GDP, while the smaller GDP raises the ratio by about $m\,d_0$. Consolidation is self-defeating in year 1 when $m > 1/d_0$.
 
 # %%
-# ← change this: initial debt-to-GDP ratio (e.g. 0.60, 0.65, 0.85, 1.00)
+from scipy.optimize import brentq
+
+# ← change this: initial debt-to-GDP ratio d0 (advertised range 0.5 to 1.2)
 d0_custom = 0.65
+# ← change this: level multiplier m, % of GDP lost per 1 pp of GDP of consolidation (advertised range 0 to 2.5)
+m_custom = 1.0
 
-# ← change this: primary balance fiscal consolidation (% of GDP, e.g. +0.01 for 1% primary surplus improvement)
-pb_consolidation_custom = 0.01
+def dd(d0, m, q=4):
+    """Debt-ratio change at quarter q (pp of GDP) from a 1 pp consolidation with growth hit m, no shocks."""
+    cons = simulate_stochastic_dsa(d0=d0, n_sims=1, pb_shift=1.0, m=m, shocks=False)
+    none = simulate_stochastic_dsa(d0=d0, n_sims=1, pb_shift=0.0, shocks=False)
+    return 100 * (cons[0, q] - none[0, q])
 
-# Re-simulate stochastic sovereign debt trajectories under custom consolidation
-dsa_custom = simulate_stochastic_dsa(
-    d0=d0_custom,
-    horizon_quarters=20,
-    n_sims=1000,
-    seed=42,
-    pb_shift=pb_consolidation_custom,
-)
+pred = m_custom * d0_custom - 1.0                        # first-order prediction, pp of GDP
+m_star = brentq(lambda mm: dd(d0_custom, mm), 0.1, 5.0)  # break-even multiplier
+print(f"d0 = {d0_custom:.2f}, m = {m_custom:.2f}: debt change after 1 year {dd(d0_custom, m_custom):+.3f} pp "
+      f"(prediction m*d0 - 1 = {pred:+.3f}), after 2 years {dd(d0_custom, m_custom, 8):+.3f}, "
+      f"after 5 years {dd(d0_custom, m_custom, 20):+.3f}")
+print(f"break-even multiplier m* = {m_star:.4f}  vs  1/d0 = {1 / d0_custom:.4f}")
 
-prob_breach_custom = float(np.mean(np.max(dsa_custom, axis=1) > 0.80))
-prob_non_stab_custom = float(np.mean(dsa_custom[:, -1] > d0_custom))
-median_term_custom = float(np.median(dsa_custom[:, -1]))
+# The stochastic version: the same 1,000 draws with and without the consolidation.
+dsa_cons = simulate_stochastic_dsa(d0=d0_custom, pb_shift=1.0, m=m_custom)
+dsa_none = simulate_stochastic_dsa(d0=d0_custom, pb_shift=0.0)
+print(f"matched paths with higher debt after consolidating: "
+      f"quarter 4 {np.mean(dsa_cons[:, 4] > dsa_none[:, 4]):.1%} | "
+      f"quarter 20 {np.mean(dsa_cons[:, 20] > dsa_none[:, 20]):.1%}")
 
-print(f"Custom Consolidation Policy (d0 = {d0_custom:.0%}, pb_shift = {pb_consolidation_custom:+.1%}):")
-print(f"  Terminal Median Debt-to-GDP : {median_term_custom:.1%}")
-print(f"  Probability of Breaching 80%: {prob_breach_custom:.1%}")
-print(f"  Probability of Debt Growth  : {prob_non_stab_custom:.1%}")
+# Plug in the estimated GDP responses at h=4 to a 1%-of-GDP tax increase as m.
+for name, est in [("BP SVAR", m_bp[4]), ("RR LP", m_rr[4]), ("LP-IV", m_iv[4])]:
+    print(f"  {name:8s} m_hat = {-est:+.3f} -> year-1 debt change {dd(d0_custom, -est):+.3f} pp")
 
-# Downstream assertions validating bounded probabilities and consolidation effectiveness
-assert 0.0 <= prob_breach_custom <= 1.0, "Breach probability must lie within [0, 1]"
-assert 0.0 <= prob_non_stab_custom <= 1.0, "Non-stabilization probability must lie within [0, 1]"
-assert prob_breach_custom <= prob_breach + 1e-6, "Fiscal consolidation should not increase breach probability"
+assert abs(dd(d0_custom, m_custom) - pred) < 0.03          # the first-order prediction holds
+assert abs(m_star - 1 / d0_custom) < 0.1                    # break-even near m = 1/d0
+if abs(m_custom - 1 / d0_custom) > 0.1:                     # off the knife edge the sign is predictable
+    assert (dd(d0_custom, m_custom) > 0) == (m_custom > 1 / d0_custom)
+assert dd(d0_custom, m_custom, q=20) < 0                    # a one-year growth hit is not permanent
+for est in (m_bp[4], m_rr[4], m_iv[4]):
+    if abs(-est - 1 / d0_custom) > 0.1:
+        assert (dd(d0_custom, -est) > 0) == (-est > 1 / d0_custom)
 
 # %% [markdown]
 # **Prompts.**
-# 1. *Basic:* Set `d0_custom = 0.85` with zero consolidation (`pb_consolidation_custom = 0.0`). Observe how the breach probability surges to over 90%, demonstrating that higher initial leverage dramatically magnifies sovereign vulnerability to interest rate and growth shocks.
-# 2. *Intermediate:* Test the fiscal dividend of consolidation: set `pb_consolidation_custom = 0.02` (a 2% GDP primary surplus adjustment) and verify how the terminal median debt ratio drops below the starting $65\%$ mark, achieving robust debt stabilization.
-# 3. *Stretch:* Combine the estimated growth multiplier ($m_{\text{MR}} \approx -1.8$) with the DSA simulator: calculate the short-run contractionary impact of a 1.5% GDP tax consolidation on $g_t$, and evaluate whether the initial denominator effect temporarily pushes the debt-to-GDP ratio upward before consolidation benefits take hold.
+# 1. *Basic*: at `d0_custom = 0.65`, predict whether `m_custom = 1.4` and `m_custom = 1.7` raise the year-1 debt ratio, then run both. Repeat at `d0_custom = 1.0` with `m_custom = 0.8` and `1.2`. Compare the printed break-even `m*` with $1/d_0$: why does higher initial debt make consolidation self-defeating at a smaller multiplier?
+# 2. *Intermediate*: compare the printed two-year and five-year changes with the year-1 change. Is self-defeat permanent when the growth hit lasts one year? What kind of growth hit would make it permanent?
+# 3. *Stretch*: the plug-in lines treat $-m(4)$ as the level multiplier. Check whether the RR 90% interval at $h=4$ (`lp_rr.iloc[4][["lo", "hi"]]`) or the LP-IV Anderson-Rubin set (`res_iv.iloc[4][["ar_lo", "ar_hi", "ar_set_type"]]`, times `SCALE`, sign flipped) can rule out $m = 1/d_0$. Then print `irfs_bp[:5, 0, 0] * c_bp / SCALE`, the tax change behind `m_bp[4]` in % of GDP. Given that path, does $-m(4)$ under- or overstate the output cost of a sustained 1 pp consolidation?
 #
-# **How comprehensive is this?** This methodology connects directly to `puremacro.climate.dice` for climate damage feedbacks onto sovereign risk premiums (Notebook 36), `puremacro.var.identify.proxy_svar` for high-frequency monetary policy proxy instruments, and `puremacro.did.honest_did` for sensitivity analysis of local projection policy treatments against parallel trend violations.
+# **How comprehensive is this?** Notebook 14 develops fiscal identification on these frozen datasets; Notebook 28 explains weak-instrument-robust inference. `puremacro.lp.iv.lp_iv` provides effective $F$ diagnostics and Anderson-Rubin sets. The DSA function here remains a transparent calibrated illustration.

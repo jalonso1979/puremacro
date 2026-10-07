@@ -12,11 +12,16 @@ for puremacro.trade, satisfying Requirement R3 and the Priority User Directive:
        Simultaneous Nash tariff equilibrium across sovereign powers (USA, CHN, EUR,
        CAN, MEX) using damped Gauss-Seidel best-response iteration and gradient optimization.
     4. Strategic Welfare Payoff Matrices (:func:`compute_welfare_payoff_matrix`):
-       Normal-form Prisoner's Dilemma trade war games evaluating mutual cooperation,
-       unilateral defection, and retaliatory trade wars.
-    5. Geopolitical 2024–2026 Real-World Policy Benchmarks (:func:`benchmark_real_world_tariffs`):
-       Empirical benchmarking comparing theoretical Nash equilibria against universal
-       10% tariffs, 60% China tariffs, 25% USMCA border duties, and foreign retaliations.
+       2x2 fixed-action payoff matrices (zero tariff or one fixed tariff per
+       player) with a Prisoner's Dilemma check. Whether a calibrated game is a
+       Prisoner's Dilemma is computed from the payoffs, never assumed; a
+       calibration can give mutual tariffs that raise one player's welfare.
+    5. Stylised 2024–2026 Policy Scenarios (:func:`benchmark_real_world_tariffs`):
+       model simulations of stylised scenarios (universal 10% tariffs, 60% China
+       tariffs, 25% USMCA border duties, retaliation) next to the model's own
+       optimal and Nash tariffs. Nothing is estimated from data; the numbers are
+       only as good as the calibration (see ``docs/ADVISORY.md`` on the bundled
+       77x11 table).
 
 Conforms strictly to the puremacro Pyodide runtime contract: pure NumPy/SciPy/Pandas,
 zero non-stdlib dependencies in the runtime path, fully vectorized.
@@ -537,8 +542,22 @@ def compute_unilateral_optimal_tariff(
 
     Hicksian keyword options: ``consumption_categories=(0,)``,
     ``base_equilibrium=None``, ``sigma=0``, ``ge_tol=1e-8``, ``ge_method="auto"``,
-    ``ge_max_iter=100`` and ``ge_max_steps=100``. Failed GE/refinement raises;
+    ``ge_max_iter=100``, ``ge_max_steps=100`` and
+    ``foreign_saving_units="numeraire"``. Failed GE/refinement raises;
     no penalty payoff replaces a failed candidate. See ``docs/trade_policy.md``.
+
+    ``foreign_saving_units`` selects the foreign-saving closure of every
+    equilibrium in the search (see :func:`solve_trade_equilibrium`). With
+    nonzero baseline foreign saving, the default ``"numeraire"`` makes EV
+    depend on which country is listed first; ``"world_income"`` gives results
+    that do not depend on the country order. A supplied ``base_equilibrium``
+    must have been solved with the same closure.
+
+    ``metadata["boundary"]`` is ``"lower"``/``"upper"`` when the optimum lies
+    within ``tol`` of 0/``tariff_max`` (the nearer bound when
+    ``tariff_max <= 2 * tol``), else ``"interior"``, and
+    ``metadata["boundary_bands_overlap"]`` is True when
+    ``tariff_max <= 2 * tol``. Both are recorded for every ``metric``.
 
     Parameters
     ----------
@@ -675,6 +694,7 @@ def compute_unilateral_optimal_tariff(
     welfare_gain_pct = ((best_welfare - base_welfare) / abs(base_welfare)) * 100.0 if base_welfare != 0.0 else 0.0
     c_idx_first = resolve_country_indices(calib, country_idx)[0]
     tot_opt = float(best_eq.terms_of_trade[c_idx_first]) if best_eq.terms_of_trade is not None else tot_init
+    from ._hicksian_policy import _boundary_label
 
     return OptimalTariffResult(
         country_code=country_code,
@@ -698,6 +718,10 @@ def compute_unilateral_optimal_tariff(
             "tariff_revenue_mode": "schedule",
             "ge_tol": ge_tol,
             "search_scope": "grid plus refinement around the sampled maximum",
+            # The same labels as the Hicksian search, which the docstring
+            # promises on every metric; this path used to record neither.
+            "boundary": _boundary_label(best_rate, tariff_max, tol),
+            "boundary_bands_overlap": bool(tariff_max <= 2 * tol),
         },
     )
 
@@ -755,7 +779,20 @@ def solve_multilateral_nash_tariffs(
     relaxation : float, default 0.5
         Under-relaxation damping parameter :math:`\\theta \\in (0, 1]` preventing policy oscillations.
     tol : float, default 1e-4
-        Undamped best-response infinity-norm convergence threshold: :math:`\\max_i |\\tau_i^{(k)} - \\tau_i^{(k-1)}| < \\text{tol}`.
+        Absolute tolerance on tariff rates (1e-4 = 0.01 percentage points).
+        ``converged`` requires the final simultaneous best-response gap
+        :math:`\\max_i |BR_i(\\boldsymbol{\\tau}_{-i}) - \\tau_i| \\le \\text{tol}`,
+        with best responses recomputed at the returned profile (reported as
+        ``outer_error``), and relative regret ``<= regret_tol`` (default
+        ``tol``). The iteration stops early once a sweep's undamped update gap
+        :math:`\\max_i |BR_i - \\tau_i^{(k-1)}|` is ``<= tol`` (on the Hicksian
+        path only if the final check then passes); damped step sizes never
+        decide convergence. ``tol`` is also the distance within which a best
+        response counts as ``"lower"``/``"upper"`` in
+        ``metadata["best_response_boundaries"]``; on every path
+        ``metadata["boundary_bands_overlap"]`` is True when
+        ``tariff_max <= 2 * tol``, so the two bands overlap and the nearer
+        bound decides the label.
     max_iter : int, default 30
         Maximum outer policy iterations.
     tariff_max : float, default 1.5
@@ -983,12 +1020,13 @@ def solve_multilateral_nash_tariffs(
     # Verify deviations against the final, simultaneous profile. This is a
     # numerical search over a declared grid with local refinement, not a proof
     # of global optimality for an arbitrary welfare function.
+    from ._hicksian_policy import _boundary_label
     regrets, responses, boundary = {}, {}, {}
     for p in players:
         rate, value = best_response(tau_curr, p)
         responses[p] = rate
         regrets[p] = max(0.0, value - player_welfares[p]) if np.isfinite(value) and np.isfinite(player_welfares[p]) else float("inf")
-        boundary[p] = "lower" if rate <= tol else ("upper" if rate >= tariff_max - tol else "interior")
+        boundary[p] = _boundary_label(rate, tariff_max, tol)
     max_regret = max(regrets.values())
     relative_regret = max(regrets[p] / max(abs(player_welfares[p]), 1.0) if np.isfinite(player_welfares[p]) else float("inf") for p in players)
     outer_error = max(abs(responses[p] - tau_curr[p]) for p in players)
@@ -1018,7 +1056,11 @@ def solve_multilateral_nash_tariffs(
             "duration_seconds": time.perf_counter() - t_start,
             "max_regret": max_regret, "relative_max_regret": relative_regret,
             "player_regrets": regrets, "best_responses": responses,
-            "best_response_boundaries": boundary, "inner_solver_failures": inner_failures,
+            "best_response_boundaries": boundary,
+            # Same key as the Hicksian searches: True when the lower and upper
+            # tolerance bands of the boundary labels overlap.
+            "boundary_bands_overlap": bool(tariff_max <= 2 * tol),
+            "inner_solver_failures": inner_failures,
             "best_response_grid_size": grid_size, "regret_tol": regret_tol, "ge_tol": ge_tol,
             "verification": "full-interval grid with bounded local refinement; no global-optimality proof",
             "relaxation": relaxation,
@@ -1029,7 +1071,7 @@ def solve_multilateral_nash_tariffs(
 
 
 # ==============================================================================
-# 4. Strategic Welfare Payoff Matrix: The Prisoner's Dilemma
+# 4. Strategic Welfare Payoff Matrix (2x2 fixed actions, Prisoner's Dilemma check)
 # ==============================================================================
 
 def compute_welfare_payoff_matrix(
@@ -1045,20 +1087,30 @@ def compute_welfare_payoff_matrix(
     policy_mode: str = "universal",
     **kwargs: Any,
 ) -> WelfarePayoffMatrixResult:
-    """Compute normal-form welfare payoff matrix evaluating strategic trade war games.
+    """Compute the 2x2 welfare payoff matrix of a two-player tariff game with fixed actions.
 
-    Evaluates the classical :math:`2 \\times 2` normal-form matrix across
-    mutual cooperation (Free Trade), unilateral defection, and retaliatory trade wars:
+    Each player either sets a zero tariff ("cooperate", C) or one positive
+    tariff ("defect", D). Cell ``(i, j)`` holds the welfare changes of A and B,
+    in percent, relative to mutual zero tariffs:
     .. math::
         \\begin{array}{c|cc}
-        & \\text{Player B Cooperates } (\\tau_B = 0) & \\text{Player B Defects } (\\tau_B = \\tau_B^*) \\\\
+        & \\tau_B = 0 & \\tau_B = \\tau_B^{D} \\\\
         \\hline
-        \\text{Player A Cooperates } (\\tau_A = 0) & (0.00\\%, 0.00\\%) & (-\\mathcal{L}_A, +\\mathcal{G}_B) \\\\
-        \\text{Player A Defects } (\\tau_A = \\tau_A^*) & (+\\mathcal{G}_A, -\\mathcal{L}_B) & (-\\Delta W_A^{\\text{Nash}}, -\\Delta W_B^{\\text{Nash}})
+        \\tau_A = 0 & (0, 0) & (W_A(0, \\tau_B^{D}), W_B(0, \\tau_B^{D})) \\\\
+        \\tau_A = \\tau_A^{D} & (W_A(\\tau_A^{D}, 0), W_B(\\tau_A^{D}, 0))
+            & (W_A(\\tau_A^{DD}, \\tau_B^{DD}), W_B(\\tau_A^{DD}, \\tau_B^{DD}))
         \\end{array}
 
-    The returned payoffs determine whether this finite game is a Prisoner's
-    Dilemma. Dominant defection and Pareto inferiority are not assumed.
+    No cell has an assumed sign. Whether the game is a Prisoner's Dilemma
+    (defection dominant for both, mutual defection worse for both than mutual
+    cooperation) is computed from the returned payoffs
+    (``WelfarePayoffMatrixResult.is_prisoners_dilemma``); a calibration can
+    give mutual tariffs that raise a player's welfare. For the legacy metrics
+    the off-diagonal cells use ``tau^D = optimal_*`` (unilateral optima
+    computed when None) and the mutual-tariff cell uses ``tau^DD = nash_*``
+    (computed with :func:`solve_multilateral_nash_tariffs`, which must
+    converge, when either is None). With ``metric="hicksian_ev"`` each player
+    uses one action in every cell, ``tau^DD = tau^D``.
 
     With ``metric="hicksian_ev"``, all cells share one fixed zero-tariff
     baseline and two fixed actions per player. Payoffs are EV as a percentage
@@ -1216,7 +1268,7 @@ def compute_welfare_payoff_matrix(
 
 
 # ==============================================================================
-# 5. Empirical 2024–2026 Geopolitical Benchmark
+# 5. Stylised 2024–2026 Policy Scenarios (model simulations, not estimates)
 # ==============================================================================
 
 def benchmark_real_world_tariffs(
@@ -1228,9 +1280,14 @@ def benchmark_real_world_tariffs(
     policy_mode: str = "universal",
     **kwargs: Any,
 ) -> pd.DataFrame:
-    """Benchmark theoretical Nash tariffs against 2024–2026 real-world tariff unfoldings.
+    """Simulate stylised 2024–2026 tariff scenarios next to the model's own optimal and Nash tariffs.
 
-    Simulates canonical policy scenarios with 100% authentic CGE evaluations:
+    Every row is a general-equilibrium simulation of the calibrated model;
+    nothing is estimated from data, and the tariff rates of the stylised
+    scenarios are round numbers, not a measured tariff schedule. Magnitudes
+    are only as meaningful as the calibration: outputs of the bundled 77x11
+    table are regression fixtures, not OECD-based estimates (see the
+    2026-09-22 entry of ``docs/ADVISORY.md``). Scenarios:
     1. Benchmark Free Trade (0% baseline)
     2. US Unilateral Optimal Tariff
     3. China Unilateral Optimal Tariff
@@ -1258,7 +1315,7 @@ def benchmark_real_world_tariffs(
     Returns
     -------
     pd.DataFrame
-        Publication-grade comparative summary table matching LaTeX table format.
+        Comparative summary table of the simulated scenarios (LaTeX-ready layout).
     """
     if str(metric).strip().lower() == "hicksian_ev":
         raise NotImplementedError(

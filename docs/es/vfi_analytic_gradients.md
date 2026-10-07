@@ -1,10 +1,12 @@
 > 🇬🇧 [English](../vfi_analytic_gradients.md) · 🇪🇸 Español
 
-# Gradientes analíticos exactos vía el Teorema de la Función Implícita
+# Gradientes paramétricos vía el Teorema de la Función Implícita
 
-`puremacro.vfi.analytic_gradients` proporciona jacobianos a precisión de máquina para soluciones de programación dinámica continua y agregados macroeconómicos de equilibrio general respecto a los parámetros estructurales $\theta = (\beta, \alpha, \delta, \sigma, \dots)$ mediante el **Teorema de la Función Implícita (TFI)**. Opera de manera uniforme sobre colocación polinómica ortogonal de Chebyshev, proyecciones de Galerkin del Método de Elementos Finitos (MEF) y sistemas de splines cúbicos o de Schumaker.
+`puremacro.vfi.analytic_gradients` proporciona jacobianos de soluciones de proyección continua con agente representativo, y de los agregados de estado estacionario determinista que implican, respecto a los parámetros estructurales $\theta = (\beta, \alpha, \delta, \sigma, \dots)$ mediante el **Teorema de la Función Implícita (TFI)**. Opera de manera uniforme sobre colocación polinómica ortogonal de Chebyshev, proyecciones de Galerkin del Método de Elementos Finitos (MEF) y sistemas de splines cúbicos o de Schumaker.
 
-En la estimación econométrica estructural (GMM, SMM) y el muestreo bayesiano posterior (HMC, NUTS), el cálculo de gradientes en modelos económicos dinámicos ha dependido históricamente de diferencias finitas numéricas. Sin embargo, las diferencias finitas sufren de un severo dilema de tamaño de paso ($\epsilon \sim 10^{-5}$ para equilibrar el error de truncamiento y el de redondeo), exhiben ruido numérico espurio cerca de restricciones financieras no lineales y requieren resolver de nuevo el modelo no lineal completo $2 \times \dim(\theta)$ veces. El motor de gradientes analíticos de `puremacro` elimina estas restricciones calculando derivadas exactas mediante una **única factorización LU** del jacobiano de residuos precalculado, alcanzando una **aceleración superior a 70x** sin necesidad de calibrar el tamaño del paso.
+**Alcance (4.3.0 y posteriores).** El paso TFI es una única resolución lineal con el jacobiano de residuos convergido (sin re-resolver el modelo); los jacobianos de residuos $\mathbf{J}_c$ y $\mathbf{J}_\theta$ que consume se construyen por diferencias finitas centrales con pasos `step_c` y `h` (una `residual_fn` propia sustituye al evaluador de residuos incorporado y se diferencia del mismo modo). Solo se admiten soluciones con agente representativo: `compute_ift_gradients` y `equilibrium_parameter_jacobian` lanzan `NotImplementedError` para cualquier solución que tenga un atributo `distribution` (por ejemplo `AiyagariContinuousEquilibrium`). La sensibilidad adjunta de la distribución estacionaria descrita en la sección 1.3 no está implementada.
+
+En la estimación econométrica estructural (GMM, SMM) y el muestreo bayesiano posterior (HMC, NUTS), el cálculo de gradientes en modelos económicos dinámicos ha dependido históricamente de diferencias finitas numéricas. Sin embargo, las diferencias finitas sufren de un severo dilema de tamaño de paso ($\epsilon \sim 10^{-5}$ para equilibrar el error de truncamiento y el de redondeo), exhiben ruido numérico espurio cerca de restricciones financieras no lineales y requieren resolver de nuevo el modelo no lineal completo $2 \times \dim(\theta)$ veces. El motor de gradientes analíticos de `puremacro` elimina las $2 \times \dim(\theta)$ re-resoluciones calculando las sensibilidades de los coeficientes a partir de una **única factorización LU** del jacobiano de residuos convergido. La batería de pruebas del repositorio exige una aceleración de al menos 5x frente a diferencias finitas centrales en el ejemplo de la sección 4; en bases mayores son habituales cocientes más altos, pero los tiempos citados en la sección 3 son indicativos, no un contrato.
 
 ---
 
@@ -54,13 +56,17 @@ En una economía de agente representativo con proyección continua, el stock de 
 
 $$\nabla_\theta k^* = \left( 1 - \frac{\partial g(k^*)}{\partial k} \right)^{-1} \nabla_\theta g(k^*)$$
 
-Los precios factoriales competitivos de equilibrio $r^* = \alpha z (k^*)^{\alpha - 1} - \delta$ y $w^* = (1 - \alpha) z (k^*)^\alpha$ poseen sensibilidades analíticas exactas:
+Los precios factoriales competitivos de equilibrio $r^* = \alpha z (k^*)^{\alpha - 1} - \delta$ y $w^* = (1 - \alpha) z (k^*)^\alpha$ tienen sensibilidades:
 
 $$\nabla_\theta r^* = \frac{\partial r^*}{\partial k} \nabla_\theta k^* + \left. \nabla_\theta r^* \right|_{\text{direct}}, \quad \nabla_\theta w^* = \frac{\partial w^*}{\partial k} \nabla_\theta k^* + \left. \nabla_\theta w^* \right|_{\text{direct}}$$
 
-En economías con agentes heterogéneos y mercados incompletos (Aiyagari 1994), la oferta agregada de capital es $K^* = \int k \, d\mu^*(k; \theta)$. La sensibilidad adjunta de la distribución estacionaria se propaga a través del operador de lotería:
+Estas sensibilidades de estado estacionario con agente representativo son las que devuelve `grad_aggregates` (claves `K`, `C`, `r`, `w`). Son semianalíticas: el punto fijo del estado estacionario se localiza numéricamente y su derivada se propaga después de forma analítica mediante las fórmulas anteriores.
+
+**No implementado: economías con agentes heterogéneos.** En economías de mercados incompletos (Aiyagari 1994) la oferta agregada de capital es $K^* = \int k \, d\mu^*(k; \theta)$ y su sensibilidad tendría que propagarse a través del adjunto del operador de la distribución estacionaria (lotería),
 
 $$\nabla_\theta K^* = \sum_{i, m} k_i \nabla_\theta \mu^*(k_i, z_m) = \mathbf{k}^\top (\mathbf{I} - \mathbf{T}^*)^{-1} \nabla_\theta \mathbf{T}^* \boldsymbol{\mu}^*$$
+
+junto con la respuesta de los precios de equilibrio general. puremacro 4.3.0 retiró el atajo anterior de distribución fija porque no era una sensibilidad de equilibrio general; desde entonces `compute_ift_gradients`, `equilibrium_parameter_jacobian` y la rutina interna de agregados lanzan `NotImplementedError` para cualquier solución con atributo `distribution`. La fórmula se recoge aquí como objetivo de trabajo futuro, no como una funcionalidad disponible.
 
 ### 1.4 Estimación estructural acelerada (GMM y SMM)
 
@@ -68,11 +74,11 @@ La estimación estructural busca el vector de parámetros $\hat{\theta}$ que min
 
 $$Q(\theta) = \left( m(\theta) - \hat{m} \right)^\top \mathbf{W} \left( m(\theta) - \hat{m} \right)$$
 
-Aplicando la regla de la cadena, el gradiente exacto de la función objetivo de GMM es:
+Aplicando la regla de la cadena, el gradiente de la función objetivo de GMM es:
 
 $$\nabla_\theta Q(\theta) = 2 \left[ \nabla_\theta m(\theta) \right]^\top \mathbf{W} \left( m(\theta) - \hat{m} \right)$$
 
-donde $\nabla_\theta m(\theta) = \nabla_c m(c^*) \nabla_\theta c^* + \partial_\theta m$. Dado que $\nabla_\theta c^*$ se calcula a precisión de máquina mediante el TFI, los optimizadores cuasi-Newton basados en gradiente (L-BFGS-B, SLSQP) convergen de forma robusta en una fracción del tiempo requerido bajo diferencias finitas.
+donde $\nabla_\theta m(\theta) = \nabla_c m(c^*) \nabla_\theta c^* + \partial_\theta m$. Dado que $\nabla_\theta c^*$ procede de una única resolución lineal del sistema convergido y no de $2p$ re-resoluciones ruidosas, los optimizadores cuasi-Newton basados en gradiente (L-BFGS-B, SLSQP) convergen de forma robusta en una fracción del tiempo requerido bajo diferencias finitas.
 
 ---
 
@@ -82,7 +88,7 @@ donde $\nabla_\theta m(\theta) = \nabla_c m(c^*) \nabla_\theta c^* + \partial_\t
 |---|---|---|---|
 | **Base matemática** | $\mathbf{P} \mathbf{L} \mathbf{U} = \mathbf{J}_c$ | $(\mathbf{J}_c^\top \mathbf{J}_c + \lambda \mathbf{I})^{-1} \mathbf{J}_c^\top$ | $\mathbf{V} \mathbf{\Sigma}^+ \mathbf{U}^\top$ con umbral $\sigma_i > \epsilon \sigma_1$ |
 | **Umbral de condición** | $\text{cond}(\mathbf{J}_c) \le 10^{12}$ | $10^{12} < \text{cond}(\mathbf{J}_c) \le 10^{15}$ | Sistemas singulares o mal condicionados |
-| **Precisión** | Precisión de máquina ($10^{-14}$) | Gradiente amortiguado regularizado | Gradiente proyectado en subespacio filtrado |
+| **Precisión** | Resolución LU estable hacia atrás (error del orden de $\text{cond}(\mathbf{J}_c) \cdot \epsilon_{\text{máq}}$) sumada al error de las diferencias centrales de $\mathbf{J}_c$ y $\mathbf{J}_\theta$ | Gradiente amortiguado regularizado | Gradiente proyectado en subespacio filtrado |
 | **Costo** | $\frac{2}{3} N^3$ operaciones | $O(N^3)$ operaciones | $O(N^3)$ (espectro singular completo) |
 | **Selección** | Predeterminado automático (`"auto"`) | Activado en bases mal condicionadas | Polinomios colineales de alto grado |
 
@@ -90,20 +96,20 @@ donde $\nabla_\theta m(\theta) = \nabla_c m(c^*) \nabla_\theta c^* + \partial_\t
 
 ## 3. Comparativa de rendimiento y análisis de precisión
 
-| Dimensión | Gradiente analítico exacto TFI (`puremacro`) | Diferencias finitas centrales |
+| Dimensión | Gradientes TFI (`puremacro`) | Diferencias finitas centrales |
 |---|---|---|
-| **Precisión del gradiente** | Exacto a precisión de máquina ($10^{-14}$) | Error de discretización $O(\epsilon^2) \approx 10^{-5}$ |
-| **Dilema del tamaño de paso** | Ninguno (libre de tamaño de paso) | Requiere calibración sensible ($\epsilon = 10^{-4}$ frente a $10^{-6}$) |
+| **Precisión del gradiente** | Resolución TFI estable hacia atrás dados $\mathbf{J}_c$, $\mathbf{J}_\theta$ (a su vez diferencias centrales con pasos `step_c`, `h`); la prueba incluida comprueba la coincidencia con una re-resolución por diferencias finitas a $10^{-5}$ relativo | Error de discretización $O(\epsilon^2) \approx 10^{-5}$ más el ruido de la tolerancia de re-resolución |
+| **Dilema del tamaño de paso** | Reducido: los pasos `step_c`, `h` diferencian el residuo en los coeficientes convergidos fijos, sin re-resolver dentro de la diferencia | Requiere calibración sensible ($\epsilon = 10^{-4}$ frente a $10^{-6}$) |
 | **Evaluaciones del modelo** | $1$ (estado estacionario convergido) | $2 \times p$ re-resoluciones no lineales completas |
-| **Tiempo de cálculo ($p = 4$)** | $\approx 1.2 \text{ ms}$ | $\approx 85 \text{ ms}$ (**aceleración 70x**) |
-| **Ruido numérico** | Cero ruido (trayectoria analítica suave) | Severo ruido de redondeo cerca de restricciones |
+| **Tiempo de cálculo ($p = 4$)** | una construcción del jacobiano y una resolución LU (indicativo: milisegundos en el ejemplo de la sección 4) | $2p$ re-resoluciones no lineales (la prueba incluida exige que la vía TFI sea al menos 5x más rápida) |
+| **Ruido numérico** | Sin ruido de la tolerancia de re-resolución (el residuo se diferencia con coeficientes fijos); persiste el redondeo de las diferencias del residuo | Severo ruido de redondeo cerca de restricciones |
 | **Estabilidad del optimizador** | Actualizaciones Hessian robustas (BFGS) | Inversiones espurias del gradiente provocan parada prematura |
 
 ---
 
 ## 4. Ejemplos prácticos ejecutables
 
-El siguiente script resuelve un modelo de crecimiento neoclásico mediante colocación de Chebyshev, calcula las sensibilidades exactas de los parámetros mediante el TFI y evalúa las derivadas de los agregados macroeconómicos:
+El siguiente script resuelve un modelo de crecimiento neoclásico mediante colocación de Chebyshev, calcula las sensibilidades de los parámetros mediante el TFI y evalúa las derivadas de los agregados macroeconómicos:
 
 ```python
 import numpy as np
@@ -134,7 +140,7 @@ prob = CollocationProblem(
 )
 sol = prob.solve(backend="numpy")
 
-# 2. Cálculo de jacobianos exactos a precisión de máquina vía TFI
+# 2. Jacobianos TFI (J_c, J_theta por diferencias centrales; una resolución LU)
 ift_res = compute_ift_gradients(sol, prob, params=["alpha", "beta", "delta"])
 assert ift_res.condition_number < 1e6
 assert ift_res.grad_coefficients.shape == (7, 3)
@@ -198,7 +204,7 @@ gmm_objective_and_gradient(
 ```
 
 #### Parámetros:
-- `solution`: Contenedor de solución convergida procedente de `CollocationProblem.solve()`, `FEMProblem.solve()`, `SplineCollocationProblem.solve()`, o `AiyagariContinuousEquilibrium`.
+- `solution`: Contenedor de solución convergida con agente representativo procedente de `CollocationProblem.solve()`, `FEMProblem.solve()` o `SplineCollocationProblem.solve()`. Las soluciones con agentes heterogéneos (cualquier objeto con atributo `distribution`, como `AiyagariContinuousEquilibrium`) lanzan `NotImplementedError`.
 - `problem`: Definición del modelo económico asociado.
 - `params`: Secuencia de nombres de parámetros a diferenciar (p. ej. `['alpha', 'beta', 'delta']`). Si es `None`, inspecciona automáticamente los parámetros del modelo.
 - `h`: Tamaño de paso para la diferenciación paramétrica $\nabla_\theta \mathbf{R}$ (por defecto $10^{-5}$).
@@ -216,7 +222,7 @@ gmm_objective_and_gradient(
 
 ### Atributos
 - `grad_coefficients`: Matriz jacobiana $N \times p$ de coeficientes de la base $\nabla_\theta c^*$.
-- `grad_aggregates`: Diccionario de derivadas de agregados macroeconómicos `{"K": (p,), "C": (p,), "r": (p,), "w": (p,)}`.
+- `grad_aggregates`: Diccionario de derivadas de agregados de estado estacionario con agente representativo `{"K": (p,), "C": (p,), "r": (p,), "w": (p,), "mu": None}` (semianalíticas, sección 1.3). La entrada `"mu"` es siempre `None`: no se calcula ninguna sensibilidad de la distribución estacionaria.
 - `param_names`: Lista ordenada de los nombres de los parámetros diferenciados.
 - `jacobian_resid_c`: Jacobiano respecto a los coeficientes $\mathbf{J}_c = \nabla_c \mathbf{R}$ de forma $(N, N)$.
 - `jacobian_resid_theta`: Jacobiano respecto a los parámetros $\mathbf{J}_\theta = \nabla_\theta \mathbf{R}$ de forma $(N, p)$.

@@ -10,7 +10,8 @@ Verifies Milestone 2: Exact Analytic Gradients via the Implicit Function Theorem
    - Schumaker (1983) shape-preserving quadratic splines (SchumakerSpline).
 4. Continuous policy gradient consistency: \nabla_\theta g(s) = \Phi(s) \nabla_\theta c^*.
 5. Macroeconomic aggregate sensitivities \nabla_\theta K*, \nabla_\theta C*, \nabla_\theta r*, \nabla_\theta w*.
-6. Adjoint general equilibrium stationary distribution sensitivities.
+6. Heterogeneous-agent distribution/GE sensitivities are not implemented and must raise
+   NotImplementedError (no adjoint stationary-distribution derivatives are claimed).
 7. Robust fallbacks: condition number tracking, Tikhonov regularization, and Truncated SVD.
 8. High-level entry points: policy_parameter_jacobian, equilibrium_parameter_jacobian, gmm_objective_and_gradient.
 9. Full puremacro presentation contract (.summary(), .plot(), .to_frame(), .to_markdown(), .to_latex(), .to_typst()).

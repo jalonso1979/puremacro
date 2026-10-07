@@ -1,12 +1,16 @@
-"""Hamilton (1989)-style two-regime MS-VAR for a recession dating exercise.
+"""Two-regime MSIH MS-VAR for a recession dating exercise.
 
-We simulate a 2-variable system that switches between a "high-growth,
-low-volatility" regime and a "recession" regime with negative mean and
-elevated volatility. The MS-VAR fit recovers smoothed regime
-probabilities; with reasonable signal-to-noise the smoother nails the
-true regime path > 95% of the time.
+We simulate a 2-variable VAR(1) that switches between a "high-growth,
+low-volatility" regime and a "recession" regime with a negative intercept
+and elevated volatility; the autoregressive matrix is the same in both.
+``ms_var_fit`` estimates exactly this model: an MSIH(2)-VAR(1) in
+Krolzig's (1997) notation, with switching intercept and covariance and a
+shared AR matrix. (Hamilton 1989 instead switches the mean of an AR(4)
+with one constant variance.) The fit recovers the smoothed regime
+probabilities; with reasonable signal-to-noise the smoother classifies
+the true regime correctly more than 95% of the time.
 
-The output is the standard Hamilton-style picture: the smoothed
+The output is the usual recession-dating picture: the smoothed
 P(recession | data) line tracks the true regime indicator.
 
 Run:
@@ -14,17 +18,21 @@ Run:
 
 Español
 -------
-VAR con cambio de régimen (MS-VAR) de dos regímenes al estilo Hamilton
-(1989) para un ejercicio de datación de recesiones.
+VAR con cambio de régimen (MS-VAR) MSIH de dos regímenes para un
+ejercicio de datación de recesiones.
 
-Se simula un sistema de 2 variables que alterna entre un régimen de
+Se simula un VAR(1) de 2 variables que alterna entre un régimen de
 "alto crecimiento y baja volatilidad" y un régimen de "recesión" con
-media negativa y volatilidad elevada. El ajuste del MS-VAR recupera las
-probabilidades de régimen suavizadas; con una relación señal-ruido
-razonable, el suavizador identifica correctamente la trayectoria de
-régimen verdadera en más del 95% de las observaciones.
+intercepto negativo y volatilidad elevada; la matriz autorregresiva es la
+misma en ambos. ``ms_var_fit`` estima exactamente este modelo: un
+MSIH(2)-VAR(1) en la notación de Krolzig (1997), con intercepto y
+covarianza que cambian de régimen y una matriz AR común. (Hamilton 1989,
+en cambio, hace cambiar la media de un AR(4) con una única varianza
+constante.) El ajuste recupera las probabilidades de régimen suavizadas;
+con una relación señal-ruido razonable, el suavizador clasifica
+correctamente el régimen verdadero en más del 95% de las observaciones.
 
-El resultado es el gráfico estándar al estilo Hamilton: la línea
+El resultado es el gráfico habitual de datación de recesiones: la línea
 P(recesión | datos) suavizada sigue el indicador de régimen verdadero.
 
 Ejecución:
@@ -75,7 +83,8 @@ def run_demo() -> dict:
 def main() -> None:
     out = run_demo()
     fit = out["fit"]
-    print("Hamilton-style MS-VAR with two regimes (mean & variance switching)")
+    print("MSIH MS-VAR with two regimes (switching intercept and variance, "
+          "shared AR)")
     print(f"  T = {len(out['Y'])} obs,  EM iters = {fit.n_iter}, "
           f"converged = {fit.converged}")
     print(f"  Log-likelihood: {fit.loglik:.2f}")

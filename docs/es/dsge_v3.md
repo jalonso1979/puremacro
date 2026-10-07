@@ -285,8 +285,8 @@ $$M^{-1}_{reg} = \frac{N}{N + 5} \sigma^2_{welford} + \frac{5}{N + 5} \sigma^2_{
 ### 2.5 Diagnósticos MCMC integrales y contenedor `NUTSResult`
 
 `NUTSResult` proporciona un diagnóstico bayesiano de estándar internacional:
-- **$\hat{R}$ dividido de Gelman-Rubin (`compute_split_rhat`)**: divide cada cadena a la mitad para diagnosticar no estacionariedad intra-cadena y falta de mezcla inter-cadena ($\hat{R} < 1.05$).
-- **Tamaño muestral efectivo en la masa (`compute_bulk_ess`)**: estimado mediante sumas de autocorrelación con secuencia monótona de Geyer.
+- **$\hat{R}$ dividido de Gelman-Rubin (`compute_split_rhat`, sin normalización por rangos)**: divide cada cadena a la mitad para diagnosticar no estacionariedad intra-cadena y falta de mezcla inter-cadena ($\hat{R} < 1.05$).
+- **Tamaño muestral efectivo en la masa (`compute_bulk_ess`)**: estimado mediante sumas de autocorrelación con la secuencia monótona inicial de Geyer (ESS de cada cadena sumado entre cadenas; sin normalización por rangos, así que no es el ESS en la masa multicadena de Vehtari et al. 2021).
 - **Tamaño muestral efectivo en las colas (`compute_tail_ess`)**: calculado a partir de las funciones indicadoras de los cuantiles al 5% y 95%.
 - **Fracción bayesiana de energía ($E\text{-BFMI}$, Betancourt 2016)**: cuantifica la eficiencia con la que la distribución del momento explora el espacio de energía. Valores $E\text{-BFMI} < 0.3$ señalan un mal acondicionamiento del espacio posterior.
 

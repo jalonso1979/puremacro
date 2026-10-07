@@ -4,7 +4,7 @@
 
 `puremacro` incorpora tres fronteras computacionales de vanguardia para el análisis macroeconómico estructural:
 
-1. **Regímenes de Política Óptima (Discreción vs. Compromiso)**: Resuelve la política discrecional temporalmente consistente (Markov-perfecta) mediante iteración de matrices de Riccati según Dennis (2007), en paralelo con la política de compromiso lineal-cuadrático (LQ) bajo la perspectiva atemporal mediante aumentación de multiplicadores de Lagrange y descomposición QZ de Klein (2000). Formaliza la cuantificación rigurosa del **sesgo de inflación** de Kydland-Prescott / Barro-Gordon y del **sesgo de estabilización**.
+1. **Regímenes de Política Óptima (Discreción vs. Compromiso)**: Resuelve la política discrecional temporalmente consistente (Markov-perfecta) mediante iteración de matrices de Riccati según Dennis (2007), en paralelo con la política de compromiso lineal-cuadrático (LQ) mediante aumentación de multiplicadores de Lagrange y descomposición QZ de Klein (2000) (el plan de Ramsey desde el estado estacionario, cuya ley de movimiento es la regla de perspectiva atemporal; sección 1.3). Formaliza la cuantificación rigurosa del **sesgo de inflación** de Kydland-Prescott / Barro-Gordon y del **sesgo de estabilización**.
 2. **Modelos Híbridos DSGE-VAR (Del Negro & Schorfheide 2004)**: Conecta los microfundamentos de equilibrio general del DSGE con la flexibilidad econométrica de los vectores autorregresivos mediante una distribución a priori conjugada Normal-Wishart Invertida centrada en los momentos teóricos de ecuaciones cruzadas $\Gamma_k(\theta)$. Ofrece evaluación analítica exacta en forma cerrada de la log-densidad marginal de los datos $\ln p(Y \mid \lambda, \theta)$, optimización acotada del hiperparámetro $\hat{\lambda} \in [\lambda_{\min}, \infty)$ e identificación estructural mediante la rotación ortonormal del DSGE $Q^*$.
 3. **Motor de Perturbaciones Anticipadas y de Noticias (Beaudry & Portier 2006; Schmitt-Grohé & Uribe 2012)**: Implementa la aumentación del espacio de estados complementario para anuncios prospectivos $\epsilon_t = \eta_t^0 + \sum_{k=1}^H \eta_{t-k}^k$. Preserva de forma exacta la determinabilidad de punto de silla de Blanchard-Kahn a través de operadores de transición nilpotentes con autovalores idénticamente nulos, calcula trayectorias de impulso-respuesta multilead y efectúa descomposiciones automáticas de varianza.
 
@@ -17,10 +17,10 @@ Todos los algoritmos están implementados en **Python puro** bajo el estricto co
 | Dimensión | Discreción Óptima | Compromiso LQ | DSGE-VAR($\lambda$) | Motor de Noticias (News) |
 |:---|:---|:---|:---|:---|
 | **Referencia Fundamental** | Dennis (2007); Oudiz & Sachs (1985) | Currie & Levine (1993); Woodford (2003) | Del Negro & Schorfheide (2004) | Beaudry & Portier (2006); Schmitt-Grohé & Uribe (2012) |
-| **Concepto de Equilibrio** | Nash Markov-perfecto temporalmente consistente | Subjuego perfecto con perspectiva atemporal | VAR bayesiano con a priori conjugada | Expectativas racionales con anuncios futuros |
+| **Concepto de Equilibrio** | Nash Markov-perfecto temporalmente consistente | Compromiso: plan de Ramsey desde el estado estacionario, ley de movimiento de la perspectiva atemporal | VAR bayesiano con a priori conjugada | Expectativas racionales con anuncios futuros |
 | **Espacio de Estados** | Estados físicos predeterminados $x_{t-1}$ | Aumentado con precios sombra pasados $\lambda_{t-1}$ | Compañero de rezagos observables $X_t$ | Aumentado con la cola de noticias $V_t$ |
 | **Núcleo Computacional** | Iteración matricial de Riccati $\|F_{k+1}-F_k\|_\infty < 10^{-9}$ | Schur generalizado aumentado (Klein QZ) | Lyapunov analítico + Wishart Invertida | Operador de desplazamiento nilpotente $K_H$ ($\sigma=\{0\}$) |
-| **Aporte Económico Principal** | Cuantifica sesgos de inflación y estabilización | Cota inferior de pérdida cuadrática bajo credibilidad | Cuantifica desalineación estructural $\hat{\lambda}$ | Distingue anticipación de realización |
+| **Aporte Económico Principal** | Cuantifica sesgos de inflación y estabilización | Mínima pérdida condicional desde el estado estacionario (Ramsey); la pérdida incondicional puede superar a la de discreción (sección 1.4) | Cuantifica desalineación estructural $\hat{\lambda}$ | Distingue anticipación de realización |
 | **Compatible con Pyodide** | Sí (`numpy`, `scipy`) | Sí (`numpy`, `scipy`) | Sí (`numpy`, `scipy`) | Sí (`numpy`, `scipy`) |
 
 ---
@@ -55,20 +55,36 @@ $$u_t = F x_{t-1}$$
 mediante el algoritmo de iteración de funciones de política de Dennis (2007):
 $$\|F_{k+1} - F_k\|_\infty < 10^{-9}$$
 
-### 1.3 Compromiso Atemporal (Timeless Commitment)
+### 1.3 Compromiso: Plan de Ramsey y Perspectiva Atemporal
 
-Bajo compromiso, el banco central se compromete de manera creíble desde una fecha remota $t_0 = -\infty$ con una regla contingente de estados. Incorporando multiplicadores de Lagrange $\lambda_t$ para las restricciones prospectivas, las condiciones necesarias de primer orden producen un sistema aumentado:
+Bajo compromiso, el banco central elige un plan contingente de estados y lo cumple. Incorporando multiplicadores de Lagrange $\lambda_t$ para las ecuaciones del sector privado que quedan al eliminar la regla del instrumento, las condiciones necesarias de primer orden producen un sistema aumentado:
 $$\begin{bmatrix} y_t \\ \lambda_t \end{bmatrix} = G_{\text{comm}} \begin{bmatrix} y_{t-1} \\ \lambda_{t-1} \end{bmatrix} + N_{\text{comm}} \epsilon_t$$
-resuelto directamente mediante el solver QZ de Klein (2000) bajo la perspectiva atemporal ($\lambda_{-1} = 0$).
+resuelto directamente mediante el solver QZ de Klein (2000).
+
+Esta ley de movimiento es la misma para el plan de Ramsey elegido en $t_0$ y para la regla de perspectiva atemporal; ambos difieren solo en el multiplicador inicial. El plan de Ramsey fija $\lambda_{-1} = 0$ sea cual sea la historia. La perspectiva atemporal aplica también en $t_0$ la condición de $t \ge 1$, de modo que usa el multiplicador implícito en la política pasada (Jensen y McCallum 2002, ecs. 4a–4c y 5). `lq_commitment` evalúa sus resultados así:
+
+- Las respuestas al impulso y `conditional_loss` parten del estado estacionario, con $y_{-1} = 0$ y $\lambda_{-1} = 0$. Desde el estado estacionario el multiplicador implícito en la política pasada también es cero, así que ahí el plan de Ramsey y la regla atemporal coinciden.
+- `loss` promedia sobre la distribución estacionaria de $(y_t, \lambda_t)$, es decir, evalúa la regla atemporal en promedio. Vale NaN, con un `RuntimeWarning`, cuando $G_{\text{comm}}$ tiene una raíz sobre o fuera del círculo unitario, porque no existe distribución estacionaria. La comprobación abarca toda la transición, así que una raíz unitaria confinada a una variable con peso nulo (un nivel de precios, por ejemplo) también da NaN.
+
+El argumento `timeless` de `lq_commitment` y `ramsey_model` nunca cambió el resultado. Está obsoleto y emite un `FutureWarning`.
+
+`ramsey_model(model, objective, ...)` llega a la misma solución a partir de una cadena objetivo como `"pi^2 + 0.25*x^2"`. Deriva simbólicamente las condiciones de primer orden del planificador, pero solo para mostrarlas: `focs` las guarda como ecuaciones legibles en sintaxis de Dynare, y `foc_nodes` como árboles de expresiones. El sistema que resuelve se arma numéricamente, a partir de las matrices lineales del modelo (o de las ecuaciones del `.mod` linealizadas en el estado estacionario) y del hessiano del objetivo en el estado estacionario, con los multiplicadores de estado estacionario iguales a cero. Sobre un modelo lineal comparte, por tanto, las matrices y el solver QZ con `lq_commitment`. Ambos difieren solo en cómo leen el objetivo: `ramsey_model` usa el hessiano de la cadena objetivo, y `lq_commitment` los pesos con un factor 1/2 en la pérdida. Eso solo reescala los multiplicadores, así que compararlos verifica el intérprete del objetivo y la contabilidad de los multiplicadores, no la solución. Para un objetivo de bienestar no lineal cuyos multiplicadores de estado estacionario no son cero, `ramsey_model` es solo una aproximación lineal-cuadrática.
 
 ### 1.4 Descomposición de los Sesgos de Bienestar
 
-`puremacro` cuantifica numéricamente las dos pérdidas de bienestar canónicas de la teoría de política monetaria:
+`discretionary_policy` reporta dos brechas entre discreción y compromiso. Se definen de manera distinta, y ninguna vuelve a resolver el modelo con otro objetivo.
 
-1. **Sesgo de Inflación**: Originado en Kydland & Prescott (1977) y Barro & Gordon (1983), cuando el banco central persigue un objetivo de brecha de producto $y^* > 0$ superior al nivel natural:
-   $$\text{Sesgo}_{\pi} = \mathbb{E}[\pi^{\text{disc}}] - \mathbb{E}[\pi^{\text{comm}}] = \frac{\kappa \lambda_y}{\lambda_y (1 - \beta) + \kappa^2} y^*$$
-2. **Sesgo de Estabilización**: Teorema de Clarida, Galí & Gertler (1999) y Woodford (2003); el banco central en discreción es incapaz de generar orientación prospectiva creíble (dependencia de la historia) para estabilizar la inflación presente con una contracción menor del producto. El sesgo de estabilización es estrictamente positivo:
-   $$\text{Sesgo}_{\text{estab}} = \mathcal{L}^{\text{disc}} - \mathcal{L}^{\text{comm}} > 0$$
+1. **Sesgo de Inflación**: Originado en Kydland & Prescott (1977) y Barro & Gordon (1983). Cuando la pérdida persigue una brecha de producto $y^* > 0$ superior al nivel natural, la inflación de estado estacionario bajo discreción supera la inflación nula de estado estacionario del compromiso atemporal en
+   $$\text{Sesgo}_{\pi} = \mathbb{E}[\pi^{\text{disc}}] - \mathbb{E}[\pi^{\text{comm}}] = \frac{\kappa \lambda_y}{\lambda_y (1 - \beta) + \kappa^2} y^*,$$
+   donde $\lambda_y$ es el peso de la brecha dividido entre el peso de la inflación, leídos de las entradas de `weights` llamadas `y`, `y_gap`, `output`, `x` o `gap` y `pi`, `inflation`, `infl` o `pfe` (0.25 y 1 si faltan). `inflation_bias` evalúa esta forma cerrada; `y_star` no entra en la dinámica resuelta. La pendiente $\kappa$ se toma de `kappa=` (o `slope_pc=`), luego de un parámetro del modelo llamado `kappa`, `slope_pc`, `kap` o `pc_slope`, luego de la fila de la curva de Phillips en el jacobiano del modelo, y si no, vale 0.5 por omisión; pase `kappa=` cuando la pendiente tenga otro nombre.
+2. **Sesgo de Estabilización**: Originado en Clarida, Galí & Gertler (1999) y Woodford (2003). Sin compromiso, el banco central no puede prometer la política dependiente de la historia que estabiliza la inflación presente con un costo menor en producto. `stabilization_bias` es una diferencia de pérdidas, y `loss_criterion` elige cuáles. La opción por defecto, `loss_criterion="unconditional"`, compara los campos `loss`, la pérdida promediada sobre la distribución estacionaria de cada régimen (el criterio que también usa `osr`):
+   $$\text{Sesgo}_{\text{estab}} = \mathcal{L}^{\text{disc}} - \mathcal{L}^{\text{comm}}, \qquad \mathcal{L} = \sum_i w_i \operatorname{Var}(y_i)$$
+   Su signo no está garantizado. La regla atemporal sigue honrando promesas pasadas y puede perder en promedio: con un factor de descuento lo bastante pequeño, la discreción supera a la regla atemporal bajo la pérdida incondicional siempre que la brecha de producto tenga algún peso y los precios no sean flexibles (Sauer 2010, Proposición 2). En el modelo de referencia de Sauer, que fija el parámetro de Calvo en 0.8722 (una pendiente de 0.02 con $\beta = 0.99$), con peso del producto 0.0625 y choques sin correlación serial, esto ocurre con $\beta < 0.839$. Jensen y McCallum (2002) señalan algo relacionado: bajo este criterio la regla atemporal ni siquiera es la mejor regla de su propia forma. En el modelo de Clarida, Galí y Gertler con pendiente 0.1, peso del producto 0.25 y persistencia del choque de costos 0.5, el sesgo incondicional es positivo con $\beta \ge 0.85$ y negativo con $\beta \le 0.8$ en la malla del [cuaderno 66](https://github.com/jalonso1979/puremacro/blob/main/notebooks/66_optimal_policy_cgg1999_replication_es.py). Con choques de costos sin correlación serial y $\beta = 0.5$ vale $-0.19$.
+   `loss_criterion="conditional"` compara en cambio los campos `conditional_loss`, el criterio del propio planificador evaluado desde el estado estacionario:
+   $$\mathcal{L}_0 = (1-\beta)\,E_0 \sum_{t \ge 0} \beta^t \sum_i w_i y_{i,t}^2, \qquad y_{-1} = 0,\ \lambda_{-1} = 0.$$
+   Desde el estado estacionario, el compromiso es la política plenamente óptima (de Ramsey), así que este sesgo nunca es negativo: en el ejemplo con $\beta = 0.5$ vale $+0.031$. Todo resultado incluye tanto `loss` como `conditional_loss`, sea cual sea el criterio, y el cuaderno 66 contrasta ambos con fórmulas cerradas.
+
+   `stabilization_bias` vale NaN cuando no se calcula (`compare_commitment=False`) o no puede calcularse: falla la resolución bajo compromiso, en cuyo caso `commitment_result` es None, o una pérdida bajo el criterio elegido es NaN. Los dos últimos casos emiten un `RuntimeWarning`, y `summary()` informa el sesgo como no disponible. Un sesgo calculado nunca se sustituye por 0.0.
 
 ### 1.5 Ejemplo Ejecutable en Python
 
@@ -110,6 +126,14 @@ print(f"Sesgo de Estabilización : {res.stabilization_bias:.6f}")
 ax = res.plot(compare_commitment=True, periods=16)
 ax.figure.savefig("output/dsge_optimal_discretion.png", bbox_inches="tight")
 ```
+
+### 1.6 Reglas Simples Óptimas: Precisión Alcanzable
+
+`osr(model, rule_params, weights, ...)` ajusta los coeficientes de una regla de instrumento para minimizar la pérdida incondicional $\sum_i w_i \operatorname{Var}(y_i)$, por defecto con Nelder–Mead. La pérdida es cuadrática en su mínimo, $\mathcal{L}(\gamma) \approx \mathcal{L}^*\,[1 + \tfrac{c}{2}((\gamma - \gamma^*)/\gamma^*)^2]$, con curvatura normalizada $c = \gamma^{*2} \mathcal{L}''(\gamma^*)/\mathcal{L}^*$. Por eso una búsqueda que compara valores de la pérdida localiza los coeficientes minimizadores, y la asignación que implican, solo hasta un error relativo de unos $\sqrt{2\varepsilon/c}$, donde $\varepsilon$ es la precisión relativa de la pérdida (en el mejor caso el épsilon de máquina, $2.2\times10^{-16}$). En un problema bien escalado ($c$ del orden de uno) son unos $10^{-8}$, sean cuales sean las tolerancias. Una pérdida plana o mal escalada se localiza con menos precisión. Por ejemplo, con la regla de metas $x_t = -\phi\,\pi_t$ bajo la curva de Phillips $\pi_t = \beta E_t\pi_{t+1} + \kappa x_t + u_t$ con choque de costos AR(1), donde $\phi^* = \kappa/(\alpha(1-\beta\rho)) = 500$ y $c = 0.02$, `osr` se detiene con un error relativo de $10^{-7}$, tanto con las tolerancias nuevas como con las antiguas. La pérdida misma es exacta a unos $10^{-15}$ relativos.
+
+Los valores por defecto `xatol=1e-8` (coeficientes) y `fatol` igual a $10^{-12}$ veces la pérdida inicial (al menos $10^{-12}$) alcanzan ese piso con coeficientes del orden de uno. `xatol` es absoluto, en las unidades de los coeficientes, así que conviene escalarlo con ellos, a unas $10^{-8}$ veces su magnitud: con coeficientes mucho menores que uno, `1e-8` es una tolerancia relativa holgada. Tómese la economía de Clarida, Galí y Gertler con la regla $i_t = g_t/\varphi + \phi_\pi \pi_t + \phi_x x_t$, cotas $\phi_\pi \in [1, 10]$ y $\phi_x \in [0, 10]$, y 25 calibraciones aleatorias. Ahí la respuesta de la brecha de producto a un choque de costos coincide con la regla simple óptima en forma cerrada con un error relativo de $9\times10^{-9}$ (mediana) y $7\times10^{-8}$ (peor caso), y la pérdida con un error menor que $4\times10^{-15}$. Los valores por defecto del propio Nelder–Mead de SciPy ($10^{-4}$ para ambos), que `osr` usaba antes, se detenían con errores de hasta $2.7\times10^{-5}$ cuando el óptimo cae en una cota, con unas 1.8 veces menos evaluaciones de la pérdida. Pase `xatol=1e-4, fatol=1e-4` para reproducirlos, u `options={...}` para fijar las tolerancias de otro optimizador de SciPy. Cuando el óptimo es una cresta, muchas reglas implementan la misma asignación: la asignación queda determinada con esta precisión, pero los coeficientes son solo un punto de la cresta.
+
+`loss_opt` se recalcula resolviendo de nuevo el modelo en los coeficientes devueltos. Si esa resolución falla, o la regla es indeterminada, `loss_opt` vale NaN con un `RuntimeWarning` (nunca el valor de penalización del optimizador), y lo mismo `loss_initial` cuando no pueden evaluarse los momentos de partida. En `variance_table`, `variance_reduction_pct` vale NaN donde no está definido.
 
 ---
 
@@ -316,9 +340,11 @@ fig.savefig("output/dsge_news_shocks.png", bbox_inches="tight")
 
 | Función / Constructor | Módulo | Parámetros Principales | Tipo de Retorno | Descripción |
 |:---|:---|:---|:---|:---|
-| `optimal_policy(model, loss, rule, ...)` | `puremacro.dsge.policy` | `model`, `loss`, `rule="discretion"\|"commitment"`, `instruments`, `y_star`, `tol=1e-9` | `DiscretionaryPolicyResult` o `PolicyResult` | Despachador principal que resuelve discreción óptima (Dennis 2007) o compromiso atemporal LQ. |
-| `discretionary_policy(model, ...)` | `puremacro.dsge.policy` | `model`, `target_vars`, `weights`, `instruments`, `beta=0.99`, `y_star`, `tol=1e-9` | `DiscretionaryPolicyResult` | Algoritmo de iteración de funciones de política de Dennis (2007). |
-| `lq_commitment(model, ...)` | `puremacro.dsge.policy` | `model`, `target_vars`, `weights`, `instruments`, `beta=0.99` | `PolicyResult` | Política de compromiso atemporal lineal-cuadrática mediante QZ de Klein. |
+| `optimal_policy(model, loss, rule, ...)` | `puremacro.dsge.policy` | `model`, `loss`, `rule="discretion"\|"commitment"`, `instruments`, `y_star`, `tol=1e-9` | `DiscretionaryPolicyResult` o `PolicyResult` | Despachador principal que resuelve discreción óptima (Dennis 2007) o compromiso LQ (sección 1.3). |
+| `discretionary_policy(model, ...)` | `puremacro.dsge.policy` | `model`, `target_vars`, `weights`, `instruments`, `beta=0.99`, `y_star`, `tol=1e-9`, `loss_criterion="unconditional"` | `DiscretionaryPolicyResult` | Algoritmo de iteración de funciones de política de Dennis (2007). |
+| `lq_commitment(model, ...)` | `puremacro.dsge.policy` | `model`, `target_vars`, `weights`, `instruments`, `beta=0.99` (`timeless` está obsoleto) | `PolicyResult` | Compromiso óptimo lineal-cuadrático mediante QZ de Klein: la ley de movimiento de la perspectiva atemporal, con respuestas y `conditional_loss` desde el estado estacionario (sección 1.3). |
+| `ramsey_model(model, objective, ...)` | `puremacro.dsge.ramsey` | `model_or_dag`, `objective`, `planner_discount=0.99`, `instruments` (`timeless` está obsoleto) | `RamseyResult` | La misma solución bajo compromiso a partir de una cadena objetivo; condiciones de primer orden legibles en `focs` (sección 1.3). |
+| `osr(model, rule_params, weights, ...)` | `puremacro.dsge.policy` | `rule_params`, `weights`, `bounds`, `optimizer="Nelder-Mead"`, `xatol=1e-8`, `fatol=None`, `options=None` | `OSRResult` | Regla simple óptima por minimización sin derivadas de la pérdida incondicional (sección 1.6). |
 | `estimate_dsge_var(model, data, ...)` | `puremacro.dsge.dsge_var` | `model`, `data`, `p=4`, `lamb=None`, `identification="dsge"`, `lambda_grid=None` | `DSGEVARResult` | Estimador y optimizador de hiperparámetros DSGE-VAR (Del Negro & Schorfheide 2004). |
 | `news_irf(model, shock, lead, ...)` | `puremacro.dsge.news` | `model`, `shock`, `lead=0`, `horizon=40`, `size=1.0` | `NewsIRFResult` | Funciones de impulso-respuesta en espacio de estados aumentado para noticias. |
 | `decompose_news(model, shock, ...)` | `puremacro.dsge.news` | `model`, `shock=None`, `horizon=40`, `max_lead=8` | `NewsDecompositionResult` | Descomposición automática de varianza entre sorpresas y noticias. |
@@ -328,7 +354,7 @@ fig.savefig("output/dsge_news_shocks.png", bbox_inches="tight")
 
 | Clase de Resultado | Módulo | Atributos Clave | Métodos de Presentación |
 |:---|:---|:---|:---|
-| `DiscretionaryPolicyResult` | `puremacro.dsge._results` | `F`, `V`, `inflation_bias`, `stabilization_bias`, `converged`, `iterations`, `diff`, `commitment_result` | `.summary()`, `.plot(compare_commitment=True)`, `.to_frame()`, `.to_markdown()`, `.to_latex()`, `.to_typst()` |
+| `DiscretionaryPolicyResult` | `puremacro.dsge._results` | `F`, `V`, `loss`, `conditional_loss`, `inflation_bias`, `stabilization_bias`, `loss_criterion`, `converged`, `iterations`, `diff`, `commitment_result` | `.summary()`, `.plot(compare_commitment=True)`, `.to_frame()`, `.to_markdown()`, `.to_latex()`, `.to_typst()` |
 | `DSGEVARResult` | `puremacro.dsge.dsge_var` | `lamb`, `hat_lambda`, `lambda_min`, `log_mdd`, `log_mdd_grid`, `Phi_star`, `Sigma_star`, `Phi_ols`, `Sigma_ols`, `B0` | `.summary()`, `.plot(kind="irf"\|"mdd"\|"forecast")`, `.irf()`, `.forecast()`, `.fevd()`, `.to_frame()`, `.to_markdown()`, `.to_latex()`, `.to_typst()` |
 | `NewsIRFResult` | `puremacro.dsge.news` | `irf`, `surprise_irf`, `shock`, `lead`, `horizon`, `size`, `model` | `.summary()`, `.plot(compare_surprise=True)`, `.to_frame()`, `.to_markdown()`, `.to_latex()`, `.to_typst()` |
 | `NewsDecompositionResult` | `puremacro.dsge.news` | `variance_shares`, `dynamic_shares`, `shock`, `horizon`, `max_lead`, `model` | `.summary()`, `.plot()`, `.to_frame()`, `.to_markdown()`, `.to_latex()`, `.to_typst()` |
@@ -343,8 +369,10 @@ fig.savefig("output/dsge_news_shocks.png", bbox_inches="tight")
 - **Currie, D., & Levine, P. (1993).** *Rules, Reputation and Macroeconomic Policy Coordination*. Cambridge University Press.
 - **Del Negro, M., & Schorfheide, F. (2004).** "Priors from General Equilibrium Models for VARs." *International Economic Review*, 45(2), 643-673.
 - **Dennis, R. (2007).** "Optimal Policy in Rational Expectations Models: New Solution Algorithms." *Macroeconomic Dynamics*, 11(1), 31-55.
+- **Jensen, C., & McCallum, B. T. (2002).** "The Non-optimality of Proposed Monetary Policy Rules under Timeless-Perspective Commitment." *Economics Letters*, 77(2), 163-168. NBER Working Paper 8882.
 - **Klein, P. (2000).** "Using the generalized Schur form to solve a multivariate linear rational expectations model." *Journal of Economic Dynamics and Control*, 24(10), 1405-1423.
 - **Kydland, F. E., & Prescott, E. C. (1977).** "Rules rather than discretion: The inconsistency of optimal plans." *Journal of Political Economy*, 85(3), 473-491.
 - **Oudiz, G., & Sachs, J. (1985).** "International Policy Coordination in Dynamic Macroeconomic Models." In *International Economic Policy Coordination*, Cambridge University Press.
+- **Sauer, S. (2010).** "Discretion Rather Than Rules? When Is Discretionary Policymaking Better Than the Timeless Perspective?" *International Journal of Central Banking*, 6(2), 1-29.
 - **Schmitt-Grohé, S., & Uribe, M. (2012).** "What's News in Business Cycles." *Econometrica*, 80(6), 2733-2764.
 - **Woodford, M. (2003).** *Interest and Prices: Foundations of a Theory of Monetary Policy*. Princeton University Press.

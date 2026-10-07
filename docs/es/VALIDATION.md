@@ -48,18 +48,18 @@ Niveles de tolerancia: `EXACT` (rtol 1e-10) · `TIGHT` (1e-6) · `NUMERIC` (1e-2
 
 ## Cobertura
 
-**107 casos en 15 subsistemas — todos pasan.** Por mecanismo: internal 59,
-analytical 29, package 13, scipy 5, published 1.
+**114 casos en 16 subsistemas — todos pasan.** Por mecanismo: internal 62,
+analytical 31, package 14, scipy 5, published 2.
 
 | Subsistema | Casos | Referencia(s) |
 |---|---|---|
-| `var` | 15 | FIR de Cholesky vs `orth_irfs` de statsmodels; FEVD-suma-1 y estabilidad ⇔ radio espectral del companion < 1 (identidades); restricciones narrativas de signo; posterior analítica del BVAR Minnesota; identidades del GVAR — con pesos comerciales nulos los bloques por país se desacoplan, el sistema global resuelto los reproduce, el perfil de persistencia vale 1 en el impacto, las filas normalizadas del GFEVD suman 1, y las FIRG de un GVAR de un solo país igualan las FIR generalizadas de `var` |
+| `var` | 15 | FIR de Cholesky vs `orth_irfs` de statsmodels; FEVD-suma-1 y estabilidad ⇔ radio espectral del companion < 1 (identidades); restricciones narrativas de signo; medias posteriores del BVAR Minnesota frente a formas cerradas construidas a mano de Theil (λ₂ = 0.5) y de la normal-Wishart inversa de la ec. (5) de Bańbura–Giannone–Reichlin; identidades del GVAR — con pesos comerciales nulos los bloques por país se desacoplan, el sistema global resuelto los reproduce, el perfil de persistencia vale 1 en el impacto, las filas normalizadas del GFEVD suman 1, y las FIRG de un GVAR de un solo país igualan las FIR generalizadas de `var` |
 | `lp` | 6 | Coeficientes/EE-HAC de la PL de Jordà vs OLS-HAC de statsmodels; PL-IV vs `IV2SLS` de linearmodels; EF a dos vías vs `PanelOLS`; identidad IV-se-reduce-a-OLS |
 | `garch` | 7 | Parámetros/volatilidades GARCH(1,1) vs `arch`; simular-y-recuperar; descomposición de varianza de GARCH-MIDAS |
-| `inference` | 8 | EE de Newey–West / OLS-HAC vs HAC de statsmodels; tabla de valores críticos de Stock–Yogo (publicada); valor crítico plug-in sup-t vs su forma cerrada i.i.d.; monotonía de sup-t sobre valores críticos puntuales |
+| `inference` | 9 | EE de Newey–West / OLS-HAC vs HAC de statsmodels; tabla de valores críticos de Stock–Yogo (publicada); valores críticos de b fijo con núcleo de Bartlett del cuadro I de Kiefer–Vogelsang (2005) (publicados); valor crítico plug-in sup-t vs su forma cerrada i.i.d.; monotonía de sup-t sobre valores críticos puntuales |
 | `state_space` | 6 | Estados del filtro/suavizador de Kalman + log-verosimilitud vs el espacio de estados de statsmodels; identidades de varianza del suavizador |
-| `dynpanel` | 7 | El GMM de Arellano–Bond / Blundell–Bond recupera un ρ conocido; identificación exacta J = 0; inflación de varianza de muestras finitas de Windmeijer |
-| `did` | 9 | Callaway–Sant'Anna recupera DiD 2x2 analíticamente; Sun–Abraham iguala Callaway–Sant'Anna en 2x2; imputación de Borusyak–Jaravel–Spiess recupera 2x2; Diferencia en Diferencias Sintética recupera efecto de tratamiento; el DiD espacial con todas las unidades más allá del anillo exterior se reduce exactamente a EF a dos vías, y el ajuste por anillos supera a la estimación ingenua contaminada en un DGP con desbordamiento plantado |
+| `dynpanel` | 7 | El GMM de Arellano–Bond / Blundell–Bond recupera un ρ conocido; identificación exacta J = 0; los EE WC-robustos de Windmeijer coinciden con una evaluación independiente por diferencias finitas (instrumentos sin colapsar, `lags(2)`) |
+| `did` | 11 | Callaway–Sant'Anna recupera DiD 2x2 analíticamente; Sun–Abraham iguala Callaway–Sant'Anna en 2x2; en un diseño escalonado con cohortes de distinto tamaño, el estudio de eventos y los ATT globales de Callaway–Sant'Anna igualan las ecs. 3.4/3.7/3.10–3.12 de CS (2021) y el estudio de eventos IW de Sun–Abraham iguala la ec. 27 de SA; imputación de Borusyak–Jaravel–Spiess recupera 2x2; Diferencia en Diferencias Sintética recupera efecto de tratamiento; el DiD espacial con todas las unidades más allá del anillo exterior se reduce exactamente a EF a dos vías, y el ajuste por anillos supera a la estimación ingenua contaminada en un DGP con desbordamiento plantado |
 | `unit_root` | 3 | Desentendencia GLS de ERS recupera tendencia y constante analíticamente; identidad de prueba M de Ng–Perron MZt = MZa · MSB |
 | `spectral` | 6 | DEP de Welch / espectro cruzado / coherencia vs `scipy.signal`; partición de la unidad de la potencia por banda; coherencia ∈ [0,1] |
 | `forecast` | 6 | Forma cerrada del CRPS gaussiano (Gneiting–Raftery); convergencia del estimador insesgado de conjunto; calibración PIT; signo/empate de Diebold–Mariano; retención MCS |
@@ -68,12 +68,15 @@ analytical 29, package 13, scipy 5, published 1.
 | `narrative` | 7 | Puntuación léxica de valor conocido sobre texto construido; identidades de monotonía / estandarización del índice |
 | `cointegration` | 4 | FM-OLS y DOLS recuperan una β de cointegración plantada; ambos coinciden; DOLS mitiga el sesgo de endogeneidad |
 | `spatial` | 12 | I de Moran / C de Geary con sus momentos de Cliff-Ord vs `esda` (PySAL); HAC de Conley con radio 0 = HC0 y = un doble bucle de Bartlett explícito; HAC espacio-temporal de núcleo plano = Driscoll-Kraay; la log-verosimilitud concentrada SAR/SEM en ρ=0 = la log-verosimilitud gaussiana MCO; SDM = SAR sobre el diseño aumentado y SLX = MCO sobre él; los impactos de LeSage-Pace = un `(I−ρW)⁻¹(Iβ+Wθ)` denso por fuerza bruta; el panel espacial en ρ=0 = EF a dos vías; la corrección de Lee-Yu reescala σ² exactamente por T/(T−1); `spatial_lp` sin desbordamiento = `panel_lp` |
+| `Trade` | 4 | Tabla limpia 77x11 de la OCDE 2020 (`load_icio_data(source="oecd2020")`, construida por `tools/build_icio_77c_11s.py`): la agregación conserva el valor agregado y la producción bruta mundiales del archivo nativo (congelados en `MANIFEST_OECD2020.json`); cada columna industrial cuadra con valor agregado positivo; el equilibrio sin aranceles del modelo calibrado es el año base (precios, salarios y rentas unitarios); el vector de equilibrio base coincide con la solución del modelo MATLAB heredado sobre la misma tabla (`trade_reference_solutions_oecd2020.npz`, referencia externa copiada tal cual) |
 
 Cada caso lleva su cita completa en el código (`ValidationCase.citation`),
 mostrada en la columna `citation` de `scorecard()`. Las referencias clave incluyen
 Lütkepohl (2005), Newey & West (1987), Stock & Yogo (2005), Gneiting & Raftery
 (2007), Diebold & Mariano (1995), Brock & Mirman (1972), Rouwenhorst (1995),
-Tauchen (1986), Engle (2002), Arellano & Bond (1991) y Blundell & Bond (1998).
+Tauchen (1986), Engle (2002), Arellano & Bond (1991), Blundell & Bond (1998),
+Windmeijer (2005), Kiefer & Vogelsang (2005), Callaway & Sant'Anna (2021), Sun &
+Abraham (2021) y Bańbura, Giannone & Reichlin (2010).
 
 ## X-11/ARIMA nativo frente al binario real de X-13ARIMA-SEATS
 
@@ -111,9 +114,12 @@ Donde no existe una referencia *independiente* sólida, el caso se **omite con u
 razón explícita** en lugar de avalarse con una comprobación circular. Ejemplos
 documentados: `inference.kleibergen_paap_f` (la implementación devuelve un
 estadístico no estándar sin forma cerrada equivalente), las rutinas pesadas de
-estimación de `dsge`, un contraste externo de coeficientes de Arellano–Bond (sin
-conjunto de datos sin conexión / paquete de GMM en Python) y las rutas de LLM y
-descarga en vivo de narrative. La galería valida lo que se puede validar de forma
+estimación de `dsge`, el contraste externo de Arellano–Bond frente a los
+ejemplos 1, 2 y 4 de `xtabond` de Stata (está en `tests/test_dynpanel/` y sólo
+corre cuando hay una copia de `abdata`, a través de `PUREMACRO_ABDATA` o como
+`tests/fixtures/abdata.dta` o `.csv`; el archivo son datos de terceros y no se
+distribuye con el paquete) y las rutas de LLM y descarga en
+vivo de narrative. La galería valida lo que se puede validar de forma
 independiente, y lo dice cuando no puede.
 
 ## Reverificar

@@ -260,8 +260,10 @@ m = dsge.load_mod(mod_macro)
 
 #### Expression AST & Recursive-Descent Parser
 - **Immutable Expression DAG**: Equations are converted into an immutable Directed Acyclic Graph (`Const`, `Var`, `Param`, `UnaryOp`, `BinOp`, `Call`), eliminating string manipulation and substring collision bugs.
-- **Model-Local `#` Variables**: Supports declarations like `#MU = c^(-gamma);` that are inlined cleanly during equation DAG construction.
-- **Special Operators**: Supports `STEADY_STATE(x)`, `EXPECTATION(t)(x)`, and `diff(x)`.
+- **Model-Local `#` Variables**: Supports declarations like `#MU = c^(-gamma);` and `#cbetabar = cbeta*cgamma^(-csigma);`. As in Dynare (Reference Manual, §4.5), a local is a *symbolic* shorthand: its expression is substituted wherever it is used, shifted in time when it appears as `MU(+1)` or `MU(-1)`, and it is never evaluated to a number at load time. A local built from parameters therefore follows them whenever the model is re-solved — `load_mod(..., params={...})`, `osr`, the widgets, analytic gradients, SMC and `model.estimate()` all see the new value (SW07's `constebeta` enters the model only through locals). `dag.evaluate_locals(params)` returns their numerical values. Up to and including 4.3.0, a local that depended only on parameters was frozen at the file's calibration, so every re-solve kept its load-time value.
+- **Parameter-dependent blocks under overrides**: `load_mod(..., params={...})` re-evaluates `steady_state_model` and `initval` at the merged parameters (Dynare re-runs `steady_state_model` at every parameter vector). Top-level assignments such as `beta = 1/(1+r);` are evaluated once when the file is read, as in Dynare, and do not follow an override of `r`.
+- **Any Dynare name**: a parameter or variable named like a Python keyword (`lambda`, `yield`) parses and solves.
+- **Special Operators**: Supports `STEADY_STATE(x)` and `diff(x)`. `EXPECTATION(k)(x)` is parsed, but its compiled residual raises `NameError`, so a model that uses it cannot be solved yet.
 - **Transcendental Functions**: Full parsing and analytical differentiation for `exp`, `log`, `sin`, `cos`, `tan`, `normcdf`, `normpdf`, `erf`, `abs`, and `sign`.
 
 #### Symbolic Differentiation & Common Subexpression Elimination (CSE)
@@ -295,9 +297,9 @@ $$y_t^{(1)} = F x_t^{(1)} + L u_t$$
 $$y_t^{(2)} = F x_t^{(2)} + \frac{1}{2} G_{xx} (x_t^{(1)} \otimes x_t^{(1)}) + \frac{1}{2} G_{\sigma\sigma} \sigma^2$$
 
 Key capabilities:
-- **Unconditionally Stable Simulation**: `sol_2nd.simulate(periods=200, sigma=0.01)` avoids the explosive sample paths typical of unpruned quadratic approximations.
+- **Unconditionally Stable Simulation**: `sol_2nd.simulate(periods=200)` avoids the explosive sample paths typical of unpruned quadratic approximations. Its `sigma` multiplies the shock scale already declared in `shock_cov`, so `sigma=1` (the default) is the calibration.
 - **Generalized Impulse Responses (GIRF)**: `sol_2nd.girf(shock="eps", size=0.01, horizon=20)` tracks state-dependent and non-linear impacts.
-- **Risk-Adjusted Ergodic Steady State**: `sol_2nd.stochastic_steady_state(sigma=0.01)` computes analytical precautionary shifts induced by volatility.
+- **Ergodic mean and risky steady state**: `sol_2nd.ergodic_mean()` (alias `stochastic_steady_state()`) is the unconditional mean of the pruned solution; `sol_2nd.risky_steady_state()` is the zero-shock fixed point, where only the risk term ½ g_σσ σ² acts; `sol_2nd.risk_decomposition()` splits the mean into that risk term and the curvature terms ½ g_xx vec(Ω) and ½ g_uu vec(σ²Σ_u) (see [Higher-Order Perturbation, §2.4](dsge_higher_order.md)). The two can have opposite signs: in the RBC model of that section the ergodic mean of capital is above its deterministic steady state and the risky steady state is below it.
 
 ---
 
@@ -447,7 +449,7 @@ pf_res.plot()
 2. **Mode-Finding**: Numerical maximization of the log-posterior likelihood via L-BFGS-B or Nelder-Mead.
 3. **Laplace Approximation**: Numerical Hessian inversion at the posterior mode to construct the proposal covariance matrix $\Sigma_{\text{prop}}$.
 4. **Adaptive Random-Walk Metropolis-Hastings (RWMH)**: Generates posterior draws with target acceptance rate tuning (Roberts-Gelman-Gilks 1997).
-5. **Convergence Diagnostics**: Split-$\hat{R}$ (Gelman-Rubin) and Geweke spectral convergence tests.
+5. **Convergence Diagnostics**: Split-$\hat{R}$ (Gelman-Rubin) and Geweke spectral convergence tests, with the spectral density at zero estimated from a fitted AR model, as in R's `coda`.
 
 ```python
 import numpy as np

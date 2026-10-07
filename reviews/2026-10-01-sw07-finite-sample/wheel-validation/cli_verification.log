@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "cli_returncode": 0,
+  "unresolved_draws": 0,
+  "usable_fits": 2,
+  "statuses": [
+    "regular",
+    "regular"
+  ],
+  "all_artifact_hashes_valid": true,
+  "api_cli_draws_and_arrays_identical": true,
+  "all_five_csv_and_full_npz_verified": true,
+  "checkpoint_and_four_start_records_verified": true,
+  "resumed_draws": {
+    "published_fixed": 2
+  },
+  "conservative_failure_bounds_verified": true
+}

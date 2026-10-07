@@ -74,6 +74,8 @@ class LPResult(pd.DataFrame):
 
     _metadata = [
         "y_name", "x_name", "method", "ci_level",
+        # la_lp / la_lp_iv lag specification (also mirrored in ``attrs``)
+        "n_lags", "extra_lags", "control_lags",
         # smooth_lp estimation metadata (must survive pandas operations)
         "optimal_lambda", "df_lambda", "theta", "vcov", "B", "P", "lambda_grid",
         "selection_criterion", "ci_type", "n_knots", "degree", "penalty_order", "gls",

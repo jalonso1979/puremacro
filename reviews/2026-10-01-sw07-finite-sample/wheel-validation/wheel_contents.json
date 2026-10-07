@@ -1,0 +1,12 @@
+{
+  "wheel": "/tmp/puremacro-sw07-sampling-wheel/dist/puremacro-4.3.0-py3-none-any.whl",
+  "sha256": "503fccbb91af039ae9a3379811eadcee180944d25b55e80855113234c0728ef4",
+  "members": 880,
+  "verified_source_and_resource_members": [
+    "puremacro/structural/sw07_sampling.py",
+    "puremacro/structural/sw07_finite_sample.py",
+    "puremacro/examples/sw07_finite_sample.py",
+    "puremacro/structural/__init__.py",
+    "puremacro/dsge/_sw07_data.csv"
+  ]
+}

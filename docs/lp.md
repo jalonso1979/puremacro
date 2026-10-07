@@ -204,11 +204,41 @@ res_la = la_lp_iv(
 )
 ```
 
-Following Plagborg-Møller & Wolf (2021), lag augmentation makes the
-plain **Eicker-Huber-White (HC0)** standard error valid at every horizon,
-so `la_lp_iv` uses White — not HAC — everywhere: in the second stage, in
-`mop_f`, and in the AR set (`lags = 0` is the zero-lag Bartlett case).
-`first_stage_f` there equals `mop_f` for any number of instruments.
+Lag augmentation (Montiel Olea & Plagborg-Møller 2021, *Econometrica*
+89(4), 1789–1823) controls for one more lag of every series than the
+non-augmented LP needs. The regression scores are then serially
+uncorrelated, so the plain **Eicker-Huber-White (HC0)** standard error is
+valid at every horizon, uniformly over the persistence of the data (their
+§2.1 and Proposition 1). MOPM prove this for OLS local projections;
+`la_lp_iv` carries it over to LP-IV and uses White — not HAC — everywhere:
+in the second stage, in `mop_f`, and in the AR set (`lags = 0` is the
+zero-lag Bartlett case). `first_stage_f` there equals `mop_f` for any
+number of instruments.
+
+**Lag count.** `la_lp` and `la_lp_iv` include `p_aug = n_lags + extra_lags`
+lags of `x` and `y` and `control_lags` lags of each control (default
+`p_aug`), with the same `p_aug` at every horizon. The default
+`extra_lags=1` is MOPM's single extra lag: in a VAR(p) their LP controls
+for p lags of all the series, one more than the p − 1 lags that the LP
+representation needs (§4.1, p. 20), so `n_lags = p − 1` reproduces their
+specification exactly. A larger `n_lags` is the conservative choice, and
+MOPM note that it has no asymptotic efficiency cost (§6, p. 28). No source
+recommends `p + h` lags. The lag specification is recorded on the result:
+
+```python
+from puremacro.lp import la_lp
+
+res_ols = la_lp(df, y="gdp", x="fedfunds", horizon=8, lags=4, ci=0.90)
+print(res_ols.attrs["extra_lags"], res_ols.attrs["p_aug"])
+# 1 5
+```
+
+> **Changed after 4.3.0.** The default used to be
+> `extra_lags = max(horizons)` lags at every horizon. The estimate at a
+> given `h` therefore depended on the largest horizon requested,
+> `horizons=[0]` got no augmentation, and controls got only `n_lags` lags.
+> To reproduce old results exactly, pass
+> `extra_lags=max(horizons), control_lags=n_lags`.
 
 > **Clustering is not supported.** Neither `lp_iv` nor `la_lp_iv` takes a
 > `cluster=` argument, and no weak-instrument statistic on this page is

@@ -1,0 +1,20 @@
+{
+  "puremacro/datasets/data/enigh2024_deciles.csv": "7755bf36cae08e37174705cb0dd048020930d569917fc6f826b7b2c46c15a606",
+  "puremacro/datasets/data/enigh2024_deciles_metadata.json": "c774ce8ed54b204bf147752d0600ba175a572e7156b7ca4f3af9523e4016304e",
+  "puremacro/datasets/enigh.py": "f2ff066e53b431f73f42d626916eae37c7967e766793ee389ad7bb70daa9fddf",
+  "puremacro/examples/distributional_trade_enigh.py": "418809ee4056dc63c6374a778b52fd659531814d4386959515a9d57e0d1d289e",
+  "puremacro/examples/structural_irf_matching.py": "e2e21d26f6d2a904346b983d48375f92a558c541d07cfc937f5ebded192ea897",
+  "puremacro/structural/__init__.py": "917981e3cb57311c67c73d24bb311b200eceebd37757883433dc7220544cda50",
+  "puremacro/structural/bridge.py": "5315215e5c9edc32dba4cd97ae553e4edc281063c13efb3b7f7b9095378e0d8b",
+  "puremacro/structural/lp.py": "f187fea3a1302e87acf3b22b2081206a580aece6c7ea142988162c90d2a87ab5",
+  "puremacro/trade/distributional.py": "c62fa7e8e68190340a8a52b8d54139992d20647f20732194c91030d0b90c7e7b",
+  "puremacro/validation/research.py": "57024d49870cf12b57cc947e88a4c431a31155828124ddc105797f69df7e7e60",
+  "tests/test_enigh_distributional_data.py": "acd25e5f8a6e697a9481371ac400eb7c8651b3d694b3e1077f638c34b3f529c5",
+  "tests/test_research_applications.py": "1027e626b06d815ca9ec3e54a9744ba10133beed79472924099863e023a62388",
+  "tests/test_research_benchmarks.py": "e9d5bb1360d18c64cf038e80997a65bc371d8cbbc4d48e62549373c432611b72",
+  "tests/test_structural_bridge.py": "22f7958a4e16d569761f55407fead80e726b1c774104bec22277fcb3c7e80be5",
+  "tests/test_structural_lp_bridge.py": "5a112bf9ff085f79ca43e4709aff453b13a911686b77318550fd0142d0f14202",
+  "tests/test_trade_distributional.py": "e5a501b13071bffbf4555e58acd7c33833104d9cfeae294f0df7a1f917b260ac",
+  "tools/build_enigh_distributional_data.py": "705b6d936c4bd9f081d20b7a9583046df006b5d804af17971ce401155c8a2773",
+  "tools/run_research_benchmarks.py": "6e2aeeba8c94e944d10848402ba6b542a29e72fed65c13611ef7c004512ab96f"
+}

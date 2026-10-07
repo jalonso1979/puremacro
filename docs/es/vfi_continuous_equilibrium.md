@@ -162,12 +162,18 @@ ge_result = solve_aiyagari_continuous(
     n_z=3,
     max_evals=25,
 )
+# converged: punto fijo del EGM del hogar, distribución estacionaria y
+# |K^s - K^d| < tol_ge (1e-4), todo comprobado en r*
 assert ge_result.converged
+assert ge_result.metadata["egm_converged"]
 assert abs(ge_result.capital_market_clearing_error) < 1e-4
 
 summary_df = ge_result.summary()
 print(f"Equilibrio r* = {ge_result.r:.4f}, K* = {ge_result.K:.4f}, w* = {ge_result.w:.4f}")
+print(f"Iteraciones del EGM en r*: {ge_result.metadata['egm_iterations']}")
 ```
+
+`ge_result.converged` solo es True cuando se cumplen tres condiciones en $r^*$: la política de consumo del hogar es un punto fijo del operador del EGM (de Coleman) con tolerancia `egm_tol` como máximo en `egm_max_iter` iteraciones, el solucionador de la distribución estacionaria convergió y $|K^s - K^d| <$ `tol_ge`. En caso contrario es False y un `RuntimeWarning` nombra el criterio que falló; `metadata` conserva `egm_iterations`, `egm_residual`, `dist_converged` y `clearing_ok`. Este ejemplo necesita unas 2600 iteraciones del EGM en $r^*$, porque $\beta(1+r^*)$ está cerca de uno. Hasta la versión 4.3.0 el bucle se detenía en silencio a las 500 iteraciones y `converged` era siempre True: la política quedaba hasta 0.09 lejos del punto fijo, el exceso de demanda verdadero en el $r^*$ reportado era $1.6\cdot10^{-2}$ frente a un valor reportado de $-2.5\cdot10^{-6}$, y $r^*$ salía 0.039421 en lugar de 0.039416 ($K^*$ 6.6252 en lugar de 6.6257).
 
 ---
 
@@ -219,8 +225,15 @@ solve_aiyagari_continuous(
     r_bracket: tuple[float, float] | None = None,
     solver: str = "auto",
     backend: str = "numpy",
-    xtol: float = 1e-6,
-    max_evals: int = 60,
+    xtol: float = 1e-8,
+    max_evals: int = 100,
+    dist_options: dict | None = None,
+    P_z: np.ndarray | None = None,
+    z_grid: np.ndarray | None = None,
+    n_a: int = 150,
+    egm_tol: float = 1e-8,
+    egm_max_iter: int = 10000,
+    tol_ge: float = 1e-4,
     **kwargs: Any,
 ) -> AiyagariContinuousEquilibrium
 ```
@@ -232,7 +245,15 @@ solve_aiyagari_continuous(
 - `shock_grid`: Rejilla de valores discretos de productividad $z_1, \dots, z_{n_z}$.
 - `method`: Algoritmo de resolución: `"auto"`, `"sparse_direct"`, `"power"` o `"arnoldi"`.
 - `tol`: Tolerancia absoluta de convergencia para la medida invariante (por defecto $10^{-12}$).
-- `r_bracket`: Intervalo $(r_{\min}, r_{\max})$ que acota el tipo de interés para la bisección de Brent.
+- `r_bracket`: Intervalo $(r_{\min}, r_{\max})$ que acota el tipo de interés para el método de Brent, con $-\delta < r_{\min}$ y $r_{\max} < 1/\beta - 1 - 10^{-4}$. Si se omite, la búsqueda empieza en $(10^{-3}, 1/\beta - 1 - 5\cdot10^{-4})$; si el ahorro ya supera la demanda de capital de la empresa en $10^{-3}$, el extremo inferior pasa a $-\delta + 10^{-3}$, de modo que se encuentran equilibrios con tipos negativos.
+- `solver`: `"auto"` o `"egm"` (sin distinguir mayúsculas; `None` se lee como `"auto"`); ambos eligen el método de la rejilla endógena, el único solucionador del hogar implementado aquí. Cualquier otro valor, incluidos `"collocation"` y `"fem"`, lanza `ValueError` (hasta la versión 4.3.0 todos los valores se resolvían en silencio con EGM). Para un hogar resuelto por colocación o elementos finitos, pase su propio problema a `continuous_stationary_equilibrium`.
+- `xtol`: Tolerancia de Brent sobre el propio tipo de interés $r$; `tol_ge` comprueba el residuo de vaciado del mercado, que es aproximadamente `xtol` por la pendiente de $K^s - K^d$ en $r$ (varios cientos cerca de $r^*$ con `n_z=3`). `AiyagariContinuousModel.solve` y `AiyagariContinuousEquilibrium.solve` usan el mismo valor por defecto, $10^{-8}$; hasta la versión 4.3.0 usaban $10^{-6}$, que deja $|K^s - K^d| \approx 6\cdot10^{-4}$ en el ejemplo anterior, de modo que con ese valor `converged` es False.
+- `P_z`, `z_grid`: Cadena de Markov de productividad que sustituye a la discretización de Tauchen de `rho_z`, `sigma_z`, `n_z`.
+- `n_a`: Nodos de la rejilla de activos del hogar para el EGM, $a_{\max} \cdot \operatorname{linspace}(0, 1, n_a)^{1.5}$. Súbalo junto con `a_max`: el espaciado cerca de la restricción de endeudamiento determina el error en $r$. En la economía de Aiyagari con $\sigma = 0.4$, $\rho = 0.9$, $\mu = 5$, `a_max=200` con los 150 nodos por defecto desplaza el equilibrio ($-0.09\%$) en 0.03 puntos porcentuales, y `n_a=800` lo deja a menos de 0.003.
+- `egm_tol`: Regla de parada del bucle EGM del hogar: la variación en norma del supremo de la política de consumo entre dos iteraciones (en unidades de consumo; por defecto $10^{-8}$). Cuando la iteración contrae despacio, la política está más lejos del punto fijo que este paso: unos $2\cdot10^{-7}$ con los valores por defecto.
+- `egm_max_iter`: Tope de iteraciones del EGM por tipo de prueba (por defecto 10000; hasta la versión 4.3.0 era un 500 fijo y oculto). El número crece a medida que $r$ se acerca a $1/\beta - 1$ y depende de la calibración: el ejemplo anterior necesita unas 2600 en $r^*$ y unas 3700 en el extremo superior del intervalo por defecto; las calibraciones con más riesgo necesitan más en ese extremo (unas 13300 con `sigma_z=0.35`, `n_z=3` y el valor por defecto `a_max=30`), de modo que el tope puede alcanzarse en el extremo del intervalo; en esa economía $r^*$ coincide hasta $10^{-10}$ con `egm_max_iter=20000`. Alcanzar el tope en un tipo de prueba distinto de $r^*$ (en la práctica el extremo superior del intervalo, donde Brent solo necesita el signo) solo puede desviar la búsqueda y se cuenta en `metadata["egm_cap_hits"]`; alcanzarlo en $r^*$ hace `converged` False y emite un aviso.
+- `tol_ge`: Tolerancia de vaciado del mercado sobre $|K^s - K^d|$, en unidades de capital (por defecto $10^{-4}$), necesaria para `converged`.
+- `**kwargs`: No se usa. Una palabra clave desconocida (por ejemplo `tol` o `max_iter`) emite un `FutureWarning` que la nombra y se ignora; en una versión futura lanzará `TypeError`. Hasta la versión 4.3.0 las palabras clave desconocidas se descartaban en silencio.
 
 ---
 

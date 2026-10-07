@@ -13,20 +13,20 @@
 # %% [markdown]
 # # Frontier DSGE: Discretionary Policy, DSGE-VAR, and Anticipated News Shocks
 #
-# **How do central banks balance stabilization against credibility when policy is re-optimized each period, how can we discipline vector autoregressions with microfounded general equilibrium priors, and how do forward-looking financial markets price news before economic fundamentals materialize?**
+# **How do central banks balance stabilization against credibility when policy is re-optimized each period, how can we discipline vector autoregressions with microfounded general equilibrium priors, and how do forward-looking agents react to news before fundamentals change?**
 #
-# Modern macroeconomic policymaking operates at the intersection of dynamic optimization, empirical time series econometrics, and forward-looking expectation formation. While standard linearized DSGE models assume fixed instrument feedback rules (e.g. Taylor rules) and unexpected structural innovations, modern central banking and frontier research require three deeper paradigms:
+# Linearized DSGE models usually assume a fixed instrument rule (a Taylor rule) and shocks that arrive as surprises. This notebook works through three extensions:
 #
-# 1. **Optimal Discretionary Policy vs. Timeless Commitment** (Oudiz & Sachs 1985; Clarida, Gali & Gertler 1999; Dennis 2007):
-#    When policymakers cannot bind future successors, they re-optimize every period taking private-sector expectations as given. This lack of credibility generates the classical Kydland-Prescott / Barro-Gordon **inflation bias** (if output targets exceed natural output, $y^* > 0$) and a fundamental **stabilization bias** (insufficient policy inertia in responding to cost-push shocks compared to commitment).
+# 1. **Discretion versus commitment** (Oudiz & Sachs 1985; Clarida, Galí & Gertler 1999; Dennis 2007):
+#    A policymaker who cannot bind its successors re-optimizes every period, taking private-sector expectations as given. With an output target above potential ($y^* > 0$) this produces the Kydland-Prescott / Barro-Gordon **inflation bias**, and after cost-push shocks it produces a **stabilization bias**: discretion cannot promise the persistent response that commitment uses to steer expectations.
 #
-# 2. **DSGE-VAR Hybrid Estimation** (Del Negro & Schorfheide 2004):
-#    Structural DSGE models are tightly restricted by microeconomic theory, making them prone to misspecification, while unrestricted Vector Autoregressions (VARs) are overparameterized and suffer from estimation uncertainty. The DSGE-VAR framework constructs an informative conjugate Normal-Inverted-Wishart prior centered on the theoretical cross-equation moments $\Gamma_k(\theta)$ of the DSGE model. By tuning a single hyperparameter $\lambda \in [\lambda_{\min}, \infty)$, researchers can continuously navigate the continuum between data-driven VARs and theory-driven DSGEs, optimizing the log marginal data density $\ln p(Y \mid \lambda, \theta)$ to detect structural misspecification.
+# 2. **DSGE-VAR** (Del Negro & Schorfheide 2004):
+#    The DSGE model's theoretical autocovariances $\Gamma_k(\theta)$ centre a conjugate Normal-inverted-Wishart prior for a VAR. One hyperparameter $\lambda$ sets how many artificial DSGE observations the prior is worth, so the log marginal data density $\ln p(Y \mid \lambda, \theta)$ traced over $\lambda$ shows how much weight the data want to put on the DSGE restrictions.
 #
-# 3. **News and Anticipated Structural Shocks** (Beaudry & Portier 2006; Schmitt-Grohé & Uribe 2012):
-#    Many macroeconomic shocks—such as tax reforms, technological breakthroughs, and monetary policy forward guidance—are announced quarters or years before taking effect. Modeling anticipated shocks requires augmenting the linear companion state-space with strictly nilpotent shift matrices $K_H$, ensuring that predetermined physical states remain completely unaffected prior to realization while forward-looking asset prices and controls jump immediately at date $t=0$.
+# 3. **News (anticipated) shocks** (Beaudry & Portier 2006; Schmitt-Grohé & Uribe 2012):
+#    Tax reforms, technology and forward guidance are often announced before they take effect. Anticipated shocks are added through a nilpotent shift matrix $K_H$: the shocked exogenous state does not move before the scheduled date, while forward-looking variables react at the announcement.
 #
-# In this interactive showcase, we explore these three frontier pillars alongside `puremacro`'s **Dynare macro preprocessor**, **formal rank identification diagnostics** (Iskrev 2010; Komunjer & Ng 2011), and **sub-2ms interactive IRF slider widgets**—all running in **100% pure Python** under the strict Pyodide four-package contract.
+# Along the way we use `puremacro`'s **Dynare macro preprocessor**, the **rank identification diagnostics** of Iskrev (2010) and Komunjer & Ng (2011), and the **interactive IRF slider widget**, all in pure Python under the Pyodide four-package contract. Every model here is a hand-built calibration and every dataset is simulated.
 
 # %% [markdown]
 # ## The Method in Math: Structural Invariants and Recursive Foundations
@@ -48,18 +48,18 @@
 # $$ \epsilon_t = \eta_t^0 + \sum_{l=1}^H \eta_{t-l}^l $$
 # Defining the companion news state vector $V_t = [\eta_t^1, \eta_t^2, \dots, \eta_t^H]'$, the law of motion is:
 # $$ V_t = K_H V_{t-1} + \xi_t, \quad K_H = \begin{bmatrix} 0 & 1 & 0 & \dots & 0 \\ 0 & 0 & 1 & \dots & 0 \\ \vdots & \vdots & \vdots & \ddots & 1 \\ 0 & 0 & 0 & \dots & 0 \end{bmatrix} $$
-# Since $K_H^H = \mathbf{0}$, the shift matrix $K_H$ has eigenvalues strictly equal to zero ($\rho(K_H) = 0$), mathematically guaranteeing that Blanchard-Kahn saddle-path determinacy of the original model is strictly preserved.
+# Since $K_H^H = \mathbf{0}$, all eigenvalues of $K_H$ are zero ($\rho(K_H) = 0$), so the augmentation adds only stable roots and leaves the Blanchard-Kahn count of the original model unchanged.
 
 # %% [markdown]
 # ## Intuition
 #
-# **Intuition.** Macroeconomic policymaking inherently balances three forward-looking challenges: policy credibility, model misspecification, and information delays.
+# **Intuition.** Three forward-looking problems run through this notebook: credibility, misspecification, and information that arrives before fundamentals change.
 #
-# First, when a central bank lacks institutional commitment mechanisms, it cannot credibly promise to keep future interest rates elevated to contain inflation expectations. Instead, the public understands that the policymaker will re-optimize period-by-period. This credibility deficit creates both an *inflation bias* (excess average inflation if output targets exceed natural capacity) and a *stabilization bias* (an inability to use forward guidance inertia to cushion unfavorable cost-push shocks).
+# First, a central bank without a commitment device cannot credibly promise to keep policy tight after a shock has faded, because the public knows it will re-optimize each period. The public then expects higher average inflation if the output target is above potential (*inflation bias*), and the bank loses the lever of promised future policy when a cost-push shock hits (*stabilization bias*).
 #
-# Second, while microfounded DSGE models provide structural counterfactuals, their tightly parameterized theoretical equations are inevitably misspecified against complex aggregate data. The DSGE-VAR hybrid approach resolves this dilemma by using the theoretical DSGE covariance matrix as an empirical prior for an unrestricted Vector Autoregression: by tuning the hyperparameter $\lambda$, the econometrician lets the data choose the optimal degree of theoretical discipline.
+# Second, a tightly parameterized DSGE model is at best an approximation to the data-generating process. The DSGE-VAR uses the model's covariances as a prior for an unrestricted VAR; the marginal likelihood over $\lambda$ tells us how many "model observations" the data are willing to trust.
 #
-# Third, financial markets and forward-looking consumers do not wait for policy changes or technological breakthroughs to occur before reacting. Announcements of future tax reforms or forward guidance (anticipated news shocks) trigger immediate jumps in asset prices, consumption, and inflation at date $t=0$, even though the physical underlying fundamentals remain completely unchanged until the shock actually materializes.
+# Third, forward-looking households and firms react to credible announcements. A technology improvement announced for four quarters from now moves expected real rates, output and inflation today, although productivity itself has not changed yet.
 
 # %%
 import sys
@@ -110,7 +110,7 @@ varexo eps_u;
 
 parameters beta sigma kappa phi_pi phi_y rho_u gamma_p;
 beta    = 0.99;   // Quarterly discount factor
-sigma   = 1.00;   // Intertemporal elasticity of substitution
+sigma   = 1.00;   // Inverse of the intertemporal elasticity of substitution
 kappa   = 0.50;   // Slope of NK Phillips Curve
 phi_pi  = 1.50;   // Taylor rule inflation coefficient
 phi_y   = 0.50;   // Taylor rule output gap coefficient
@@ -145,20 +145,24 @@ end;
 expanded_mod = preprocess_macro(NK_MACRO_SRC)
 model_nk = build_dynare(expanded_mod)
 
+# Blanchard-Kahn: as many stable generalized eigenvalues as predetermined states
+n_stable = int(np.sum(np.abs(model_nk.eigenvalues) < 1.0))
+
 print("--- Model Specification & Macro Expansion ---")
 print(f"Endogenous variables : {list(model_nk.variables)}")
 print(f"Predetermined states : {list(model_nk.states)}")
 print(f"Exogenous shocks     : {list(model_nk.shocks)}")
 print(f"Indexation included  : {'pi(-1)' in expanded_mod}")
-print(f"Blanchard-Kahn check : Determinate & stable (BK verified)")
+print(f"Stable roots         : {n_stable} (predetermined states: {model_nk.n_states}); determinate: {model_nk.is_determinate}")
 
 assert "pi" in model_nk.states, "Backward indexation should make pi a predetermined state"
 assert model_nk.n_states == 2  # [pi, u]
+assert model_nk.is_determinate and n_stable == model_nk.n_states
 
 # %% [markdown]
-# ### Live Parameter Sliders & Sub-2ms Klein (2000) QZ Re-solve
+# ### Live Parameter Sliders and Fast QZ Re-solves
 #
-# `puremacro` provides pure Matplotlib interactive parameter slider widgets (`interactive_irf`). On every slider adjustment, the QZ generalized Schur decomposition is recomputed in sub-2 milliseconds, updating all impulse response functions instantaneously with zero lag and zero browser dependencies.
+# `interactive_irf` builds a pure-Matplotlib slider widget. Each slider move re-solves the model with the generalized Schur (QZ) decomposition and redraws the impulse responses. For a model this small a re-solve takes a few milliseconds; the exact latency depends on the machine.
 
 # %%
 widget = interactive_irf(
@@ -169,19 +173,17 @@ widget = interactive_irf(
 )
 
 # Test instantaneous programmatic parameter update (mimicking slider drag)
-t0 = time.perf_counter()
 widget.set_value("phi_pi", 2.25)
-latency = (time.perf_counter() - t0) * 1000.0
 
 print("--- Interactive Slider Performance ---")
 print(f"Active parameters : {list(widget.get_values().keys())}")
-print(f"Live latency      : {widget.last_latency_ms:.2f} ms (Target < 2.0 ms)")
+print(f"Live latency      : {widget.last_latency_ms:.0f} ms (machine-dependent)")
 print(f"Updated phi_pi    : {widget.get_values()['phi_pi']:.2f}")
 
 # %% [markdown]
 # ### Formal Parameter Rank Identification (Iskrev 2010; Komunjer & Ng 2011)
 #
-# Before conducting policy optimization or Bayesian estimation, researchers must verify that structural parameters are locally identified. We evaluate both the Iskrev (2010) solution Jacobian $J_1$ and moment Jacobian $J_2$, alongside the Komunjer & Ng (2011) transfer function rank $J_H$ and spectral density rank $J_S$:
+# Before conducting policy optimization or Bayesian estimation, researchers must verify that structural parameters are locally identified. We evaluate both the Iskrev (2010) solution Jacobian $J_1$ and moment Jacobian $J_2$, alongside the Komunjer & Ng (2011) transfer function rank $J_H$ and spectral density rank $J_S$. All four observables ($y, \pi, r, u$) are treated as observed, and the Jacobians are evaluated at the calibration.
 
 # %%
 ident_res = identification(model_nk, lags=1)
@@ -193,13 +195,32 @@ print(f"J2 Moments Rank  : {ident_res.j2_rank} / {ident_res.n_params}")
 print(f"JH Transfer Rank : {ident_res.jh_rank} / {ident_res.n_params}")
 
 # %% [markdown]
+# The model is **not** identified at this calibration: every criterion has rank 5 of 7. The first null direction moves $\phi_\pi$ and $\phi_y$ up together. The cell below shows why: with $\sigma = 1$ and $\phi_\pi - \phi_y = 1$, the path $y_t = -\pi_t$ satisfies the IS curve exactly, so the Taylor rule only ever sees $(\phi_\pi - \phi_y)\,\pi_t$. We check that $y_t + \pi_t$ is zero along the cost-push response, and re-run the analysis at $\phi_y = 0.25$, which breaks the knife edge.
+
+# %%
+irf_u = model_nk.irf("eps_u", horizon=12)
+gap_y_pi = float(np.max(np.abs(irf_u["y"] + irf_u["pi"])))
+
+model_nk_alt = build_dynare(preprocess_macro(NK_MACRO_SRC.replace("phi_y   = 0.50;", "phi_y   = 0.25;")))
+ident_alt = identification(model_nk_alt, lags=1)
+
+print(f"max |y_t + pi_t| along the cost-push IRF : {gap_y_pi:.1e}")
+print(f"J2 rank at phi_y = 0.50                  : {ident_res.j2_rank} / {ident_res.n_params}")
+print(f"J2 rank at phi_y = 0.25                  : {ident_alt.j2_rank} / {ident_alt.n_params}")
+print(f"Remaining J2 null direction at 0.25      : {ident_alt.j2_null_combinations[0]}")
+
+assert gap_y_pi < 1e-10, "y = -pi must hold exactly when sigma = 1 and phi_pi - phi_y = 1"
+assert ident_res.j2_rank == ident_res.n_params - 2
+assert ident_alt.j2_rank == ident_res.j2_rank + 1
+
+# %% [markdown]
 # ## 2. Optimal Monetary Policy: Discretion vs Commitment
 #
-# We now contrast the time-consistent **Markov-perfect Discretionary Policy** (Dennis 2007) with the **Timeless-Perspective Commitment** benchmark.
+# We now contrast the time-consistent **Markov-perfect Discretionary Policy** (Dennis 2007) with the **commitment** benchmark: the Ramsey plan started from the steady state, whose law of motion is the timeless-perspective one.
 #
 # The central bank minimizes the quadratic loss function:
 # $$ \mathcal{L}_t = \mathbb{E}_t \sum_{\tau=0}^\infty \beta^\tau \left[ \pi_{t+\tau}^2 + 0.25 (y_{t+\tau} - y^*)^2 \right] $$
-# where $y^* = 0.05$ represents a 5% positive output gap target (e.g. compensating for monopolistic competition distortions).
+# where $y^* = 0.05$ is an output-gap target of 5% (for example, a response to monopolistic-competition distortions).
 
 # %%
 target_output = 0.05
@@ -222,76 +243,60 @@ print(policy_res.summary())
 # %% [markdown]
 # ### Welfare Quantification: Inflation Bias & Stabilization Bias
 #
-# 1. **Inflation Bias**: Because $y^* > 0$, the discretionary policymaker attempts to engineer unexpected inflation to boost output. Rational price-setters anticipate this incentive, pushing average inflation higher without any systematic output gain ($E[\pi^{\text{disc}}] > 0$). Under commitment, the central bank credibly promises zero average inflation ($E[\pi^{\text{comm}}] = 0$).
-# 2. **Stabilization Bias**: Following an unfavorable cost-push shock $u_t$, a committed central bank promises to hold future output below potential even after the shock dissipates. This manages private inflation expectations downward, substantially softening the contemporaneous tradeoff. Under discretion, the central bank lacks credibility to induce future slumps, forcing a much harsher recession today.
+# 1. **Inflation Bias**: Because $y^* > 0$, the discretionary policymaker is tempted to create surprise inflation to raise output. Price-setters anticipate this, so average inflation is higher without any systematic output gain ($E[\pi^{\text{disc}}] > 0$). Under commitment, average inflation is zero.
+# 2. **Stabilization Bias**: After a cost-push shock, a committed central bank promises to keep output below potential even after the shock has faded. That promise lowers expected inflation and softens the trade-off today. Under discretion no such promise is credible. The losses below are unconditional expectations (`loss_criterion="unconditional"`); `stabilization_bias` is their difference, and it is NaN when no commitment solution was computed.
 
 # %%
+loss_gain_pct = 100.0 * policy_res.stabilization_bias / policy_res.loss
+
 print("--- Welfare Bias Breakdown ---")
-print(f"Output Gap Target (y*)          : {target_output:+.4f}")
-print(f"Inflation Bias (E[pi] gap)      : {policy_res.inflation_bias:+.6f}")
-print(f"Expected Loss under Discretion  : {policy_res.loss:.6f}")
-print(f"Expected Loss under Commitment  : {policy_res.commitment_result.loss:.6f}")
-print(f"Stabilization Bias (Excess Loss): {policy_res.stabilization_bias:.6f}")
+print(f"Output Gap Target (y*)                : {target_output:+.4f}")
+print(f"Inflation Bias (E[pi] gap)            : {policy_res.inflation_bias:+.6f}")
+print(f"Expected Loss under Discretion        : {policy_res.loss:.4e}")
+print(f"Expected Loss under Commitment        : {policy_res.commitment_result.loss:.4e}")
+print(f"Stabilization Bias (Excess Loss)      : {policy_res.stabilization_bias:.4e}")
+print(f"Loss saved by commitment (% of disc.) : {loss_gain_pct:.1f}%")
 
 # Analytical assertions
 assert policy_res.converged, "Riccati policy iteration must converge"
 assert policy_res.inflation_bias > 0.0, "Positive y* must generate positive inflation bias"
-assert policy_res.stabilization_bias > 0.0, "Lack of commitment must generate positive stabilization bias"
+assert policy_res.stabilization_bias > 0.0, "At beta = 0.99 discretion also loses on average (unconditional loss)"
 
 # %% [markdown]
-# We plot the impulse responses to a cost-push shock ($u_t$) under Discretion versus Commitment.
+# We plot the impulse responses to a one-standard-deviation cost-push shock ($\sigma_u = 1\%$) under discretion and under commitment, computed from the two solved closed-loop models.
 
 # %%
 H = 16
-u_sim = np.zeros(H)
-u_sim[0] = 0.01
-for t in range(1, H):
-    u_sim[t] = 0.60 * u_sim[t-1]
+sd_u = float(np.sqrt(model_nk._shock_cov[0, 0]))  # stderr of eps_u from the shocks block
+irf_disc = policy_res.linear_model.irf("eps_u", horizon=H - 1) * sd_u * 100.0
+irf_comm = policy_res.commitment_result.linear_model.irf("eps_u", horizon=H - 1) * sd_u * 100.0
 
-# Discretion responses
-pi_disc = np.zeros(H)
-y_disc = np.zeros(H)
-r_disc = np.zeros(H)
-
-for t in range(H):
-    pi_disc[t] = 0.65 * u_sim[t] * (1.0 / (1.0 + 0.35 * t))
-    y_disc[t] = -1.15 * pi_disc[t]
-    r_disc[t] = 1.45 * pi_disc[t] + 0.3 * y_disc[t]
-
-# Under commitment, inflation is stabilized much faster due to forward guidance inertia
-pi_comm = pi_disc * 0.52 * np.exp(-0.25 * np.arange(H))
-y_comm = -0.65 * pi_disc - 0.008 * np.exp(-0.15 * np.arange(H))
-r_comm = 0.85 * pi_comm
+y0_disc, y0_comm = float(irf_disc["y"].iloc[0]), float(irf_comm["y"].iloc[0])
+pi0_disc, pi0_comm = float(irf_disc["pi"].iloc[0]), float(irf_comm["pi"].iloc[0])
+pi_min_comm = float(irf_comm["pi"].min())
+print(f"Impact output gap (pp)  : discretion {y0_disc:+.3f}, commitment {y0_comm:+.3f}")
+print(f"Impact inflation (pp)   : discretion {pi0_disc:+.3f}, commitment {pi0_comm:+.3f}")
+print(f"Lowest inflation under commitment (pp): {pi_min_comm:+.3f}")
+assert y0_disc < y0_comm < 0.0, "commitment dampens the impact recession"
+assert pi_min_comm < 0.0 < float(irf_disc["pi"].min()), "only commitment undershoots inflation"
 
 fig, axes = _nbstyle.figura(1, 3, figsize=(13, 3.8))
-
-axes[0].plot(np.arange(H), pi_disc * 100, label="Discretion", color=_nbstyle.S2["color"], lw=2.2)
-axes[0].plot(np.arange(H), pi_comm * 100, label="Commitment", color=_nbstyle.S1["color"], lw=2.2, linestyle="--")
-axes[0].set_title(r"Inflation $\pi_t$ (% dev)", fontweight="bold")
-axes[0].set_xlabel("Quarters")
-axes[0].grid(True, linestyle=":", alpha=0.6)
-axes[0].legend()
-
-axes[1].plot(np.arange(H), y_disc * 100, label="Discretion", color=_nbstyle.S2["color"], lw=2.2)
-axes[1].plot(np.arange(H), y_comm * 100, label="Commitment", color=_nbstyle.S1["color"], lw=2.2, linestyle="--")
-axes[1].set_title(r"Output Gap $y_t$ (% dev)", fontweight="bold")
-axes[1].set_xlabel("Quarters")
-axes[1].grid(True, linestyle=":", alpha=0.6)
-axes[1].legend()
-
-axes[2].plot(np.arange(H), r_disc * 100, label="Discretion", color=_nbstyle.S2["color"], lw=2.2)
-axes[2].plot(np.arange(H), r_comm * 100, label="Commitment", color=_nbstyle.S1["color"], lw=2.2, linestyle="--")
-axes[2].set_title(r"Nominal Rate $r_t$ (% dev)", fontweight="bold")
-axes[2].set_xlabel("Quarters")
-axes[2].grid(True, linestyle=":", alpha=0.6)
-axes[2].legend()
+for ax, var, title in zip(axes, ["pi", "y", "r"],
+                          [r"Inflation $\pi_t$ (pp)", r"Output Gap $y_t$ (pp)", r"Nominal Rate $r_t$ (pp)"]):
+    ax.plot(np.arange(H), irf_disc[var].to_numpy(), label="Discretion", color=_nbstyle.S2["color"], lw=2.2)
+    ax.plot(np.arange(H), irf_comm[var].to_numpy(), label="Commitment", color=_nbstyle.S1["color"], lw=2.2, linestyle="--")
+    ax.axhline(0.0, color=_nbstyle.SPINE, lw=0.8, linestyle=":")
+    ax.set_title(title, fontweight="bold")
+    ax.set_xlabel("Quarters")
+    ax.grid(True, linestyle=":", alpha=0.6)
+    ax.legend()
 
 # %% [markdown]
 # ## 3. DSGE-VAR Hybrid Modeling (Del Negro & Schorfheide 2004)
 #
 # Next, we bridge the theoretical DSGE model with an unrestricted VAR(1) system for macroeconomic time series $Y_t = [y_t, \pi_t, r_t]'$.
 #
-# First, we specify an informative 3-shock New Keynesian model with technology ($a_t$), cost-push ($u_t$), and monetary policy ($r_t$) innovations. We simulate $T=250$ quarters of synthetic data from the true DGP, and evaluate the log marginal data density across the prior tightness grid $\lambda \in [0.25, 5.0]$:
+# First, we specify a 3-shock New Keynesian model with technology ($a_t$), cost-push ($u_t$), and monetary policy ($r_t$) innovations. We simulate $T=250$ quarters of synthetic data **from this same model** and evaluate the log marginal data density across the prior tightness grid $\lambda \in [0.25, 5.0]$:
 
 # %%
 NK_DSGE_VAR_MOD = """
@@ -347,10 +352,11 @@ print(res_dvar.summary())
 # %% [markdown]
 # ### Marginal Data Density Optimization Profile
 #
-# We plot the log marginal data density $\ln p(Y \mid \lambda, \theta)$ as a function of the prior weight $\lambda$. An interior peak demonstrates that incorporating structural theory improves upon the pure data-driven VAR, while penalizing excessive dogmatic theoretical rigidity:
+# We plot the log marginal data density $\ln p(Y \mid \lambda, \theta)$ as a function of the prior weight $\lambda$. An interior peak would say that some but not all of the DSGE restrictions help; a peak at the largest $\lambda$ says the data want as much of the model as the grid allows.
 
 # %%
 grid_df = res_dvar.log_mdd_grid
+mdd_steps = np.diff(grid_df["log_mdd"].to_numpy())
 
 fig, ax = _nbstyle.figura(1, 1, figsize=(7.5, 4.0))
 ax.plot(grid_df["lambda"], grid_df["log_mdd"], marker="o", color=_nbstyle.S1["color"], lw=2.2, label=r"Log MDD $\ln p(Y \mid \lambda)$")
@@ -361,19 +367,21 @@ ax.set_ylabel("Log Marginal Data Density")
 ax.grid(True, linestyle=":", alpha=0.6)
 ax.legend(loc="lower right")
 
-print(f"Optimal prior weight hat(lambda) : {res_dvar.hat_lambda:.4f}")
+print(grid_df.round(2).to_string(index=False))
+print(f"Optimal prior weight hat(lambda) : {res_dvar.hat_lambda:.4f} (largest grid value: {max(lambda_grid):.2f})")
 print(f"Log MDD at optimum               : {res_dvar.log_mdd:.2f}")
+print(f"Log MDD rises at every grid step : {bool(np.all(mdd_steps > 0))}")
 
 # %% [markdown]
 # ## 4. Anticipated & News Shocks Engine (Beaudry & Portier 2006)
 #
 # How do economies react to credible announcements of future innovations?
 #
-# We examine an anticipated technology news shock announced at $t=0$ with a lead of $k=4$ quarters. That is, news arrives today that total factor productivity will rise by 1% in four quarters ($t=4$).
+# We examine an anticipated technology news shock announced at $t=0$ with a lead of $k=4$ quarters: news arrives today that the technology process $a_t$ will receive a unit innovation at $t=4$.
 #
-# Macroeconomic theory establishes three fundamental properties of news shocks:
-# 1. **Zero State Revision**: Physical predetermined states cannot jump ahead of time ($a_t = 0$ for $t < 4$).
-# 2. **Forward-Looking Control Jump**: Because households and firms form rational expectations, consumption, output, and inflation jump immediately at $t=0$ upon hearing the announcement.
+# The construction guarantees three properties that we check numerically:
+# 1. **Zero State Revision**: The exogenous technology state cannot move ahead of time ($a_t = 0$ for $t < 4$).
+# 2. **Forward-Looking Control Jump**: Because households and firms form rational expectations, output, inflation and the policy rate move at $t=0$ upon hearing the announcement.
 # 3. **Exact Shock Materialization**: At date $t=4$, the shock innovation realizes exactly ($a_4 = 1.0$).
 
 # %%
@@ -396,10 +404,10 @@ impact_pi = pi_path[0]
 realiz_a = a_path[4]
 
 print("\n--- Empirical Verification of News Properties ---")
-print(f"1. Max physical state revision for t < 4 : {max_pre_realiz_a:.2e} (Strictly 0.0)")
-print(f"2. Output gap jump at announcement (t=0) : {impact_y:+.4f} (Forward jump)")
-print(f"3. Inflation jump at announcement (t=0)  : {impact_pi:+.4f} (Forward jump)")
-print(f"4. Exact realization at date t=4        : {realiz_a:+.4f} (Exact unit shock)")
+print(f"1. Max physical state revision for t < 4 : {max_pre_realiz_a:.1e} (0 up to rounding)")
+print(f"2. Output gap jump at announcement (t=0) : {impact_y:+.4f}")
+print(f"3. Inflation jump at announcement (t=0)  : {impact_pi:+.4f}")
+print(f"4. Exact realization at date t=4        : {realiz_a:+.4f} (unit innovation)")
 
 assert np.isclose(max_pre_realiz_a, 0.0, atol=1e-12), "Predetermined state cannot change before realization"
 assert not np.isclose(impact_pi, 0.0, atol=1e-4), "Forward-looking controls must jump at announcement"
@@ -446,7 +454,7 @@ axes[1, 1].legend()
 # %% [markdown]
 # ### Forecast Error Variance Decomposition: Surprise vs. News Leads
 #
-# What fraction of business cycle volatility is driven by anticipated news versus surprise shocks? We perform an automated Forecast Error Variance Decomposition (FEVD) across surprise innovations and news leads $k \in \{1, 2, 4, 8\}$:
+# What fraction of the forecast-error variance of each variable comes from the surprise component and from each news lead $k \in \{1, 2, 3, 4\}$? `decompose_news` gives the surprise and every lead a **unit innovation variance**, so these shares describe the propagation of equally sized innovations, not an estimate of how important news is in the data.
 
 # %%
 decomp = decompose_news(m_dsge_var, shock="eps_a", max_lead=4, horizon=16)
@@ -474,25 +482,27 @@ print(decomp.to_markdown())
 # ## Read the output
 #
 # **Read the output.**
-# 1. **Dynare Macro Processing & Rank Identification**: The recursive macro preprocessor evaluates conditional blocks (`@#if USE_INDEXATION`) transparently, establishing `pi` as a predetermined state ($n_{\text{states}} = 2$). The formal rank identification criteria of Iskrev (2010) and Komunjer & Ng (2011) confirm full rank across the first-order solution Jacobian ($J_1$), theoretical autocovariances ($J_2$), and the transfer function ($J_H$), guaranteeing structural parameter identifiability before estimation.
-# 2. **Optimal Policy Tradeoffs (Discretion vs. Commitment)**: Because the central bank pursues an ambitious output target ($y^* = 0.05$), discretionary period-by-period optimization generates a strictly positive inflation bias ($\mathbb{E}[\pi^{\text{disc}}] = +0.0248$), whereas commitment credibly pins average inflation to zero. Following an unfavorable cost-push shock, the stabilization bias manifests as an excessive contemporaneous recession under discretion, whereas a committed policymaker exploits forward guidance inertia to spread disinflation smoothly over time, reducing expected welfare loss by over $40\%$.
-# 3. **DSGE-VAR Optimal Prior Weight ($\hat{\lambda}$)**: The log marginal data density curve displays a well-defined interior maximum at $\hat{\lambda} \approx 1.00\text{--}1.50$. This demonstrates that incorporating microfounded general equilibrium restrictions substantially improves out-of-sample likelihood over an unrestricted VAR ($\lambda \to \lambda_{\min}$), while avoiding the empirical misspecification penalties of a dogmatically rigid DSGE model ($\lambda \to \infty$).
-# 4. **News Shock Dynamics & Nilpotent Invariance**: For an anticipated technology shock announced 4 quarters in advance ($k=4$), physical productivity remains exactly zero prior to date $t=4$ ($\max_{t<4}|a_t| \le 10^{-12}$), while forward-looking inflation and the output gap jump immediately at date $t=0$. At $t=4$, the shock materializes with unit standard deviation ($a_4 = 1.000$). The nilpotent shift matrix $K_H$ preserves the original Blanchard-Kahn eigenvalues without introducing spurious roots.
+# 1. **Macro processing and identification.** The preprocessor keeps the indexation branch, so `pi` becomes a predetermined state; the model has 2 stable roots for its 2 states and is determinate. It is **not** identified at this calibration: $J_1$, $J_2$, $J_H$ and $J_S$ all have rank 5 of 7. One null direction raises $\phi_\pi$ and $\phi_y$ together; it exists because $\sigma = 1$ and $\phi_\pi - \phi_y = 1$ make $y_t = -\pi_t$ an exact equilibrium relation (max $|y_t + \pi_t|$ is below 1e-12 along the cost-push response), so the rule only reveals $\phi_\pi - \phi_y$. At $\phi_y = 0.25$ the $J_2$ rank rises to 6 of 7; the remaining null direction is a combination of $\beta$, $\kappa$ and $\gamma_p$, the Phillips-curve parameters that a single shock cannot separate. Passing this check is necessary before estimation; failing it, as here, means the likelihood is flat along those directions.
+# 2. **Discretion versus commitment.** With $y^* = 0.05$, discretion produces an inflation bias of +0.024752, while commitment keeps average inflation at zero. The unconditional loss is 1.5475e-04 under discretion and 1.1763e-04 under commitment, so commitment saves 24.0% of the discretionary loss (stabilization bias 3.7124e-05). The impulse responses show how: after a one-s.d. cost-push shock, output falls by 1.495 pp on impact under discretion but by 1.188 pp under commitment, and commitment keeps output below potential for longer and lets inflation undershoot (its lowest value is -0.100 pp) instead of letting it decay from above.
+# 3. **DSGE-VAR.** The log marginal data density rises at every step of the grid, from 2820.55 at $\lambda = 0.25$ to 2829.49 at $\lambda = 5$, so $\hat{\lambda} = 5.0$ sits at the upper edge of the grid. This is a corner, not an interior optimum: the data were simulated from the very model that centres the prior, so the more weight the prior gets, the better. With real data or a misspecified prior model (see the intermediate exercise below) the profile can peak at small $\lambda$.
+# 4. **News shocks.** For technology news four quarters ahead, the exogenous state stays at zero before $t = 4$ (largest deviation below 1e-12) and then realizes exactly ($a_4 = 1.0000$). Output (+0.0983), inflation (+0.1271) and the policy rate (+0.2153) all move at the announcement, and output keeps rising until it peaks at +0.5756 in quarter 3, just before the innovation lands. With equal innovation variances, news accounts for 96.9% of the 16-quarter forecast-error variance of output and 81.9% of inflation; these shares reflect the unit-variance assumption, not data.
 
 # %% [markdown]
 # ## Your turn
 #
+# The cell below re-solves discretion for another output target and news shocks for another lead. It checks two things that must hold for any admissible choice: the inflation bias is linear in $y^*$ (it is a linear-quadratic problem), and the output response at the announcement obeys the IS curve iterated forward, $y_0 = -\sum_{t\ge 0}(r_t - \pi_{t+1}) - a_0$, with the Taylor rule splitting the cumulative real rate into $(\phi_\pi - 1)\sum_t \pi_t + \phi_y \sum_t y_t + \pi_0$.
+#
 # **Prompts.**
-# 1. *Basic*: Modify the central bank's output gap target (`target_output_yt = 0.02` vs `0.08`) and observe how the inflation bias responds monotonically.
-# 2. *Intermediate*: Test an alternative news shock anticipation lead (`lead_yt = 2` vs `8` quarters) and observe how the announcement jump at date $t=0$ changes with the anticipation horizon.
-# 3. *Stretch*: Estimate the DSGE-VAR with a finer lambda grid (`lambda_grid_yt = np.linspace(0.2, 3.0, 15)`) on synthetic data with higher shock noise, and observe whether the optimal prior weight $\hat{\lambda}$ shifts towards the data-driven VAR or the structural DSGE.
+# 1. *Basic — where the inflation bias comes from.* Rebuild the Section 1 model without indexation (replace `@#define USE_INDEXATION = 1` by `= 0`). From the discretionary first-order condition $\kappa \pi + \lambda_y (y - y^*) = 0$ and the steady-state Phillips curve $(1 - \beta)\pi = \kappa y$, derive average inflation $\bar{\pi}(\kappa)$ in closed form and compare it with `optimal_policy(..., rule="discretion", y_star=target_output).inflation_bias` (they should agree to 1e-9). Then find analytically the $\kappa^*$ that maximises $\bar{\pi}$, and confirm it: rebuild the model for $\kappa = 0.01, 0.015, \dots, 0.20$ and check that the library's argmax is within one grid step of your $\kappa^*$. Why does the bias vanish as $\kappa \to 0$ when $\beta < 1$, why does it fall for large $\kappa$, and what would happen with $\beta = 1$?
+# 2. *Intermediate — is $\hat{\lambda}$ a misspecification detector?* Simulate $T = 250$ quarters (seed 123) from a copy of `NK_DSGE_VAR_MOD` with interest-rate smoothing, `r = 0.8*r(-1) + 0.2*(phi_pi*pi + phi_y*y) + eps_r;`, and re-estimate the DSGE-VAR with the prior still centred on the static-rule model. Check that $\hat{\lambda}$ falls to the lower corner of its search range while the correctly specified run above stays at the upper corner, and that the misspecified log-MDD profile decreases at every step. Why can the two profiles' shapes be compared but not their levels? Repeat with seeds 1 and 2.
+# 3. *Stretch — why the announcement effect changes sign.* Run `lead_yt = 2, 4, 8` in the cell below and record $y_0$. Use the printed split of the cumulative real rate to explain why output rises at the announcement for short leads but falls at $L = 8$. Which parts of the rate path are promised easing, and which are anticipatory tightening? Between which two leads does the sign flip?
 
 # %%
-# Your turn: customize policy target or news shock anticipation lead
-# ← change this: test output target y_star_yt = 0.02, 0.05, or 0.08
+# ← change this: output target y*, any value in [0.01, 0.10]
 target_output_yt = 0.08
-# ← change this: test news shock lead_yt = 2, 4, or 8 quarters
+# ← change this: news lead in quarters, any integer in [1, 12]
 lead_yt = 2
+assert 0.01 <= target_output_yt <= 0.10 and lead_yt in range(1, 13)
 
 # 1. Re-solve optimal policy under custom output gap target
 policy_yt = optimal_policy(
@@ -505,33 +515,34 @@ policy_yt = optimal_policy(
     tol=1e-9,
 )
 
-# 2. Re-solve news IRF under custom anticipation horizon
-news_yt = news_irf(m_dsge_var, shock="eps_a", lead=lead_yt, horizon=16)
+# 2. Re-solve news IRF under custom anticipation horizon (long horizon so the sums converge)
+irf_yt = news_irf(m_dsge_var, shock="eps_a", lead=lead_yt, horizon=200).irf
+y_n, pi_n, r_n, a_n = (irf_yt[k].to_numpy() for k in ("y", "pi", "r", "a"))
+cum_rr = float(np.sum(r_n[:-1] - pi_n[1:]))
+split = ((1.5 - 1.0) * pi_n.sum(), 0.25 * y_n.sum(), pi_n[0])  # phi_pi = 1.5, phi_y = 0.25 in NK_DSGE_VAR_MOD
 
 print(f"Optimal Policy (y* = {target_output_yt:+.2f}):")
 print(f"  Inflation bias : {policy_yt.inflation_bias:+.6f} (Baseline y*=0.05: {policy_res.inflation_bias:+.6f})")
-print(f"  Excess loss    : {policy_yt.stabilization_bias:.6f}")
+print(f"  Bias per unit of y*: {policy_yt.inflation_bias / target_output_yt:.6f} (baseline {policy_res.inflation_bias / target_output:.6f})")
 print(f"News Shock (Lead = {lead_yt} quarters):")
-print(f"  Impact jump in output (t=0) : {news_yt.irf['y'].iloc[0]:+.4f}")
-print(f"  Impact jump in infl   (t=0) : {news_yt.irf['pi'].iloc[0]:+.4f}")
-print(f"  State at realization (t={lead_yt})  : {news_yt.irf['a'].iloc[lead_yt]:+.4f}")
+print(f"  Output at announcement y0      : {y_n[0]:+.4f}")
+print(f"  Minus cumulative real rate     : {-cum_rr:+.4f}")
+print(f"  Split (phi_pi-1)*sum(pi), phi_y*sum(y), pi0 : {split[0]:+.4f}, {split[1]:+.4f}, {split[2]:+.4f}")
+print(f"  State at realization (t={lead_yt})  : {a_n[lead_yt]:+.4f}")
 
 # Downstream automated assertions
 assert policy_yt.converged
-assert policy_yt.inflation_bias > 0.0
-if target_output_yt > target_output:
-    assert policy_yt.inflation_bias > policy_res.inflation_bias, "Larger y* must increase inflation bias"
-elif target_output_yt < target_output:
-    assert policy_yt.inflation_bias < policy_res.inflation_bias, "Smaller y* must decrease inflation bias"
-assert np.isclose(news_yt.irf['a'].iloc[lead_yt], 1.0, atol=1e-6)
-assert np.isclose(np.max(np.abs(news_yt.irf['a'].iloc[:lead_yt])), 0.0, atol=1e-12)
+assert abs(policy_yt.inflation_bias / target_output_yt - policy_res.inflation_bias / target_output) < 1e-9, "bias must be linear in y*"
+assert abs(y_n[0] + cum_rr + a_n[0]) < 1e-8, "IS curve iterated forward"
+assert abs(cum_rr - sum(split)) < 1e-8, "Taylor-rule split of the cumulative real rate"
+assert np.isclose(a_n[lead_yt], 1.0, atol=1e-6) and np.max(np.abs(a_n[:lead_yt])) < 1e-12
 
 # %% [markdown]
 # ## How comprehensive is this?
 #
 # `puremacro.dsge` unifies the advanced frontier of structural rational expectations modeling in 100% pure Python:
-# - `optimal_policy`: Solves Markov-perfect discretionary policy (Dennis 2007; Oudiz & Sachs 1985) via matrix Riccati policy iteration and compares against timeless commitment (Clarida, Gali & Gertler 1999), quantifying inflation and stabilization bias.
+# - `optimal_policy`: Solves Markov-perfect discretionary policy (Dennis 2007; Oudiz & Sachs 1985) via matrix Riccati policy iteration and compares it with commitment from the steady state (Clarida, Galí & Gertler 1999), quantifying inflation and stabilization bias. Notebook 66 checks these solvers against the closed forms of Clarida, Galí & Gertler (1999).
 # - `estimate_dsge_var`: Implements Del Negro & Schorfheide (2004) DSGE-VAR($\lambda$) modeling, linking analytical cross-equation moments to inverted Wishart priors for formal model misspecification testing.
-# - `news_irf` and `decompose_news`: Provides state-space nilpotent companion augmentation for anticipated news shocks (Beaudry & Portier 2006; Schmitt-Grohé & Uribe 2012) and automated news-versus-surprise variance decompositions.
+# - `news_irf` and `decompose_news`: Provides state-space nilpotent companion augmentation for anticipated news shocks (Beaudry & Portier 2006; Schmitt-Grohé & Uribe 2012) and news-versus-surprise variance decompositions under equal innovation variances.
 # - `preprocess_macro`: Pure-Python Dynare macro preprocessor resolving `@#define`, `@#for`, `@#if`, and variable interpolation before AST compilation.
 # - `identification`: Computes Iskrev (2010) and Komunjer & Ng (2011) rank identification criteria across dynamic Jacobians, autocovariance moments, and spectral transfer functions.

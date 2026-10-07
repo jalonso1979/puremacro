@@ -1,30 +1,62 @@
-"""Sun-Abraham (2021) interaction-weighted estimator.
+"""Sun-Abraham (2021) interaction-weighted (IW) event-study estimator.
 
-The SA estimator is mathematically equivalent to a Callaway-Sant'Anna
-event-study aggregation: it computes cohort-specific average treatment
-effects ``ATT(e, g) = E[Y_{g+e} − Y_{g-1} | G = g] − (control trend)``
-and aggregates across cohorts at each event time ``e`` using the
-**share of treated units in cohort g**:
+Sun and Abraham estimate every cohort-specific effect
+``CATT(e, l) = E[Y_{e+l} − Y_{e-1} | E = e] − (control trend)`` (their eq. 28
+with pre-period ``s = e − 1``) and average them at each relative period ``l``
+with the **sample share of each cohort** among the cohorts observed there
+(their eq. 27; the weights are Pr{E_i = e | E_i in h_l}):
 
-    ATT_SA(e) = Σ_g  (n_g / Σ_{g'} n_{g'}) · ATT(e, g)
+    nu_l = Σ_e  (n_e / Σ_{e' in h_l} n_{e'}) · CATT(e, l)
 
-Implemented here as a thin wrapper over
-:func:`puremacro.did.callaway_santanna` — the underlying ATT(g, t)
-matrix is the same; SA differs only in the aggregation weights
-(equal-cohort-share vs. CS's default unweighted cohort-mean).
+Without covariates and with never-treated controls, Sun and Abraham note that
+their approach "coincides with Callaway and Sant'Anna" (arXiv:1804.05785,
+p. 24): the CATT(e, l) are the Callaway-Sant'Anna ATT(g, g+l) and nu_l is CS's
+event study theta_es(l) (CS 2021 eq. 3.4), which also weights by cohort size.
+The two estimators do **not** differ in how they weight cohorts. This function
+therefore reuses the group-time estimates *and the joint bootstrap draws* of
+:func:`puremacro.did.callaway_santanna`.
+
+Inference
+---------
+The IW estimate is a weighted sum of cohort estimates that share the same
+control units, so they are correlated. Its variance (SA Online Appendix,
+Proposition 6, eqs. 72-73, p. 48) is the full quadratic form in the weights
+plus a term for estimating the weights. The standard error reported here is
+the standard deviation of the aggregate over joint unit-level bootstrap draws,
+in which both the cohort effects and the cohort shares are re-estimated, so
+both parts are included. ``lo``/``hi`` are the normal band ``att -/+ z se``.
+Up to puremacro 4.3.0 the aggregate ``se`` was ``sqrt(Σ w² se_g²)``, which
+treats the cohorts as independent; it was between 0.6 and 1.4 times the
+Monte Carlo truth depending on the error process.
 
 References
 ----------
 Sun, L. and Abraham, S. (2021). Estimating dynamic treatment effects
     in event studies with heterogeneous treatment effects. JoE 225(2).
+Callaway, B. and Sant'Anna, P.H.C. (2021). Difference-in-differences with
+    multiple time periods. JoE 225(2), 200-230.
 """
 from __future__ import annotations
 
 import pandas as pd
 from scipy.stats import norm as _norm
 
-from .callaway_santanna import callaway_santanna, _resolve_control
+from .callaway_santanna import (
+    _AGGREGATIONS,
+    _ESTIMANDS,
+    _att_gt_frame,
+    _cs_fit,
+    _event_vcov_frame,
+    _maybe_int,
+    _n_cohorts,
+    _percentile_band,
+    _resolve_aggregation,
+    _resolve_control,
+)
 from ._results import SunAbrahamResult
+
+#: Overall summaries built from interaction-weighted (cohort-share) weights.
+_SA_AGGREGATIONS = ("simple", "group", "dynamic", "calendar")
 
 
 def sun_abraham(
@@ -40,11 +72,14 @@ def sun_abraham(
     seed: int = 0,
     ci: float | None = None,
     control_group: str | None = None,
+    aggregation: str = "simple",
 ) -> SunAbrahamResult:
-    """Sun-Abraham interaction-weighted event-study aggregation.
+    """Sun-Abraham interaction-weighted event study.
 
-    Re-aggregates the same group-time effects estimated by
-    :func:`callaway_santanna` using cohort-size shares as weights.
+    Averages the cohort-specific effects estimated by
+    :func:`callaway_santanna` at each relative period, with the sample share
+    of each cohort among the cohorts observed at that period as weights
+    (Sun & Abraham 2021, eq. 27).
 
     Parameters
     ----------
@@ -54,99 +89,100 @@ def sun_abraham(
         Column names. ``treat_time`` is the per-unit first-treatment
         period (NaN for never-treated controls).
     control : {"never_treated", "not_yet_treated"}, default "never_treated"
-        Control group used by the underlying CS step.
+        Control group used by the underlying 2x2 comparisons.
     n_boot : int, default 200
-        Panel-bootstrap replications for SEs (units are resampled).
+        Panel-bootstrap replications (whole units are resampled; the cohort
+        effects and the cohort shares are re-estimated jointly on each draw).
     alpha : float, default 0.10
         Two-sided coverage = ``1 − α`` (so 0.10 ⇒ 90 % CIs).
     seed : int, default 0
-        RNG seed for the bootstrap.
+        RNG seed for the bootstrap. With the same seed the draws are the
+        ones :func:`callaway_santanna` uses, so the two event-study ``se``
+        columns coincide.
     ci : float, optional
         Confidence interval coverage (alpha = 1.0 - ci).
     control_group : str, optional
         Alias for ``control`` (the ``csdid`` / R ``did`` spelling).
+    aggregation : {"simple", "group", "dynamic", "calendar"}, default "simple"
+        Overall summary reported as ``att_overall`` (cohort-size weights
+        throughout; equation numbers of Callaway & Sant'Anna 2021):
+        ``"simple"`` — every post-treatment cell weighted by cohort size
+        (eq. 3.10, the value this function has always returned);
+        ``"group"`` — eq. 3.11; ``"dynamic"`` — the mean of the event-study
+        coefficients over ``e >= 0``, which is Sun and Abraham's own
+        nu_g (eq. 25) for g = the post-treatment periods; ``"calendar"`` —
+        eq. 3.12.
 
     Returns
     -------
     SunAbrahamResult
         Frozen dataclass with ``att_gt`` (group-time effects, identical
-        to the CS estimator), ``att_event_study`` (cohort-share-weighted
-        aggregation), and ``att_overall``.
+        to the CS estimator), ``att_event_study`` (interaction-weighted
+        nu_l with joint-bootstrap ``se`` and normal band), ``att_overall``
+        with ``att_overall_se``/``_lo``/``_hi``, ``overall_aggregations``
+        and ``event_study_vcov``.
 
     References
     ----------
     Sun, L. and Abraham, S. (2021). Estimating dynamic treatment effects
         in event studies with heterogeneous treatment effects. JoE
-        225(2), 175-199.
+        225(2), 175-199. IW estimator: eq. 27; variance: Online Appendix,
+        Proposition 6.
     """
     if ci is not None:
         alpha = 1.0 - ci
     control = _resolve_control(control, control_group)
+    try:
+        aggregation = _resolve_aggregation(aggregation, _SA_AGGREGATIONS)
+    except ValueError as exc:
+        raise ValueError(
+            f"{exc}. The interaction-weighted estimator weights cohorts by "
+            "their share by construction; the equal-weight 'unweighted' rule "
+            "is available only as callaway_santanna(aggregation='unweighted')"
+        ) from None
 
-    cs = callaway_santanna(
-        df, unit=unit, time=time, outcome=outcome,
-        treat_time=treat_time, control=control,
-        n_boot=n_boot, alpha=alpha, seed=seed,
+    fit = _cs_fit(
+        df, unit=unit, time=time, outcome=outcome, treat_time=treat_time,
+        control=control, n_boot=n_boot, seed=seed,
     )
-    att_gt = cs.att_gt
-
-    # Cohort sizes.
-    cohort_sizes = (
-        df.dropna(subset=[treat_time])
-          .groupby(treat_time)[unit]
-          .nunique()
-          .rename("n_g")
-    )
-    att_gt = att_gt.merge(cohort_sizes, left_on="g", right_index=True, how="left")
-
-    # Cohort-share-weighted aggregation per event time.
-    #
-    # `se` aggregates as the standard error of a weighted sum,
-    # sqrt(sum_i w_i^2 se_i^2), which is right. The band must be built from
-    # THAT, not by averaging the per-cohort endpoints: sum_i w_i lo_i is a
-    # weighted mean of the interval edges, and a weighted mean of standard
-    # errors is not the standard error of a weighted mean. With K equally
-    # weighted cohorts of equal precision it overstates the half-width by a
-    # factor of exactly sqrt(K) -- measured 1.73 at K = 3 and 1.37 at K = 2 on
-    # a synthetic staggered panel -- so the reported interval contradicted the
-    # `se` sitting beside it in the same row.
-    #
-    # The per-cohort lo/hi are bootstrap percentiles, but those draws are
-    # internal to `callaway_santanna` and are not exposed here, so the
-    # aggregate band is a normal approximation around the aggregated point and
-    # standard error. That is a genuine change of method for this column -- a
-    # percentile band would need the draws threaded through -- and it is the
-    # one choice available that agrees with the `se` this function already
-    # reports.
     z = float(_norm.ppf(1.0 - alpha / 2.0))
-    es_rows = []
-    for e, sub in att_gt.groupby("event_time"):
-        w = sub["n_g"].values.astype(float)
-        w = w / w.sum() if w.sum() > 0 else w
-        att_e = float((w * sub["att"].values).sum())
-        se_e = float(((w ** 2) * (sub["se"].values ** 2)).sum() ** 0.5)
-        es_rows.append({
-            "event_time": e,
-            "att": att_e,
-            "se":  se_e,
-            "lo":  att_e - z * se_e,
-            "hi":  att_e + z * se_e,
-            "n_cohorts": int(len(sub)),
-        })
-    es_df = pd.DataFrame(es_rows).sort_values("event_time").reset_index(drop=True)
 
-    post = att_gt[att_gt["event_time"] >= 0]
-    if len(post) == 0:
-        att_overall = float("nan")
-    else:
-        w = post["n_g"].values.astype(float)
-        w = w / w.sum() if w.sum() > 0 else w
-        att_overall = float((w * post["att"].values).sum())
+    # Event study: nu_l, with the SD of the aggregate over the joint draws.
+    es_point = fit.point["es"]
+    se_es = _percentile_band(fit.boot_es, es_point, alpha)[0]
+    es_df = pd.DataFrame({
+        "event_time": [_maybe_int(e) for e in fit.lay.event_levels],
+        "att": es_point,
+        "se": se_es,
+        "lo": es_point - z * se_es,
+        "hi": es_point + z * se_es,
+        "n_cohorts": _n_cohorts(fit),
+    }).sort_values("event_time").reset_index(drop=True)
+
+    cols = [_AGGREGATIONS.index(a) for a in _SA_AGGREGATIONS]
+    o_point = fit.point["overall"][cols]
+    o_se = _percentile_band(fit.boot_overall[:, cols], o_point, alpha)[0]
+    overall = pd.DataFrame({
+        "aggregation": list(_SA_AGGREGATIONS),
+        "estimand": [_ESTIMANDS[a] for a in _SA_AGGREGATIONS],
+        "att": o_point,
+        "se": o_se,
+        "lo": o_point - z * o_se,
+        "hi": o_point + z * o_se,
+    })
+    k = _SA_AGGREGATIONS.index(aggregation)
 
     return SunAbrahamResult(
-        att_gt=att_gt.drop(columns=["n_g"]),
+        att_gt=_att_gt_frame(fit, alpha),
         att_event_study=es_df,
-        att_overall=att_overall,
+        att_overall=float(o_point[k]),
+        att_overall_se=float(o_se[k]),
+        att_overall_lo=float(o_point[k] - z * o_se[k]),
+        att_overall_hi=float(o_point[k] + z * o_se[k]),
+        aggregation=aggregation,
+        alpha=float(alpha),
+        overall_aggregations=overall,
+        event_study_vcov=_event_vcov_frame(fit, fit.boot_es),
     )
 
 

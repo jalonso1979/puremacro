@@ -1,0 +1,64 @@
+[jupytext] Reading 10_staggered_did.py in format py
+[jupytext] Setting kernel python3
+[jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
+[jupytext] Executing notebook with kernel python3
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 10_staggered_did.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
+[jupytext] Reading 10_staggered_did_es.py in format py
+[jupytext] Setting kernel python3
+[jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
+[jupytext] Executing notebook with kernel python3
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 10_staggered_did_es.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
+[jupytext] Reading 34_penalized_macro_forecasting.py in format py
+[jupytext] Setting kernel python3
+[jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
+[jupytext] Executing notebook with kernel python3
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 34_penalized_macro_forecasting.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
+[jupytext] Reading 34_penalized_macro_forecasting_es.py in format py
+[jupytext] Setting kernel python3
+[jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
+[jupytext] Executing notebook with kernel python3
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 34_penalized_macro_forecasting_es.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
+[jupytext] Reading 61_quantitative_policy_simulators.py in format py
+[jupytext] Setting kernel python3
+[jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
+[jupytext] Executing notebook with kernel python3
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 61_quantitative_policy_simulators.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
+[jupytext] Reading 61_quantitative_policy_simulators_es.py in format py
+[jupytext] Setting kernel python3
+[jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
+[jupytext] Executing notebook with kernel python3
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 61_quantitative_policy_simulators_es.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
+[jupytext] Reading 62_flexible_trade_cge.py in format py
+[jupytext] Setting kernel python3
+[jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
+[jupytext] Executing notebook with kernel python3
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 62_flexible_trade_cge.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
+[jupytext] Reading 62_flexible_trade_cge_es.py in format py
+[jupytext] Setting kernel python3
+[jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
+[jupytext] Executing notebook with kernel python3
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 62_flexible_trade_cge_es.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
+› /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 10_staggered_did.py
+› /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 10_staggered_did_es.py
+› /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 34_penalized_macro_forecasting.py
+› /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 34_penalized_macro_forecasting_es.py
+› /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 61_quantitative_policy_simulators.py
+› /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 61_quantitative_policy_simulators_es.py
+› /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 62_flexible_trade_cge.py
+› /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 62_flexible_trade_cge_es.py

@@ -1,0 +1,23 @@
+{
+  "command": [
+    "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python",
+    "-m",
+    "pytest",
+    "tests/test_fix_I1_dsge_core.py",
+    "tests/test_fix_STEADY_structural_singularity.py",
+    "tests/test_fix_AKM_shift_share_projection.py",
+    "tests/test_did/test_fix_did_aggregation.py",
+    "tests/test_did/test_fix_SDID_inference_and_weights.py",
+    "tests/test_dynpanel/test_fix_dynpanel_windmeijer.py",
+    "tests/test_fix_NOWCAST_plots_and_revision_stats.py",
+    "tests/test_fix_RTNOW_realtime_asof.py",
+    "tests/test_fix_MSAR_ms_var_em.py",
+    "tests/test_release_check.py",
+    "tests/test_release_check_34fixes.py",
+    "-q",
+    "--tb=short"
+  ],
+  "returncode": 0,
+  "completed_at_utc": "2026-10-01T21:33:50.956635+00:00",
+  "stage": "preflight; current checkout remains under active development"
+}

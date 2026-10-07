@@ -1,0 +1,122 @@
+{
+  "replications_total": 1596,
+  "unresolved_total": 22,
+  "complete_dossier_hashes_verified": true,
+  "checkpoint_arrays_match_final_evidence": true,
+  "numerical_sources_match_checkout": true,
+  "source_runs": {
+    "baseline_fixed": {
+      "manifest_sha256": "6a7f8f64e3f739a238b590491134cc8cffafc28d8e8530a7c43afa5e34cae68b",
+      "checkpoint": {
+        "enabled": true,
+        "resumed_draws": {
+          "baseline_fixed": 0
+        },
+        "interval": "first, every10, final; atomic NPZ/JSON, no pickle"
+      },
+      "environment": {
+        "python": "3.14.6",
+        "numpy": "2.5.2",
+        "scipy": "1.18.1",
+        "pandas": "3.0.5"
+      },
+      "checkpoint_fingerprint": "9dcca10e24afdbb62fe59d48590f83b8dbabd7ea2fa1243cc7c3d983b87ce32e",
+      "numerical_source_hashes": {
+        "structural/sw07_finite_sample.py": "dace73756df145a91fc57af5bfab818a13021724a239d7a7577a168efe58f2e2",
+        "structural/sw07_sampling.py": "4ae5b615c736163cc3953aa48ecceb7dbb3be5f5fdd9c4c3208d2e29e55c355f",
+        "structural/empirical_sw07.py": "05076dc90e899552c68c95a07edf2f8417723c33dfdc0b73edc3e36e85706b69",
+        "structural/bridge.py": "5315215e5c9edc32dba4cd97ae553e4edc281063c13efb3b7f7b9095378e0d8b",
+        "_linalg.py": "3918d8891bb322cef33d9f0d06d07759e3e2294d325dd4ef422f250a79fcb96d",
+        "dsge/smets_wouters.py": "dc45b80ec4f81b9ca4642ae9fe8ce0726905c7c7d3836d3eabb2b1453e8a7362",
+        "dsge/sw07_observation.py": "4d6d81faef07194f5b2a4e929485d2f1bda62f1b7e8fb7c7bb1599e6975eb4d4",
+        "dsge/klein.py": "dfefed4d05671e966442bc29bd6b1a3e8a9c57495f34c687ac2280c07f30fa86",
+        "dsge/gensys.py": "cefb0fab00ff6cb1951fe5b63b9c14dd99eb2be7d45053ca457033c08e5a6e35"
+      }
+    },
+    "published_fixed": {
+      "manifest_sha256": "e9b4dcb7eb5266bb98d60c62b15d8df61e0a752d6ed85634160237042502b50c",
+      "checkpoint": {
+        "enabled": true,
+        "resumed_draws": {
+          "published_fixed": 0
+        },
+        "interval": "first, every10, final; atomic NPZ/JSON, no pickle"
+      },
+      "environment": {
+        "python": "3.14.6",
+        "numpy": "2.5.2",
+        "scipy": "1.18.1",
+        "pandas": "3.0.5"
+      },
+      "checkpoint_fingerprint": "03ad80a85b35a13a5d3dba09f8d06bcea365cc0fa022392bf2a5b75aaad69ade",
+      "numerical_source_hashes": {
+        "structural/sw07_finite_sample.py": "dace73756df145a91fc57af5bfab818a13021724a239d7a7577a168efe58f2e2",
+        "structural/sw07_sampling.py": "4ae5b615c736163cc3953aa48ecceb7dbb3be5f5fdd9c4c3208d2e29e55c355f",
+        "structural/empirical_sw07.py": "05076dc90e899552c68c95a07edf2f8417723c33dfdc0b73edc3e36e85706b69",
+        "structural/bridge.py": "5315215e5c9edc32dba4cd97ae553e4edc281063c13efb3b7f7b9095378e0d8b",
+        "_linalg.py": "3918d8891bb322cef33d9f0d06d07759e3e2294d325dd4ef422f250a79fcb96d",
+        "dsge/smets_wouters.py": "dc45b80ec4f81b9ca4642ae9fe8ce0726905c7c7d3836d3eabb2b1453e8a7362",
+        "dsge/sw07_observation.py": "4d6d81faef07194f5b2a4e929485d2f1bda62f1b7e8fb7c7bb1599e6975eb4d4",
+        "dsge/klein.py": "dfefed4d05671e966442bc29bd6b1a3e8a9c57495f34c687ac2280c07f30fa86",
+        "dsge/gensys.py": "cefb0fab00ff6cb1951fe5b63b9c14dd99eb2be7d45053ca457033c08e5a6e35"
+      }
+    },
+    "baseline_fitted": {
+      "manifest_sha256": "8d83f027ff71e325e75e941345c90be15e6d351a1cd003fd7e0904758d06b5f1",
+      "checkpoint": {
+        "enabled": true,
+        "resumed_draws": {
+          "baseline_fitted": 0
+        },
+        "interval": "first, every10, final; atomic NPZ/JSON, no pickle"
+      },
+      "environment": {
+        "python": "3.14.6",
+        "numpy": "2.5.2",
+        "scipy": "1.18.1",
+        "pandas": "3.0.5"
+      },
+      "checkpoint_fingerprint": "bffb792f3ee41814f692335f94d5c85fe1d96dcf2d681e15ab35900d8934fbce",
+      "numerical_source_hashes": {
+        "structural/sw07_finite_sample.py": "dace73756df145a91fc57af5bfab818a13021724a239d7a7577a168efe58f2e2",
+        "structural/sw07_sampling.py": "4ae5b615c736163cc3953aa48ecceb7dbb3be5f5fdd9c4c3208d2e29e55c355f",
+        "structural/empirical_sw07.py": "05076dc90e899552c68c95a07edf2f8417723c33dfdc0b73edc3e36e85706b69",
+        "structural/bridge.py": "5315215e5c9edc32dba4cd97ae553e4edc281063c13efb3b7f7b9095378e0d8b",
+        "_linalg.py": "3918d8891bb322cef33d9f0d06d07759e3e2294d325dd4ef422f250a79fcb96d",
+        "dsge/smets_wouters.py": "dc45b80ec4f81b9ca4642ae9fe8ce0726905c7c7d3836d3eabb2b1453e8a7362",
+        "dsge/sw07_observation.py": "4d6d81faef07194f5b2a4e929485d2f1bda62f1b7e8fb7c7bb1599e6975eb4d4",
+        "dsge/klein.py": "dfefed4d05671e966442bc29bd6b1a3e8a9c57495f34c687ac2280c07f30fa86",
+        "dsge/gensys.py": "cefb0fab00ff6cb1951fe5b63b9c14dd99eb2be7d45053ca457033c08e5a6e35"
+      }
+    },
+    "published_fitted": {
+      "manifest_sha256": "aadecd0fa016e278a42fe5464322178c1e42399a4a1313f7d2366683173f416c",
+      "checkpoint": {
+        "enabled": true,
+        "resumed_draws": {
+          "published_fitted": 0
+        },
+        "interval": "first, every10, final; atomic NPZ/JSON, no pickle"
+      },
+      "environment": {
+        "python": "3.14.6",
+        "numpy": "2.5.2",
+        "scipy": "1.18.1",
+        "pandas": "3.0.5"
+      },
+      "checkpoint_fingerprint": "b70c7ff964352c85f8ad136a25898a899e594f3961674b708b2a61765e6f8910",
+      "numerical_source_hashes": {
+        "structural/sw07_finite_sample.py": "dace73756df145a91fc57af5bfab818a13021724a239d7a7577a168efe58f2e2",
+        "structural/sw07_sampling.py": "4ae5b615c736163cc3953aa48ecceb7dbb3be5f5fdd9c4c3208d2e29e55c355f",
+        "structural/empirical_sw07.py": "05076dc90e899552c68c95a07edf2f8417723c33dfdc0b73edc3e36e85706b69",
+        "structural/bridge.py": "5315215e5c9edc32dba4cd97ae553e4edc281063c13efb3b7f7b9095378e0d8b",
+        "_linalg.py": "3918d8891bb322cef33d9f0d06d07759e3e2294d325dd4ef422f250a79fcb96d",
+        "dsge/smets_wouters.py": "dc45b80ec4f81b9ca4642ae9fe8ce0726905c7c7d3836d3eabb2b1453e8a7362",
+        "dsge/sw07_observation.py": "4d6d81faef07194f5b2a4e929485d2f1bda62f1b7e8fb7c7bb1599e6975eb4d4",
+        "dsge/klein.py": "dfefed4d05671e966442bc29bd6b1a3e8a9c57495f34c687ac2280c07f30fa86",
+        "dsge/gensys.py": "cefb0fab00ff6cb1951fe5b63b9c14dd99eb2be7d45053ca457033c08e5a6e35"
+      }
+    }
+  },
+  "limitation": "Conditional Gaussian diagnostics, not composite-null p-values or parameter confidence intervals"
+}

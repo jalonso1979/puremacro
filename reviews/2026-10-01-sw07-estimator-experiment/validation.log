@@ -1,0 +1,28 @@
+validation: 1/999
+validation: 49/999
+validation: 98/999
+validation: 147/999
+validation: 196/999
+validation: 245/999
+validation: 294/999
+validation: 343/999
+validation: 392/999
+validation: 441/999
+validation: 490/999
+validation: 539/999
+validation: 588/999
+validation: 637/999
+validation: 686/999
+validation: 735/999
+validation: 784/999
+validation: 833/999
+validation: 882/999
+validation: 931/999
+validation: 980/999
+validation: 999/999
+     phase           variant  replications  usable_fits  unresolved_draws  boundary_fits  regular_fits  criterion_median  criterion_q95  naive_events_lower  naive_events_upper  naive_rate_lower  naive_rate_upper  naive_mc95_lower  naive_mc95_upper  bias_crr  rmse_crr   bias_em  rmse_em
+validation    population_hac           999          977                22             10           967         19.334133     110.393021                 615                 637          0.615616          0.637638          0.584645          0.667503  0.004832  0.045257 -0.017152 0.060246
+validation        finite_hac           999          991                 8              2           989         11.935061      58.530964                 409                 417          0.409409          0.417417          0.378722          0.448703 -0.000070  0.042362 -0.015610 0.050401
+validation population_oracle           999          999                 0              1           998          7.001886      15.007666                  77                  77          0.077077          0.077077          0.061304          0.095394 -0.002555  0.027163 -0.000522 0.026242
+validation     finite_oracle           999          999                 0              1           998          5.822513      16.004956                  82                  82          0.082082          0.082082          0.065812          0.100863 -0.003203  0.030080 -0.002319 0.027168
+Evidence: reviews/2026-10-01-sw07-estimator-experiment/validation

@@ -37,6 +37,32 @@ from puremacro.inference.multiple import fdrcorrection, multipletests
 from puremacro.inference.proportions import proportion_confint
 
 
+def _exact_centered_vif(Z):
+    """VIFs of the columns of ``Z`` against an intercept, in exact rational arithmetic.
+
+    VIF_j is the j-th diagonal of the inverse correlation matrix, i.e.
+    ``inv(C)[j, j] * C[j, j]`` for the centered cross-product matrix ``C`` of
+    the stored float data, evaluated with no rounding at all.
+    """
+    from fractions import Fraction
+
+    n, k = Z.shape
+    cols = [[Fraction(float(v)) for v in Z[:, j]] for j in range(k)]
+    mu = [sum(c) / n for c in cols]
+    C = [[sum((cols[a][i] - mu[a]) * (cols[b][i] - mu[b]) for i in range(n))
+          for b in range(k)] for a in range(k)]
+    A = [row[:] + [Fraction(int(i == j)) for j in range(k)] for i, row in enumerate(C)]
+    for c in range(k):                       # Gauss-Jordan inverse
+        p = next(r for r in range(c, k) if A[r][c] != 0)
+        A[c], A[p] = A[p], A[c]
+        A[c] = [v / A[c][c] for v in A[c]]
+        for r in range(k):
+            if r != c and A[r][c] != 0:
+                f = A[r][c]
+                A[r] = [a - f * b for a, b in zip(A[r], A[c])]
+    return np.array([float(A[j][k + j] * C[j][j]) for j in range(k)])
+
+
 # ---------------------------------------------------------------------------
 # Fixtures shared by the multiple-testing sweep
 # ---------------------------------------------------------------------------
@@ -555,14 +581,24 @@ class TestCollinearity:
             want = np.array([sm_vif(X, i) for i in range(X.shape[1])])
         with pytest.warns(UserWarning, match="are constant"):
             got = np.asarray(vif(X), dtype=float)
-        np.testing.assert_array_equal(got, want)
-        assert got[0] == 0.0                      # the degenerate column
-        assert got[1] == pytest.approx(1.0049732504759898, abs=1e-12)
+        assert got[0] == want[0] == 0.0           # the degenerate column
+        # The regressors' VIFs are computed on centered data since 4.4.0. On
+        # the raw levels the auxiliary regressions cancel catastrophically:
+        # statsmodels returns 0.053 for the rate column, below the minimum
+        # VIF of 1. Both columns are checked against exact arithmetic instead.
+        exact = _exact_centered_vif(X[:, 1:])
+        np.testing.assert_allclose(got[1:], exact, rtol=4 * np.finfo(float).eps, atol=0.0)
+        assert np.all(got[1:] >= 1.0)
 
     def test_bit_identity_on_near_collinear_designs(self):
-        """The module docstring claims bit-identity. Assert it, bit for bit.
+        """Parity with statsmodels to the floating-point bound, column by column.
 
-        ``assert_array_equal``, not ``assert_allclose(atol=1e-10)``: the
+        Bit-identity holds only against statsmodels on the same NumPy/LAPACK
+        build: across builds ``pinv``'s SVD differs in the last bits (CI
+        measured 4.6e-13 relative on VIF-1 columns of a VIF-5e10 design). The
+        tolerance is ``8 * eps * max VIF`` relative per design, the forward-error
+        bound of 1/(1-R2); the largest observed ratio is 0.012 of ``eps * max VIF``.
+        Still far tighter than ``atol=1e-10`` at these VIFs: the
         defect this guards against — using ``np.dot(centered, centered)``
         for the centered total sum of squares where statsmodels evaluates
         ``np.sum(weights * (endog - np.average(endog, weights=weights))**2)``
@@ -599,7 +635,8 @@ class TestCollinearity:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", RuntimeWarning)
                 want = np.array([sm_vif(X, i) for i in range(k)])
-            np.testing.assert_array_equal(got, want)
+            bound = 8.0 * np.finfo(float).eps * float(got.max())
+            np.testing.assert_allclose(got, want, rtol=bound, atol=0.0)
             checked += k
             largest = max(largest, float(got.max()))
 
@@ -642,8 +679,33 @@ class TestCollinearity:
             want = np.array([sm_vif(X, i) for i in range(X.shape[1])])
         with pytest.warns(UserWarning, match="are constant"):
             got = np.asarray(vif(X), dtype=float)
-        np.testing.assert_array_equal(got, want)
+        # statsmodels regresses on the 1e7 levels and is 4e-5 (macOS) to 1.4e-4
+        # (Windows CI) off the exact values; the centered computation is exact
+        # to rounding, so it is compared with exact arithmetic only.
+        assert got[0] == want[0]
+        exact = _exact_centered_vif(X[:, 1:])
+        np.testing.assert_allclose(got[1:], exact, rtol=4 * np.finfo(float).eps, atol=0.0)
         assert np.all(got[1:] < 1.05) and np.all(got[1:] > 1.0)
+
+    def test_shifted_levels_match_exact_arithmetic(self):
+        """With a constant, VIFs of levels data are exact to rounding at any mean.
+
+        Thirty designs with a near-collinear pair and column means between 1e2
+        and 1e9. Measured: at most 0.33 * eps * max VIF from the exact rational
+        value. On the same designs statsmodels, which regresses on the raw
+        levels, is up to 99% off, so this is checked against exact arithmetic,
+        not against statsmodels.
+        """
+        eps = np.finfo(float).eps
+        for seed in range(30):
+            rng = np.random.default_rng(seed)
+            n = 40
+            Z = rng.standard_normal((n, 3))
+            Z[:, 2] = Z[:, 1] + 0.3 * Z[:, 2]
+            Z = Z + 10.0 ** rng.uniform(2, 9, size=3)
+            got = np.asarray(vif(np.column_stack([np.ones(n), Z])), dtype=float)[1:]
+            exact = _exact_centered_vif(Z)
+            np.testing.assert_allclose(got, exact, rtol=8 * eps * exact.max(), atol=0.0)
 
     def test_constant_free_shifted_design_still_raises_with_the_right_cure(self):
         """The same shift *without* an intercept is a declared divergence.

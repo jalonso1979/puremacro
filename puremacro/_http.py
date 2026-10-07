@@ -16,7 +16,7 @@ behind a WAF that blocks the default agent string.
 from __future__ import annotations
 
 import json
-import ssl
+from puremacro._optional_stdlib import ssl
 import urllib.error
 import urllib.request
 

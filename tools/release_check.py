@@ -285,6 +285,14 @@ def compare_snapshot(fresh: dict, fixture_path: Path) -> dict:
 
 
 def gate_snapshot(repo_root: Path) -> dict:
+    # Snapshot the repository's package, not whatever puremacro is installed: run as
+    # ``python tools/release_check.py``, sys.path[0] is tools/, so an installed
+    # release in site-packages would otherwise be imported and compared instead.
+    if "puremacro" in sys.modules:
+        loaded = Path(sys.modules["puremacro"].__file__).resolve()
+        if repo_root.resolve() not in loaded.parents:
+            raise RuntimeError(f"Gate 3 needs the repository's puremacro, but {loaded} is already imported")
+    sys.path.insert(0, str(repo_root))
     # Import the helper from tests/ — Task 7 Step 1 promoted it to a public name.
     sys.path.insert(0, str(repo_root / "tests"))
     try:

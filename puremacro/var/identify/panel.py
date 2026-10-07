@@ -10,6 +10,13 @@ schemes: ``cholesky`` and ``bq``. For ``proxy``, ``maxshare``, or
 ``rigobon`` (which need per-country bootstrap kwargs), call the
 canonical ``var/identify/<scheme>`` module per-country directly.
 
+For ``bq`` the ``cumulate=`` keyword has the meaning it has in
+:func:`puremacro.var.identify.bq.bq_svar`: the selected response rows
+(default: every row) are cumulated over the horizon in every country
+before averaging. List only the first-differenced variables; a variable
+that enters in levels (an unemployment rate, a z-scored proxy) must not
+be cumulated.
+
 References
 ----------
 Canova, F. and Ciccarelli, M. (2013). Panel vector autoregressive
@@ -25,7 +32,7 @@ from ..estimate import estimate_var
 from ..irf import irf as compute_irf
 from ._results import PanelSVARResult
 from .cholesky import cholesky_factor
-from .bq import _bq_impact
+from .bq import _bq_impact, _cumulate_mask, _cumulate_rows
 
 
 def _identify_country(
@@ -40,8 +47,10 @@ def _identify_country(
             A_list, Sigma,
             permanent_var_idx=id_kwargs.get("permanent_var_idx", 0),
         )
-        # compute_irf returns (H+1, n, n); cumsum along horizon axis (0)
-        return np.cumsum(compute_irf(A_list, B, horizon), axis=0)
+        # compute_irf returns (H+1, n, n); cumulate the selected response
+        # rows (axis 1) along the horizon axis (0), as bq_svar does.
+        mask = _cumulate_mask(id_kwargs.get("cumulate", True), Sigma.shape[0])
+        return _cumulate_rows(compute_irf(A_list, B, horizon), mask)
     raise ValueError(
         f"Unsupported identification scheme: {identification!r}. "
         "Supported: 'cholesky', 'bq'. For 'proxy', 'maxshare', or "
@@ -78,8 +87,11 @@ def mean_group_svar(
     seed : int, default 0
         RNG seed; currently unused (reserved for bootstrap extension).
     **id_kwargs
-        Extra kwargs for the identification scheme (e.g.
-        ``permanent_var_idx`` for ``bq``).
+        Extra kwargs for the identification scheme. For ``bq``:
+        ``permanent_var_idx`` (default 0) and ``cumulate`` (default
+        ``True``; ``True``/``False``, a list of variable indices or a
+        boolean mask, as in :func:`puremacro.var.identify.bq.bq_svar`).
+        With ``Y = [dlog GDP, unemployment rate]`` pass ``cumulate=[0]``.
 
     Returns
     -------
@@ -88,7 +100,10 @@ def mean_group_svar(
     Raises
     ------
     ValueError
-        If ``identification`` is not one of the supported schemes.
+        If ``identification`` is not one of the supported schemes, or
+        ``cumulate`` names a variable index out of range.
+    TypeError
+        If ``cumulate`` is not a bool, an index sequence or a mask.
     """
     country_ids = tuple(sorted(panel_data.keys()))
     country_irfs = []

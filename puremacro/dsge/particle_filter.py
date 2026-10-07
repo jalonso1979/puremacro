@@ -411,6 +411,15 @@ def multinomial_resample(weights: np.ndarray, rng: np.random.Generator) -> np.nd
 # Model Extraction Helpers
 # ---------------------------------------------------------------------------
 
+def _first_attr_not_none(obj: Any, names: Sequence[str]) -> Any:
+    """Value of the first attribute in ``names`` that ``obj`` has and that is not ``None``."""
+    for name in names:
+        val = getattr(obj, name, None)
+        if val is not None:
+            return val
+    return None
+
+
 def _extract_model_tensors(model: Any) -> dict[str, Any]:
     """Extract first, second, and third order perturbation tensors from model."""
     from puremacro.dsge.pruning import Order3PrunedSolution, PrunedDSGESolution
@@ -536,7 +545,12 @@ def _extract_model_tensors(model: Any) -> dict[str, Any]:
     n_x, n_y, n_e = len(state_names), len(control_names), len(shock_names)
 
     steady_state = getattr(model, "steady_state", None)
-    shock_cov = getattr(model, "_shock_cov", None) or getattr(model, "shock_cov", None) or getattr(model, "Q", None)
+    # The first covariance the model declares, by explicit ``is None`` checks:
+    # chaining the lookups with ``or`` asked an ndarray for its truth value,
+    # which raises for every covariance of two or more shocks (and skipped a
+    # 1x1 zero covariance), so no multi-shock ``shocks;`` block could be
+    # filtered.
+    shock_cov = _first_attr_not_none(model, ("_shock_cov", "shock_cov", "Q"))
     model_name = getattr(model, "model_name", getattr(model, "name", "linear_model"))
 
     return {
@@ -779,15 +793,26 @@ def particle_filter(
     # Base shock covariance Q
     raw_Q = m_info["shock_cov"]
     if raw_Q is not None:
-        Q = np.asarray(raw_Q, dtype=float)
+        Q = np.atleast_2d(np.asarray(raw_Q, dtype=float))
         if Q.shape != (n_e, n_e):
-            Q = np.eye(n_e)
+            # A covariance for other shocks than the model's used to be
+            # replaced by the identity without a word.
+            raise ValueError(
+                f"particle_filter: the model's shock covariance has shape "
+                f"{Q.shape}, but it has {n_e} shocks {list(shock_names)}; "
+                f"expected ({n_e}, {n_e})."
+            )
     else:
         Q = np.eye(n_e)
 
-    # Base shock scale
+    # Base shock scale. An innovation is e = D (L_corr z) with D the standard
+    # deviations and L_corr the Cholesky factor of the correlation matrix, so
+    # that Cov(e) = D C D = Q. Scaling z by D before correlating it (as up to
+    # 4.3.0) gave Cov(e) = L_corr D^2 L_corr', which is Q only when the shocks
+    # are uncorrelated.
     base_sigmas = np.sqrt(np.maximum(1e-12, np.diag(Q)))
     corr_Q = Q / (base_sigmas[:, None] * base_sigmas[None, :])
+    np.fill_diagonal(corr_Q, 1.0)
     try:
         L_corr = scipy.linalg.cholesky(corr_Q + ridge * np.eye(n_e), lower=True)
     except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
@@ -897,7 +922,7 @@ def particle_filter(
         if (H_xx is not None and np.any(np.abs(H_xx) > 1e-12)) and burn_in > 0:
             for _ in range(burn_in):
                 z_b = rng.normal(0.0, 1.0, size=(n_particles, n_e))
-                e_b = (z_b * base_sigmas) @ L_corr.T
+                e_b = (z_b @ L_corr.T) * base_sigmas[None, :]
                 x1_n = x1 @ G.T + e_b @ N.T
                 kron_xx = np.einsum("mi,mj->mij", x1, x1).reshape(n_particles, -1)
                 kron_xe = np.einsum("mi,mj->mij", x1, e_b).reshape(n_particles, -1) if n_e > 0 else np.zeros((n_particles, 0))
@@ -956,9 +981,9 @@ def particle_filter(
                 eta = rng.normal(0.0, 1.0, size=(n_particles, n_e))
                 H_logvol = H_logvol * sv_rho[None, :] + eta * sv_sigma_eta[None, :]
                 sig_t = sv_base_scale[None, :] * np.exp(H_logvol)
-                e_t = (z_shocks * sig_t) @ L_corr.T
+                e_t = (z_shocks @ L_corr.T) * sig_t
             else:
-                e_t = (z_shocks * base_sigmas[None, :]) @ L_corr.T
+                e_t = (z_shocks @ L_corr.T) * base_sigmas[None, :]
 
             # Vectorized state propagation over N particles
             x1_next = x1 @ G.T + e_t @ N.T
@@ -1161,9 +1186,9 @@ def particle_filter(
                 eta = rng.normal(0.0, 1.0, size=(n_particles, n_e))
                 H_logvol = H_parents * sv_rho[None, :] + eta * sv_sigma_eta[None, :]
                 sig_t = sv_base_scale[None, :] * np.exp(H_logvol)
-                e_t = (z_shocks * sig_t) @ L_corr.T
+                e_t = (z_shocks @ L_corr.T) * sig_t
             else:
-                e_t = (z_shocks * base_sigmas[None, :]) @ L_corr.T
+                e_t = (z_shocks @ L_corr.T) * base_sigmas[None, :]
 
             # 3. Propagate resampled parent particles with drawn innovations
             x1_next = x1_parents @ G.T + e_t @ N.T

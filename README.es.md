@@ -4,6 +4,19 @@
 
 Una **caja de herramientas de macroeconomía empírica compatible con Pyodide**: el código de los estimadores corre sobre numpy + scipy + pandas + matplotlib puros, de modo que el núcleo numérico sigue siendo importable bajo Pyodide (iPad / juno.sh, en la medida de lo posible — véase «juno.sh / iPad» más abajo). El destino soportado es una **instalación local** en una estación de trabajo convencional.
 
+## Flujos de investigación (aún no publicados)
+
+[Benchmarks independientes, estimación empírica-estructural e incidencia comercial](docs/es/research_workflows.md)
+conectan momentos LP con covarianza completa a modelos estructurales, y canastas
+observadas de ENIGH 2024 a escenarios explícitos de precios, ingresos y transferencias.
+Se exportan evidencia, supuestos, tablas y figuras, distinguiendo las comprobaciones
+analíticas y los escenarios ilustrativos de las replicaciones de modelos empíricos.
+
+Los [estudios empíricos y la replicación publicada](docs/es/empirical_research.md)
+añaden ajuste condicional de covarianzas SW07 con datos observados de EE. UU.
+y la especificación original de retardos distribuidos de Romer–Romer (2010),
+con comprobaciones separadas de ajuste y referencia independiente.
+
 ## Inicio rápido en 5 minutos (API unificada 2.0)
 
 `puremacro 2.0` estandariza la API econométrica con convenciones de parámetros comunes (`lags`, `horizon`, `ci`), objetos de resultado dataclass congelados, visualización interactiva (`.plot()`) y exportación directa para publicación (`.to_latex()`, `.to_typst()`, `.to_markdown()`):
@@ -396,7 +409,7 @@ fallar.
 
 - **VAR** — mínimos cuadrados ordinarios en forma reducida, BVAR (Minnesota), VECM (Engle-Granger / Johansen), TVP-VAR, VAR de panel; FRI / FEVD / GFEVD; bandas de confianza mediante bootstrap de residuos, por bloques, por bloques móviles y wild bootstrap.
 - **Identificación de SVAR** (`var.identify.*`) — Cholesky, Blanchard-Quah, restricciones de signo (Rubio-Ramirez-Waggoner-Zha), restricciones de signo y cero (Arias-Rubio Ramirez-Waggoner), bandas robustas a las restricciones de signo (Giacomini-Kitagawa), variables proxy / instrumentos externos, máxima participación espectral / noticias, heterocedasticidad (Rigobon), no gaussiano (Lanne-Meitz-Saikkonen). Todos los estimadores públicos devuelven objetos `…Result` de tipo dataclass congelado.
-- **Proyecciones locales** (`lp.*`) — LP-HAC para un solo país, LP-IV, LP con retardos aumentados (Plagborg-Møller-Wolf), LP de panel con errores estándar agrupados / Driscoll-Kraay, LP dependiente del estado, LP suavizada (B-splines de Barnichon-Brownlees), LP asimétrica (Tenreyro-Thwaites), LP-GARCH en estado, LP-GARCH en media, grupo medio, CCE, LP cuantílica.
+- **Proyecciones locales** (`lp.*`) — LP-HAC para un solo país, LP-IV, LP con retardos aumentados (Montiel Olea-Plagborg-Møller 2021), LP de panel con errores estándar agrupados / Driscoll-Kraay, LP dependiente del estado, LP suavizada (B-splines de Barnichon-Brownlees), LP asimétrica (Tenreyro-Thwaites), LP-GARCH en estado, LP-GARCH en media, grupo medio, CCE, LP cuantílica.
 - **Inferencia** (`inference.*`) — MCO con HAC central, Newey-West, Kiefer-Vogelsang de b fijo, Driscoll-Kraay; diagnósticos de instrumentos débiles (Cragg-Donald, Kleibergen-Paap, Anderson-Rubin, Montiel Olea-Pflueger); Hansen-J / Stock-Yogo para sobreidentificación; CD de Pesaran, homogeneidad de pendientes de Swamy, quiebres estructurales de Quandt-Andrews, curvas de especificación.
 - **Otros estimadores** — índice de derrame de Diebold-Yilmaz; comparación de pronósticos Diebold-Mariano / Giacomini-White y evaluación de pronósticos en densidad (CRPS, log-score); quiebres de Bai-Perron; pruebas de raíz unitaria (ADF, KPSS, PP, Zivot-Andrews); solver QZ de Klein para DSGE lineales y perturbación de segundo orden con poda de Kim et al. (2008), términos cruzados y paridad con Dynare `oo_.dr` (`dsge.dynare`).
 
@@ -411,7 +424,7 @@ fallar.
 
 **Extensiones de macroeconomía moderna**
 
-- **DiD escalonado** (`did.*`) — Callaway-Sant'Anna, Sun-Abraham, Borusyak-Jaravel-Spiess, DiD sintético; bootstrap de errores estándar en todos los métodos.
+- **DiD escalonado** (`did.*`) — Callaway-Sant'Anna, Sun-Abraham y Borusyak-Jaravel-Spiess con errores estándar por bootstrap de panel; DiD sintético con errores estándar placebo, bootstrap o jackknife (Arkhangelsky et al. 2021, §5).
 - **GMM de panel dinámico** (`dynpanel.*`) — Arellano-Bond, Blundell-Bond de dos etapas con corrección de Windmeijer + Hansen-J + AR(1)/AR(2) + colapso de Roodman.
 - **Sorpresas monetarias de alta frecuencia** (`hfi.*`) — Gertler-Karadi 2015, Nakamura-Steinsson 2018, Jarociński-Karadi 2020.
 - **Volatilidad** (`volatility.*`) — `SigmaObject` (traducción 1:1 de la clase MATLAB de MAV con API de descomposición extendida), BEKK, CCC, HAR-RV, basado en rango, diagnósticos ARCH-LM / Ljung-Box.
@@ -429,13 +442,20 @@ fallar.
 - **EGM con elección discreta** (`vfi.dcegm`) — DC-EGM de Iskhakov, Jørgensen, Rust y Schjerning (2017) para modelos con elecciones discretas de jubilación/empleo y ahorro continuo, incorporando el algoritmo rápido de Upper Envelope para podar ramas subóptimas y choques de gusto con distribución de valor extremo.
 - **Distribuciones estacionarias continuas y GE** (`vfi.continuous_distribution`) — Simulación de densidad continua no estocástica de Young (2010) preservando la conservación de masa a precisión de máquina ($\sum \mu^* = 1.0 \pm 10^{-15}$), iteración de potencias / solvers lineales dispersos, y búsqueda de raíces de equilibrio general continuo de Aiyagari para precios de factores ($K^s(r^*) = K^d(r^*)$).
 - **Dinámica de transición continua bajo choques MIT** (`vfi.continuous_transition`) — Trayectorias de transición no lineal que acoplan EGM continuo hacia atrás con operadores de distribución de Young dependientes del tiempo hacia adelante ($\mu_{t+1} = T_t^* \mu_t$), resueltas mediante Quasi-Newton Broyden en el espacio de secuencias.
-- **Gradientes analíticos IFT exactos** (`vfi.analytic_gradients`) — Sensibilidades de parámetros a precisión de máquina $\nabla_\theta c^*$ calculadas mediante el Teorema de la Función Implícita en un único sistema lineal, logrando aceleraciones de más de $60\times$ frente a diferencias finitas para estimación estructural (GMM / SMM).
+- **Gradientes paramétricos vía el TFI** (`vfi.analytic_gradients`) — Sensibilidades de parámetros semianalíticas $\nabla_\theta c^*$ de soluciones de proyección con agente representativo, calculadas mediante el Teorema de la Función Implícita en un único sistema lineal con jacobianos de residuos por diferencias centrales, para estimación estructural (GMM / SMM); las sensibilidades de distribución y de equilibrio general con agentes heterogéneos no están implementadas.
 - **Deep Macro y PINNs** (`vfi.deep_macro`) — Redes Neuronales Informadas por la Física (PINNs) en puro NumPy para modelos dinámicos de ultra alta dimensión (10+ estados continuos), activaciones acotadas que garantizan la factibilidad de recursos ($c > 0, k' > 0, c < W$), y muestreo de trayectorias ergódicas de Maliar et al. (2021).
 
 **Economía espacial cuantitativa y equilibrio general comercial (puremacro 3.3)**
 
 - **Álgebra exacta de sombreros de Caliendo-Parro (2015)** (`trade.caliendo_parro`, `spatial.caliendo_parro`) — Equilibrio general comercial multipaís y multisectorial con encadenamientos insumo-producto, bienes intermedios y aranceles resuelto sin necesidad de estimar fundamentos no observados (`CaliendoParroModel`).
 - **Equilibrio espacial de Allen-Arkolakis (2014)** (`spatial.allen_arkolakis`, `trade.allen_arkolakis`) — Equilibrio general geográfico continuo con costes de transporte bilateral tipo iceberg, movilidad laboral, aglomeración marshalliana ($\alpha$) y congestión de amenidades ($\beta$) (`AllenArkolakisModel`).
+
+**Contabilidad comercial consistente, bienestar hicksiano y política arancelaria auditada (puremacro 4.3)**
+
+- **Contabilidad a precios de productor y de comprador** (`trade.solve_trade_equilibrium(..., accounting="consistent")`) — Costes de factores homogéneos, aranceles valorados al precio del exportador y devueltos una sola vez, impuestos a la producción sobre el ingreso por ventas, ahorro externo de referencia fijo y un numerario explícito. La convergencia comprueba además la ecuación de bienes omitida y los saldos externos realizados (`metadata["account_residuals"]`); el valor por defecto `accounting="legacy"` conserva las convenciones históricas de MATLAB. Véase `docs/es/trade_accounting.md`.
+- **Bienestar hicksiano de consumo** (`trade.compute_hicksian_welfare`, `HicksianWelfareResult`) — VE/VC de la función de gasto entre dos equilibrios con contabilidad consistente y categorías de consumo declaradas, más una atribución exacta de Shapley por extremos a precios de comprador, renta de factores y transferencias fiscales. Es bienestar de consumo condicional: la inversión queda excluida y la categoría C nativa de la OCDE incluye el consumo público. Véase `docs/es/trade_welfare.md`.
+- **Política arancelaria auditada** (`trade.solve_policy_equilibrium`, `PolicyEquilibriumError`; `metric="hicksian_ev"` en `compute_unilateral_optimal_tariff`, `solve_multilateral_nash_tariffs` y `compute_welfare_payoff_matrix`) — Una sola base sin aranceles, arrepentimiento normalizado por el consumo y recuperación Newton → híbrido de SciPy → continuación de Keller que nunca relaja la tolerancia solicitada; una desviación fallida lanza una excepción en lugar de producir un pago. Véase `docs/es/trade_policy.md`.
+- **Estado de validación** — `docs/es/STRUCTURAL_VALIDATION_STATUS.md` indica, superficie por superficie, el cálculo soportado, el contrato de aceptación y los límites pendientes (incluida la ingesta nativa de la ICIO de la OCDE por etiquetas y los certificados de productividad MRIO).
 
 **Simuladores de política macroeconómica y laboratorios en navegador (puremacro 4.1)**
 
@@ -728,9 +748,9 @@ Si proviene de Stata, MATLAB/Dynare o statsmodels:
 | **Proyecciones locales (HAC)** | `jorda` / MCO manual | Código de Jordà (2005) | `OLS(y_h, X).fit(cov_type='HAC')` | `lp.lp_hac(df, y="y", x="shock", horizon=20, lags=4)` |
 | **LP-IV dependiente de estado** | 2SLS con interacción manual | — | — | `lp.lp_state_dep_iv(df, y="y", x="g", z="news", state="u")` |
 | **PL de panel (Driscoll–Kraay)** | `xtscc` | Panel LP toolbox | `PanelOLS(..., cov_type='driscoll-kraay')` | `lp.panel_lp_dk(df, y="y", x="z", unit_col="id", time_col="t")` |
-| **GMM de panel dinámico** | `xtabond2 y L.y, gmm(y) two robust` | Arellano–Bond MATLAB | — | `dynpanel.ab_gmm(y, panel_id, time_id, two_step=True, windmeijer=True)` |
+| **GMM de panel dinámico** | `xtabond y x, lags(p) twostep vce(robust) noconstant` | Arellano–Bond MATLAB | — | `dynpanel.ab_gmm(y, panel_id, time_id, lag_dep_var=p, X_exog=X, collapse=False)` |
 | **DiD escalonado** | `csdid y, ivar(id) time(t) gvar(g)` | — | — | `did.callaway_santanna(df, unit="id", time="t", outcome="y", treat_time="g")` |
-| **DiD sintético** | `sdid y id t d` | synthdid paquete R | — | `did.synthetic_did(df, unit="id", time="t", outcome="y", treat_time="g")` |
+| **DiD sintético** | `sdid y id t d, vce(placebo)` | synthdid paquete R | — | `did.synthetic_did(df, unit="id", time="t", outcome="y", treat_time="g", se_method="placebo")` |
 | **VAR aumentado con factores (FAVAR)** | — | BBE (2005) MATLAB | — | `var.favar(panel_df, policy_series, n_factors=3, horizon=20)` |
 | **Iteración de función de valor** | — | VFIToolkit `ValueFnIter_Case1` | — | `vfi.VFIProblem(a_grid, z_grid, P_z, return_fn, beta).solve()` |
 | **DSGE lineal (QZ / BK)** | — | Dynare `stoch_simul` / Klein `solab` | — | `dsge.klein.klein_solve(A, B, C, n_pre=...)` |
@@ -749,8 +769,10 @@ Si proviene de Stata, MATLAB/Dynare o statsmodels:
 | **GE Gravitacional Espacial** | — | Replicación Allen-Arkolakis | — | `spatial.AllenArkolakisModel.from_coordinates(...)` |
 
 Las replicaciones de extremo a extremo de artículos canónicos y cuadernos pedagógicos se encuentran en `notebooks/` y `puremacro/examples/`:
+- **Replicaciones de resultados publicados**: discreción óptima, regla simple y compromiso atemporal de Clarida, Galí y Gertler (1999) verificados fórmula por fórmula, con la advertencia sobre pérdidas incondicionales y condicionales (`66`), las tablas de Huggett (1993) y Aiyagari (1994) resueltas de nuevo, con cotas de error numérico, un solucionador independiente y el efecto de la cadena de Markov (`67`), y la perturbación de tercer orden verificada tensor por tensor con formas cerradas y Dynare 7.0 en vivo (`68`).
+- **Nowcasting regional, ML causal y política comercial**: nowcasting sintético de América Latina con atribución de noticias por añadas (`59`), Double ML interactivo IRM y DML-IV (`60`), simuladores de política comercial y HANK (`61`), bloques del CGE comercial flexible (`62`), juegos arancelarios hicksianos con recuperación auditada del equilibrio (`63`), cotas espectrales y continuación de Keller (`64`), y cascadas de costes en cadenas globales de valor con atribución de la VE/VC hicksiana (`65`).
 - **ML causal, HJB en tiempo continuo y tiempo real regional**: HJB implícito con KFE adjunta y EG de Aiyagari (`56`), OccBin multirrestricción acoplado con DML (`57`) y añadas macroeconómicas en tiempo real de América Latina (`58`).
-- **DP continuo, Deep Macro y GE espacial**: Chebyshev vs FEM Galerkin (`51`), dinámica de transición continua bajo choques MIT (`52`), sensibilidades analíticas IFT exactas y estimación GMM (`53`), PINNs de Deep Macro con 10 estados (`54`) y GE cuantitativo espacial de comercio e infraestructura (`55`).
+- **DP continuo, Deep Macro y GE espacial**: Chebyshev vs FEM Galerkin (`51`), dinámica de transición continua bajo choques MIT (`52`), sensibilidades paramétricas IFT y estimación GMM (`53`), PINNs de Deep Macro con 10 estados (`54`) y GE cuantitativo espacial de comercio e infraestructura (`55`).
 - **Escaparates de política aplicada**: Postura de política monetaria de bancos centrales y abanicos de proyección (`47`), nowcasting DFM en tiempo real y descomposición de noticias (`48`), GaR macroprudencial y conectividad sistémica (`49`), y multiplicadores fiscales trimétodo con DSA soberano (`50`).
 - **Frontera DSGE y HANK**: Recursión exacta del gradiente analítico de Kalman (`43`), puente espacio-secuencial HANK desde `.mod` (`44`), política discrecional óptima vs compromiso y shocks de noticias (`45`), y filtrado de partículas con MS-DSGE (`46`).
 - **Replicaciones canónicas**: Smets-Wouters 2007 (`41`, `42`), Bloom 2009 (`bloom2009.py`), SVAR narrativo de Mertens-Ravn (`svariv_mertens_ravn.py`), narrativa monetaria de Romer-Romer (`romer_romer_*.py`) y aproximadamente 75 más.
@@ -764,11 +786,23 @@ Todos los cuadernos cumplen estrictamente el contrato con Pyodide y la arquitect
 - **`docs/es/dcegm.md`** — Método de Malla Endógena con Elección Discreta (DC-EGM) con filtrado rápido de Upper Envelope para programación dinámica no convexa.
 - **`docs/es/vfi_continuous_equilibrium.md`** — Distribuciones de riqueza estacionarias continuas de Young (2010), conservación de masa y equilibrio general de Aiyagari con vaciado de mercados de factores.
 - **`docs/es/vfi_continuous_transition.md`** — Dinámica de transición continua no lineal bajo choques MIT inesperados y solvers Quasi-Newton Broyden en espacio de secuencias.
-- **`docs/es/vfi_analytic_gradients.md`** — Gradientes y jacobianos analíticos exactos mediante el Teorema de la Función Implícita (IFT) para estimación estructural GMM/SMM de alto rendimiento.
+- **`docs/es/vfi_analytic_gradients.md`** — Gradientes y jacobianos paramétricos mediante el Teorema de la Función Implícita (IFT) para estimación estructural GMM/SMM (alcance de agente representativo).
 - **`docs/es/deep_macro.md`** — Deep Macro y Redes Neuronales Informadas por la Física (PINNs) en puro NumPy para modelos dinámicos de ultra alta dimensión (10+ estados continuos) mediante muestreo ergódico.
 - **`docs/es/spatial_and_trade_ge.md`** — Economía espacial cuantitativa y equilibrio general de comercio internacional: álgebra exacta de sombreros de Caliendo-Parro (2015) y geografía económica de Allen-Arkolakis (2014).
+- **`docs/es/trade_accounting.md`** — Contabilidad consistente a precios de productor y de comprador para el modelo de comercio multipaís (`accounting="consistent"`): valoración de aranceles, ingresos fiscales, cierre con ahorro externo fijo, numerario y la comprobación independiente de dos países.
+- **`docs/es/trade_welfare.md`** — Bienestar hicksiano de consumo (`compute_hicksian_welfare`): VE/VC de la función de gasto entre dos equilibrios con contabilidad consistente y la atribución exacta por extremos a precios, renta de factores y transferencias fiscales.
+- **`docs/es/trade_policy.md`** — Política arancelaria hicksiana (`metric="hicksian_ev"`) y recuperación auditada del equilibrio (`solve_policy_equilibrium`): una sola base de comparación, qué establece la convergencia y la cadena Newton → híbrido → continuación.
+- **`docs/es/STRUCTURAL_VALIDATION_STATUS.md`** — Estado de validación de los solvers estructurales: contratos de aceptación, evidencia y límites pendientes, superficie por superficie, para los solvers de comercio, DSGE, VFI y MRIO.
+- **`docs/es/trade_mrio.md`** — Tablas MRIO nativas con procedencia (`puremacro.trade.mrio`): lectores de OCDE ICIO, FIGARO y EXIOBASE con sumas de verificación, el contrato de tabla balanceada, agregación exacta de sectores y regiones, reglas arancelarias gruesas, puentes de calibración y la procedencia de la tabla 77x11 incluida.
+- **`docs/es/trade_condensed.md`** — Modelo arancelario Leontief condensado de un factor (`puremacro.trade.condensed`): eliminación exacta 2N, monitores de pliegues, el certificado de flujos brutos de diez bloques y medidas independientes del numerario.
+- **`docs/es/trade_ces_newton.md`** — Newton exacto por bloques con CES anidada sobre la contabilidad consistente (`puremacro.trade.ces_newton`): derivación, homotopía arancelaria certificada y evidencia.
+- **`docs/es/trade_household.md`** — Sistemas de demanda del hogar y VE/VC exactas (`puremacro.trade.household`): calibración LES a partir de objetivos de Engel, matrices de Slutsky y puentes con equilibrios comerciales.
+- **`docs/es/trade_continuation.md`** — Continuación auditada de parámetros y arranques múltiples en un objetivo exacto (`puremacro.trade.continuation`), con lo que los auxiliares IO no lograron.
+- **`docs/es/trade_stability.md`** — Diagnóstico de estabilidad local reducida de un tanteo de precios relativos de los factores (`puremacro.trade.stability`, experimental).
+- **`docs/es/trade_dynamic.md`** — MRIO dinámico con previsión perfecta y capital específico por sector (`puremacro.trade.dynamic`, experimental): libro de calibración, transiciones con Newton-Krylov apilado, aceptación por horizonte, bienestar e informe de determinación.
+- **`docs/es/dsge_stacked_newton.md`** — Newton-Krylov apilado en el tiempo sin matriz para sistemas de previsión perfecta (`puremacro.dsge.stacked_newton`): precondicionadores, regla de aceptación, comparación de horizontes y paridad con IO.
 - **`docs/es/data_ecosystem.md`** — Ecosistema de datos macro globales: emisiones, transición energética, materias primas, estabilidad financiera internacional y constructores modulares de panel (`build_climate_panel`, `build_financial_panel`).
-- **`docs/es/notebooks.md`** — Catálogo completo de cuadernos (00–58), arquitectura pedagógica de 7 secciones y suites de política aplicada.
+- **`docs/es/notebooks.md`** — Catálogo completo de cuadernos (00–68), arquitectura pedagógica de 7 secciones y suites de política aplicada.
 - **`docs/es/dsge_build.md`** — Modelos DSGE desde ecuaciones, cargador de archivos `.mod`, poda de 2do orden, CLI `puremacro-dynare`, OccBin ZLB, relajación no lineal y MCMC bayesiano.
 - **`docs/es/models.md`** — Modelos estructurales: HANK en el espacio de secuencias, algoritmo Fake News, transferencias focalizadas y búsqueda y emparejamiento DMP.
 - **`docs/es/policy_simulators.md`** — Simuladores de política macroeconómica y laboratorios interactivos en navegador: equilibrio general cuantitativo de comercio de Caliendo-Parro (2015), transmisión monetaria HANK vs. RANK y laboratorios WebAssembly del lado del cliente.
@@ -817,7 +851,7 @@ como `puremacro/trade/_datafiles/SOURCES.md`.
 
 ## Estado
 
-Versión de producción, distribuyendo **4.3.0**. `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de la promesa del gate de publicación y cuáles son experimentales.
+Versión de producción, distribuyendo **4.5.0**. `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de la promesa del gate de publicación y cuáles son experimentales.
 
 La CI está activa y corre en cada push: la suite sobre tres sistemas operativos y tres versiones de Python (3.11, 3.12 y 3.13), el contrato con Pyodide, mypy, la guardia de deriva contra referencias, `mkdocs build --strict`, el despliegue del playground y una publicación en PyPI disparada por etiqueta mediante trusted publishing. Véase `.github/workflows/`. Aun así ejecute `python tools/release_check.py` localmente antes de etiquetar: los gates 5 y 6 son opcionales y la CI no los corre.
 

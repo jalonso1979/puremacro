@@ -78,6 +78,8 @@ class NewsDecompositionResult:
 
     def summary(self) -> str:
         """Text summary of Bańbura & Modugno news decomposition."""
+        err = float(self.decomposition_error)
+        err_note = "(< 1e-10)" if err < 1e-10 else "(IDENTITY FAILS: > 1e-10)"
         lines = [
             "=" * 74,
             "Bańbura & Modugno (2014) Real-Time Nowcasting News Decomposition",
@@ -88,7 +90,7 @@ class NewsDecompositionResult:
             f"Updated Nowcast (v)           : {self.forecast_new:+.4f}",
             f"Total Nowcast Revision        : {self.revision:+.4f}",
             f"Sum of Explained Impacts      : {self.total_impact:+.4f}",
-            f"Decomposition Identity Error  : {self.decomposition_error:.2e} (< 1e-10)",
+            f"Decomposition Identity Error  : {err:.2e} {err_note}",
             "-" * 74,
             "Impact Contributions Summary:",
             f"  From new releases           : {sum(self.impact_releases.values()):+.4f}",
@@ -191,48 +193,89 @@ class NewsDecompositionResult:
         return _df_to_typst(self.to_frame(), **kwargs)
 
     def plot(self, *, ax: Any = None, title: str | None = None) -> Any:
-        """Plot waterfall / contribution bar chart of nowcast update impacts."""
+        """Waterfall of the nowcast update, drawn relative to the previous nowcast.
+
+        The x-axis is the change in the nowcast since vintage v-1, so the
+        previous nowcast sits at 0 and the updated one at ``revision``. The
+        impacts are summed by series (releases first, then revisions marked
+        "(rev)"); each bar starts where the previous one ended and is
+        labelled with its impact. The last bar is the total revision, drawn
+        from 0. The top axis reads the same positions as nowcast levels.
+        Positive and negative impacts use the first two colours of the
+        current style cycle, and negative ones are also hatched, so the sign
+        survives a grayscale print.
+        """
         import matplotlib.pyplot as plt
+        from matplotlib.ticker import ScalarFormatter
 
         if ax is None:
             fig, ax = plt.subplots(figsize=(8, 4.5))
         else:
             fig = ax.figure
 
-        # Collect items
-        items = [("Previous Nowcast", self.forecast_old, "steelblue")]
-
-        # Group impacts by series
+        # Impacts summed by series; revisions kept apart from releases
         combined_impacts: dict[str, float] = {}
         for s, imp in self.impact_releases.items():
-            combined_impacts[s] = combined_impacts.get(s, 0.0) + imp
+            combined_impacts[str(s)] = combined_impacts.get(str(s), 0.0) + float(imp)
         for s, imp in self.impact_revisions.items():
             label = f"{s} (rev)"
-            combined_impacts[label] = combined_impacts.get(label, 0.0) + imp
+            combined_impacts[label] = combined_impacts.get(label, 0.0) + float(imp)
 
-        for s, imp in combined_impacts.items():
-            color = "#2ca02c" if imp >= 0 else "#d62728"
-            items.append((s, imp, color))
+        cycle = plt.rcParams["axes.prop_cycle"].by_key().get("color") or ["C0", "C1", "C2"]
+        c_up, c_down = cycle[0], cycle[1 % len(cycle)]
+        c_total = cycle[2 % len(cycle)]
+        edge = plt.rcParams.get("axes.edgecolor", "black")
 
-        items.append(("Updated Nowcast", self.forecast_new, "navy"))
+        labels: list[str] = []
+        ends: list[float] = []
+        cum = 0.0
+        for y, (s, imp) in enumerate(combined_impacts.items()):
+            ax.barh(
+                y, imp, left=cum, color=c_up if imp >= 0 else c_down,
+                hatch="" if imp >= 0 else "//", edgecolor=edge, lw=0.6,
+            )
+            cum += imp
+            labels.append(s)
+            ends.append(cum)
+        y_tot = len(labels)
+        ax.barh(y_tot, self.revision, left=0.0, color=c_total, hatch="..", edgecolor=edge, lw=0.6)
+        labels.append("Total revision")
+        ends.append(self.revision)
 
-        labels = [item[0] for item in items]
-        values = [item[1] for item in items]
-        colors = [item[2] for item in items]
-        y_pos = np.arange(len(labels))
+        values = list(combined_impacts.values()) + [self.revision]
+        for y, (end, val) in enumerate(zip(ends, values)):
+            ax.annotate(
+                f"{val:+.4f}", xy=(end, y), xytext=(4 if val >= 0 else -4, 0),
+                textcoords="offset points", va="center",
+                ha="left" if val >= 0 else "right", fontsize=8,
+            )
 
-        ax.barh(y_pos, values, color=colors, alpha=0.85, edgecolor="black", lw=0.5)
-        ax.set_yticks(y_pos)
+        ax.set_yticks(np.arange(len(labels)))
         ax.set_yticklabels(labels)
         ax.invert_yaxis()
-        ax.axvline(0.0, color="black", lw=0.8, ls="--", alpha=0.7)
+        ax.axvline(0.0, color=edge, lw=0.8, ls="--", alpha=0.8)
 
+        # Room for the value labels on both sides
+        span_lo = min(0.0, *ends, *(e - v for e, v in zip(ends, values)))
+        span_hi = max(0.0, *ends, *(e - v for e, v in zip(ends, values)))
+        pad = 0.25 * max(span_hi - span_lo, 1e-12)
+        ax.set_xlim(span_lo - pad, span_hi + pad)
+
+        old = float(self.forecast_old)
+        top = ax.secondary_xaxis("top", functions=(lambda x: x + old, lambda x: x - old))
+        top.xaxis.set_major_formatter(ScalarFormatter(useOffset=False))
+        top.set_xlabel("Nowcast level", fontsize=8)
+        top.tick_params(labelsize=8)
+
+        period = self.target_period
+        if isinstance(period, pd.Timestamp):
+            period = period.strftime("%Y-%m-%d")
         default_title = (
-            f"Nowcast Revision: {self.target_variable} ({self.target_period}) "
-            f"[{self.revision:+.3f}]"
+            f"Nowcast update, {self.target_variable} ({period}): "
+            f"{old:.3f} to {self.forecast_new:.3f} [{self.revision:+.3f}]"
         )
-        ax.set_title(title or default_title, fontsize=11, fontweight="semibold")
-        ax.set_xlabel("Value / Impact")
+        ax.set_title(title or default_title, fontsize=11, fontweight="bold")
+        ax.set_xlabel(f"Change in the nowcast since v-1 (0 = previous nowcast, {old:.4f})")
         ax.grid(True, axis="x", ls=":", alpha=0.5)
 
         fig.tight_layout()

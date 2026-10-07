@@ -16,7 +16,7 @@
 # **How does an unanticipated monetary tightening propagate through output and inflation, and why does the causal conclusion depend on whether policy reacts within the quarter?** A reduced-form VAR captures dynamics but not *causal* structure. We plant a known contractionary monetary shock in a synthetic VAR(2) and recover it two ways — recursive **Cholesky** identification and **sign restrictions** — using `puremacro.var.identify`. Everything runs in the browser on synthetic data.
 
 # %% [markdown]
-# ## From reduced form to structure
+# ## The method in math: from reduced form to structure
 #
 # A reduced-form VAR($p$) projects each variable on the recent past of all variables:
 # $$ y_t = A_1 y_{t-1} + \cdots + A_p y_{t-p} + u_t, \qquad \mathbb{E}[u_t u_t'] = \Sigma_u. $$
@@ -37,9 +37,28 @@
 #   impact responses match a sign prior. Many $B$'s qualify, so the shock is
 #   **set-identified** — we report the median and a band across admissible rotations.
 #
+# ### Baseline Parameterization
+#
+# | Symbol | Parameter Name | Economic Meaning | Baseline Calibration | Units |
+# |---|---|---|---|---|
+# | $p$ | Lag order | Autoregressive lags included in empirical VAR | $2$ | Quarters (Integer) |
+# | $T$ | Sample length | Number of quarterly observations simulated | $400$ | Quarters (100 Years) |
+# | $H$ | IRF horizon | Quarters ahead for impulse response propagation | $16$ | Quarters (4 Years) |
+# | $B_{0,\text{true}}$ | Impact matrix | Structural shock contemporaneous transmission matrix | Planted VAR(2) | Elasticity / Impact |
+# | $n_{\text{boot}}$ | Bootstrap iterations | Resampling draws for residual bootstrap CI | $400$ | Integer draws |
+# | $n_{\text{draws}}$ | Haar rotations | Random orthogonal rotation draws for sign set | $600$ | Integer draws |
+# | $\text{CI}$ | Confidence level | Probability coverage of error bands | $0.90$ | Dimensionless probability |
+#
 # **Intuition.** A recursive ordering is an *economic* assumption about what can move within
 # the period; reorder the variables and the "shock" changes. Sign restrictions assume less,
 # so they identify a *set* of responses — which is why their bands are wider.
+#
+# ### Seminal Literature Citations
+#
+# - Christiano et al. (2005). Nominal rigidities and the dynamic effects of a shock to monetary policy. *Journal of Political Economy*, 113(1), 1–45.
+# - Rubio-Ramírez et al. (2010). Structural vector autoregressions: Theory of identification and algorithms for inference. *Review of Economic Studies*, 77(2), 665–696.
+# - Sims (1980). Macroeconomics and reality. *Econometrica*, 48(1), 1–48.
+# - Uhlig (2005). What are the effects of monetary policy on output? Results from an agnostic identification procedure. *Journal of Monetary Economics*, 52(2), 381–419.
 
 # %%
 import sys

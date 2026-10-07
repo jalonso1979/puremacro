@@ -1,0 +1,51 @@
+{
+  "created_utc": "2026-10-01T21:53:48.308347+00:00",
+  "calibration_manifest_sha256": "ebd1296ce70b7a579486b7c230f141058ac06dc9d1e0439bb375a76a0f85261a",
+  "calibration_draws_sha256": "8f520e8f25ac5c235f55ddac5fd7c5f68e095946eba7148d6cf87516fb6936f1",
+  "master_seed": 20261002,
+  "validation_complete_at_creation": false,
+  "method": "Strict exceedance above order rank ceil(0.95*(B+1)); unresolved calibration criteria replaced by zero for lower cutoff and positive infinity for upper cutoff",
+  "scope": "All four predeclared variants frozen without method selection; no validation outcomes enter these cutoffs",
+  "cutoffs": [
+    {
+      "variant": "population_hac",
+      "calibration_draws": 399,
+      "calibration_unresolved": 7,
+      "critical_rank": 380,
+      "critical_lower": 127.97345475979408,
+      "critical_upper": 162.63170154669592,
+      "critical_lower_unbounded": false,
+      "critical_upper_unbounded": false
+    },
+    {
+      "variant": "finite_hac",
+      "calibration_draws": 399,
+      "calibration_unresolved": 9,
+      "critical_rank": 380,
+      "critical_lower": 54.6375891155335,
+      "critical_upper": 86.6757961193588,
+      "critical_lower_unbounded": false,
+      "critical_upper_unbounded": false
+    },
+    {
+      "variant": "population_oracle",
+      "calibration_draws": 399,
+      "calibration_unresolved": 0,
+      "critical_rank": 380,
+      "critical_lower": 15.280468427465394,
+      "critical_upper": 15.280468427465394,
+      "critical_lower_unbounded": false,
+      "critical_upper_unbounded": false
+    },
+    {
+      "variant": "finite_oracle",
+      "calibration_draws": 399,
+      "calibration_unresolved": 0,
+      "critical_rank": 380,
+      "critical_lower": 15.48096217140654,
+      "critical_upper": 15.48096217140654,
+      "critical_lower_unbounded": false,
+      "critical_upper_unbounded": false
+    }
+  ]
+}

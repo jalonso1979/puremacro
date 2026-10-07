@@ -1,0 +1,25 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+________________ test_all_notebooks_residual_styling_and_syntax ________________
+tests/test_m3_challenger_verification.py:367: in test_all_notebooks_residual_styling_and_syntax
+    assert not compile_issues, f"Syntax or compilation issues found in notebooks:\n{compile_issues}"
+E   AssertionError: Syntax or compilation issues found in notebooks:
+E     [('00_whats_new_in_puremacro_3_0_es.py', 'CompileError', '  File "/Users/jalonso/Documents/RESEARCH/puremacro/notebooks/00_whats_new_in_puremacro_3_0_es.py", line 575\n    **¿Qué tan exhaustivo es esto?** La maquinaria computacional demostrada en este recorrido constituye el núcleo numérico de `puremacro`:\n      ^\nSyntaxError: invalid character \'¿\' (U+00BF)\n')]
+E   assert not [('00_whats_new_in_puremacro_3_0_es.py', 'CompileError', '  File "/Users/jalonso/Documents/RESEARCH/puremacro/notebook...te recorrido constituye el núcleo numérico de `puremacro`:\n      ^\nSyntaxError: invalid character \'¿\' (U+00BF)\n')]
+_ TestTier3CrossFeature.test_interaction_section_sequence_monotonicity[10_staggered_did] _
+tests/test_notebooks/test_e2e_doc_elevation.py:774: in test_interaction_section_sequence_monotonicity
+    assert pos_prev < pos_next, (
+E   AssertionError: 10_staggered_did.py: Section 'read_the_output' (pos 13558) must precede 'your_turn' (pos 9669)
+E   assert 13558 < 9669
+_ TestTier4RealWorldScenarios.test_t4_s5_notebook_suite_bilingual_and_purity_integrity _
+tests/test_v260_showcase_replication_e2e.py:889: in test_t4_s5_notebook_suite_bilingual_and_purity_integrity
+    assert len(en_cells) == len(es_cells), (
+E   AssertionError: Cell count mismatch between 45_dsge_discretion_dsge_var_and_news_shocks.py (37) and 45_dsge_discretion_dsge_var_and_news_shocks_es.py (35)
+E   assert 37 == 35
+E    +  where 37 = len(['# ---\n# jupyter:\n#   jupytext:\n#     text_representation:\n#       extension: .py\n#       format_name: percent\n...with conditional Calvo price indexation $\\gamma_p \\in [0, 1]$ and an autoregressive cost-push shock $u_t$:\n\n', ...])
+E    +  and   35 = len(['# ---\n# jupyter:\n#   jupytext:\n#     text_representation:\n#       extension: .py\n#       format_name: percent\n...ón retroactiva condicional de precios $\\gamma_p \\in [0, 1]$ y perturbación autorregresiva de costos $u_t$:\n\n', ...])
+=========================== short test summary info ============================
+FAILED tests/test_m3_challenger_verification.py::test_all_notebooks_residual_styling_and_syntax
+FAILED tests/test_notebooks/test_e2e_doc_elevation.py::TestTier3CrossFeature::test_interaction_section_sequence_monotonicity[10_staggered_did]
+FAILED tests/test_v260_showcase_replication_e2e.py::TestTier4RealWorldScenarios::test_t4_s5_notebook_suite_bilingual_and_purity_integrity
+3 failed in 2.35s

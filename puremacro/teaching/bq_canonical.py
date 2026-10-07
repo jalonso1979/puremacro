@@ -3,12 +3,15 @@
 Thin wrapper over `puremacro.var.identify.bq.bq_svar` that:
   1. First-differences the permanent variable (log GDP), keeps the
      transitory variable (urate) in levels.
-  2. Invokes the existing `bq_svar` with `permanent_var_idx=0`.
+  2. Invokes the existing `bq_svar` with `permanent_var_idx=0` and
+     `cumulate=[0]`.
   3. Applies sign normalization so the supply shock raises GDP on
      impact and the demand shock raises urate on impact.
   4. Returns (point, lower, upper) IRFs with canonical axis order
-     `[horizon, response_variable, shock_index]`, with GDP responses
-     already cumulated to levels (matching the `bq_svar` convention).
+     `[horizon, response_variable, shock_index]`. Only the GDP responses
+     are cumulated (to the response of log GDP); the urate responses are
+     the responses of the rate itself, which return to zero, as in
+     Blanchard-Quah (1989), where X = (dY, U)' and U enters in levels.
 
 Also provides `bq_employment_epu` — the corrected version of the
 current T3 mis-specified system `[Δlog N, Δlog EPU]`, retained as a
@@ -61,6 +64,16 @@ def bq_gdp_urate(
 
     Supply shock (column 0) = permanent effect on log GDP.
     Demand shock (column 1) = transitory (long-run effect on GDP = 0).
+
+    Row 0 of the returned arrays is the response of log GDP (the
+    cumulated Δlog GDP response, in log points); row 1 is the response of
+    the unemployment rate (not cumulated, in the units of ``urate``). The
+    bands are percentiles of the same objects.
+
+    .. versionchanged:: after 4.3.0
+       Row 1 used to be cumulated as well, so the urate response was the
+       running sum of the true one and converged to a nonzero long-run
+       value instead of returning to zero.
     """
     sub = df[["log_gdp_real", "urate"]].dropna().copy()
     Y = np.column_stack([
@@ -70,6 +83,7 @@ def bq_gdp_urate(
     _bq_res = bq_svar(
         Y, p=p, horizon=horizon,
         permanent_var_idx=0, n_boot=n_boot, ci=ci, seed=seed,
+        cumulate=[0],   # urate enters in levels: do not cumulate it
     )
     point = _bq_res.irf_point   # (H+1, n, n)
     lo = _bq_res.irf_lower
@@ -96,6 +110,9 @@ def bq_employment_epu(
     on log N" restriction is not the canonical Blanchard-Quah (1989)
     identification. Retained for teaching — the notebook flags this
     mis-specification explicitly.
+
+    Both columns enter in first differences, so both response rows are
+    cumulated (to responses of log N and log EPU).
     """
     sub = df[["log_emp", "log_epu_for_bq"]].dropna().copy()
     Y = np.column_stack([
@@ -105,6 +122,7 @@ def bq_employment_epu(
     _bq_res = bq_svar(
         Y, p=p, horizon=horizon,
         permanent_var_idx=0, n_boot=n_boot, ci=ci, seed=seed,
+        cumulate=True,  # both columns are differenced
     )
     point = _bq_res.irf_point   # (H+1, n, n)
     lo = _bq_res.irf_lower

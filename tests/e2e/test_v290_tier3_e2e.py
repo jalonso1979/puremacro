@@ -897,7 +897,7 @@ class TestTier1FeatureCoverage:
         end;
         """
         mod_file = tmp_path / "toy_parity.mod"
-        mod_file.write_text(mod_text)
+        mod_file.write_text(mod_text, encoding="utf-8")
         
         res = compare_fn(mod_file, _oo_mapping(synthetic_dynare_results_mat["path"]), order=1)
         assert hasattr(res, "max_dev_ghx")
@@ -1255,7 +1255,7 @@ class TestTier2BoundaryAndCornerCases:
         end;
         """
         mod_path = tmp_path / "mismatch.mod"
-        mod_path.write_text(mismatched_mod)
+        mod_path.write_text(mismatched_mod, encoding="utf-8")
         
         res = compare_fn(mod_path, _oo_mapping(synthetic_dynare_results_mat["path"]))
         assert hasattr(res, "passed")
@@ -1275,7 +1275,7 @@ class TestTier2BoundaryAndCornerCases:
         end;
         """
         mod_path = tmp_path / "strict.mod"
-        mod_path.write_text(mod_text)
+        mod_path.write_text(mod_text, encoding="utf-8")
         
         res = compare_fn(mod_path, _oo_mapping(synthetic_dynare_results_mat["path"]), tol_dr=0.0)
         assert hasattr(res, "max_dev_ghx")
@@ -1294,7 +1294,7 @@ class TestTier2BoundaryAndCornerCases:
         end;
         """
         mod_path = tmp_path / "order2_check.mod"
-        mod_path.write_text(mod_text)
+        mod_path.write_text(mod_text, encoding="utf-8")
         
         res = compare_fn(mod_path, _oo_mapping(synthetic_dynare_results_mat["path"]), order=2)
         assert hasattr(res, "passed")

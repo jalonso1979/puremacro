@@ -13,6 +13,7 @@
 # %% [markdown]
 # # Galería de validación: puremacro frente a referencias confiables
 #
+# **¿Cómo pueden los investigadores e instituciones de política verificar rigurosamente que los algoritmos macroeconómicos personalizados en pure-Python coinciden con paquetes econométricos establecidos y formas cerradas analíticas con precisión de máquina?**
 # Cada estimador principal de `puremacro` se contrasta con una referencia
 # **independiente**: `statsmodels` / `linearmodels` / `arch` / `scipy` cuando
 # existe, una solución en forma cerrada, un número publicado, o una identidad
@@ -33,13 +34,37 @@
 # en vivo.
 
 # %% [markdown]
-# ## ¿Por qué validar?
+# ## El método en matemáticas
 #
 # Una biblioteca de macroeconomía en Python puro solo vale la pena si se puede
 # confiar en sus números. Reimplementar desde cero en numpy un VAR, un filtro de
 # Kalman o un estimador GARCH es justo donde se esconden los errores silenciosos
 # —un desfase de un rezago, una matriz transpuesta, una normalización equivocada—
 # y ninguno se anuncia por sí solo.
+#
+# Las métricas de error numérico entre niveles de tolerancia se formalizan como:
+# $$ \text{RelErr}(\hat{\theta}, \theta_{\text{ref}}) = \frac{\|\hat{\theta} - \theta_{\text{ref}}\|_\infty}{\max\big(1, \|\theta_{\text{ref}}\|_\infty\big)} \le \text{tol}, \qquad \text{Margin} = \ln\left( \frac{\text{RelErr}}{\text{tol}} \right) \le 0 $$
+#
+# Los puntos de referencia analíticos incluyen el modelo de crecimiento estocástico de Brock y Mirman (1972):
+# $$ u(c) = \ln c, \quad y = e^z k^\alpha, \quad \delta = 1 \implies k'(k, z) = \alpha \beta e^z k^\alpha, \qquad k^* = (\alpha \beta)^{\frac{1}{1-\alpha}} $$
+#
+# La forma cerrada del puntaje de probabilidad clasificada continua (CRPS) para pronósticos gaussianos (Gneiting y Raftery 2007):
+# $$ \operatorname{CRPS}\big(\mathcal{N}(\mu, \sigma^2), y\big) = \sigma \left[ z \big(2 \Phi(z) - 1\big) + 2 \phi(z) - \frac{1}{\sqrt{\pi}} \right], \qquad z \equiv \frac{y - \mu}{\sigma} $$
+#
+# Y el estimador de densidad espectral de potencia de Welch (1967):
+# $$ \hat{S}_{xx}(f) = \frac{1}{K L U} \sum_{k=1}^K \left| \sum_{n=0}^{L-1} w[n] x_k[n] e^{-i 2\pi f n} \right|^2, \qquad U = \frac{1}{L} \sum_{n=0}^{L-1} w^2[n] $$
+#
+# ### Parametrización base
+#
+# | Símbolo | Significado matemático / algorítmico | Calibración base | Unidades |
+# |---|---|---|---|
+# | $\text{tol}_{\text{EXACT}}$ | Tolerancia para identidades algebraicas exactas | $10^{-10}$ | Error relativo de máquina |
+# | $\text{tol}_{\text{TIGHT}}$ | Tolerancia de optimización numérica | $10^{-6}$ | Tolerancia relativa |
+# | $\text{tol}_{\text{NUMERIC}}$ | Tolerancia de diferencias finitas / convergencia en malla | $10^{-2}$ ($1\%$) | Tolerancia relativa |
+# | $\alpha, \beta$ | Parámetros de producción y descuento de Brock-Mirman | $\alpha = 0.30, \beta = 0.95$ | Adimensional |
+# | $k^*$ | Stock de capital de estado estacionario | $(\alpha \beta)^{1/(1-\alpha)} \approx 0.185$ | Unidades de capital |
+# | $L$ | Longitud de ventana de segmentos FFT de Welch | $64$ | Puntos temporales |
+# | $f_{\text{cycle}}$ | Frecuencia cíclica plantada | $1/16 = 0.0625$ | Ciclos por período |
 #
 # **Intuición.** Aquí la confianza se *gana por estimador, frente a algo
 # independiente*. Cada caso de `puremacro.validation` empareja un estimador de
@@ -65,6 +90,13 @@
 # Mantener las referencias `PACKAGE` como golden congelados (reguardados contra
 # los paquetes en vivo en CI) es lo que permite que el *mismo* `scorecard()` corra
 # en el navegador sin tener statsmodels/linearmodels/arch instalados.
+#
+# ### Referencias bibliográficas seminales
+#
+# - Brock, W. A., & Mirman, L. J. (1972). Optimal economic growth and uncertainty: The discounted case. *Journal of Economic Theory*, 4(3), 479–513.
+# - Diebold, F. X., & Mariano, R. S. (1995). Comparing predictive accuracy. *Journal of Business & Economic Statistics*, 13(3), 253–263.
+# - Gneiting, T., & Raftery, A. E. (2007). Strictly proper scoring rules, prediction, and estimation. *Journal of the American Statistical Association*, 102(477), 359–378.
+# - Welch, P. (1967). The use of fast Fourier transform for the estimation of power spectra: A method based on time averaging over short, modified periodograms. *IEEE Transactions on Audio and Electroacoustics*, 15(2), 70–73.
 
 # %%
 import sys
@@ -136,7 +168,7 @@ axR.tick_params(axis="x", labelrotation=30)
 axR.grid(axis="x", visible=False)
 
 # %% [markdown]
-# **Lee la salida.** La línea impresa es el titular: *todos* los casos pasan, y el
+# **Lectura de los resultados.** La línea impresa es el titular: *todos* los casos pasan, y el
 # `assert df["passed"].all()` es la biblioteca certificándose a sí misma —si algún
 # estimador se hubiera desviado, importar este cuaderno habría lanzado un error.
 # La tabla por subsistema muestra que la galería es amplia, no profunda en un solo
@@ -276,6 +308,14 @@ ax.set_xlabel("frequency (cycles / period)")
 ax.set_ylabel("power spectral density")
 ax.set_title(f"Welch PSD: puremacro vs scipy.signal  (max |Δ| = {np.abs(Pxx - P_sp).max():.1e})")
 ax.legend(loc="upper right")
+
+# %% [markdown]
+# **Lectura de los resultados.** La galería de validación proporciona una certificación transparente e independiente:
+#
+# 1. **Certificación completa por subsistema**: La tarjeta de puntuación confirma una tasa de aprobación del $100\%$ en todos los subsistemas (`max_margin <= 0.0`). Cada estimador evaluado satisface su nivel de tolerancia declarado.
+# 2. **Precisión de la FIR de Cholesky frente a statsmodels**: La superposición de la función de impulso-respuesta SVAR coincide con statsmodels con una discrepancia absoluta máxima inferior a $10^{-14}$, demostrando precisión de máquina en álgebra lineal y operaciones de polinomios de rezagos.
+# 3. **Convergencia de VFI no lineal**: La función de política de iteración de la función de valor converge a la solución analítica cerrada de Brock-Mirman $k'(k, z) = \alpha \beta e^z k^\alpha$ con un error relativo máximo inferior a $0.008$ ($< 1\%$), acotado enteramente por la resolución de la malla discreta.
+# 4. **Consistencia de densidad espectral**: Las estimaciones del periodograma de Welch reproducen `scipy.signal.welch` hasta la paridad de punto flotante mientras identifican correctamente el pico espectral del ciclo económico plantado en la frecuencia $f = 1/16 = 0.0625$ ciclos por período.
 
 # %% [markdown]
 # ## Tu turno — audita un subsistema

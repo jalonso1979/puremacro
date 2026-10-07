@@ -1049,6 +1049,55 @@ def _differentiate_dynare_eqs(
     return A_plus, A_0, A_minus, B_u, const, eval_ss, variables, shocks
 
 
+def _constrained_regime_at(m_k: Any, ref_m: Any, par_dict: Mapping[str, float],
+                           base_params: Mapping[str, float]) -> Any:
+    """Constrained OccBin regime ``m_k`` at a draw, linearised at the reference's steady state.
+
+    OccBin (Guerrieri & Iacoviello 2015) linearises every regime around one
+    point, the steady state of the reference (unconstrained) regime; the
+    constrained regime differs from the reference only in the rows its
+    constraint rewrites, and its peg enters through the constant evaluated at
+    that point. The reference is re-solved at each draw, so its steady state
+    follows the parameters; the constrained regime has to be differentiated at
+    that same new point. Differentiating it at the calibration's steady state
+    (as up to 4.3.0) made every nonlinear row of it differ from the reference,
+    and the piecewise filter spliced all of those rows into the binding regime
+    as if the constraint had rewritten them (or, with two constraints, refused
+    the overlap). ``par_dict`` overrides the regime's own parameters (or
+    ``base_params`` when it has none). A ``m_k`` that is not a
+    ``build_dynare`` / ``load_mod`` model (a callable) is returned unchanged:
+    :func:`_extract_model_matrices` already differentiates it at the
+    reference's steady state and parameters.
+
+    Shared by ``estimate_dsge``'s OccBin likelihoods and the finite-difference
+    gradient of :func:`solve_differentiable_occbin`.
+    """
+    from puremacro.dsge.dynare import build_dynare
+
+    if getattr(m_k, "_dynare_equations", None) is None:
+        return m_k
+    k_params = dict(getattr(m_k, "_params", None) or getattr(m_k, "params", None) or base_params)
+    k_params.update(par_dict)
+    variables = list(m_k.variables)
+    ref_ss = pd.Series(ref_m.steady_state).reindex(variables)
+    if ref_ss.isna().any():
+        # Variables the reference does not have keep the regime's own values.
+        ref_ss = ref_ss.fillna(pd.Series(m_k.steady_state).reindex(variables))
+    return build_dynare(
+        m_k._dynare_equations,
+        variables=variables,
+        shocks=list(m_k.shocks),
+        params=k_params,
+        steady_state={v: float(ref_ss[v]) for v in variables},
+        check_steady_state=False,
+        method=getattr(m_k, "method", "complex"),
+        # The equations were verified when m_k was built; re-checking the
+        # Jacobians at every draw would only repeat that.
+        verify_derivatives=False,
+        strict=False,
+    )
+
+
 def _safe_solve(A: np.ndarray, B: np.ndarray) -> np.ndarray:
     """Solve A X = B safely with fallback to least squares if singular."""
     try:
@@ -1864,14 +1913,43 @@ def solve_differentiable_occbin(
     if compute_gradient or param_names is not None:
         gradient_dict = {}
         sensitivities = {}
-        p_names = list(param_names) if param_names is not None else list(getattr(reference_model, "_params", {}).keys())
-
         base_p = dict(getattr(reference_model, "_params", {}) or {})
-        from puremacro.dsge.dynare import build_dynare
+        if param_names is not None:
+            p_names = list(param_names)
+            unknown = [p for p in p_names if p not in base_p]
+            if unknown:
+                # They used to be skipped without a word, leaving no entry in
+                # ``gradient`` for a name the caller asked for.
+                raise ValueError(
+                    f"solve_differentiable_occbin: param_names {unknown} are not "
+                    f"parameters of reference_model; expected names from "
+                    f"{sorted(base_p)}."
+                )
+        else:
+            p_names = list(base_p)
+
+        from puremacro.dsge.dynare import _resolve_dynare_model
+
+        def _regimes_at(p_vals: dict[str, float], moved: dict[str, float]) -> tuple[Any, Any]:
+            """Both regimes at perturbed parameters, OccBin's way.
+
+            The reference is re-solved at ``p_vals`` so that its steady state
+            follows them (its ``steady_state_model`` block, or a numerical
+            solve), and the constrained regime is linearised at that re-solved
+            steady state -- the single linearisation point, as in
+            ``estimate_dsge``'s OccBin likelihoods. Up to 4.3.0 both were
+            rebuilt at the calibration's steady states (``check_steady_state=
+            False``), so every derivative through the steady state (the
+            Jacobian of a nonlinear row, the peg's constant) was dropped.
+            """
+            if getattr(reference_model, "_dynare_equations", None) is not None:
+                ref_p = _resolve_dynare_model(reference_model, p_vals, strict=False)
+            else:
+                ref_p = reference_model
+            cons_p = _constrained_regime_at(constrained_model, ref_p, moved, base_p)
+            return ref_p, cons_p
 
         for p_name in p_names:
-            if p_name not in base_p:
-                continue
             val = float(base_p[p_name])
             h = 1e-5 * max(1.0, abs(val))
 
@@ -1881,64 +1959,18 @@ def solve_differentiable_occbin(
             p_minus[p_name] = val - h
 
             try:
-                if getattr(reference_model, "_dynare_equations", None) is not None:
-                    ref_plus = build_dynare(
-                        reference_model._dynare_equations,
-                        variables=reference_model.variables,
-                        shocks=reference_model.shocks,
-                        params=p_plus,
-                        steady_state=reference_model.steady_state,
-                        check_steady_state=False,
-                        strict=False,
-                    )
-                    ref_minus = build_dynare(
-                        reference_model._dynare_equations,
-                        variables=reference_model.variables,
-                        shocks=reference_model.shocks,
-                        params=p_minus,
-                        steady_state=reference_model.steady_state,
-                        check_steady_state=False,
-                        strict=False,
-                    )
-                else:
-                    ref_plus, ref_minus = reference_model, reference_model
-
-                if getattr(constrained_model, "_dynare_equations", None) is not None:
-                    cons_base = dict(getattr(constrained_model, "_params", {}) or base_p)
-                    cp_plus = dict(cons_base)
-                    cp_plus[p_name] = val + h
-                    cp_minus = dict(cons_base)
-                    cp_minus[p_name] = val - h
-                    cons_plus = build_dynare(
-                        constrained_model._dynare_equations,
-                        variables=constrained_model.variables,
-                        shocks=constrained_model.shocks,
-                        params=cp_plus,
-                        steady_state=constrained_model.steady_state,
-                        check_steady_state=False,
-                        strict=False,
-                    )
-                    cons_minus = build_dynare(
-                        constrained_model._dynare_equations,
-                        variables=constrained_model.variables,
-                        shocks=constrained_model.shocks,
-                        params=cp_minus,
-                        steady_state=constrained_model.steady_state,
-                        check_steady_state=False,
-                        strict=False,
-                    )
-                else:
-                    cons_plus, cons_minus = constrained_model, constrained_model
+                ref_plus, cons_plus = _regimes_at(p_plus, {p_name: val + h})
+                ref_minus, cons_minus = _regimes_at(p_minus, {p_name: val - h})
 
                 res_p = solve_differentiable_occbin(
                     ref_plus, cons_plus, constraint, shock_sequence,
-                    tau=tau, horizon=horizon, max_iter=20, tol=tol,
-                    init_weights=weights,
+                    tau=tau, horizon=horizon, max_iter=max_iter, tol=tol,
+                    damping=damping, init_weights=weights,
                 )
                 res_m = solve_differentiable_occbin(
                     ref_minus, cons_minus, constraint, shock_sequence,
-                    tau=tau, horizon=horizon, max_iter=20, tol=tol,
-                    init_weights=weights,
+                    tau=tau, horizon=horizon, max_iter=max_iter, tol=tol,
+                    damping=damping, init_weights=weights,
                 )
 
                 dX_dp = (res_p.simulated_path.to_numpy() - res_m.simulated_path.to_numpy()) / (2.0 * h)
@@ -1950,8 +1982,18 @@ def solve_differentiable_occbin(
                     gradient_dict[p_name] = float((lp_p - lp_m) / (2.0 * h))
                 else:
                     gradient_dict[p_name] = float(dX_dp[0, idx_var])
-            except (np.linalg.LinAlgError, scipy.linalg.LinAlgError, ValueError, Exception):
-                gradient_dict[p_name] = 0.0
+            except (np.linalg.LinAlgError, scipy.linalg.LinAlgError, ValueError,
+                    RuntimeError, ArithmeticError) as exc:
+                # NaN, not the 0.0 reported up to 4.3.0: a failed perturbed
+                # solve says nothing about the slope.
+                gradient_dict[p_name] = float("nan")
+                warnings.warn(
+                    f"solve_differentiable_occbin: the gradient with respect to "
+                    f"{p_name!r} is NaN; re-solving at {p_name} +- {h:.3g} raised "
+                    f"{type(exc).__name__}: {exc}",
+                    RuntimeWarning,
+                    stacklevel=_stacklevel_outside_module(),
+                )
 
         if sensitivities:
             records = []

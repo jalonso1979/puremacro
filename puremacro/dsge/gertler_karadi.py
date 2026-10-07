@@ -476,7 +476,11 @@ class GertlerKaradiResult:
     Attributes
     ----------
     irf : pd.DataFrame
-        Impulse response trajectories (deviations from steady state) for all model variables.
+        Impulse response trajectories for all model variables, as **level
+        deviations from the steady state**, ``x_t - x_ss``, in the units of
+        ``steady_state`` (see Notes). Row ``t`` is quarter ``t`` after the
+        shock; row 0 is the impact quarter. Use ``to_frame(units="pct")`` for
+        percent deviations.
     variables : list[str]
         List of endogenous variable names.
     steady_state : dict[str, float]
@@ -497,6 +501,34 @@ class GertlerKaradiResult:
         Underlying OccBinResult if solved via OccBin.
     params : dict[str, float], default factory dict
         Model parameters used.
+
+    Notes
+    -----
+    **Units.** The equilibrium conditions are written in levels and
+    :func:`puremacro.dsge.dynare.build_dynare` linearises them *in levels*
+    around the steady state, so the decision rules are
+    ``x_t = x_ss + ghx (s_{t-1} - s_ss) + ghu u_t`` and every column of
+    ``irf`` / ``to_frame()`` is the level deviation ``x_t - x_ss``. It is
+    neither a percent nor a log deviation. ``100 * (x_t - x_ss)`` is a
+    percentage only for variables whose steady state is 1 (``Q``, ``U``,
+    ``xi``, ``a``, ``Pi``); for every other variable the percent deviation is
+    ``100 * (x_t - x_ss) / x_ss``, which ``to_frame(units="pct")`` returns.
+    At the default solve (OccBin, a -5% capital-quality shock) capital moves by
+    -0.2866 in level on impact against ``K_ss = 5.6601``: that is -5.06 %,
+    not -28.66 %. Bank net worth moves by -0.6788 against ``N_ss = 1.3811``,
+    i.e. -49.15 %.
+
+    How to read a level deviation, by variable:
+
+    * ``Y, C, I, K, N, Ne, Nn, L, w`` -- model units (``L_ss = 1/3``).
+    * ``R, Rk, Rn`` -- gross *quarterly* returns, so the deviation is the
+      change in the net quarterly rate as a fraction (0.0025 = 25 bp per
+      quarter, 100 bp annualised). ``Pi`` is gross quarterly inflation.
+    * ``prem`` -- the expected quarterly spread ``E_t[Rk_{t+1} - R_{t+1}]`` as
+      a fraction; ``40000 * prem`` is annualised basis points, the factor
+      behind ``steady_state["spread_ann"]``.
+    * ``phi`` -- private bank leverage ``(1 - psi) Q K / N`` (a ratio);
+      ``psi`` -- public share of intermediated assets, whose steady state is 0.
     """
 
     irf: pd.DataFrame
@@ -512,9 +544,67 @@ class GertlerKaradiResult:
     occbin_result: Any | None = None
     params: dict[str, float] = field(default_factory=dict)
 
-    def to_frame(self) -> pd.DataFrame:
-        """Return simulated trajectory as a pandas DataFrame."""
-        return self.irf.copy()
+    def to_frame(self, units: str = "level") -> pd.DataFrame:
+        """Return the simulated impulse responses as a pandas DataFrame.
+
+        Parameters
+        ----------
+        units : {'level', 'pct'}, default 'level'
+            * ``'level'`` -- level deviations from the steady state,
+              ``x_t - x_ss``, in the units of ``steady_state`` (the model is
+              linearised in levels). This is ``irf`` unchanged.
+            * ``'pct'`` -- percent deviations from the steady state,
+              ``100 * (x_t - x_ss) / x_ss`` (exact ratio, not a log
+              approximation). A variable whose steady state is zero (``psi``
+              in the shipped model) has no percent deviation and is returned
+              as NaN; its name is listed in ``df.attrs["pct_undefined"]``.
+              ``Pi`` has a unit steady state, so its percent deviation is the
+              percentage-point change in quarterly inflation; for the gross
+              returns ``R, Rk, Rn`` (steady state about 1.01) it is close to,
+              but not equal to, the percentage-point change of the net
+              quarterly rate. For ``prem`` it is the change relative to a
+              roughly 25 bp-per-quarter base, so ``40000 * prem`` from the
+              ``'level'`` frame (annualised bp) is usually the more readable
+              measure.
+
+        Returns
+        -------
+        pd.DataFrame
+            One column per model variable, one row per quarter (row 0 =
+            impact). ``df.attrs["units"]`` records the units.
+
+        Examples
+        --------
+        Default solve (OccBin, -5% capital-quality shock). Capital falls by
+        0.2866 in level against ``K_ss = 5.6601``, which is 5.06 %:
+
+        >>> res = solve_gertler_karadi()                         # doctest: +SKIP
+        >>> round(res.to_frame()["K"].iloc[0], 4)                # doctest: +SKIP
+        -0.2866
+        >>> round(res.to_frame(units="pct")["K"].iloc[0], 2)     # doctest: +SKIP
+        -5.06
+        """
+        if units == "level":
+            df = self.irf.copy()
+            df.attrs["units"] = "level"
+            return df
+        if units == "pct":
+            df = self.irf.copy()
+            undefined: list[str] = []
+            for col in df.columns:
+                ss_val = self.steady_state.get(col)
+                if ss_val is None or not np.isfinite(ss_val) or abs(float(ss_val)) < 1e-12:
+                    df[col] = np.nan
+                    undefined.append(col)
+                else:
+                    df[col] = 100.0 * df[col] / float(ss_val)
+            df.attrs["units"] = "pct"
+            df.attrs["pct_undefined"] = undefined
+            return df
+        raise ValueError(
+            f"to_frame: unknown units {units!r}; expected 'level' (x_t - x_ss, the "
+            "default) or 'pct' (100 * (x_t - x_ss) / x_ss)"
+        )
 
     def __getitem__(self, key: str) -> pd.Series | Any:
         """Allow subscript access to simulated variables."""
@@ -546,7 +636,8 @@ class GertlerKaradiResult:
             f"  Output (Y) / Capital (K)      : {self.steady_state.get('Y', 0.0):.4f} / {self.steady_state.get('K', 0.0):.4f}",
             f"  Bank Net Worth (N)            : {self.steady_state.get('N', 0.0):.4f}",
             "-" * 78,
-            "TRAJECTORY SUMMARY STATISTICS (DEVIATIONS FROM STEADY STATE)",
+            "TRAJECTORY SUMMARY STATISTICS (LEVEL DEVIATIONS x_t - x_ss FROM STEADY STATE)",
+            "  percent deviations: to_frame(units='pct') = 100 * (x_t - x_ss) / x_ss",
             "-" * 78,
         ]
 
@@ -565,29 +656,42 @@ class GertlerKaradiResult:
         lines.append("=" * 78)
         return "\n".join(lines)
 
-    def to_markdown(self, **kwargs) -> str:
-        """Export simulated trajectory to Markdown table."""
+    def to_markdown(self, *, units: str = "level", **kwargs) -> str:
+        """Export simulated trajectory to Markdown table.
+
+        ``units`` is passed to :meth:`to_frame` (``'level'`` deviations by
+        default, ``'pct'`` for percent deviations from steady state).
+        """
         from puremacro.reports import _df_to_markdown
 
-        return _df_to_markdown(self.to_frame(), **kwargs)
+        return _df_to_markdown(self.to_frame(units=units), **kwargs)
 
-    def to_latex(self, **kwargs) -> str:
-        """Export simulated trajectory to LaTeX tabular."""
+    def to_latex(self, *, units: str = "level", **kwargs) -> str:
+        """Export simulated trajectory to LaTeX tabular.
+
+        ``units`` is passed to :meth:`to_frame` (``'level'`` deviations by
+        default, ``'pct'`` for percent deviations from steady state).
+        """
         from puremacro.reports import _df_to_latex
 
-        return _df_to_latex(self.to_frame(), **kwargs)
+        return _df_to_latex(self.to_frame(units=units), **kwargs)
 
-    def to_typst(self, **kwargs) -> str:
-        """Export simulated trajectory to Typst table."""
+    def to_typst(self, *, units: str = "level", **kwargs) -> str:
+        """Export simulated trajectory to Typst table.
+
+        ``units`` is passed to :meth:`to_frame` (``'level'`` deviations by
+        default, ``'pct'`` for percent deviations from steady state).
+        """
         from puremacro.reports import _df_to_typst
 
-        return _df_to_typst(self.to_frame(), **kwargs)
+        return _df_to_typst(self.to_frame(units=units), **kwargs)
 
     def plot(
         self,
         variables: Sequence[str] | None = None,
         style: str = "publication",
         figsize: tuple[float, float] | None = None,
+        units: str = "level",
     ):
         """Plot multi-panel impulse responses with highlighted binding regimes.
 
@@ -601,6 +705,10 @@ class GertlerKaradiResult:
             styling from ``puremacro.plotting.bw_style``.
         figsize : tuple of float, optional
             Figure size in inches.
+        units : {'level', 'pct'}, default 'level'
+            Units of the plotted responses, as in :meth:`to_frame`: level
+            deviations ``x_t - x_ss`` or percent deviations
+            ``100 * (x_t - x_ss) / x_ss``. The y-axis label states the choice.
 
         Returns
         -------
@@ -608,6 +716,9 @@ class GertlerKaradiResult:
             The resulting figure.
         """
         import matplotlib.pyplot as plt
+
+        frame = self.to_frame(units=units)
+        ylabel = "level dev. from s.s." if units == "level" else "% dev. from s.s."
 
         if variables is None:
             default_vars = ["Y", "I", "N", "prem", "Rn", "phi"]
@@ -660,7 +771,7 @@ class GertlerKaradiResult:
             ax = axes_flat[i]
             c = colors[i] if colors[i] is not None else "black"
             ls = styles[i] if styles[i] is not None else "-"
-            ax.plot(time_grid, self.irf[var], label=var, color=c, linestyle=ls, linewidth=1.5)
+            ax.plot(time_grid, frame[var], label=var, color=c, linestyle=ls, linewidth=1.5)
 
             # Highlight binding regime periods if solved with OccBin
             if self.binding_periods > 0 and len(self.regimes) >= horizon:
@@ -675,6 +786,7 @@ class GertlerKaradiResult:
             ax.axhline(0.0, color="0.6", linestyle=":", linewidth=0.7)
             ax.set_title(title_map.get(var, var), fontsize=10, fontweight="bold")
             ax.set_xlabel("Quarter", fontsize=8)
+            ax.set_ylabel(ylabel, fontsize=8)
             ax.grid(True, linestyle="--", alpha=0.3)
 
         for j in range(n_vars, len(axes_flat)):

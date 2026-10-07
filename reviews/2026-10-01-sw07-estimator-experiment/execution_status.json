@@ -1,0 +1,14 @@
+{
+  "public_comparison_matches_independent_audit": true,
+  "independent_samples": 1398,
+  "variant_fits": 5592,
+  "optimizer_starts": 22368,
+  "unresolved_variant_fits": 46,
+  "cli_exit_codes": {
+    "calibration": 1,
+    "validation": 1
+  },
+  "exit_reason": "All samples complete; unresolved first-order optimizer checks remain preserved.",
+  "calibration_manifest_sha256": "ebd1296ce70b7a579486b7c230f141058ac06dc9d1e0439bb375a76a0f85261a",
+  "validation_manifest_sha256": "1c3132113f9dc0a24797a28f829784440e44a0055551d52d0cc2788e59199559"
+}

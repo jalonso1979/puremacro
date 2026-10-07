@@ -50,6 +50,11 @@ nav:
   - English Documentation:
       - Overview: index.md
       - Quickstart: quickstart.md
+      - Research workflows: research_workflows.md
+      - Real-data studies and published replication: empirical_research.md
+      - SW07 finite-sample diagnosis: sw07_finite_sample.md
+      - SW07 estimator controls: sw07_estimator_experiment.md
+      - Distributional trade GE application: distributional_trade_ge.md
       - Showcase Notebooks: notebooks.md
       - Correctness advisories: ADVISORY.md
       - Structural validation status: STRUCTURAL_VALIDATION_STATUS.md
@@ -78,6 +83,7 @@ nav:
       - Publication & Reporting:
           - Manuscript Tables & Exports: reporting.md
       - Structural Models:
+          - Empirical-to-structural estimation: structural_bridge.md
           - Sequence-Space HANK: models.md
           - Non-Linear HANK Transitions: hank_nonlinear.md
           - Macroeconomic Policy Simulators & Browser Labs: policy_simulators.md
@@ -89,6 +95,7 @@ nav:
           - DSGE Gradients, NUTS & HANK Bridge: dsge_v3.md
           - DSGE Frontier (Policy, DSGE-VAR & News): dsge_phase_c.md
           - DSGE Non-linear Particle Filtering & Regime Switching: dsge_phase_d.md
+          - Stacked-Time Newton-Krylov (Perfect Foresight): dsge_stacked_newton.md
       - Continuous Dynamic Programming & Projection Solvers:
           - Continuous Projection Solvers: vfi_continuous_projection.md
           - Splines & Sparse Grids: vfi_splines_and_sparse_grids.md
@@ -96,7 +103,7 @@ nav:
           - Continuous Distributions & General Equilibrium: vfi_continuous_equilibrium.md
           - Continuous-Time HJB & Adjoint KFE: vfi_hjb_continuous.md
           - Continuous Transition Dynamics: vfi_continuous_transition.md
-          - Exact Analytic Gradients (IFT): vfi_analytic_gradients.md
+          - Parameter Gradients (IFT): vfi_analytic_gradients.md
       - Frontier Macro & Spatial Economics:
           - Deep Macro & Neural Networks: deep_macro.md
           - Quantitative Spatial & Trade General Equilibrium: spatial_and_trade_ge.md
@@ -104,11 +111,20 @@ nav:
           - Hicksian consumption welfare: trade_welfare.md
           - Hicksian tariff policy and solver recovery: trade_policy.md
           - Hardware Backends (GPU, MLX & Batched Jacobians): trade_gpu.md
+          - Native MRIO tables, provenance and aggregation: trade_mrio.md
+          - Condensed one-factor Leontief tariff model: trade_condensed.md
+          - Exact CES block Newton on consistent accounting: trade_ces_newton.md
+          - Household preferences and exact welfare: trade_household.md
+          - Distributional household incidence: trade_distributional.md
+          - Parameter continuation and multistart: trade_continuation.md
+          - Reduced local stability (experimental): trade_stability.md
+          - Dynamic MRIO with sector-specific capital: trade_dynamic.md
       - Running Anywhere (iPad / browser): tablet.md
       - Performance & Benchmarks: benchmarks.md
       - Reference:
           - Replication gallery: replication.md
           - Validation & goldens: VALIDATION.md
+          - Independent research benchmarks: research_benchmarks.md
           - Connector health: CONNECTOR_HEALTH.md
           - Credentials: CREDENTIALS.md
           - Cache database: CACHE_DB.md
@@ -119,8 +135,14 @@ nav:
   - Documentación en Español:
       - Inicio: es/index.md
       - Inicio rápido: es/quickstart.md
+      - Flujos de investigación: es/research_workflows.md
+      - Estudios empíricos y replicación publicada: es/empirical_research.md
+      - Diagnóstico SW07 en muestra finita: es/sw07_finite_sample.md
+      - Controles del estimador SW07: es/sw07_estimator_experiment.md
+      - Aplicación distributiva de comercio GE: es/distributional_trade_ge.md
       - Cuadernos de demostración: es/notebooks.md
       - Avisos de corrección: es/ADVISORY.md
+      - Estado de validación estructural: es/STRUCTURAL_VALIDATION_STATUS.md
       - Datos:
           - Cuentas nacionales trimestrales: es/national_accounts.md
           - Datos en tiempo real (vintages): es/real_time_data.md
@@ -146,6 +168,7 @@ nav:
       - Publicación e informes:
           - Tablas y exportación de manuscritos: es/reporting.md
       - Modelos estructurales:
+          - Estimación empírica-estructural: es/structural_bridge.md
           - HANK en el espacio de secuencias: es/models.md
           - Transiciones no lineales en HANK: es/hank_nonlinear.md
           - Simuladores de política macroeconómica y laboratorios interactivos: es/policy_simulators.md
@@ -157,6 +180,7 @@ nav:
           - DSGE Gradientes, NUTS y Puente HANK: es/dsge_v3.md
           - DSGE Frontera (Política, DSGE-VAR y Noticias): es/dsge_phase_c.md
           - DSGE Filtrado de Partículas No Lineal y Cambio de Régimen: es/dsge_phase_d.md
+          - Newton-Krylov apilado en el tiempo (previsión perfecta): es/dsge_stacked_newton.md
       - Programación dinámica continua y solucionadores de proyección:
           - Solucionadores de proyección continua: es/vfi_continuous_projection.md
           - Splines y mallas dispersas: es/vfi_splines_and_sparse_grids.md
@@ -164,16 +188,28 @@ nav:
           - Distribuciones continuas y equilibrio general: es/vfi_continuous_equilibrium.md
           - HJB en tiempo continuo y KFE adjunta: es/vfi_hjb_continuous.md
           - Dinámica de transición continua: es/vfi_continuous_transition.md
-          - Gradientes analíticos exactos (TFI): es/vfi_analytic_gradients.md
+          - Gradientes paramétricos (TFI): es/vfi_analytic_gradients.md
       - Macroeconomía de frontera y economía espacial:
           - Deep Macro y redes neuronales: es/deep_macro.md
           - Economía espacial cuantitativa y equilibrio general de comercio: es/spatial_and_trade_ge.md
+          - Contabilidad comercial consistente: es/trade_accounting.md
+          - Bienestar hicksiano de consumo: es/trade_welfare.md
+          - Política arancelaria hicksiana y recuperación del solver: es/trade_policy.md
           - Backends de hardware (GPU, MLX y jacobianos por lotes): es/trade_gpu.md
+          - Tablas MRIO nativas, procedencia y agregación: es/trade_mrio.md
+          - Modelo arancelario Leontief condensado de un factor: es/trade_condensed.md
+          - Newton exacto por bloques con CES anidada sobre la contabilidad consistente: es/trade_ces_newton.md
+          - Preferencias del hogar y bienestar exacto: es/trade_household.md
+          - Incidencia distributiva por hogar: es/trade_distributional.md
+          - Continuación de parámetros y arranques múltiples: es/trade_continuation.md
+          - Estabilidad local reducida (experimental): es/trade_stability.md
+          - MRIO dinámico con capital específico por sector: es/trade_dynamic.md
       - Ejecución en cualquier entorno (iPad / navegador): es/tablet.md
       - Rendimiento y pruebas comparativas: es/benchmarks.md
       - Referencia:
           - Galería de replicación: es/replication.md
           - Validación y referencias: es/VALIDATION.md
+          - Benchmarks independientes: es/research_benchmarks.md
           - Estado de conectores: es/CONNECTOR_HEALTH.md
           - Credenciales: es/CREDENTIALS.md
           - Base de datos de caché: es/CACHE_DB.md
@@ -181,4 +217,3 @@ nav:
           - Galería de ejemplos: es/examples_gallery.md
           - Revisión de léxico: es/lexicon_review.md
           - Ruta a 1.0: es/1.0_path.md
-

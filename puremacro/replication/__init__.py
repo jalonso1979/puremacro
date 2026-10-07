@@ -11,6 +11,9 @@ from __future__ import annotations
 
 from ._model import CaseResult, ReplicationCase, TargetKind, Tol, run
 from .runner import run_all, scorecard
+from .romer_romer_2010 import (
+    RR2010Result, estimate_rr2010_baseline, load_rr2010_data, load_rr2010_reference,
+)
 
 __all__ = [
     "run",
@@ -20,4 +23,8 @@ __all__ = [
     "CaseResult",
     "TargetKind",
     "Tol",
+    "RR2010Result",
+    "estimate_rr2010_baseline",
+    "load_rr2010_data",
+    "load_rr2010_reference",
 ]

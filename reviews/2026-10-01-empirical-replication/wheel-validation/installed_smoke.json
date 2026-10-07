@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "package_file": "/tmp/puremacro-empirical-wheel-final/installed/puremacro/__init__.py",
+  "benchmark_count": 8,
+  "benchmark_passes": 7,
+  "enigh_deciles": 10,
+  "expanded_households": 38830230,
+  "lp_parameters": [
+    0.7887716506421132,
+    0.6350019583375801
+  ],
+  "lp_inference_valid": true,
+  "distributional_total_ev": -65302180753.93599,
+  "sw07_status": "nonregular_fit",
+  "sw07_conditional_inference_withheld": true,
+  "rr2010_h10": -3.0808127630878372,
+  "rr2010_t10": -3.5249960750002387,
+  "rr2010_replication_passed": false,
+  "statsmodels_runtime_imported": false,
+  "network_blocked_with_positive_control": true,
+  "repository_source_absent_from_sys_path": true,
+  "expected_benchmark_failure": "rr2010_published_peak: published t statistic outside unchanged rounding tolerance",
+  "note": "Installed-wheel verification passed while preserving expected scientific failures; built from current working tree including pre-existing uncommitted work; no package published."
+}

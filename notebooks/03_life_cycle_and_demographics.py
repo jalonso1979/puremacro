@@ -13,13 +13,14 @@
 # %% [markdown]
 # # A life over time: consumption, saving, demographics
 #
+# **How does an economy transition along its saddle path to the balanced growth steady state, and how do demographic shifts and finite horizons alter life-cycle capital accumulation?**
+#
 # A finite-horizon household earns a hump-shaped income, saves against income
-# risk, then runs assets down toward the end of life. We solve the life-cycle
+# risk, then runs assets down toward the end of life (Modigliani & Brumberg 1954; Blanchard 1985). We solve the life-cycle
 # problem, look at the cohort wealth distribution by age, and weight cohorts by a
-# demographic profile (with and without mortality) to see how an aging population
+# demographic profile (with and without mortality; Cass 1965; Koopmans 1965) to see how an aging population
 # reshapes aggregate capital. All with `puremacro.vfi`.
-
-# %% [markdown]
+#
 # ## The method in math
 #
 # A household lives ages $j = 0, 1, \dots, J-1$ (here $J = 40$). Unlike the
@@ -46,6 +47,21 @@
 # carries equal weight $1/J$; mortality makes the old fewer, so their (high) asset
 # holdings count for less in aggregate capital $K = \sum_j \ell_j\, \mathbb{E}_j[a]$.
 #
+# ### Baseline Model Parameters
+#
+# | Parameter | Symbol | Economic Interpretation | Baseline Value | Units |
+# |---|---|---|---|---|
+# | Annual discount factor | $\beta$ | Subjective rate of time preference | 0.97 | Dimensionless (annual) |
+# | Risk aversion | $\gamma$ | Coefficient of relative risk aversion | 2.00 | Dimensionless |
+# | Capital share | $\alpha$ | Capital elasticity in production benchmark | 0.33 | Dimensionless fraction |
+# | Depreciation | $\delta$ | Annual physical capital depreciation rate | 0.06 | Annual rate |
+# | Life-cycle horizon | $J$ | Total working and retirement adult cohorts | 40 | Annual periods (years) |
+# | Risk-free interest rate | $r$ | Partial equilibrium real return on assets | 0.03 | Annual rate |
+# | Survival schedule | $s_j$ | Age-specific conditional survival probabilities | $[0.999 \dots 0.920]$ | Annual probability |
+# | Population growth | $n$ | Annual demographic growth / fertility rate | 0.00 | Annual rate |
+# | Asset upper bound | $a_{\max}$ | Maximum truncation bound of asset grid | 40.00 | Asset units |
+# | Asset grid points | $n_a$ | Discretized nodes along asset domain | 120 | Integer count |
+#
 # **Intuition.** This is the permanent-income / life-cycle logic. A young household
 # *knows* its earnings will rise toward the middle-age peak of $\kappa_j$, so it
 # would like to borrow against that future income to smooth consumption — and is
@@ -56,6 +72,14 @@
 # spending the buffer down before the last age. Mortality weighting matters for the
 # cross-section because the asset-rich are concentrated among the old — precisely
 # the cohorts a declining survival schedule thins out.
+#
+# ### Seminal Literature Citations
+#
+# - Blanchard (1985). Debt, deficits, and finite horizons. *Journal of Political Economy*, 93(2), 223–247.
+# - Cass (1965). Optimum growth in an aggregative model of capital accumulation. *Review of Economic Studies*, 32(3), 233–240.
+# - Koopmans (1965). On the concept of optimal economic growth. *The Econometric Approach to Development Planning*, 225–287.
+# - Modigliani & Brumberg (1954). Utility analysis and the consumption function: An interpretation of cross-section data. *Franco Modigliani*, 1(1), 388–436.
+# - Ramsey (1928). A mathematical theory of saving. *Economic Journal*, 38(152), 543–559.
 
 # %%
 import sys

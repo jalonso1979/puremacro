@@ -30,7 +30,7 @@
 # aquí para uso sin red.
 
 # %% [markdown]
-# ## La función de emparejamiento en matemáticas
+# ## El método en matemáticas: la función de emparejamiento
 #
 # El modelo de caballo de batalla (Pissarides 2000; panorama en
 # Petrongolo-Pissarides 2001) genera la curva desde una tecnología de
@@ -49,6 +49,17 @@
 # afuera. JOLTS mide directamente cada objeto de estas ecuaciones:
 # vacantes ($V$), contrataciones ($M$), renuncias y despidos (las dos
 # caras de $s$).
+#
+# ### Parámetros del modelo base
+#
+# | Símbolo | Descripción del parámetro | Valor base | Unidades / Convención contable |
+# | :--- | :--- | :--- | :--- |
+# | $\alpha$ | Elasticidad de la función de emparejamiento respecto al desempleo | $0.408$ | Exponente Cobb–Douglas adimensional ($M = \mu U^\alpha V^{1-\alpha}$) |
+# | $\mu$ | Eficiencia del emparejamiento en el mercado laboral | $0.823$ | Constante mensual de productividad de emparejamiento |
+# | $\theta_{\text{pico}}$ | Tensión máxima histórica del mercado laboral de EE.UU. (marzo 2022) | $2.04$ | Vacantes por trabajador desempleado ($V/U$) |
+# | $s$ | Tasa mensual de separación laboral (renuncias + despidos) | $0.035$ | Fracción de trabajadores ocupados que se separan por mes |
+# | $T_{\text{US}}$ | Longitud de la muestra JOLTS de EE.UU. (2000-12 a 2026-05) | $305$ | Observaciones mensuales ($25.5$ años) |
+# | $N_{\text{EU}}$ | Dimensiones del panel de vacantes de Eurostat | $29 \text{ países}$ | $1,825$ observaciones país-trimestre |
 
 # %% [markdown]
 # **Intuición.** La curva es decreciente porque vacantes y desempleo son
@@ -62,6 +73,14 @@
 # curva haya producido: las vacantes cayeron desde máximos históricos casi
 # sin subida del desempleo — un descenso casi vertical que ninguno de los
 # dos lados del debate de 2022 predijo por completo.
+#
+# ### Referencias clave
+#
+# - **Beveridge, W. H. (1944).** *Full Employment in a Free Society.* London: Allen & Unwin.
+# - **Blanchard, O. J., & Diamond, P. (1989).** *The Beveridge curve.* Brookings Papers on Economic Activity, 1989(1), 1–76.
+# - **Petrongolo, B., & Pissarides, C. A. (2001).** *Looking into the black box: A survey of the matching function.* Journal of Economic Literature, 39(2), 390–431.
+# - **Figura, A., & Waller, C. J. (2022).** *What does the Beveridge curve tell us about the likelihood of a soft landing?* FEDS Notes, Board of Governors of the Federal Reserve System.
+# - **Blanchard, O., Domash, A., & Summers, L. H. (2022).** *Bad news for the Fed: Lessons from the Beveridge curve.* PIIE Policy Brief 22-7.
 
 # %% [markdown]
 # ## Preparación — dos paneles congelados
@@ -96,8 +115,8 @@ us = load_csv("beveridge18_us")
 us["date"] = pd.to_datetime(us["date"])
 eu = load_csv("beveridge18_eu")
 eu["date"] = pd.to_datetime(eu["date"])
-print(f"EE.UU.: {len(us)} meses {us['date'].min().date()}..{us['date'].max().date()}")
-print(f"Europa: {eu['code'].nunique()} países, {len(eu)} país-trimestres")
+print(f"US: {len(us)} months {us['date'].min().date()}..{us['date'].max().date()}")
+print(f"EU: {eu['code'].nunique()} countries, {len(eu)} country-quarters")
 
 _pal4 = _nbstyle.palette(4)
 ERAS = [
@@ -117,22 +136,22 @@ for name, lo, hi, c in ERAS:
     m = (us["date"] >= lo) & (us["date"] <= hi)
     ax.plot(us.loc[m, "urate"], us.loc[m, "v_rate"], "-o", color=c,
             ms=2.6, lw=0.9, alpha=0.85, label=name)
-ax.set_xlabel("tasa de desempleo, %", color=_nbstyle.TEXTO)
-ax.set_ylabel("tasa de vacantes, %", color=_nbstyle.TEXTO)
-ax.set_title("Curva de Beveridge de EE.UU. (JOLTS, mensual SA)")
+ax.set_xlabel("unemployment rate, %", color=_nbstyle.TEXTO)
+ax.set_ylabel("job openings rate, %", color=_nbstyle.TEXTO)
+ax.set_title("US Beveridge curve (JOLTS, monthly SA)")
 ax.legend(fontsize=8, frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 ax = axes[1]
 us["theta"] = us["v_level"] / us["unemp_level"]
 ax.plot(us["date"], us["theta"], **_nbstyle.S1)
 ax.axhline(1.0, color=_nbstyle.SPINE, lw=0.8, ls=":")
-ax.set_ylabel(r"tensión $\theta = V/U$", color=_nbstyle.TEXTO)
-ax.set_title("Tensión del mercado laboral")
+ax.set_ylabel(r"tightness $\theta = V/U$", color=_nbstyle.TEXTO)
+ax.set_title("Labor-market tightness")
 
 peak_theta = us.loc[us["theta"].idxmax()]
-print(f"tensión máxima: {peak_theta['theta']:.2f} vacantes por desempleado "
+print(f"peak tightness: {peak_theta['theta']:.2f} vacancies per unemployed "
       f"({peak_theta['date'].date()})")
-assert us["theta"].max() > 1.5, "el pico de tensión de 2022 debe superar 1.5"
+assert us["theta"].max() > 1.5, "the 2022 tightness peak should exceed 1.5"
 
 # %% [markdown]
 # **Leyendo el bucle.** La era 2008-2019 traza un circuito antihorario
@@ -166,14 +185,13 @@ resid = logf - X @ b
 r2 = 1 - resid.var() / logf.var()
 alpha = 1 - b[1]
 print(f"log f = {b[0]:+.3f} + {b[1]:.3f} log theta   (R2 {r2:.3f})")
-print(f"=> elasticidad de emparejamiento alpha = {alpha:.3f}")
-assert 0.2 < alpha < 0.9, "alpha debe caer en el rango amplio de la literatura"
+print(f"=> matching elasticity on unemployment alpha = {alpha:.3f}")
+assert 0.2 < alpha < 0.9, "alpha should land in the literature's broad range"
 
 # %% [markdown]
 # ## Europa: la misma curva, otras fricciones
 
 # %%
-# Grandes economías primero (pedagogía), completado por cobertura.
 _prefer = ["DEU", "FRA", "ESP", "NLD", "CZE", "SWE"]
 _counts = eu.groupby("code")["date"].count()
 top6 = [c for c in _prefer if _counts.get(c, 0) >= 30]
@@ -189,12 +207,12 @@ for ax, code in zip(axes.ravel(), top6):
     ax.plot(post["urate"], post["jvr"], "-o", color=_nbstyle.S2["color"], ms=2.4,
             lw=0.8, label="2020+")
     ax.set_title(code, fontsize=10)
-    ax.set_xlabel("desempleo, %", fontsize=8, color=_nbstyle.TEXTO)
+    ax.set_xlabel("urate, %", fontsize=8, color=_nbstyle.TEXTO)
     ax.set_ylabel("JVR, %", fontsize=8, color=_nbstyle.TEXTO)
     ax.tick_params(labelsize=7)
 axes[0, 0].legend(fontsize=7, frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
-fig.suptitle("Curvas de Beveridge europeas (JVR de Eurostat vs desempleo LFS, trimestral)", fontsize=11)
-print("países graficados:", top6)
+fig.suptitle("European Beveridge curves (Eurostat JVR vs LFS urate, quarterly)", fontsize=11)
+print("countries plotted:", top6)
 
 # %% [markdown]
 # **Lectura entre países.** La misma nube decreciente aparece en todas
@@ -207,20 +225,20 @@ print("países graficados:", top6)
 # no una peculiaridad estadounidense.
 
 # %% [markdown]
-# ## ¿Muerde más fuerte la incertidumbre en un mercado laboral holgado?
+## Dependencia de estado: ¿muerde más fuerte la incertidumbre en mercados laborales tensos u holgados?
 #
-# La curva nos da una *variable de régimen*: la tensión $\theta$. La
-# teoría sugiere que los choques deberían transmitirse distinto a lo
-# largo de la curva — en un mercado holgado (θ baja) un choque de
-# demanda o de incertidumbre encuentra trabajo ocioso abundante y
-# rigidez salarial; en uno tenso, sobre todo reacomoda vacantes. Las
-# proyecciones locales de transición suave del paquete
-# (`puremacro.lp.lp_state_dep`, la maquinaria del notebook 07) estiman
-# ambas respuestas a la vez, ponderando cada mes con una logística de
-# $\log\theta$ estandarizado. El choque aquí es el proxy EPU del panel
-# del notebook 17 (el mismo archivo congelado), con sus propios rezagos
-# como controles — dependencia de estado descriptiva, no una afirmación
-# estructural.
+# Si la cobertura de vacantes es lenta cuando el mercado está tenso, las firmas podrían posponer
+# las contrataciones de manera más cautelosa ante la incertidumbre — o a la inversa: tal vez los
+# mercados holgados, donde la demanda es débil, es donde un choque de EPU inclina a las empresas
+# a congelar las nóminas.
+#
+# Evaluamos esto mediante **proyecciones locales dependientes del estado** (`puremacro.lp.lp_state_dep`),
+# interactuando el choque de EPU con la tensión del mercado laboral $\theta_t$:
+#
+# $$ y_{t+h} - y_{t-1} = F(\theta_{t-1}) \cdot \left[ \alpha_h^H + \beta_h^H \, \text{EPU}_t \right] + (1 - F(\theta_{t-1})) \cdot \left[ \alpha_h^L + \beta_h^L \, \text{EPU}_t \right] + \Gamma_h' W_t + \varepsilon_{t+h} $$
+#
+# donde $F(\theta)$ es una función de transición logística que suaviza entre los regímenes
+# tenso ($H$) y holgado ($L$).
 
 # %%
 from puremacro.lp import lp_state_dep
@@ -229,38 +247,38 @@ spec = load_csv("speccurve17_panel")
 spec["date"] = pd.to_datetime(spec["date"])
 m = spec.merge(us[["date", "urate", "theta"]], on="date", how="inner").dropna().sort_values("date")
 m["log_theta"] = np.log(m["theta"])
-print(f"muestra mensual unida: {len(m)} meses "
+print(f"merged monthly sample: {len(m)} months "
       f"{m['date'].min().date()}..{m['date'].max().date()}")
 
 fig, axes = _nbstyle.figura(1, 2, figsize=(9.8, 4.0))
-for ax, yvar, lab in ((axes[0], "ip", "producción industrial, %"),
-                      (axes[1], "urate", "tasa de desempleo, pp")):
+for ax, yvar, lab in ((axes[0], "ip", "industrial production, %"),
+                      (axes[1], "urate", "unemployment rate, pp")):
     r = lp_state_dep(m, y=yvar, x="epu", state="log_theta",
                      horizons=range(0, 25), n_lags=6)
     ax.axhline(0, color=_nbstyle.SPINE, lw=0.8)
     ax.fill_between(r["h"], r["lo_H"], r["hi_H"], color=_nbstyle.S2["color"],
                     alpha=0.20)
     ax.plot(r["h"], r["beta_H"], **_nbstyle.S2,
-            label="tenso (θ alta)")
+            label="tight (high θ)")
     ax.fill_between(r["h"], r["lo_L"], r["hi_L"], color=_nbstyle.S1["color"],
                     alpha=0.20)
     ax.plot(r["h"], r["beta_L"], **_nbstyle.S1,
-            label="holgado (θ baja)")
-    ax.set_xlabel("meses tras el choque de EPU", fontsize=9, color=_nbstyle.TEXTO)
+            label="slack (low θ)")
+    ax.set_xlabel("months after EPU shock", fontsize=9, color=_nbstyle.TEXTO)
     ax.set_title(lab, fontsize=10)
-axes[0].set_ylabel("respuesta por +1σ de EPU", fontsize=9, color=_nbstyle.TEXTO)
+axes[0].set_ylabel("response per +1σ EPU", fontsize=9, color=_nbstyle.TEXTO)
 axes[0].legend(fontsize=8, frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
-fig.suptitle("LP dependiente de estado: choques de incertidumbre según la tensión laboral (bandas 90%)", fontsize=11)
+fig.suptitle("State-dependent LP: uncertainty shocks by labor-market tightness (90% bands)", fontsize=11)
 
 r_ip = lp_state_dep(m, y="ip", x="epu", state="log_theta",
                     horizons=[12], n_lags=6)
-print(f"IP en h=12: holgado {r_ip['beta_L'].iloc[0]:+.2f} "
+print(f"IP at h=12: slack {r_ip['beta_L'].iloc[0]:+.2f} "
       f"[{r_ip['lo_L'].iloc[0]:+.2f},{r_ip['hi_L'].iloc[0]:+.2f}] vs "
-      f"tenso {r_ip['beta_H'].iloc[0]:+.2f} "
+      f"tight {r_ip['beta_H'].iloc[0]:+.2f} "
       f"[{r_ip['lo_H'].iloc[0]:+.2f},{r_ip['hi_H'].iloc[0]:+.2f}]")
 
 # %% [markdown]
-# **Lectura honesta.** En esta muestra la respuesta es un nulo — y vale
+# **Lectura de los resultados.** En esta muestra la respuesta es un nulo — y vale
 # la pena enseñarlo como tal. Ningún horizonte en ningún régimen es
 # significativo al 90%, y las estimaciones puntuales se inclinan en la
 # dirección *opuesta* al prior de "la incertidumbre muerde más en
@@ -286,26 +304,26 @@ print(f"IP en h=12: holgado {r_ip['beta_L'].iloc[0]:+.2f} "
 # que cortes pre-crisis financiera no están disponibles en este freeze.)
 
 # %%
-# ← Cambia estos:
+# ← change this: country code and sample split date
 COUNTRY_TRY = "ESP"
 SPLIT_TRY = "2013-01-01"
 
 g = eu[eu["code"] == COUNTRY_TRY].sort_values("date")
-assert len(g) > 12, f"{COUNTRY_TRY}: pocos trimestres en el freeze"
+assert len(g) > 12, f"{COUNTRY_TRY}: not enough quarters in the freeze"
 pre = g[g["date"] < SPLIT_TRY]
 post = g[g["date"] >= SPLIT_TRY]
 fig, ax = _nbstyle.figura(figsize=(5.2, 4.0))
 if len(pre):
     ax.plot(pre["urate"], pre["jvr"], "-o", color=_nbstyle.S1["color"], ms=3,
-            lw=0.9, label=f"antes de {SPLIT_TRY[:4]}")
+            lw=0.9, label=f"before {SPLIT_TRY[:4]}")
 ax.plot(post["urate"], post["jvr"], "-o", color=_nbstyle.S2["color"], ms=3, lw=0.9,
-        label=f"después de {SPLIT_TRY[:4]}")
-ax.set_xlabel("tasa de desempleo, %", color=_nbstyle.TEXTO)
+        label=f"after {SPLIT_TRY[:4]}")
+ax.set_xlabel("unemployment rate, %", color=_nbstyle.TEXTO)
 ax.set_ylabel("JVR, %", color=_nbstyle.TEXTO)
-ax.set_title(f"{COUNTRY_TRY}: curva de Beveridge alrededor de {SPLIT_TRY[:4]}")
+ax.set_title(f"{COUNTRY_TRY}: Beveridge curve around {SPLIT_TRY[:4]}")
 ax.legend(fontsize=8, frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
-print(f"{COUNTRY_TRY}: {len(pre)} trimestres antes, {len(post)} después; "
-      f"desempleo medio {pre['urate'].mean() if len(pre) else float('nan'):.1f}% "
+print(f"{COUNTRY_TRY}: {len(pre)} quarters before, {len(post)} after; "
+      f"mean urate {pre['urate'].mean() if len(pre) else float('nan'):.1f}% "
       f"-> {post['urate'].mean():.1f}%")
 
 # %% [markdown]
@@ -323,7 +341,7 @@ print(f"{COUNTRY_TRY}: {len(pre)} trimestres antes, {len(post)} después; "
 # demanda enfriándose (Blanchard et al.) — los datos de este notebook no
 # pueden separarlos del todo, que es exactamente por qué hubo debate.
 #
-# **¿Qué tan completo es esto?** `puremacro.fetch.jolts` también sirve
+# **¿Qué tan exhaustivo es esto?** `puremacro.fetch.jolts` también sirve
 # contrataciones/renuncias/despidos por 13 supersectores (SA y NSA);
 # `fetch_eurostat_vacancies` sirve *conteos* de vacantes y puestos
 # ocupados por sección NACE y clase de tamaño; los paneles de desempleo

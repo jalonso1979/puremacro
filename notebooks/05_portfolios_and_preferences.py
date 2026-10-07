@@ -13,16 +13,17 @@
 # %% [markdown]
 # # Risk, returns, and preferences
 #
+# **Why does monetary policy have real macroeconomic effects in the presence of staggered price setting, and how do recursive preferences separate risk aversion from intertemporal substitution?**
+#
 # Three of the library's more advanced capabilities: **multiple endogenous
-# states** (a liquid + an illiquid asset), **Epstein–Zin** preferences that
+# states** (a liquid + an illiquid asset), **Epstein–Zin (1989)** preferences that
 # separate risk aversion from the intertemporal elasticity, and the **endogenous
-# grid method (EGM)** as a fast, accurate alternative solver. We solve a
+# grid method (EGM; Carroll 1997)** as a fast, accurate alternative solver. We solve a
 # two-asset portfolio problem, raise risk aversion under Epstein–Zin holding the
 # elasticity fixed, and show that EGM and value-function iteration recover the
-# same consumption policy. All with `puremacro.vfi`, in the browser.
-
-# %% [markdown]
-# ## The method in three pieces
+# same consumption policy (Woodford 2003; Christiano, Eichenbaum & Evans 2005). All with `puremacro.vfi`, in the browser.
+#
+# ## The method in math
 #
 # **Two-asset budget.** Households hold a liquid asset $m$ (freely adjustable,
 # low return $r_m$) and an illiquid asset $k$ (higher return $r_k>r_m$, but
@@ -50,6 +51,21 @@
 # endogenous current assets that justify it — no root-finding, $O(n)$ per
 # iteration, and a continuous (interpolated) policy.
 #
+# ### Baseline Model Parameters
+#
+# | Parameter | Symbol | Economic Interpretation | Baseline Value | Units |
+# |---|---|---|---|---|
+# | Quarterly discount factor | $\beta$ | Subjective rate of time preference | 0.990 | Dimensionless (quarterly) |
+# | Risk aversion | $\gamma$ | Epstein-Zin coefficient of relative risk aversion | 2.0 - 8.0 | Dimensionless |
+# | Intertemporal substitution | $\psi$ | Elasticity of intertemporal substitution (EIS) | 0.500 | Dimensionless |
+# | Liquid asset return | $r_m$ | Risk-free rate of return on liquid balances | 0.010 | Quarterly rate |
+# | Illiquid asset return | $r_k$ | Return on illiquid capital stock | 0.030 | Quarterly rate |
+# | Portfolio adjustment cost | $\kappa$ | Linear transaction penalty for rebalancing illiquid asset | 0.050 | Fraction of volume |
+# | Income persistence | $\rho_z$ | AR(1) autocorrelation of labor productivity | 0.900 | Dimensionless |
+# | Innovation volatility | $\sigma_z$ | Standard deviation of idiosyncratic innovation | 0.200 | Standard deviation |
+# | Liquid asset grid points | $n_m$ | Number of grid points for liquid assets | 40 | Integer count |
+# | Illiquid asset grid points | $n_k$ | Number of grid points for illiquid assets | 30 | Integer count |
+#
 # **Intuition.** Separating $\gamma$ from $\psi$ matters because risk and time
 # are distinct: $\gamma$ governs how much a household dislikes a *gamble* over
 # next period's value, while $\psi$ governs how willingly it *shifts* consumption
@@ -60,6 +76,15 @@
 # invert the policy directly. And the two-asset split is a risk–return tradeoff —
 # the illiquid asset's return premium is paid for with adjustment frictions, so
 # liquid balances are the buffer that absorbs income risk.
+#
+# ### Seminal Literature Citations
+#
+# - Calvo (1983). Staggered prices in a utility-maximizing framework. *Journal of Monetary Economics*, 12(3), 383–398.
+# - Carroll (1997). Death to the log-linearized consumption Euler equation! Very poor and very rich households should have different savings propensities. *NBER Working Paper*, No. 6298.
+# - Christiano et al. (2005). Nominal rigidities and the dynamic effects of a shock to monetary policy. *Journal of Political Economy*, 113(1), 1–45.
+# - Clarida et al. (1999). The science of monetary policy: A New Keynesian perspective. *Journal of Economic Literature*, 37(4), 1661–1707.
+# - Epstein & Zin (1989). Substitution, risk aversion and the temporal behavior of consumption and asset returns: A theoretical framework. *Econometrica*, 57(4), 937–969.
+# - Woodford (2003). *Interest and Prices: Foundations of a Theory of Monetary Policy*. Princeton University Press.
 
 # %%
 import sys

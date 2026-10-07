@@ -125,7 +125,7 @@ def test_stochastic_steady_state_ergodic_mean():
     # Exogenous technology has zero mean
     assert s_means["z"] == pytest.approx(0.0, abs=1e-12)
 
-    # Precautionary wealth accumulation pushes capital ergodic mean positive
+    # Risk and curvature push the ergodic mean of capital positive
     assert s_means["k"] > 0.0
 
 

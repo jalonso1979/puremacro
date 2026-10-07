@@ -1,0 +1,999 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-10-01T19:34:10.416318+00:00",
+  "environment": {
+    "puremacro": "4.3.0",
+    "python": "3.14.6",
+    "numpy": "2.5.2",
+    "scipy": "1.18.1",
+    "pandas": "3.0.5",
+    "platform": "macOS-27.2-arm64-arm-64bit-Mach-O"
+  },
+  "passed": true,
+  "cases": [
+    {
+      "id": "linear_minimum_distance",
+      "title": "GLS fit and full parameter covariance",
+      "evidence_kind": "analytical",
+      "passed": true,
+      "metrics": {
+        "parameters": {
+          "observed": [
+            0.30269654727485484,
+            0.6215463659872577
+          ],
+          "reference": [
+            0.3026965472748549,
+            0.6215463659872575
+          ],
+          "shape": [
+            2
+          ],
+          "unit": "level",
+          "max_abs_error": 1.1102230246251565e-16,
+          "max_tolerance_excess": -3.126965467197434e-08,
+          "passed": true
+        },
+        "parameter_covariance": {
+          "observed": [
+            [
+              0.035399857964686046,
+              -0.012200619661752472
+            ],
+            [
+              -0.012200619661752472,
+              0.010305794640068623
+            ]
+          ],
+          "reference": [
+            [
+              0.03539985796468603,
+              -0.012200619661752468
+            ],
+            [
+              -0.012200619661752463,
+              0.010305794640068621
+            ]
+          ],
+          "shape": [
+            2,
+            2
+          ],
+          "unit": "level squared",
+          "max_abs_error": 1.3877787807814457e-17,
+          "max_tolerance_excess": -2.0305794622721385e-09,
+          "passed": true
+        },
+        "objective": {
+          "observed": 0.09803322244148377,
+          "reference": 0.09803322244148377,
+          "shape": [],
+          "unit": "dimensionless",
+          "max_abs_error": 0.0,
+          "max_tolerance_excess": -1.0803322244148377e-08,
+          "passed": true
+        }
+      },
+      "negative_control_rejected": true,
+      "provenance": {
+        "sources": [
+          "https://users.ssc.wisc.edu/~bhansen/econometrics/"
+        ],
+        "data": {
+          "origin": "deterministic synthetic four-moment linear design",
+          "observations": 4,
+          "design": [
+            [
+              1.0,
+              0.0
+            ],
+            [
+              1.0,
+              1.0
+            ],
+            [
+              1.0,
+              2.0
+            ],
+            [
+              1.0,
+              4.0
+            ]
+          ],
+          "values": [
+            0.3,
+            0.85,
+            1.6,
+            2.75
+          ],
+          "estimator_covariance": [
+            [
+              0.04000000000000001,
+              0.016,
+              0.004,
+              0.002
+            ],
+            [
+              0.016,
+              0.0964,
+              -0.0104,
+              0.015799999999999998
+            ],
+            [
+              0.004,
+              -0.0104,
+              0.0645,
+              0.005699999999999999
+            ],
+            [
+              0.002,
+              0.015799999999999998,
+              0.005699999999999999,
+              0.1635
+            ]
+          ]
+        },
+        "sampling": "No draws; supplied covariance is Cov(moment estimator), already scaled for its sample.",
+        "transformations": "Identity; fit intercept and slope with a correlated four-moment target.",
+        "limitations": "Checks linear optimal weighting and covariance. No empirical model identification or finite-sample coverage claim.",
+        "rtol": 1e-07,
+        "atol": 1e-09
+      },
+      "error": ""
+    },
+    {
+      "id": "household_expenditure",
+      "title": "Stone-Geary welfare versus independent primal optimization",
+      "evidence_kind": "numerical_oracle",
+      "passed": true,
+      "metrics": {
+        "ev": {
+          "observed": [
+            0.14474689040014965
+          ],
+          "reference": [
+            0.14474689039803046
+          ],
+          "shape": [
+            1
+          ],
+          "unit": "currency per period",
+          "max_abs_error": 2.119193709404499e-12,
+          "max_tolerance_excess": -4.894916616023515e-07,
+          "passed": true
+        },
+        "cv": {
+          "observed": [
+            0.14990565307406456
+          ],
+          "reference": [
+            0.14990565307438253
+          ],
+          "shape": [
+            1
+          ],
+          "unit": "currency per period",
+          "max_abs_error": 3.1796787425264483e-13,
+          "max_tolerance_excess": -4.998109881808908e-07,
+          "passed": true
+        },
+        "base_quantities": {
+          "observed": [
+            2.995476923076923,
+            5.28485052631579,
+            2.023623529411765
+          ],
+          "reference": [
+            2.99547770105714,
+            5.284850006881099,
+            2.0236232199642443
+          ],
+          "shape": [
+            3
+          ],
+          "unit": "benchmark-priced composite units",
+          "max_abs_error": 7.77980217137042e-07,
+          "max_tolerance_excess": -3.937798919431713e-06,
+          "passed": true
+        },
+        "new_quantities": {
+          "observed": [
+            2.8784,
+            5.688711111111111,
+            1.935721739130435
+          ],
+          "reference": [
+            2.8784002314927135,
+            5.688710839632867,
+            1.9357217100340554
+          ],
+          "shape": [
+            3
+          ],
+          "unit": "benchmark-priced composite units",
+          "max_abs_error": 2.714782443291597e-07,
+          "max_tolerance_excess": -4.0423470403180945e-06,
+          "passed": true
+        }
+      },
+      "negative_control_rejected": true,
+      "provenance": {
+        "sources": [
+          "https://ocw.mit.edu/courses/14-661-labor-economics-i-fall-2024/mit14_661_f24_problem_set_0.pdf"
+        ],
+        "data": {
+          "origin": "synthetic three-good household",
+          "baseline_spending": [
+            3.0,
+            5.0,
+            2.0
+          ],
+          "gamma": [
+            1.56,
+            1.88,
+            0.56
+          ],
+          "beta": [
+            0.24,
+            0.52,
+            0.24
+          ],
+          "base_prices": [
+            1.04,
+            0.95,
+            1.02
+          ],
+          "prices": [
+            1.2,
+            0.9,
+            1.15
+          ],
+          "base_budget": 10.2,
+          "budget": 10.8
+        },
+        "sampling": "No sample or survey weights. One household; two deterministic states.",
+        "transformations": "Direct utility maximization and four expenditure minimizations use raw log Stone-Geary utility; no puremacro welfare reference.",
+        "limitations": "Independent SciPy SLSQP oracle for interior preferences. Not an empirical household calibration.",
+        "rtol": 2e-06,
+        "atol": 2e-07
+      },
+      "error": ""
+    },
+    {
+      "id": "distributional_incidence",
+      "title": "Household incidence, expansion weights and uniform rebates",
+      "evidence_kind": "analytical",
+      "passed": true,
+      "metrics": {
+        "ev": {
+          "observed": [
+            2.8458883325682915,
+            14.040109416560398
+          ],
+          "reference": [
+            2.845888332568279,
+            14.040109416560426
+          ],
+          "shape": [
+            2
+          ],
+          "unit": "currency per household-year",
+          "max_abs_error": 2.842170943040401e-14,
+          "max_tolerance_excess": -2.8558882082233004e-07,
+          "passed": true
+        },
+        "cv": {
+          "observed": [
+            3.043852522039799,
+            13.775095637516813
+          ],
+          "reference": [
+            3.043852522039799,
+            13.775095637516841
+          ],
+          "shape": [
+            2
+          ],
+          "unit": "currency per household-year",
+          "max_abs_error": 2.842170943040401e-14,
+          "max_tolerance_excess": -3.053852522039799e-07,
+          "passed": true
+        },
+        "total_ev": {
+          "observed": 22.57777441426527,
+          "reference": 22.577774414265264,
+          "shape": [],
+          "unit": "currency per year",
+          "max_abs_error": 7.105427357601002e-15,
+          "max_tolerance_excess": -2.258777434321099e-06,
+          "passed": true
+        },
+        "budget": {
+          "observed": [
+            110.0,
+            210.0
+          ],
+          "reference": [
+            110.0,
+            210.0
+          ],
+          "shape": [
+            2
+          ],
+          "unit": "currency per household-year",
+          "max_abs_error": 0.0,
+          "max_tolerance_excess": -1.1001e-05,
+          "passed": true
+        }
+      },
+      "negative_control_rejected": true,
+      "provenance": {
+        "sources": [
+          "https://ocw.mit.edu/courses/14-661-labor-economics-i-fall-2024/mit14_661_f24_problem_set_0.pdf"
+        ],
+        "data": {
+          "origin": "synthetic grouped survey",
+          "group_spending": [
+            [
+              60.0,
+              40.0
+            ],
+            [
+              60.0,
+              140.0
+            ]
+          ],
+          "expansion_counts": [
+            3.0,
+            1.0
+          ],
+          "price_ratios": [
+            1.2,
+            0.9
+          ],
+          "transfer_total": 40.0
+        },
+        "sampling": "Two representative groups expand to three low-budget and one high-budget household; no sampling inference.",
+        "transformations": "Cobb-Douglas exact cost indices, equal transfer per expanded household, and weighted EV totals.",
+        "limitations": "Conditional static incidence with fixed preferences and exogenous prices; no empirical Mexico or general-equilibrium claim.",
+        "rtol": 1e-07,
+        "atol": 1e-09
+      },
+      "error": ""
+    },
+    {
+      "id": "growth_analytical",
+      "title": "Full-depreciation log-utility growth solution",
+      "evidence_kind": "analytical",
+      "passed": true,
+      "metrics": {
+        "steady_state": {
+          "observed": [
+            0.35999047999211753,
+            0.19011722170732856,
+            0.0
+          ],
+          "reference": [
+            0.35999047999211753,
+            0.1901172217073285,
+            0.0
+          ],
+          "shape": [
+            3
+          ],
+          "unit": "c,k: goods per capita; a: log technology",
+          "max_abs_error": 5.551115123125783e-17,
+          "max_tolerance_excess": -1e-09,
+          "passed": true
+        },
+        "lagged_capital_derivative": {
+          "observed": [
+            0.6816666666666669,
+            0.36000000000000004,
+            0.0
+          ],
+          "reference": [
+            0.6816666666666669,
+            0.36,
+            0.0
+          ],
+          "shape": [
+            3
+          ],
+          "unit": "output units per unit of lagged capital",
+          "max_abs_error": 5.551115123125783e-17,
+          "max_tolerance_excess": -1e-09,
+          "passed": true
+        },
+        "technology_derivative": {
+          "observed": [
+            0.3599904799921176,
+            0.19011722170732848,
+            1.0
+          ],
+          "reference": [
+            0.35999047999211753,
+            0.1901172217073285,
+            1.0
+          ],
+          "shape": [
+            3
+          ],
+          "unit": "output units per unit log-technology innovation",
+          "max_abs_error": 5.551115123125783e-17,
+          "max_tolerance_excess": -2.0011722142977274e-08,
+          "passed": true
+        }
+      },
+      "negative_control_rejected": true,
+      "provenance": {
+        "sources": [
+          "https://python.quantecon.org/cass_koopmans_1.html"
+        ],
+        "data": {
+          "origin": "analytical growth economy",
+          "alpha": 0.36,
+          "beta": 0.96,
+          "rho": 0.8,
+          "depreciation": 1.0,
+          "model_source": "var c k a; varexo e;\nparameters alpha beta rho; alpha=.36; beta=.96; rho=.8;\nmodel;\n1/c=beta/c(+1)*alpha*exp(a(+1))*k^(alpha-1);\nk=exp(a)*k(-1)^alpha-c;\na=rho*a(-1)+e;\nend;\ninitval; c=.35; k=.19; a=0; end;\nshocks; var e; stderr .01; end;\n"
+        },
+        "sampling": "No sample. Deterministic steady state and first-order derivatives at zero technology.",
+        "transformations": "k' = alpha*beta*exp(a)*k**alpha; c = (1-alpha*beta)*exp(a)*k**alpha. Variable order c,k,a.",
+        "limitations": "Checks this special log-utility, Cobb-Douglas, full-depreciation case and its local derivatives only.",
+        "rtol": 1e-07,
+        "atol": 1e-09
+      },
+      "error": ""
+    },
+    {
+      "id": "dynare_rbc_order2",
+      "title": "RBC decision rules and common-innovation moments versus Dynare 7",
+      "evidence_kind": "external_software",
+      "passed": true,
+      "metrics": {
+        "ys": {
+          "observed": [
+            3.0153277085137282,
+            2.3066172319875173,
+            28.348419061048435,
+            0.0
+          ],
+          "reference": [
+            3.0153277085137282,
+            2.3066172319875173,
+            28.348419061048435,
+            0.0
+          ],
+          "shape": [
+            4
+          ],
+          "unit": "model levels (y,c,k,a)",
+          "max_abs_error": 0.0,
+          "max_tolerance_excess": -1e-10,
+          "passed": true
+        },
+        "ghx": {
+          "observed": [
+            [
+              0.03510101010101068,
+              2.713794937662358
+            ],
+            [
+              0.048039529643882105,
+              0.47077390865385726
+            ],
+            [
+              0.9620614804571286,
+              2.243021029008501
+            ],
+            [
+              1.864641051681257e-16,
+              0.9000000000000008
+            ]
+          ],
+          "reference": [
+            [
+              0.035101010101010174,
+              2.713794937662355
+            ],
+            [
+              0.04803952964388204,
+              0.47077390865385654
+            ],
+            [
+              0.962061480457128,
+              2.2430210290084984
+            ],
+            [
+              0.0,
+              0.9
+            ]
+          ],
+          "shape": [
+            4,
+            2
+          ],
+          "unit": "level decision-rule derivative in named state/shock coordinates",
+          "max_abs_error": 3.1086244689504383e-15,
+          "max_tolerance_excess": -9.999981353589483e-11,
+          "passed": true
+        },
+        "ghu": {
+          "observed": [
+            [
+              3.0153277085137282
+            ],
+            [
+              0.5230821207265084
+            ],
+            [
+              2.49224558778722
+            ],
+            [
+              1.0
+            ]
+          ],
+          "reference": [
+            [
+              3.015327708513728
+            ],
+            [
+              0.5230821207265072
+            ],
+            [
+              2.4922455877872207
+            ],
+            [
+              1.0
+            ]
+          ],
+          "shape": [
+            4,
+            1
+          ],
+          "unit": "level decision-rule derivative in named state/shock coordinates",
+          "max_abs_error": 1.2212453270876722e-15,
+          "max_tolerance_excess": -6.230808994811801e-10,
+          "passed": true
+        },
+        "ghxx": {
+          "observed": [
+            [
+              -0.0008295939437409555,
+              0.03159090909090969,
+              0.03159090909090969,
+              2.4424154438961243
+            ],
+            [
+              -0.0005531948613835334,
+              0.003951728187879801,
+              0.0039517281878797975,
+              0.26714019447453596
+            ],
+            [
+              -0.00027639908235742235,
+              0.02763918090302989,
+              0.027639180903029893,
+              2.1752752494215883
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "reference": [
+            [
+              -0.0008295939437409684,
+              0.031590909090909156,
+              0.031590909090909156,
+              2.44241544389612
+            ],
+            [
+              -0.0005531948613834876,
+              0.003951728187880348,
+              0.003951728187880348,
+              0.2671401944745454
+            ],
+            [
+              -0.0002763990823574809,
+              0.02763918090302881,
+              0.02763918090302881,
+              2.1752752494215746
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "shape": [
+            4,
+            4
+          ],
+          "unit": "level decision-rule derivative in named state/shock coordinates",
+          "max_abs_error": 1.3766765505351941e-14,
+          "max_tolerance_excess": -1e-10,
+          "passed": true
+        },
+        "ghxu": {
+          "observed": [
+            [
+              0.035101010101010736,
+              2.713794937662358
+            ],
+            [
+              0.004390809097644256,
+              0.29682243830503996
+            ],
+            [
+              0.03071020100336648,
+              2.416972499357318
+            ],
+            [
+              -0.0,
+              -0.0
+            ]
+          ],
+          "reference": [
+            [
+              0.035101010101010174,
+              2.713794937662355
+            ],
+            [
+              0.0043908090976448304,
+              0.29682243830505045
+            ],
+            [
+              0.030710201003365342,
+              2.4169724993573043
+            ],
+            [
+              -0.0,
+              -0.0
+            ]
+          ],
+          "shape": [
+            4,
+            2
+          ],
+          "unit": "level decision-rule derivative in named state/shock coordinates",
+          "max_abs_error": 1.3766765505351941e-14,
+          "max_tolerance_excess": -1e-10,
+          "passed": true
+        },
+        "ghuu": {
+          "observed": [
+            [
+              3.0153277085137282
+            ],
+            [
+              0.3298027092278226
+            ],
+            [
+              2.6855249992859056
+            ],
+            [
+              -0.0
+            ]
+          ],
+          "reference": [
+            [
+              3.015327708513728
+            ],
+            [
+              0.3298027092278337
+            ],
+            [
+              2.685524999285894
+            ],
+            [
+              -0.0
+            ]
+          ],
+          "shape": [
+            4,
+            1
+          ],
+          "unit": "level decision-rule derivative in named state/shock coordinates",
+          "max_abs_error": 1.1546319456101628e-14,
+          "max_tolerance_excess": -1e-10,
+          "passed": true
+        },
+        "ghs2": {
+          "observed": [
+            [
+              0.0
+            ],
+            [
+              9.764604373374664e-05
+            ],
+            [
+              -9.764604373374664e-05
+            ],
+            [
+              0.0
+            ]
+          ],
+          "reference": [
+            [
+              0.0
+            ],
+            [
+              9.764604373377113e-05
+            ],
+            [
+              -9.764604373377113e-05
+            ],
+            [
+              0.0
+            ]
+          ],
+          "shape": [
+            4,
+            1
+          ],
+          "unit": "level decision-rule derivative in named state/shock coordinates",
+          "max_abs_error": 2.448941657101633e-17,
+          "max_tolerance_excess": -1e-10,
+          "passed": true
+        },
+        "sample_mean": {
+          "observed": [
+            3.0034425479199487,
+            2.2988175413948255,
+            28.214208715483235,
+            -0.0026622859264571848
+          ],
+          "reference": [
+            3.003442547919946,
+            2.2988175413948255,
+            28.214208715483245,
+            -0.002662285926456925
+          ],
+          "shape": [
+            4
+          ],
+          "unit": "model levels",
+          "max_abs_error": 1.0658141036401503e-14,
+          "max_tolerance_excess": -1.0266202615161641e-10,
+          "passed": true
+        },
+        "sample_covariance": {
+          "observed": [
+            [
+              0.007021161961263776,
+              0.003149022893748447,
+              0.04868868393295878,
+              0.0018002725431788345
+            ],
+            [
+              0.003149022893748447,
+              0.0019020711710313427,
+              0.03272208758773486,
+              0.0006707571791751538
+            ],
+            [
+              0.04868868393295878,
+              0.03272208758773486,
+              0.5796124359840139,
+              0.009443922937523145
+            ],
+            [
+              0.0018002725431788345,
+              0.0006707571791751538,
+              0.009443922937523145,
+              0.0005000712015520553
+            ]
+          ],
+          "reference": [
+            [
+              0.007021161961263253,
+              0.003149022893748093,
+              0.048688683932952545,
+              0.0018002725431787315
+            ],
+            [
+              0.003149022893748093,
+              0.0019020711710310972,
+              0.03272208758773047,
+              0.0006707571791750868
+            ],
+            [
+              0.048688683932952545,
+              0.03272208758773047,
+              0.5796124359839353,
+              0.009443922937521965
+            ],
+            [
+              0.0018002725431787315,
+              0.0006707571791750868,
+              0.009443922937521965,
+              0.0005000712015520343
+            ]
+          ],
+          "shape": [
+            4,
+            4
+          ],
+          "unit": "products of model level units",
+          "max_abs_error": 7.860379014346108e-14,
+          "max_tolerance_excess": -1.0050005027645011e-10,
+          "passed": true
+        },
+        "sample_lag1_covariance": {
+          "observed": [
+            [
+              0.006562995165161914,
+              0.0029642517659767462,
+              0.045975387261240494,
+              0.0016769871204891475
+            ],
+            [
+              0.0031826068247877305,
+              0.0018873885947347459,
+              0.032294556103487755,
+              0.0006876701812410381
+            ],
+            [
+              0.05082308288027781,
+              0.03295616723049714,
+              0.5783439716108586,
+              0.010193120590702074
+            ],
+            [
+              0.0016161057232927786,
+              0.0006043387515274442,
+              0.008527878616526005,
+              0.00044828050939384136
+            ]
+          ],
+          "reference": [
+            [
+              0.006562995165161376,
+              0.00296425176597639,
+              0.045975387261234284,
+              0.001676987120489046
+            ],
+            [
+              0.00318260682478738,
+              0.001887388594734498,
+              0.03229455610348352,
+              0.0006876701812409697
+            ],
+            [
+              0.050823082880271646,
+              0.032956167230492744,
+              0.5783439716107805,
+              0.010193120590700894
+            ],
+            [
+              0.0016161057232926778,
+              0.0006043387515273771,
+              0.00852787861652481,
+              0.0004482805093938217
+            ]
+          ],
+          "shape": [
+            4,
+            4
+          ],
+          "unit": "products of model level units",
+          "max_abs_error": 7.80486786311485e-14,
+          "max_tolerance_excess": -1.0044826083112439e-10,
+          "passed": true
+        }
+      },
+      "negative_control_rejected": true,
+      "provenance": {
+        "sources": [
+          "https://www.dynare.org/manual/the-model-file.html#stochastic-solution-and-simulation",
+          "Package: puremacro.dsge/_references/DYNARE_FIXTURES.md"
+        ],
+        "data": {
+          "origin": "Live Dynare 7.0 in MATLAB R2026a, 2026-09-20",
+          "run_id": "20260920_161322_166",
+          "reference": "puremacro.dsge/_references/dynare_live/rbc_order2.npz",
+          "reference_sha256": "eb7ddf55b223fae31b2664e16ec7970848c816020544b46822eca05e52926d72",
+          "provenance_manifest": "puremacro.dsge/_references/dynare_live/manifest.json"
+        },
+        "sampling": "2,500 common Gaussian innovations from NumPy default_rng(20260920); discard first 500. Covariance uses ddof=1; lag-1 covariance uses separately centered endpoints and N-2.",
+        "transformations": "Match variable/state/shock labels; unfold derivative tensors without factorial rescaling; add deterministic steady state to simulated deviations. Validate model, innovations and reference checksums.",
+        "limitations": "External-software agreement for one small model at order two, conditional on supplied innovations. No live Dynare run, population-moment accuracy or published empirical replication is claimed.",
+        "rtol": 1e-09,
+        "atol": 1e-10
+      },
+      "error": ""
+    },
+    {
+      "id": "enigh2024_official_totals",
+      "title": "Observed ENIGH decile baskets reproduce official national totals",
+      "evidence_kind": "official_data",
+      "passed": true,
+      "metrics": {
+        "households": {
+          "observed": 38830230.0,
+          "reference": 38830230.0,
+          "shape": [],
+          "unit": "expanded households",
+          "max_abs_error": 0.0,
+          "max_tolerance_excess": -0.0003983023,
+          "passed": true
+        },
+        "national_food": {
+          "observed": 698246718791.0176,
+          "reference": 698246718791.5,
+          "shape": [],
+          "unit": "MXN per quarter",
+          "max_abs_error": 0.482421875,
+          "max_tolerance_excess": -6.500055312914999,
+          "passed": true
+        },
+        "national_monetary_expenditure": {
+          "observed": 1851206621944.4336,
+          "reference": 1851206621945.59,
+          "shape": [],
+          "unit": "MXN per quarter",
+          "max_abs_error": 1.156494140625,
+          "max_tolerance_excess": -17.3555820788309,
+          "passed": true
+        },
+        "expenditure_adding_up": {
+          "observed": [
+            -7.996277417987585e-09,
+            -4.899629857391119e-08,
+            -5.2004907047376037e-08,
+            -1.5999830793589354e-08,
+            5.2998075261712074e-08,
+            1.3991666492074728e-08,
+            -2.9998773243278265e-08,
+            -1.0999065125361085e-07,
+            -2.999149728566408e-08,
+            2.8002250473946333e-07
+          ],
+          "reference": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shape": [
+            10
+          ],
+          "unit": "MXN per household-quarter",
+          "max_abs_error": 2.8002250473946333e-07,
+          "max_tolerance_excess": -9.719977495260537e-06,
+          "passed": true
+        }
+      },
+      "negative_control_rejected": true,
+      "provenance": {
+        "sources": [
+          "https://www.inegi.org.mx/contenidos/programas/enigh/nc/2024/tabulados/enigh2024_ns_basicos_tabulados.xlsx"
+        ],
+        "data": {
+          "origin": "INEGI ENIGH 2024 national household income deciles; Cuadros 3.2 and 4.2",
+          "source_sha256": "7af7850495255fb1e6a9cb139cf531e5a62c7fd2a9a1de5ba0503f03aa82490b",
+          "accessed": "2026-10-01",
+          "derived_csv": "puremacro.datasets/data/enigh2024_deciles.csv",
+          "reference_origin": "literal national published totals, not the derived CSV"
+        },
+        "sampling": "Ten national household income deciles; expansion counts include all households. No sampling covariance is available.",
+        "transformations": "Published thousands of MXN multiplied by 1000; decile totals divided by all-household counts. Eight consumption categories plus outward transfers equal monetary expenditure. CSV decimal rounding motivates the tolerance.",
+        "limitations": "Validates the extraction, weights, units and selected accounting totals of actual survey aggregates. Does not replicate an empirical causal model, identify tariff responses or validate within-decile heterogeneity.",
+        "rtol": 1e-11,
+        "atol": 1e-05
+      },
+      "error": ""
+    }
+  ]
+}

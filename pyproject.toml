@@ -8,7 +8,7 @@ name = "puremacro"
 # defined by the project release contract: `version = "X.Y.Z"` in pyproject.toml,
 # puremacro/__init__.py (`__version__`), the top `## X.Y.Z` heading in
 # CHANGELOG.md, and `version:` in CITATION.cff.
-version = "4.3.0"
+version = "4.6.0"
 description = "Pyodide-compatible empirical macro toolbox: SVAR + LP + GARCH + inference"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -148,18 +148,28 @@ include = ["puremacro*"]
 
 [tool.setuptools.package-data]
 "puremacro" = ["py.typed"]
-"puremacro.dsge" = ["_sw07_data.csv", "_references/*.mod"]
+# _references/dynare_live and the Dynare 8 moments file: byte-identical copies of
+# tests/fixtures/dynare_live/ and tests/fixtures/dynare_order3_pruned_moments.json
+# (live Dynare 7.0 and Dynare 8 output), shipped so that notebook 68's Dynare
+# oracles also run from an installed wheel and in the Pyodide playground.
+"puremacro.dsge" = ["_sw07_data.csv", "_sw07_usmodel_data.csv", "_references/*.mod", "_references/DYNARE_FIXTURES.md",
+                    "_references/dynare_order3_pruned_moments.json",
+                    "_references/sw07_usmodel_mode.json",
+                    "_references/dynare_live/*.mod", "_references/dynare_live/*.npz",
+                    "_references/dynare_live/*.csv", "_references/dynare_live/manifest.json"]
 # The benchmark datasets `puremacro.datasets` loads. Without this line the
 # loaders resolve to nothing outside the author's checkout — which is what
 # they did before 1.2.0.
-"puremacro.datasets" = ["data/*.csv"]
+"puremacro.datasets" = ["data/*.csv", "data/*.json"]
 "puremacro.validation.goldens" = ["*.json"]
 # The OECD ICIO transaction matrix the trade model calibrates from, shipped as a
 # compressed .npz so `puremacro.trade` reproduces with no MATLAB and no file
 # outside the distribution. Before 3.5.0 it was read from a `.mat` above the
 # checkout, so every trade parity test skipped for anyone but the author.
 "puremacro.trade" = ["_datafiles/*.npz", "_datafiles/*.json", "_datafiles/SOURCES.md"]
-"puremacro.replication.data" = ["*.csv"]
+# *.npz: the SW07 posterior fixture the dsge_estimation replication cases read
+# (through 4.3.0 it was read from tests/fixtures, so the cases failed in a wheel).
+"puremacro.replication.data" = ["*.csv", "*.npz", "*.json"]
 
 [tool.mypy]
 files = ["puremacro"]
@@ -198,4 +208,3 @@ markers = [
     "replication: opt-in replication cases that need a live data fetch; skip-on-empty (run via `pytest -m replication`)",
     "mechanism_control: asserts a test file's own mechanism (import hook, network blocker) is actually live; required by tests/test_test_quality.py",
 ]
-

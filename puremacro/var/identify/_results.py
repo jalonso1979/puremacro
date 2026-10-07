@@ -270,18 +270,28 @@ class CholeskySVARResult(_IRFPlotMixin):
 class BQSVARResult(_IRFPlotMixin):
     """Result of :func:`puremacro.var.identify.bq.bq_svar`.
 
-    Long-run-restriction SVAR (Blanchard-Quah 1989). The IRFs are
-    cumulated along the horizon axis, so ``irf_point[h]`` represents
-    the *level* response of each variable at horizon ``h``.
+    Long-run-restriction SVAR (Blanchard-Quah 1989). The response rows
+    selected by ``bq_svar(cumulate=...)`` (default: every row) are
+    cumulated along the horizon axis. A cumulated row of a
+    first-differenced variable is the response of its level; a variable
+    that entered in levels (e.g. the unemployment rate in Blanchard-Quah)
+    must not be cumulated, so pass ``cumulate=[...]`` listing only the
+    differenced variables. The result does not record which rows were
+    cumulated: that is the ``cumulate`` argument of the call.
 
     Attributes
     ----------
     irf_point : ndarray, shape (H+1, n, n)
-        Cumulated point-estimate impulse responses.
+        Point-estimate impulse responses, ``[h, response i, shock j]``,
+        to a one-standard-deviation structural shock, in the units of
+        ``Y[:, i]``; cumulated over ``0..h`` for the rows chosen by
+        ``cumulate``.
     irf_lower : ndarray, shape (H+1, n, n)
-        Lower bootstrap percentile band (cumulated).
+        Lower bootstrap percentile band of the same (cumulated where
+        selected) object.
     irf_upper : ndarray, shape (H+1, n, n)
-        Upper bootstrap percentile band (cumulated).
+        Upper bootstrap percentile band of the same (cumulated where
+        selected) object.
     n_boot : int
         Number of bootstrap draws requested.
     n_fail : int
@@ -905,7 +915,10 @@ class PanelSVARResult(_IRFPlotMixin):
     Attributes
     ----------
     irf_mean : ndarray, shape (H+1, n, n)
-        Mean-group IRF: simple cross-country average.
+        Mean-group IRF: simple cross-country average. For ``'bq'`` the
+        rows selected by ``mean_group_svar(..., cumulate=...)`` (default:
+        every row) are cumulated over the horizon in every country, as in
+        :func:`puremacro.var.identify.bq.bq_svar`.
     irf_lower : ndarray, shape (H+1, n, n)
         Lower percentile band from cross-country distribution.
     irf_upper : ndarray, shape (H+1, n, n)

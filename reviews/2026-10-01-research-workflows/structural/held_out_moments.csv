@@ -1,0 +1,9 @@
+label,target,target_se,unit,model,residual,used_in_fit
+y:eps:h=5,-0.00043864933823400953,0.0002153580140134781,log output deviation per 0.01 quarterly nominal-rate fraction innovation,-0.0007964020262019033,-0.0003577526879678937,False
+y:eps:h=6,-0.00042012251259075704,0.00022013370874719642,log output deviation per 0.01 quarterly nominal-rate fraction innovation,-0.0004733948134966036,-5.327230090584656e-05,False
+y:eps:h=7,-0.00041393946360662216,0.000221569918571498,log output deviation per 0.01 quarterly nominal-rate fraction innovation,-0.0002813938715277323,0.00013254559207888985,False
+y:eps:h=8,-5.262182749729309e-06,0.00021156709619730857,log output deviation per 0.01 quarterly nominal-rate fraction innovation,-0.00016726526923374084,-0.00016200308648401152,False
+pi:eps:h=5,-0.00018811372316067412,8.022817603067278e-05,quarterly inflation fraction per 0.01 quarterly nominal-rate fraction innovation,-0.0002951779723713484,-0.00010706424921067429,False
+pi:eps:h=6,-0.0001520810161629631,8.270189648084611e-05,quarterly inflation fraction per 0.01 quarterly nominal-rate fraction innovation,-0.0001754587715521638,-2.3377755389200698e-05,False
+pi:eps:h=7,-0.00016412671637994309,8.064064864379476e-05,quarterly inflation fraction per 0.01 quarterly nominal-rate fraction innovation,-0.00010429565684482841,5.9831059535114675e-05,False
+pi:eps:h=8,-3.914942713447731e-05,7.891935491379946e-05,quarterly inflation fraction per 0.01 quarterly nominal-rate fraction innovation,-6.199509970614553e-05,-2.2845672571668215e-05,False

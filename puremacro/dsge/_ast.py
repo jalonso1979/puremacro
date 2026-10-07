@@ -8,9 +8,28 @@ generation under the zero-dependency Pyodide four-package contract.
 
 from __future__ import annotations
 
+import keyword
 import math
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Sequence, Set, Tuple
+
+
+def _py_attr(namespace: str, name: str) -> str:
+    """Python source that reads attribute ``name`` of the object ``namespace``.
+
+    Dynare names only have to start with a letter, so a ``.mod`` file may call
+    a parameter ``lambda`` or a variable ``yield``. ``params.lambda`` is a
+    Python ``SyntaxError``; for such names this returns
+    ``getattr(params, 'lambda')``, which every namespace object the generated
+    code receives (``_Vec``, ``SimpleNamespace``, ...) resolves the same way.
+    Ordinary identifiers keep the plain ``namespace.name`` spelling. With an
+    empty ``namespace`` the bare ``name`` is returned unchanged.
+    """
+    if not namespace:
+        return name
+    if name.isidentifier() and not keyword.iskeyword(name):
+        return f"{namespace}.{name}"
+    return f"getattr({namespace}, {name!r})"
 
 
 def _to_node(x: Node | float | int) -> Node:
@@ -208,7 +227,7 @@ class Param(Node):
         param_ns: str = "params",
         shock_names: set[str] | Sequence[str] | None = None,
     ) -> str:
-        return f"{param_ns}.{self.name}" if param_ns else self.name
+        return _py_attr(param_ns, self.name)
 
     def to_latex(self, symbol_map: Mapping[str, str] | None = None) -> str:
         if symbol_map and self.name in symbol_map:
@@ -269,7 +288,7 @@ class Var(Node):
         shock_names: set[str] | Sequence[str] | None = None,
     ) -> str:
         if shock_names and self.name in shock_names:
-            return f"{shock_ns}.{self.name}" if shock_ns else self.name
+            return _py_attr(shock_ns, self.name)
         if self.lead == 1:
             ns = lead_ns
         elif self.lead > 1:
@@ -280,7 +299,7 @@ class Var(Node):
             ns = f"{lag_ns}_{abs(self.lead)}"
         else:
             ns = curr_ns
-        return f"{ns}.{self.name}" if ns else self.name
+        return _py_attr(ns, self.name)
 
     def to_latex(self, symbol_map: Mapping[str, str] | None = None) -> str:
         base = symbol_map.get(self.name, self.name) if symbol_map else self.name
@@ -493,6 +512,14 @@ class BinOp(Node):
         if self.op == "-":
             return BinOp("-", dl, dr).simplify()
         if self.op == "*":
+            # Both factors constant in the differentiation variable (e.g. an
+            # inlined parameter-only model-local): the product rule below would
+            # simplify to 0 anyway, but only after re-simplifying both factors.
+            if (
+                isinstance(dl, Const) and dl.value == 0
+                and isinstance(dr, Const) and dr.value == 0
+            ):
+                return Const(0)
             # Product rule: dl * r + l * dr
             term1 = BinOp("*", dl, self.right)
             term2 = BinOp("*", self.left, dr)
@@ -889,11 +916,21 @@ class Call(Node):
         param_ns: str = "params",
         shock_names: set[str] | Sequence[str] | None = None,
     ) -> str:
-        fn = self.func.lower()
         args_py = [
             a.to_python(lead_ns, curr_ns, lag_ns, shock_ns, param_ns, shock_names)
             for a in self.args
         ]
+        return self.python_call(args_py)
+
+    def python_call(self, args_py: Sequence[str]) -> str:
+        """Python source for this call given its already-rendered arguments.
+
+        Shared by :meth:`to_python` and by code generators that render the
+        arguments themselves (common-subexpression hoisting in
+        ``ParsedModelDAG.compile_equations``).
+        """
+        fn = self.func.lower()
+        args_py = list(args_py)
         joined = ", ".join(args_py)
 
         if fn in (

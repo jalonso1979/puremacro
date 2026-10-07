@@ -87,7 +87,8 @@ def _checked_state(result, calib, tol):
     if any(name not in meta for name in ("intermediate_tariff_multipliers", "final_tariff_multipliers")):
         raise ValueError("Result lacks tariff schedules for validation; solve it again")
     block = evaluate(result.x_sol, calib, meta["intermediate_tariff_multipliers"],
-                     meta["final_tariff_multipliers"], None, None, sigma=meta.get("sigma", 0.))
+                     meta["final_tariff_multipliers"], None, None, sigma=meta.get("sigma", 0.),
+                     foreign_saving_units=meta.get("foreign_saving_units", "numeraire"))
     equilibrium_tol = float(meta.get("tol", 1e-8))
     residuals = np.r_[block["residuals"], block["physical_residuals"]]
     if (not np.isfinite(equilibrium_tol) or equilibrium_tol <= 0
@@ -111,6 +112,24 @@ def _checked_state(result, calib, tol):
     if not np.allclose(result.gdp, factor_income+block["government"], rtol=tol, atol=tol):
         raise ValueError("GDP disagrees with factor income plus fiscal receipts")
     return block, factor_income
+
+
+_MODEL_KEYS = (("accounting", None), ("sigma", 0.), ("fiscal_closure", None),
+               ("foreign_saving_units", "numeraire"))
+
+
+def _check_same_model(base_result, eq_result):
+    """Both states must be solutions of the same model, not only the same calibration."""
+    for state in (base_result, eq_result):
+        if not isinstance(state, TradeEquilibriumResult):
+            raise TypeError("Both states must be TradeEquilibriumResult instances")
+    for key, default in _MODEL_KEYS:
+        before = base_result.metadata.get(key, default)
+        after = eq_result.metadata.get(key, default)
+        if before != after:
+            raise ValueError(
+                f"Baseline and counterfactual were solved with different {key} "
+                f"({before!r} vs {after!r}); Hicksian welfare compares states of one model")
 
 
 def compute_hicksian_welfare(
@@ -140,7 +159,19 @@ def compute_hicksian_welfare(
     ``tol`` is the relative/absolute comparison tolerance for demand and welfare
     identities. Each equilibrium is independently rechecked at its solver's
     recorded absolute tolerance. Missing, stale, incompatible or failed states
-    raise rather than producing a welfare certificate.
+    raise rather than producing a welfare certificate. In particular the two
+    states must agree on ``accounting``, ``sigma``, ``fiscal_closure`` and
+    ``foreign_saving_units`` (recorded in their metadata); a mismatch raises
+    ``ValueError`` because the comparison would mix two technologies or
+    closures. The fiscal identity inherits the equilibrium residual: states
+    solved at a loose absolute ``tol`` (for example the solver default 2.5e-3
+    on a table in single currency units) can fail it at the default welfare
+    ``tol=1e-8``; solve both states with a tolerance suited to the units.
+
+    With nonzero foreign saving, the default ``foreign_saving_units="numeraire"``
+    closure makes EV/CV depend on which country/sector is listed first (the
+    numeraire); solve both states with ``foreign_saving_units="world_income"``
+    for results that are invariant to the country order.
     """
     if not isinstance(calib, TradeCalibrationResult):
         raise TypeError("calib must be a TradeCalibrationResult")
@@ -165,6 +196,7 @@ def compute_hicksian_welfare(
         raise ValueError("Investment category 1 cannot be included in consumption welfare")
     if calib.n_final_demand == 1 and np.any(np.asarray(calib.invforT) != 0):
         raise NotImplementedError("Single-category welfare requires zero foreign saving")
+    _check_same_model(base_result, eq_result)
     before, factor0 = _checked_state(base_result, calib, tol)
     after, factor1 = _checked_state(eq_result, calib, tol)
     idx = list(categories)
@@ -215,7 +247,11 @@ def compute_hicksian_welfare(
     scale = max(1., expense0, expense1, abs(ev))
     if (abs(residual) > tol*scale
             or abs(fiscal_effect-tariff_effect-domestic_effect) > tol*scale):
-        raise ValueError("Hicksian attribution fails the expenditure/fiscal identity")
+        raise ValueError(
+            "Hicksian attribution fails the expenditure/fiscal identity at welfare tol="
+            f"{tol:g} (solver tolerances of the states: {base_result.metadata.get('tol')!r}, "
+            f"{eq_result.metadata.get('tol')!r}); re-solve both states with a tighter absolute "
+            "tol suited to the calibration units")
     gdp0 = float(np.asarray(base_result.gdp).ravel()[country])
     if not np.isfinite(gdp0) or gdp0 <= 0:
         raise ValueError("Baseline GDP must be positive for the GDP-normalized EV")
@@ -233,5 +269,7 @@ def compute_hicksian_welfare(
                   "weights": omega.copy(), "consumption_income_share": share,
                   "positive_is_gain": True, "attribution": "endpoint Shapley: purchaser prices, factor income, fiscal transfers",
                   "causal_decomposition": False, "tolerance": tol,
-                  "numeraire": before.get("numeraire", "first country/sector producer price = 1")},
+                  "numeraire": before.get("numeraire", "first country/sector producer price = 1"),
+                  "sigma": base_result.metadata.get("sigma", 0.),
+                  "foreign_saving_units": base_result.metadata.get("foreign_saving_units", "numeraire")},
     )

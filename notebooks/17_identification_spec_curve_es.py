@@ -28,7 +28,7 @@
 # muestras y detrendings.
 
 # %% [markdown]
-# ## El problema de identificación en una ecuación
+# ## El método en matemáticas: el problema de identificación
 #
 # Todos los esquemas parten del mismo VAR en forma reducida en
 # $x_t = (u_t, ip_t, emp_t, ffr_t)'$:
@@ -46,6 +46,17 @@
 # | **Narrativa (Tipo II)** | como Tipo I, más: el choque fue el *impulsor más importante* de la propia $u$ en sep-2008 y mar-2020 — y las extracciones se reponderan según cuán holgadamente lo satisfacen |
 # | **Max-share** | el choque de incertidumbre es el que explica la mayor fracción de la varianza del error de pronóstico de $u$ a 12 meses (sin restricciones de exclusión) |
 # | **Proxy SVAR** | una *segunda* medida de incertidumbre (JLN) correlaciona con el choque verdadero y con ningún otro (Stock-Watson 2018; Mertens-Ravn 2013) |
+#
+# ### Parámetros del modelo base
+#
+# | Símbolo | Descripción del parámetro | Valor base | Unidades / Convención contable |
+# | :--- | :--- | :--- | :--- |
+# | $T_{\text{sample}}$ | Recuento de observaciones mensuales (1954-07 a 2025-11) | $857$ | Observaciones mensuales ($71$ años) |
+# | $p$ | Orden de rezagos del VAR | $6$ | Meses ($0.5$ años) |
+# | $H$ | Horizonte de respuesta al impulso / pronóstico | $24$ | Meses ($2$ años post-choque) |
+# | $N_{\text{draws}}$ | Número de extracciones de rotación ortogonal bajo medida de Haar | $600$ | Matrices de rotación aleatorias $Q \in O(n)$ |
+# | $\text{CI}$ | Nivel de cobertura del intervalo de confianza | $0.90$ | Cobertura de banda posterior / bootstrap |
+# | $F_{\text{proxy}}$ | Estadístico $F$ de primera etapa para el instrumento proxy JLN | $6.00$ | Prueba de relevancia del instrumento externo |
 
 # %% [markdown]
 # **Intuición.** Ninguno de estos esquemas usa más datos que los demás —
@@ -61,6 +72,14 @@
 # exactamente eso. Max-share y proxy sustituyen creencias institucionales
 # por creencias estadísticas. Lleva la cuenta de qué compra cada una y qué
 # cuesta.
+#
+# ### Referencias clave
+#
+# - **Bloom, N. (2009).** *The impact of uncertainty shocks.* Econometrica, 77(3), 623–685.
+# - **Simonsohn, U., Simmons, J. P., & Nelson, L. D. (2020).** *Specification curve analysis.* Nature Human Behaviour, 4(11), 1208–1214.
+# - **Antolín-Díaz, J., & Rubio-Ramírez, J. F. (2018).** *Narrative sign restrictions for SVARs.* American Economic Review, 108(10), 2802–2829.
+# - **Stock, J. H., & Watson, M. W. (2018).** *Identification and estimation of dynamic causal effects in macroeconomics using external instruments.* The Economic Journal, 128(610), 917–948.
+# - **Mertens, K., & Ravn, M. O. (2013).** *The dynamic effects of personal and corporate income tax changes in the United States.* American Economic Review, 103(4), 1212–1247.
 
 # %% [markdown]
 # ## Preparación — un único conjunto de datos congelado
@@ -105,7 +124,7 @@ panel = panel.set_index("date")
 
 df = panel[["epu", "ip", "emp", "ffr"]].dropna()
 expected = pd.date_range(df.index.min(), df.index.max(), freq="MS")
-assert len(expected) == len(df) and (expected == df.index).all(), "¡huecos!"
+assert len(expected) == len(df) and (expected == df.index).all(), "gaps!"
 
 
 def linear_detrend(x):
@@ -121,8 +140,8 @@ Y = np.column_stack([
     df["ffr"].to_numpy(),
 ])
 dates = df.index
-print(f"dataset base: {dates.min().date()} .. {dates.max().date()}, "
-      f"T={len(df)} meses")
+print(f"baseline dataset: {dates.min().date()} .. {dates.max().date()}, "
+      f"T={len(df)} months")
 
 # %% [markdown]
 # Dos convenciones compartidas, idénticas a las del pipeline: el **patrón
@@ -139,8 +158,8 @@ HD_EVENTS = ["2008-09-01", "2020-03-01"]     # Lehman, COVID
 
 
 def unit_effect(path_u_impact, resp, lo, hi):
-    """Escala para que el impacto del choque sobre u sea +1."""
-    assert abs(path_u_impact) > 1e-3, "carga degenerada sobre u"
+    """Scale so the shock's impact on u is +1 (band swap if k<0)."""
+    assert abs(path_u_impact) > 1e-3, "degenerate loading on u"
     k = 1.0 / path_u_impact
     resp = np.asarray(resp) * k
     lo = None if lo is None else np.asarray(lo) * k
@@ -151,14 +170,13 @@ def unit_effect(path_u_impact, resp, lo, hi):
 
 
 def ar_innovations(x, p=6):
-    """Residuos AR(p), con ceros al inicio (para el instrumento proxy)."""
+    """AR(p) residuals, zero-padded at the front (for the proxy)."""
     Xl = np.column_stack([np.ones(len(x) - p)]
                          + [x[p - l - 1:len(x) - l - 1] for l in range(p)])
     b = np.linalg.lstsq(Xl, x[p:], rcond=None)[0]
     z = np.zeros_like(x)
     z[p:] = x[p:] - Xl @ b
     return z
-
 
 # %% [markdown]
 # ## Corre el menú
@@ -178,18 +196,18 @@ runs["cholesky"] = unit_effect(r.irf_point[0, 0, 0], r.irf_point[:, 1, 0],
 
 r = sign_restriction_svar(Y, p=P, horizon=H, restrictions=SIGN_PATTERN,
                           n_draws=600, ci=CI, seed=42)
-runs["signo"] = unit_effect(r.irf_median[0, 0, 0], r.irf_median[:, 1, 0],
-                            r.irf_lower[:, 1, 0], r.irf_upper[:, 1, 0])
-print(f"signo: {r.n_accepted}/600 rotaciones aceptadas")
+runs["sign"] = unit_effect(r.irf_median[0, 0, 0], r.irf_median[:, 1, 0],
+                           r.irf_lower[:, 1, 0], r.irf_upper[:, 1, 0])
+print(f"sign: {r.n_accepted}/600 rotations accepted")
 
 r = narrative_sign_svar(Y, p=P, horizon=H, sign_matrix=SIGN_PATTERN,
                         restrictions=[(ev, 0, +1) for ev in EVENTS],
                         dates=dates, n_draws=600, ci=CI, seed=42)
-runs["narrativa I"] = unit_effect(r.irf_median[0, 0, 0], r.irf_median[:, 1, 0],
+runs["narrative I"] = unit_effect(r.irf_median[0, 0, 0], r.irf_median[:, 1, 0],
                                   r.irf_lower[:, 1, 0], r.irf_upper[:, 1, 0])
-print(f"narrativa I : {r.n_narrative_accepted}/{r.n_traditional_accepted} "
-      f"extracciones sobreviven los eventos, ESS={r.ess:.0f} (== conteo: "
-      "los pesos de Tipo I son constantes)")
+print(f"narrative I : {r.n_narrative_accepted}/{r.n_traditional_accepted} "
+      f"draws survive the events, ESS={r.ess:.0f} (== count: Type-I weights "
+      "are constant)")
 
 restr2 = ([(ev, 0, +1) for ev in EVENTS]
           + [NarrativeRestriction(kind="hd_dominance", date=ev, shock=0,
@@ -198,12 +216,11 @@ restr2 = ([(ev, 0, +1) for ev in EVENTS]
 r = narrative_sign_svar(Y, p=P, horizon=H, sign_matrix=SIGN_PATTERN,
                         restrictions=restr2, dates=dates, n_draws=600,
                         ci=CI, seed=42)
-runs["narrativa II"] = unit_effect(r.irf_median[0, 0, 0],
-                                   r.irf_median[:, 1, 0],
+runs["narrative II"] = unit_effect(r.irf_median[0, 0, 0], r.irf_median[:, 1, 0],
                                    r.irf_lower[:, 1, 0], r.irf_upper[:, 1, 0])
 ess2, nnarr2 = r.ess, r.n_narrative_accepted
-print(f"narrativa II: {nnarr2}/{r.n_traditional_accepted} sobreviven, "
-      f"ESS={ess2:.1f} < conteo: la restricción de dominancia repondera")
+print(f"narrative II: {nnarr2}/{r.n_traditional_accepted} draws survive, "
+      f"ESS={ess2:.1f} < count: the dominance restriction reweights")
 
 r = identify_maxshare(Y, p=P, target_idx=0, max_fev_at=12, horizon=H,
                       n_bootstrap=50, ci=CI, seed=42)
@@ -218,7 +235,7 @@ r = proxy_svar(Y, p=P, horizon=H, instrument_series=z, shock_target_idx=0,
                n_boot=50, ci=CI, seed=42)
 runs["proxy (JLN)"] = unit_effect(r.irf_point[0, 0, 0], r.irf_point[:, 1, 0],
                                   r.irf_lower[:, 1, 0], r.irf_upper[:, 1, 0])
-print(f"proxy: F de primera etapa = {r.first_stage_F:.1f}")
+print(f"proxy: first-stage F = {r.first_stage_F:.1f}")
 
 # %% [markdown]
 # ## El menú, lado a lado
@@ -230,9 +247,9 @@ hgrid = np.arange(H + 1)
 for name, (resp, lo, hi) in runs.items():
     axes[0].plot(hgrid, resp, lw=1.8, color=COLORS[name], label=name)
 axes[0].axhline(0, color=_nbstyle.SPINE, lw=0.8)
-axes[0].set_xlabel("meses tras el choque", color=_nbstyle.TEXTO)
-axes[0].set_ylabel("respuesta de IP, % (por +1$\\sigma$ de incertidumbre)", color=_nbstyle.TEXTO)
-axes[0].set_title("Trayectorias punto / mediana")
+axes[0].set_xlabel("months after shock", color=_nbstyle.TEXTO)
+axes[0].set_ylabel("IP response, % (per +1$\\sigma$ uncertainty)", color=_nbstyle.TEXTO)
+axes[0].set_title("Point / median paths")
 axes[0].legend(fontsize=7, frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 ypos = np.arange(len(runs))[::-1]
@@ -245,15 +262,15 @@ for y, (name, (resp, lo, hi)) in zip(ypos, runs.items()):
 axes[1].axvline(0, color=_nbstyle.SPINE, lw=0.8)
 axes[1].set_yticks(ypos)
 axes[1].set_yticklabels(list(runs), fontsize=8)
-axes[1].set_xlabel("respuesta de IP en h = 12, % (banda 90%)", color=_nbstyle.TEXTO)
-axes[1].set_title("A un año")
+axes[1].set_xlabel("IP response at h = 12, % (90% band)", color=_nbstyle.TEXTO)
+axes[1].set_title("One year out")
 
 h12 = {k: v[0][12] for k, v in runs.items()}
 print({k: round(v, 2) for k, v in h12.items()})
-assert all(v < 0 for v in h12.values()), "las seis respuestas h=12 negativas"
+assert all(v < 0 for v in h12.values()), "all six h=12 responses negative"
 
 # %% [markdown]
-# **Leyendo la figura.** Los seis esquemas coinciden en el *signo* — la
+# **Lectura de los resultados.** Los seis esquemas coinciden en el *signo* — la
 # producción industrial está más baja un año después de un choque de
 # incertidumbre — pero la magnitud abarca aproximadamente un factor de
 # cuatro, y las bandas van de la cinta estrecha de Cholesky (comprada con
@@ -285,7 +302,7 @@ assert all(v < 0 for v in h12.values()), "las seis respuestas h=12 negativas"
 # que la literatura discute.
 
 # %%
-# ← Cambia esto: ¿en qué meses fue POSITIVO el choque de incertidumbre?
+# ← change this: which months was the uncertainty shock POSITIVE in?
 EVENTS_TRY = ["1987-10-01", "2008-09-01", "2020-03-01"]
 
 r_try = narrative_sign_svar(Y, p=P, horizon=H, sign_matrix=SIGN_PATTERN,
@@ -294,10 +311,10 @@ r_try = narrative_sign_svar(Y, p=P, horizon=H, sign_matrix=SIGN_PATTERN,
 resp_t, lo_t, hi_t = unit_effect(
     r_try.irf_median[0, 0, 0], r_try.irf_median[:, 1, 0],
     r_try.irf_lower[:, 1, 0], r_try.irf_upper[:, 1, 0])
-print(f"eventos={[e[:7] for e in EVENTS_TRY]}  ->  h12 = {resp_t[12]:+.2f} "
-      f"[{lo_t[12]:+.2f}, {hi_t[12]:+.2f}], ancho {hi_t[12] - lo_t[12]:.2f}, "
-      f"{r_try.n_narrative_accepted}/{r_try.n_traditional_accepted} sobreviven")
-assert r_try.n_narrative_accepted > 0, "el conjunto de eventos mató todas las rotaciones"
+print(f"events={[e[:7] for e in EVENTS_TRY]}  ->  h12 = {resp_t[12]:+.2f} "
+      f"[{lo_t[12]:+.2f}, {hi_t[12]:+.2f}], width {hi_t[12] - lo_t[12]:.2f}, "
+      f"{r_try.n_narrative_accepted}/{r_try.n_traditional_accepted} survive")
+assert r_try.n_narrative_accepted > 0, "event set killed every rotation"
 
 # %% [markdown]
 # **Ejercicios.** (1) *Básico*: corre `EVENTS_TRY` con cada evento por
@@ -314,7 +331,7 @@ assert r_try.n_narrative_accepted > 0, "el conjunto de eventos mató todas las r
 # negativa de aspecto contundente salida de un instrumento débil no debería
 # tranquilizarte.
 #
-# **¿Qué tan completo es esto?** El menú de aquí son seis de los doce del
+# **¿Qué tan exhaustivo es esto?** El menú de aquí son seis de los doce del
 # pipeline: `puremacro.var.identify` también incluye largo plazo de
 # Blanchard-Quah, heteroscedasticidad de Rigobon, quiebres de varianza de
 # Magnusson-Mavroeidis, ICA no gaussiana e identificación signo-cero, más

@@ -209,19 +209,33 @@ def test_sdid_invariant_to_unit_and_time_level_shifts():
     """Old code: tau = 1.9895 -> 2.1586 after adding +5 to the treated
     units' outcome, 2.2185 after +50 (omega moved by up to 0.50), 2.0647
     under common time shifts. With the intercepts of Arkhangelsky et al.
-    every additive unit / time shift leaves tau and omega unchanged."""
+    every additive unit shift, and every common time shift at a given
+    noise level sigma-hat, leaves tau and omega unchanged.
+
+    sigma-hat itself (eq. 2.2: first differences demeaned by their overall
+    mean) is unchanged by a common *linear* trend but not by an arbitrary
+    common time shift, which moves tau only through the ridge penalty:
+    2.03154 -> 2.03220 here. (Until the SDID fix sigma-hat was demeaned
+    period by period, which is not the paper's eq. 2.2.)"""
     df = _single_cohort_panel()
     base = synthetic_did(df, n_boot=0)
     shifted = {
         "treated +50": df.assign(y=df.y + 50.0 * df.treat_time.notna()),
         "unit shifts": df.assign(y=df.y + df.unit.map(lambda u: 3.0 * (u % 7))),
-        "time shifts": df.assign(y=df.y + df.time.map(lambda t: 2.0 * (t % 3))),
+        "linear trend": df.assign(y=df.y + 0.8 * df.time),
     }
     for name, d in shifted.items():
         res = synthetic_did(d, n_boot=0)
         assert abs(res.tau - base.tau) < 1e-6, (name, res.tau, base.tau)
         assert np.abs(res.omega.values - base.omega.values).max() < 1e-6, name
         assert np.abs(res.lambda_w.values - base.lambda_w.values).max() < 1e-6, name
+    time_shift = df.assign(y=df.y + df.time.map(lambda t: 2.0 * (t % 3)))
+    sigma = 0.7
+    fixed = synthetic_did(df, n_boot=0, noise_level=sigma)
+    res = synthetic_did(time_shift, n_boot=0, noise_level=sigma)
+    assert abs(res.tau - fixed.tau) < 1e-6
+    assert np.abs(res.omega.values - fixed.omega.values).max() < 1e-6
+    assert abs(synthetic_did(time_shift, n_boot=0).tau - base.tau) < 0.005
     # and the estimate is right (truth 2.05 = mean of 1.0 + 0.3 e, e = 0..7)
     assert abs(base.tau - 2.05) < 0.15
 

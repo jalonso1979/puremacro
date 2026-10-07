@@ -2,7 +2,7 @@
 
 # Superficie de paridad DSGE, simulación avanzada y panel de verificación
 
-Esta página describe interfaces seleccionadas de simulación DSGE y comparación. No establece compatibilidad integral con Dynare. Véase [el estado de validación estructural](../STRUCTURAL_VALIDATION_STATUS.md) para los casos comprobados y sus limitaciones.
+Esta página describe interfaces seleccionadas de simulación DSGE y comparación. No establece compatibilidad integral con Dynare. Véase [el estado de validación estructural](STRUCTURAL_VALIDATION_STATUS.md) para los casos comprobados y sus limitaciones.
 
 Esta versión introduce cuatro capacidades macroeconómicas fundamentales:
 1. **Superficie de filtrado y momentos de `stoch_simul`**: Integración de la densidad espectral mediante cuadratura de Gauss-Legendre para filtrado teórico HP y paso de banda, filtro HP uniselectivo (causal) recursivo de Kalman, matrices completas de autocorrelación cruzada, correlaciones contemporáneas y momentos empíricos de simulación Monte Carlo (`simul_replic`).
@@ -252,6 +252,17 @@ print(report.to_markdown())
 suite_report = run_parity_suite("models/", dynare_results={"sw07": oo}, order=2)
 assert suite_report.passed
 ```
+
+`M_.Sigma_e` se compara cuando el objeto de puremacro declara una covarianza
+(tolerancia `shock_cov`, 1e-10, informada en `details["covariance_status"]`).
+Por defecto, los segundos momentos de orden 2 siguen `stoch_simul(order=2)` sin
+`pruning`: la media corregida por riesgo y los segundos momentos de primer orden.
+Para una referencia de `stoch_simul(order=2, pruning)`, pase `pruning=True`: la
+comparación usa entonces los momentos exactos de la solución podada, que
+reproducen los de Dynare 8 a 7e-14 en los cinco modelos en vivo, autocorrelaciones
+incluidas. Las
+filas de autocorrelación de variables con varianza nula que son NaN en ambos
+lados se listan en `details["moments_excluded"]`.
 
 Las correcciones de riesgo se contrastaron con casos analíticos y, posteriormente,
 con las ejecuciones externas de órdenes dos y tres descritas al final de esta página.

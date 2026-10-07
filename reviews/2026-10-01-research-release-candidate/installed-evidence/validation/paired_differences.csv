@@ -1,0 +1,5 @@
+left,right,difference,paired_usable,total_pairs,mean_squared_error_difference_crr,paired_mc_se_crr,mean_squared_error_difference_em,paired_mc_se_em
+population_hac,finite_hac,right minus left,2,2,0.0019770977590181952,0.0020562842534890117,-0.0015718224569362224,0.0016825661043032808
+population_oracle,finite_oracle,right minus left,2,2,5.945816512255311e-05,5.8667671292645345e-05,-4.387934799676676e-06,4.624472430359017e-05
+population_hac,population_oracle,right minus left,2,2,-0.0024029962998582577,0.0019947928248394264,-0.0023315016162421907,0.002360243739516155
+finite_hac,finite_oracle,right minus left,2,2,-0.0043206358937539,0.003992409407035794,-0.0007640670941056448,0.0007239223595164647

@@ -1,0 +1,97 @@
+/Users/jalonso/.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/importlib/__init__.py:88: FutureWarning: puremacro.lp.garch_utils is private and deprecated, will be removed in a future major release (5.0.0); use puremacro.lp._garch_utils or high-level LP functions instead.
+  return _bootstrap._gcd_import(name[level:], package, level)
+{
+  "all": {
+    "puremacro.dsge": {
+      "added": [
+        "StructuralSingularityWarning",
+        "allow_structural_singularity"
+      ],
+      "removed": []
+    },
+    "puremacro.structural.sw07_expectations": {
+      "added": [
+        "sw07_finite_sample_expectations"
+      ],
+      "removed": []
+    }
+  },
+  "result_classes": {
+    "puremacro.bartik.akm.ShiftShareIVResult": {
+      "added": [
+        "akm_shocks",
+        "n_sector_clusters"
+      ],
+      "removed": [],
+      "added_fields_have_defaults": true
+    },
+    "puremacro.did._results.CallawaySantannaResult": {
+      "added": [
+        "aggregation",
+        "alpha",
+        "att_group",
+        "att_overall_hi",
+        "att_overall_lo",
+        "att_overall_se",
+        "event_study_vcov",
+        "overall_aggregations"
+      ],
+      "removed": [],
+      "added_fields_have_defaults": true
+    },
+    "puremacro.did._results.SunAbrahamResult": {
+      "added": [
+        "aggregation",
+        "alpha",
+        "att_overall_hi",
+        "att_overall_lo",
+        "att_overall_se",
+        "event_study_vcov",
+        "overall_aggregations"
+      ],
+      "removed": [],
+      "added_fields_have_defaults": true
+    },
+    "puremacro.did._results.SyntheticDiDResult": {
+      "added": [
+        "alpha",
+        "n_reps",
+        "se_method"
+      ],
+      "removed": [],
+      "added_fields_have_defaults": true
+    },
+    "puremacro.dynpanel._results.GMMResult": {
+      "added": [
+        "notes"
+      ],
+      "removed": [],
+      "added_fields_have_defaults": true
+    },
+    "puremacro.nowcast.evaluation.PITUniformityResult": {
+      "added": [
+        "alpha"
+      ],
+      "removed": [],
+      "added_fields_have_defaults": true
+    },
+    "puremacro.nowcast.realtime_nowcast.RealtimeNowcastResult": {
+      "added": [
+        "model_result",
+        "observed_panel",
+        "previous_vintage"
+      ],
+      "removed": [],
+      "added_fields_have_defaults": true
+    },
+    "puremacro.var.regime.ms_var.MSVARResult": {
+      "added": [
+        "loglik_path",
+        "pi0",
+        "sigma_at_floor"
+      ],
+      "removed": [],
+      "added_fields_have_defaults": true
+    }
+  }
+}

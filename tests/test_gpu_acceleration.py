@@ -28,13 +28,12 @@ from puremacro.trade.gpu.backend import (
     detect_device,
     device_context,
     get_memory_usage,
-    has_mlx,
-    has_torch,
     reset_peak_memory,
     select_compute_device,
     to_numpy,
     to_tensor,
 )
+from puremacro.trade.gpu import backend as gpu_backend
 from puremacro.trade.gpu.batched_jacobian import BatchedJacobianEvaluator
 from puremacro.trade.gpu.homotopy import solve_homotopy_continuation
 from puremacro.trade.gpu.mlx_solver import solve_trade_equilibrium_mlx
@@ -44,9 +43,38 @@ from puremacro.trade.scenarios import build_tariff_matrices
 from conftest import load_or_skip
 
 
-_ACCEL_BACKEND = "torch" if has_torch() else ("mlx" if has_mlx() else None)
+def _importable(loader) -> bool:
+    """True when the accelerator actually imports (``has_*`` are find_spec probes only)."""
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        return loader() is not None
+
+
+def _accel_backend() -> str | None:
+    """The accelerator these tests use: an importable torch, else an importable mlx, else None.
+
+    Gate on an importable library, not on find_spec: a torch whose shared library does not
+    load must skip these cases instead of failing them (2026-09-22 audit). The probe runs
+    lazily (``_load_torch``/``_load_mlx`` are cached), never at collection, so collecting
+    this module does not import torch (tests/test_adversarial_orch20_m3_2.py diffs
+    ``sys.modules`` for torch in-process).
+    """
+    if _importable(gpu_backend._load_torch):
+        return "torch"
+    if _importable(gpu_backend._load_mlx):
+        return "mlx"
+    return None
+
+
+# String conditions: pytest evaluates them at set-up time in this module's namespace, so
+# the import probes above run only for the cases that are actually executed.
 needs_accelerator = pytest.mark.skipif(
-    _ACCEL_BACKEND is None, reason="needs torch or mlx (pip install puremacro[accel])"
+    "_accel_backend() is None", reason="needs an importable torch or mlx (pip install puremacro[accel])"
+)
+needs_mlx = pytest.mark.skipif(
+    "not _importable(gpu_backend._load_mlx)", reason="Apple MLX is not available or cannot be imported"
 )
 
 
@@ -104,7 +132,7 @@ class TestDeviceBackend:
     @needs_accelerator
     def test_tensor_conversion_roundtrip(self):
         arr = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=float)
-        t = to_tensor(arr, backend=_ACCEL_BACKEND)
+        t = to_tensor(arr, backend=_accel_backend())
         arr_back = to_numpy(t)
         np.testing.assert_allclose(arr, arr_back, rtol=1e-12, atol=1e-12)
 
@@ -129,7 +157,7 @@ class TestBatchedJacobianEvaluator:
             tauf_vec=tauf_v,
             tauf_fd_vec=tauf_fd_v,
             device="cpu",
-            backend=_ACCEL_BACKEND,
+            backend=_accel_backend(),
             batch_size=230,
         )
         assert evaluator.inv_P_np.shape == (3465, 3465)
@@ -147,7 +175,7 @@ class TestBatchedJacobianEvaluator:
             tauf_vec=tauf_v,
             tauf_fd_vec=tauf_fd_v,
             device="cpu",
-            backend=_ACCEL_BACKEND,
+            backend=_accel_backend(),
             batch_size=230,
         )
         ckpt = np.load(checkpoint_paths["base"], allow_pickle=True)
@@ -167,7 +195,7 @@ class TestBatchedJacobianEvaluator:
             tauf_vec=tauf_v,
             tauf_fd_vec=tauf_fd_v,
             device="cpu",
-            backend=_ACCEL_BACKEND,
+            backend=_accel_backend(),
             batch_size=307,
         )
         ckpt = np.load(checkpoint_paths["base"], allow_pickle=True)
@@ -187,7 +215,7 @@ class TestBatchedJacobianEvaluator:
             tauf_vec=tauf_v,
             tauf_fd_vec=tauf_fd_v,
             device="cpu",
-            backend=_ACCEL_BACKEND,
+            backend=_accel_backend(),
             batch_size=230,
         )
         ckpt = np.load(checkpoint_paths["base"], allow_pickle=True)
@@ -245,7 +273,7 @@ class TestGPUSolverParity:
         w_discrepancy = np.max(np.abs(np.exp(log_w_gpu) - np.exp(log_w_base)))
         assert w_discrepancy < 1.0e-3, f"Wage parity discrepancy {w_discrepancy} exceeds 1e-3"
 
-    @pytest.mark.skipif(not has_mlx(), reason="Apple MLX is not available")
+    @needs_mlx
     def test_mlx_solver_convergence_and_parity(self, calib_45s, checkpoint_paths):
         tau, taufd, tauf_v, tauf_fd_v = build_tariff_matrices("base", calib_45s)
         ckpt = np.load(checkpoint_paths["base"], allow_pickle=True)
@@ -276,7 +304,7 @@ class TestGPUSolverParity:
         w_discrepancy = np.max(np.abs(np.exp(log_w_mlx) - np.exp(log_w_base)))
         assert w_discrepancy < 1.0e-3, f"MLX wage parity discrepancy {w_discrepancy} exceeds 1e-3"
 
-    @pytest.mark.skipif(not has_mlx(), reason="Apple MLX is not available")
+    @needs_mlx
     def test_mlx_native_cpu_stream_solve(self):
         """Verify that Apple MLX natively solves double-precision linear systems via mx.cpu stream."""
         import mlx.core as mx

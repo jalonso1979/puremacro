@@ -1,0 +1,209 @@
+{
+  "application": "synthetic GE tariff scenario with observed ENIGH baskets",
+  "package_version": "4.3.0",
+  "observed_data": {
+    "source": "INEGI ENIGH 2024, Tabulados basicos, Cuadros 3.2 and 4.2",
+    "source_url": "https://www.inegi.org.mx/contenidos/programas/enigh/nc/2024/tabulados/enigh2024_ns_basicos_tabulados.xlsx",
+    "source_sha256": "7af7850495255fb1e6a9cb139cf531e5a62c7fd2a9a1de5ba0503f03aa82490b",
+    "accessed": "2026-10-01",
+    "survey_year": 2024,
+    "monetary_unit": "MXN",
+    "period": "quarter",
+    "population_unit": "households",
+    "value_semantics": "MXN per household per quarter, averaged over ALL households in each income decile",
+    "decile_definition": "National household deciles ordered by total current quarterly income",
+    "population_source": "Cuadro 3.2, HOGARES under INGRESO CORRIENTE (38,830,230 households)",
+    "national_monetary_expenditure_mxn": 1851206621945.59,
+    "national_food_expenditure_mxn": 698246718791.5,
+    "categories": {
+      "food": "ALIMENTOS, BEBIDAS Y TABACO",
+      "clothing": "VESTIDO Y CALZADO",
+      "housing": "VIVIENDA Y SERVICIOS DE CONSERVACIÓN",
+      "household_goods": "ARTÍCULOS Y SERVICIOS PARA LA LIMPIEZA",
+      "health": "CUIDADOS DE LA SALUD",
+      "transport": "TRANSPORTE; ADQUISICIÓN",
+      "education_recreation": "SERVICIOS DE EDUCACIÓN",
+      "personal": "CUIDADOS PERSONALES"
+    },
+    "source_rows_1based": {
+      "food": 11,
+      "clothing": 65,
+      "housing": 86,
+      "household_goods": 101,
+      "health": 113,
+      "transport": 140,
+      "education_recreation": 158,
+      "personal": 170
+    },
+    "cash_wage_rows_1based": [
+      17,
+      20,
+      23,
+      26,
+      29,
+      32
+    ],
+    "transformations": [
+      "Multiply published totals in thousands of MXN by 1000, divide by all-household decile expansion counts",
+      "Exclude outward expenditure transfers from the eight-category consumption basket; retain separately",
+      "Sum six monetary subordinate-employment remuneration categories for cash_wages; exclude in-kind remuneration"
+    ],
+    "limitations": [
+      "Group means do not recover within-decile heterogeneity or survey sampling covariance",
+      "Broad consumption categories are not an industry concordance or measured import shares",
+      "Monetary consumption excludes imputed rent, own production and other nonmonetary consumption",
+      "No trade elasticity, pass-through, policy shock, or factor-price response is identified by these tables",
+      "Applying income changes to consumption assumes the user-specified spending response; the example spends all incremental cash wages"
+    ],
+    "is_synthetic": false,
+    "csv_sha256": "7755bf36cae08e37174705cb0dd048020930d569917fc6f826b7b2c46c15a606"
+  },
+  "runtime": {
+    "python": "3.14.6",
+    "numpy": "2.5.2",
+    "pandas": "3.0.5"
+  },
+  "is_synthetic": true,
+  "is_regression_fixture": true,
+  "model_assumptions": {
+    "source": "synthetic balanced two-region scenario using observed ENIGH spending shares",
+    "is_synthetic": true,
+    "is_regression_fixture": true,
+    "empirically_calibrated_trade_economy": false,
+    "countries": "HOME and REST are hypothetical symmetric regions, not estimated Mexican/foreign accounts",
+    "baseline_consumption_per_region_model_units": 100.0,
+    "intermediate_cost_share": 0.35,
+    "intermediate_import_share": 0.2,
+    "final_import_shares": {
+      "food": 0.25,
+      "clothing": 0.55,
+      "housing": 0.05,
+      "household_goods": 0.35,
+      "health": 0.15,
+      "transport": 0.4,
+      "education_recreation": 0.05,
+      "personal": 0.15
+    },
+    "labor_share": 0.9119023089180431,
+    "labor_share_construction": "observed aggregate cash wages divided by observed monetary consumption; a scenario normalization, not a national-accounts factor share",
+    "production": "fixed intermediate coefficients and Cobb-Douglas labor/capital value added",
+    "final_demand": "one fixed-origin, fixed-sector consumption category; no investment or government category",
+    "foreign_saving": "zero in both regions",
+    "baseline_taxes_and_tariffs": "zero",
+    "numeraire": "HOME food producer price equals one in both states"
+  },
+  "tariff_rate": 0.1,
+  "policy": "HOME tariff on REST food inputs and final consumption; zero domestic tariffs",
+  "units": {
+    "households": "MXN per household per quarter",
+    "model": "synthetic value units",
+    "mxn_per_model_unit": 18016596158.47857,
+    "conversion": "survey aggregate baseline consumption / HOME model baseline consumption; a normalization, not an exchange-rate estimate"
+  },
+  "income_mapping": {
+    "cash_wages": "observed per-household cash wages times HOME GE wage change",
+    "other_factor_proxy": "unobserved proxy allocated proportional to consumption, total chosen to reconcile remaining GE factor income; times HOME GE rental-rate change",
+    "nominal_changes": {
+      "cash_wages": -0.004173696285991291,
+      "other_factor_proxy": -0.004173696287123718
+    },
+    "baseline_group_residual": "income exposures minus consumption may be positive or negative by group; held fixed, sum to zero nationally",
+    "spending_response": "all incremental nominal factor income is spent"
+  },
+  "fiscal": {
+    "incremental_tariff_revenue_mxn": 24975748018.307,
+    "revenue_source": "counterfactual minus baseline sum of tariff rate times solved producer value, across intermediate and final imports",
+    "no_double_counting": "income exposure contains factor earnings only; the already solved GE tariff receipt is distributed once through the transfer argument",
+    "no_household_rebate": "conditional benchmark retains receipts outside households; it is not a separately solved government-saving closure"
+  },
+  "ge_audit": {
+    "baseline": {
+      "goods": 2.842170943040401e-14,
+      "foreign_balance": 1.4210854715202004e-14,
+      "household_budget": 5.684341886080802e-14,
+      "government_budget": 0.0,
+      "gdp_income_expenditure": 4.263256414560601e-14,
+      "physical_equations": 2.842170943040401e-14
+    },
+    "counterfactual": {
+      "goods": 8.540723683836404e-12,
+      "foreign_balance": 1.7543300145916874e-11,
+      "household_budget": 2.842170943040401e-14,
+      "government_budget": 6.830092047493963e-13,
+      "gdp_income_expenditure": 1.8260948309034575e-11,
+      "physical_equations": 1.7543300145916874e-11
+    },
+    "both_converged": true,
+    "solve_tolerance": 1e-10,
+    "accounting": "consistent"
+  },
+  "limitations": [
+    "Synthetic GE technology and trade sourcing are not an empirical Mexican tariff model; survey data alone do not identify them",
+    "Observed broad consumption categories are used as hypothetical model composites, not an estimated industry concordance",
+    "Other-factor exposure and the labor-share normalization are modeling assumptions, not observed national accounts or survey capital income",
+    "One solved GE price/income pair is held fixed across household preferences and allocations; household demand does not feed back into equilibrium",
+    "All deciles inherit identical origin shares within each composite",
+    "Fixed baskets and Cobb-Douglas are preference assumptions; no elasticity is estimated",
+    "Group means omit within-decile heterogeneity and do not support sampling confidence intervals",
+    "Summed monetary EV is not a social welfare function"
+  ],
+  "source_sha256": {
+    "examples/distributional_trade_ge.py": "9f4407d60e0b53b83ec76d2c71defc7142fba4b06adc608d829c55293298ef3b",
+    "datasets/enigh.py": "f2ff066e53b431f73f42d626916eae37c7967e766793ee389ad7bb70daa9fddf",
+    "trade/calibration.py": "3464c5e573b8c1029f427397191ba44ac083e3b369e2b5725542064f6ab46ba9",
+    "trade/solver.py": "f8cbb8528aedad8bbccf15aab165408cf94c0ffa6f0d1e85d0a58a5fedd5e8f4",
+    "trade/_accounting.py": "281f9a01c5569868dd4df916a2af1834e1d007db40cc820c1a2057bb49753c65",
+    "trade/household.py": "19cf74e19b2a83d906aa006f5d6fd14d03b455917d70ef3830b775bb4f8515a2",
+    "trade/distributional.py": "c62fa7e8e68190340a8a52b8d54139992d20647f20732194c91030d0b90c7e7b"
+  },
+  "artifacts": {
+    "aggregate_results.csv": {
+      "sha256": "7b91487783dc39119eac826171b7512dbda4e9b26fb19877d24a57b48c73826c",
+      "bytes": 2515
+    },
+    "all_scenarios.csv": {
+      "sha256": "e9717c1825a35dfd4973a985889313debb01d2d10f921bc537ff7387e36708af",
+      "bytes": 18815
+    },
+    "conditional_incidence.png": {
+      "sha256": "b69275775c2e1e0e6e0db96b212aa9d2b712a94fd56d270374c5fd96d48bc8dd",
+      "bytes": 99467
+    },
+    "equilibrium_evidence.npz": {
+      "sha256": "f8258151a7ee80fa0adddb7cde7f39d08e8691d8c90bb3416454c622270403be",
+      "bytes": 6975
+    },
+    "fiscal_allocation.csv": {
+      "sha256": "49f314b1d1cda0d65367e7516dc3040aeb0b759f5907541f6238f347ba6cd53b",
+      "bytes": 1167
+    },
+    "income_mapping.csv": {
+      "sha256": "577f53616f613678d95fe2604680d8fc2a1337792f25c0566bfd0862163e9279",
+      "bytes": 1549
+    },
+    "observed_enigh_deciles.csv": {
+      "sha256": "7755bf36cae08e37174705cb0dd048020930d569917fc6f826b7b2c46c15a606",
+      "bytes": 1791
+    },
+    "purchaser_prices.csv": {
+      "sha256": "a6c9bbd1a8eabe334ff48c9a91756a41ac06422d3c6bd9aa2586597559606095",
+      "bytes": 479
+    },
+    "report.md": {
+      "sha256": "c203b4e7296215f6658063372c2ea15f15c4ce35fecde4ca23858e388e1168f1",
+      "bytes": 4492
+    },
+    "revenue_audit.csv": {
+      "sha256": "f30bf87c96123624d317f8e1994034b857d55eb647d5e2da596edef1ae2f95e5",
+      "bytes": 346
+    },
+    "synthetic_calibration_table.csv": {
+      "sha256": "d1aea010cf48b6da9af30860999c448dc604351f2f2f54c6486a52be04adc985",
+      "bytes": 6390
+    },
+    "tariff_transactions.csv": {
+      "sha256": "13f0023b1f40d75b17bf6b8cd1903865bd46f926a154a37be2cd700320a8712b",
+      "bytes": 65196
+    }
+  }
+}

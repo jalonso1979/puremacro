@@ -1,0 +1,8 @@
+Number	Name	CodeNr	CodeTxt
+164	Final consumption expenditure by households	y01	F_HOUS
+165	Final consumption expenditure by non-profit organisations serving households (NPISH)	y02.a	F_NPSH
+166	Final consumption expenditure by government	y02.b	F_GOVE
+167	Gross fixed capital formation	y04	I_GFCF
+168	Changes in inventories	y05.a	I_CHIN
+169	Changes in valuables	y05.b	I_CHVA
+170	Exports: Total (fob)	y06	X_TOTA

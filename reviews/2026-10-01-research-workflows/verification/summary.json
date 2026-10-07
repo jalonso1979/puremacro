@@ -1,0 +1,15 @@
+{
+  "focused_tests": 145,
+  "application_tests": 15,
+  "documentation_examples": 8,
+  "related_regression_tests": 253,
+  "test_quality_checks": 22,
+  "total_passed": 443,
+  "skipped_external_io_parity": 2,
+  "independent_benchmarks_passed": 6,
+  "strict_documentation_build": true,
+  "installed_wheel_offline_smoke": true,
+  "public_api_snapshot": "pre-existing unrelated drift; see api_snapshot_drift.json",
+  "full_repository_suite_run": false,
+  "release_published": false
+}

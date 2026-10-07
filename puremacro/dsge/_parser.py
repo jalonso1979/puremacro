@@ -23,7 +23,7 @@ from typing import Any, Callable, Mapping, Sequence, Set, Tuple
 
 import numpy as np
 
-from puremacro.dsge._ast import BinOp, Call, Const, Node, Param, UnaryOp, Var
+from puremacro.dsge._ast import BinOp, Call, Const, Node, Param, UnaryOp, Var, _py_attr
 from puremacro.dsge.build import ModelError
 from puremacro.dsge._estimated_params import (
     parse_estimated_params,
@@ -456,9 +456,173 @@ def _find_local_deps(node: Node, local_names: set[str]) -> set[str]:
     return deps
 
 
+def _eval_steady_state_defs(
+    defs: Mapping[str, Node],
+    param_values: Mapping[str, float],
+    variables: Sequence[str],
+    auxiliary: Mapping[str, Mapping[str, Any]],
+) -> dict[str, float]:
+    """Evaluate a ``steady_state_model`` block in order at ``param_values``.
+
+    Assignments run top to bottom, so helper quantities defined early
+    (``rk = 1/beta - 1 + delta;``) are visible to later lines, exactly as in
+    Dynare's generated ``steadystate`` function. A variable the block never
+    assigns gets ``0.0``; a lead/lag auxiliary variable inherits the value of
+    the variable it shifts. An assignment that cannot be evaluated raises
+    ``ValueError`` naming it.
+    """
+    ss_scope: dict[str, float] = dict(param_values)
+    for s_name, s_expr in defs.items():
+        try:
+            val = s_expr.eval(ss_scope, {**param_values, **ss_scope})
+            ss_scope[s_name] = float(val)
+        except Exception as exc:
+            raise ValueError(
+                f"could not evaluate '{s_name}' in the steady_state_model block: {exc}"
+            ) from exc
+    steady_state = {v: ss_scope.get(v, 0.0) for v in variables}
+    for aux, info in auxiliary.items():
+        steady_state[aux] = steady_state.get(info["root"], 0.0)
+    return steady_state
+
+
+def _eval_initval_defs(
+    defs: Mapping[str, Node],
+    param_values: Mapping[str, float],
+    variables: Sequence[str],
+    auxiliary: Mapping[str, Mapping[str, Any]],
+) -> dict[str, float]:
+    """Evaluate an ``initval`` block at ``param_values`` into a solver guess.
+
+    Lines that cannot be evaluated are skipped (``initval`` values are only a
+    starting point); auxiliary lead/lag variables inherit their root's guess,
+    defaulting to ``1.0``.
+    """
+    init_scope: dict[str, float] = dict(param_values)
+    for i_name, i_expr in defs.items():
+        try:
+            val = i_expr.eval(init_scope, {**param_values, **init_scope})
+            init_scope[i_name] = float(val)
+        except Exception:
+            pass
+    guess = {v: init_scope[v] for v in variables if v in init_scope}
+    for aux, info in auxiliary.items():
+        guess[aux] = guess.get(info["root"], 1.0)
+    return guess
+
+
+_COMPOSITE = (UnaryOp, BinOp, Call)
+
+
+def _render_equations_hoisted(
+    equations: Sequence[Node], shock_names: set[str]
+) -> tuple[list[str], list[str]]:
+    """Python source for residual expressions with parameter work hoisted.
+
+    Returns ``(prologue, expressions)``. The prologue binds every parameter
+    the equations use to a local (``_p0 = params.csigma``) and every
+    parameter-only composite sub-expression that is either maximal (its
+    parent involves a variable) or repeated to a temporary (``_c3 = ...``),
+    in increasing size so each temporary only uses earlier ones. The
+    expressions then refer to those names. The arithmetic is exactly the
+    one the plain ``Node.to_python`` rendering performs, only not repeated.
+    """
+    counts: dict[Node, int] = {}
+    maximal: dict[Node, None] = {}
+    params_used: dict[str, None] = {}
+
+    def visit(node: Node) -> bool:
+        """Record parameter-only composites; return True if ``node`` has no variable."""
+        if isinstance(node, Param):
+            params_used.setdefault(node.name, None)
+            return True
+        if isinstance(node, Const):
+            return True
+        if isinstance(node, UnaryOp):
+            kids: tuple[Node, ...] = (node.expr,)
+        elif isinstance(node, BinOp):
+            kids = (node.left, node.right)
+        elif isinstance(node, Call):
+            kids = tuple(node.args)
+        else:
+            return False
+        flags = [visit(k) for k in kids]
+        if all(flags):
+            counts[node] = counts.get(node, 0) + 1
+            return True
+        for k, f in zip(kids, flags):
+            if f and isinstance(k, _COMPOSITE):
+                maximal.setdefault(k, None)
+        return False
+
+    for eq in equations:
+        if visit(eq) and isinstance(eq, _COMPOSITE):
+            maximal.setdefault(eq, None)
+
+    hoisted = dict(maximal)
+    for node, c in counts.items():
+        if c >= 2:
+            hoisted.setdefault(node, None)
+
+    def size(n: Node) -> int:
+        if isinstance(n, UnaryOp):
+            return 1 + size(n.expr)
+        if isinstance(n, BinOp):
+            return 1 + size(n.left) + size(n.right)
+        if isinstance(n, Call):
+            return 1 + sum(size(a) for a in n.args)
+        return 1
+
+    pnames = {p: f"_p{i}" for i, p in enumerate(params_used)}
+    names: dict[Node, str] = {}
+    ns = ("lead", "curr", "lag", "shocks", "params")
+
+    def emit(node: Node, defining: bool = False) -> str:
+        if not defining and isinstance(node, _COMPOSITE):
+            t = names.get(node)
+            if t is not None:
+                return t
+        if isinstance(node, Param):
+            return pnames[node.name]
+        if isinstance(node, UnaryOp):
+            return f"({node.op}{emit(node.expr)})"
+        if isinstance(node, BinOp):
+            py_op = "**" if node.op == "^" else node.op
+            return f"({emit(node.left)} {py_op} {emit(node.right)})"
+        if isinstance(node, Call):
+            return node.python_call([emit(a) for a in node.args])
+        return node.to_python(*ns, shock_names=shock_names)
+
+    prologue = [f"{t} = {_py_attr('params', p)}" for p, t in pnames.items()]
+    order = sorted(hoisted, key=size)
+    for i, node in enumerate(order):
+        t = f"_c{i}"
+        prologue.append(f"{t} = {emit(node, defining=True)}")
+        names[node] = t
+    return prologue, [emit(eq) for eq in equations]
+
+
 @dataclass
 class ParsedModelDAG:
-    """Structured representation of a parsed Dynare DSGE model as an Expression DAG."""
+    """Structured representation of a parsed Dynare DSGE model as an Expression DAG.
+
+    Model-local ``#`` variables are **symbolic**: ``local_variables`` maps each
+    name to its fully inlined expression, and ``equations`` contain that
+    expression (with ``Param`` nodes) wherever the local is used, shifted in
+    time when the local appears with a lead or lag. This is Dynare's
+    semantics (Reference Manual, section 4.5 "Model declaration": "every time
+    this variable appears in the model, Dynare will substitute it by the
+    expression assigned to the variable"), so a local such as
+    ``#cbetabar = cbeta*cgamma^(-csigma);`` follows ``csigma`` whenever the
+    compiled equations or derivatives are evaluated at new parameter values
+    (estimation, ``load_mod(params=)``, ``osr``, widgets, gradients). Use
+    :meth:`evaluate_locals` for their numerical values at a parameter vector.
+
+    ``steady_state`` and ``guess`` hold the ``steady_state_model`` and
+    ``initval`` blocks evaluated at the file's calibration
+    (``parameter_values``); :meth:`evaluate_steady_state` and
+    :meth:`evaluate_initval` re-evaluate them at other parameter values.
+    """
 
     variables: list[str]
     shocks: list[str]
@@ -504,22 +668,121 @@ class ParsedModelDAG:
     def varexo_det(self, val: list[str]) -> None:
         self.det_shocks = val
 
-    def compile_equations(self) -> Callable:
-        """Compile AST equations into a Python callable compatible with legacy LinearModel."""
-        py_exprs = [
-            eq.to_python(
-                lead_ns="lead",
-                curr_ns="curr",
-                lag_ns="lag",
-                shock_ns="shocks",
-                param_ns="params",
-                shock_names=set(self.shocks),
-            )
-            for eq in self.equations
-        ]
-        code_body = (
-            "def _generated_equations(lead, curr, lag, shocks, params):\n    return [\n"
+    def _merged_params(self, params: Mapping[str, float] | None) -> dict[str, float]:
+        merged = dict(self.parameter_values)
+        if params:
+            merged.update({str(k): float(v) for k, v in dict(params).items()})
+        return merged
+
+    def evaluate_locals(
+        self, params: Mapping[str, float] | None = None
+    ) -> dict[str, float]:
+        """Numerical values of the parameter-only model-local variables.
+
+        Parameters
+        ----------
+        params : Mapping[str, float], optional
+            Parameter values overriding the file's calibration
+            (``parameter_values``); omitted names keep their calibrated value.
+
+        Returns
+        -------
+        dict[str, float]
+            ``{local_name: value}`` for every ``#`` local whose inlined
+            expression involves no endogenous or exogenous variable and can be
+            evaluated. Locals over variables have no single value and are left
+            out.
+        """
+        merged = self._merged_params(params)
+        out: dict[str, float] = {}
+        for name, node in self.local_variables.items():
+            if node.variables():
+                continue
+            try:
+                out[name] = float(node.eval({}, merged))
+            except Exception:
+                continue
+        return out
+
+    def evaluate_steady_state(
+        self, params: Mapping[str, float] | None = None
+    ) -> dict[str, float] | None:
+        """Re-evaluate the ``steady_state_model`` block at new parameter values.
+
+        Dynare compiles ``steady_state_model`` into a function of the
+        parameters and calls it at every parameter vector it solves at, so a
+        steady state that depends on parameters (SW07's
+        ``robs = (cpie/(cbeta*cgamma^(-csigma)) - 1)*100``) must be recomputed
+        whenever they change. ``self.steady_state`` is this method at the
+        file's calibration.
+
+        Parameters
+        ----------
+        params : Mapping[str, float], optional
+            Parameter values overriding ``parameter_values``. Parameter
+            assignments at the top of the file are **not** re-run (as in
+            Dynare, where they are executed once when the file is read).
+
+        Returns
+        -------
+        dict[str, float] or None
+            Steady-state level of every endogenous variable (auxiliary
+            lead/lag variables included), or ``None`` when the file has no
+            ``steady_state_model`` block.
+
+        Raises
+        ------
+        ValueError
+            An assignment in the block cannot be evaluated at ``params``.
+        """
+        if not self.steady_state_model:
+            return None
+        return _eval_steady_state_defs(
+            self.steady_state_model,
+            self._merged_params(params),
+            self.variables,
+            self.auxiliary_variables,
         )
+
+    def evaluate_initval(
+        self, params: Mapping[str, float] | None = None
+    ) -> dict[str, float] | None:
+        """Re-evaluate the ``initval`` block (the steady-state solver's guess).
+
+        Same conventions as :meth:`evaluate_steady_state`, except that lines
+        that cannot be evaluated are skipped. Returns ``None`` when the file
+        has no ``initval`` block.
+        """
+        if not self.initval:
+            return None
+        return _eval_initval_defs(
+            self.initval,
+            self._merged_params(params),
+            self.variables,
+            self.auxiliary_variables,
+        )
+
+    def compile_equations(self) -> Callable:
+        """Compile AST equations into a Python callable compatible with legacy LinearModel.
+
+        The callable is ``eqs(lead, curr, lag, shocks, params)`` and reads
+        every parameter, including those inside model-local variables, from
+        ``params`` on each call. Names that are Python keywords (a parameter
+        called ``lambda``) are read with ``getattr(params, 'lambda')``.
+
+        Each parameter is read once per call, and every parameter-only
+        sub-expression (typically an inlined ``#`` local such as SW07's
+        ``cbetabar*cgamma``) is computed once per call before the residuals,
+        so keeping locals symbolic does not multiply their cost by the
+        number of places they are used.
+        """
+        prologue, py_exprs = _render_equations_hoisted(
+            self.equations, set(self.shocks)
+        )
+        code_body = "def _generated_equations(lead, curr, lag, shocks, params):\n"
+        for line in prologue:
+            code_body += f"    {line}\n"
+        code_body += "    return [\n"
         for pe in py_exprs:
             code_body += f"        {pe},\n"
         code_body += "    ]\n"
@@ -1651,20 +1914,24 @@ class Parser:
                             f"circular dependency in model-local variables: {' -> '.join(cycle)}"
                         )
 
-            # Inline dependencies into other local variables in topological order
+            # Inline dependencies into other local variables in topological order.
+            #
+            # A local is a *symbolic* shorthand (Dynare Reference Manual, 4.5:
+            # "every time this variable appears in the model, Dynare will
+            # substitute it by the expression assigned to the variable"). It
+            # must never be folded to a number at the parse-time calibration,
+            # even when it involves parameters only: the compiled equations and
+            # their derivatives are re-evaluated at new parameter values by
+            # estimation, load_mod(params=), osr, widgets and gradients, and a
+            # folded local would keep its load-time value there (SW07's
+            # constebeta entered the model only through locals, so its
+            # likelihood was flat). ``simplify`` still folds the purely numeric
+            # sub-expressions; Param nodes stay, and CSE in compile_derivatives
+            # evaluates each repeated parameter expression once per call.
             for u in order:
                 inlined_ast = _substitute_locals(
                     self.local_var_defs[u], resolved_locals
-                )
-                # If this local variable depends only on parameters and constants, evaluate or simplify
-                if not inlined_ast.variables():
-                    try:
-                        c_val = inlined_ast.eval({}, self.param_values)
-                        inlined_ast = Const(c_val)
-                    except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
-                        inlined_ast = inlined_ast.simplify()
-                else:
-                    inlined_ast = inlined_ast.simplify()
+                ).simplify()
                 resolved_locals[u] = inlined_ast
 
             # Inline resolved locals into all model equations
@@ -1686,6 +1953,7 @@ class Parser:
         aux_vars: list[str] = []
         aux_eqs: list[Node] = []
         replacements: dict[tuple[str, int], Node] = {}
+        auxiliary: dict[str, dict[str, Any]] = {}
 
         for v, offset in sorted(lag_leads_needed, key=lambda x: (x[0], abs(x[1]))):
             if offset <= -2:
@@ -1694,6 +1962,7 @@ class Parser:
                     aux_name = f"AUX_LAG_{v}_{step}"
                     if aux_name not in aux_vars:
                         aux_vars.append(aux_name)
+                        auxiliary[aux_name] = {"root": v, "kind": "lag", "step": step}
                         prev_node = (
                             Var(v, -1)
                             if step == 1
@@ -1708,6 +1977,7 @@ class Parser:
                     aux_name = f"AUX_LEAD_{v}_{step}"
                     if aux_name not in aux_vars:
                         aux_vars.append(aux_name)
+                        auxiliary[aux_name] = {"root": v, "kind": "lead", "step": step}
                         prev_node = (
                             Var(v, 1) if step == 1 else Var(f"AUX_LEAD_{v}_{step-1}", 1)
                         )
@@ -1723,37 +1993,20 @@ class Parser:
         # ---------------------------------------------------------------------
         # Post-Processing: Steady State & Initval Evaluation
         # ---------------------------------------------------------------------
+        # Both blocks are functions of the parameters; the same helpers back
+        # ParsedModelDAG.evaluate_steady_state / evaluate_initval, which
+        # re-run them at other parameter values.
         steady_state: dict[str, float] | None = None
         if self.steady_state_defs:
-            ss_scope: dict[str, float] = dict(self.param_values)
-            for s_name, s_expr in self.steady_state_defs.items():
-                try:
-                    val = s_expr.eval(ss_scope, {**self.param_values, **ss_scope})
-                    ss_scope[s_name] = float(val)
-                except Exception as exc:
-                    raise ValueError(
-                        f"could not evaluate '{s_name}' in the steady_state_model block: {exc}"
-                    ) from exc
-            steady_state = {v: ss_scope.get(v, 0.0) for v in self.variables}
-            for aux in aux_vars:
-                parts = aux.split("_")
-                root_var = parts[2] if len(parts) >= 3 else aux
-                steady_state[aux] = steady_state.get(root_var, 0.0)
+            steady_state = _eval_steady_state_defs(
+                self.steady_state_defs, self.param_values, self.variables, auxiliary
+            )
 
         guess: dict[str, float] | None = None
         if self.initval_defs:
-            init_scope: dict[str, float] = dict(self.param_values)
-            for i_name, i_expr in self.initval_defs.items():
-                try:
-                    val = i_expr.eval(init_scope, {**self.param_values, **init_scope})
-                    init_scope[i_name] = float(val)
-                except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
-                    pass
-            guess = {v: init_scope[v] for v in self.variables if v in init_scope}
-            for aux in aux_vars:
-                parts = aux.split("_")
-                root_var = parts[2] if len(parts) >= 3 else aux
-                guess[aux] = guess.get(root_var, 1.0)
+            guess = _eval_initval_defs(
+                self.initval_defs, self.param_values, self.variables, auxiliary
+            )
 
         histval_values: dict[str, float] | None = None
         if self.histval_defs:
@@ -1896,6 +2149,7 @@ class Parser:
             estimated_params_init=estimated_params_init,
             estimated_params_bounds=estimated_params_bounds,
             local_variables=resolved_locals,
+            auxiliary_variables=auxiliary,
             tex_labels=self.tex_labels,
             shock_cov=shock_cov,
             steady_state=steady_state,

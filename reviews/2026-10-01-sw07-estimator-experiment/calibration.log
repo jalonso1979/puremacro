@@ -1,0 +1,28 @@
+calibration: 1/399
+calibration: 19/399
+calibration: 38/399
+calibration: 57/399
+calibration: 76/399
+calibration: 95/399
+calibration: 114/399
+calibration: 133/399
+calibration: 152/399
+calibration: 171/399
+calibration: 190/399
+calibration: 209/399
+calibration: 228/399
+calibration: 247/399
+calibration: 266/399
+calibration: 285/399
+calibration: 304/399
+calibration: 323/399
+calibration: 342/399
+calibration: 361/399
+calibration: 380/399
+calibration: 399/399
+      phase           variant  replications  usable_fits  unresolved_draws  boundary_fits  regular_fits  criterion_median  criterion_q95  naive_events_lower  naive_events_upper  naive_rate_lower  naive_rate_upper  naive_mc95_lower  naive_mc95_upper  bias_crr  rmse_crr   bias_em  rmse_em
+calibration    population_hac           399          392                 7              3           389         21.022034     127.750073                 254                 261          0.636591          0.654135          0.587268          0.700764  0.000084  0.046751 -0.015757 0.059715
+calibration        finite_hac           399          390                 9              3           387         12.495754      54.504664                 172                 181          0.431078          0.453634          0.381902          0.503926 -0.004879  0.044779 -0.015953 0.050402
+calibration population_oracle           399          399                 0              0           399          7.480633      15.235250                  25                  25          0.062657          0.062657          0.040955          0.091107 -0.004059  0.026523 -0.002829 0.025557
+calibration     finite_oracle           399          399                 0              0           399          6.168268      15.469869                  25                  25          0.062657          0.062657          0.040955          0.091107 -0.005024  0.029659 -0.004730 0.026522
+Evidence: reviews/2026-10-01-sw07-estimator-experiment/calibration

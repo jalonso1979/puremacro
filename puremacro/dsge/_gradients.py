@@ -178,6 +178,64 @@ class StateSpaceSensitivity:
     dP0: np.ndarray | None = None
 
 
+class StateSpaceSensitivities(dict):
+    """``{parameter: StateSpaceSensitivity}``, with the state space they belong to.
+
+    Returned by :func:`build_state_space_sensitivities`. It is a plain
+    ``dict`` (iteration, indexing and ``kalman_score`` are unchanged) that
+    also carries
+
+    - ``state_space``: the :class:`~puremacro.state_space.StateSpaceModel`
+      whose matrices the sensitivities differentiate, to be passed to
+      :func:`kalman_score` with them;
+    - ``model``: the solved model that state space was built from. For a
+      ``build_dynare`` / ``load_mod`` model whose calibration sets a lag
+      coefficient to 0 this is the model re-solved on the re-solve state set
+      (:func:`puremacro.dsge.dynare._resolve_states`), which has more states
+      than the model passed in; a state space built from the original model
+      does not match the sensitivities.
+    """
+
+    state_space: StateSpaceModel | None = None
+    model: Any = None
+
+
+def _check_sensitivity_shapes(model: StateSpaceModel, sens_list: Sequence[Any], names: Sequence[str]) -> None:
+    """Raise a named ``ValueError`` when a sensitivity does not match ``model``."""
+    expected = {
+        "dT": np.shape(model.T),
+        "dZ": np.shape(model.Z),
+        "dR": np.shape(model.R),
+        "dQ": np.shape(model.Q),
+        "dH": np.shape(model.H),
+    }
+    m = int(np.shape(model.T)[0])
+    for nm, s in zip(names, sens_list):
+        for field_name, shape in expected.items():
+            got = np.shape(getattr(s, field_name))
+            if got != shape:
+                raise ValueError(
+                    f"kalman_score: the sensitivity of {nm!r} has {field_name} of shape "
+                    f"{got}, but the state space has {field_name[1:]} of shape {shape} "
+                    f"(m = {m} states). The sensitivities and the state space must come "
+                    "from the same solved model: build_state_space_sensitivities "
+                    "re-solves a build_dynare/load_mod model on its re-solve state set "
+                    "(every variable that enters with a lag, including lags calibrated "
+                    "to 0), which can have more states than the model passed in. Use "
+                    "the state space it returns with them (sens.state_space), or build "
+                    "the state space from sens.model."
+                )
+        for field_name, size in (("dc", m), ("dd", int(np.shape(model.Z)[0]))):
+            got = np.size(getattr(s, field_name))
+            if got != size:
+                raise ValueError(
+                    f"kalman_score: the sensitivity of {nm!r} has {field_name} of size "
+                    f"{got}, but the state space needs {size}. The sensitivities and the "
+                    "state space must come from the same solved model (see "
+                    "build_state_space_sensitivities: sens.state_space / sens.model)."
+                )
+
+
 # ---------------------------------------------------------------------------
 # Forward Kalman Score Recursion
 # ---------------------------------------------------------------------------
@@ -229,8 +287,11 @@ def kalman_score(
 
     if isinstance(sensitivities, Mapping):
         sens_list = list(sensitivities.values())
+        sens_names = [str(k) for k in sensitivities.keys()]
     else:
         sens_list = list(sensitivities)
+        sens_names = [f"#{i}" for i in range(len(sens_list))]
+    _check_sensitivity_shapes(model, sens_list, sens_names)
 
     K = len(sens_list)
     score = np.zeros(K, dtype=float)
@@ -427,36 +488,171 @@ def kalman_score(
 # Decision Rules and State Space Sensitivity Builder
 # ---------------------------------------------------------------------------
 
-def _re_solve_model(model: Any, params: dict) -> Any:
-    """Re-solve a DSGE model at perturbed parameter values."""
+def _re_solve_model(model: Any, params: dict, previous_ss: Mapping[str, float] | None = None) -> Any:
+    """Re-solve a DSGE model at perturbed parameter values.
+
+    Goes through the shared re-solves (:func:`puremacro.dsge.dynare.
+    _resolve_dynare_model`, :func:`puremacro.dsge.build._resolve_build_model`):
+    the steady state follows the parameters (so its derivative reaches the
+    Jacobians and the measurement intercept), the declared shock covariance
+    and the model's linearisation are kept, and a ``build_dynare`` model is
+    solved with a predetermined set that does not depend on the parameter
+    vector, so the decision rules at theta +- h have the same shape.
+    ``previous_ss`` is the starting point of the steady-state solve in place
+    of the model's own steady state.
+    """
     if getattr(model, "_dynare_equations", None) is not None:
-        from puremacro.dsge.dynare import build_dynare
-        return build_dynare(
-            model._dynare_equations,
-            variables=model.variables,
-            shocks=model.shocks,
-            params=params,
-            steady_state=model.steady_state,
-            states=model.states,
-            check_steady_state=False,
-            strict=False,
-        )
+        from puremacro.dsge.dynare import _resolve_dynare_model
+
+        return _resolve_dynare_model(model, params, strict=False, previous_ss=previous_ss)
     elif getattr(model, "_equations", None) is not None:
-        from puremacro.dsge.build import build as _build
-        units = getattr(model, "units", {}) or {}
-        lin = units.get(model.variables[0], "level") if units else "level"
-        return _build(
-            model._equations,
-            variables=model.variables,
-            states=model.states,
-            shocks=model.shocks,
-            params=params,
-            guess=model.steady_state.to_dict() if hasattr(model.steady_state, "to_dict") else model.steady_state,
-            linearize=lin,
-            verify_derivatives=False,
-            strict=False,
-        )
+        from puremacro.dsge.build import _resolve_build_model
+
+        return _resolve_build_model(model, params, strict=False, previous_ss=previous_ss)
     return model
+
+
+def _steady_state_derivative(
+    model: Any, params: Mapping[str, float], param_name: str, h: float
+) -> np.ndarray | None:
+    r"""``d ys / d theta`` by the implicit function theorem, or ``None``.
+
+    With ``f(ys, theta) = 0`` the static model (every lead and lag at the
+    steady state, shocks at zero), ``d ys / d theta = -J^{-1} df/dtheta``,
+    where ``J = df/dys`` is taken at the model's steady state (``A_+ + A_0 +
+    A_-`` for a ``build_dynare`` model) and ``df/dtheta`` is a central
+    difference in ``theta`` alone at that fixed steady state. Unlike the
+    difference of two re-solved steady states it does not depend on the
+    re-solve deciding whether the old steady state still solves the model: a
+    parameter that moves the static residual by less than the re-solve's
+    exactness tolerance over the step used to be read as not moving the
+    steady state at all. ``None`` when ``J`` is singular (a unit root leaves
+    the level free) or anything is not finite; the caller then differences
+    the re-solved steady states.
+    """
+    from puremacro.dsge.build import _Vec, _jacobian
+
+    variables = list(model.variables)
+    shocks = list(model.shocks)
+    ys = np.asarray(pd.Series(model.steady_state).reindex(variables), dtype=float)
+    if not np.all(np.isfinite(ys)) or param_name not in params:
+        return None
+    dyn = getattr(model, "_dynare_equations", None)
+    klein = getattr(model, "_equations", None)
+    if dyn is None and klein is None:
+        return None
+    names = list(params)
+    base_vals = [float(params[k]) for k in names]
+
+    def static(y, par_values):
+        dtype = np.asarray(y).dtype
+        y_v = _Vec(variables, y)
+        e_v = _Vec(shocks, np.zeros(len(shocks), dtype=dtype), "shock")
+        p_v = _Vec(names, par_values, "parameter")
+        if dyn is not None:
+            return dyn(y_v, y_v, y_v, e_v, p_v)
+        return klein(y_v, y_v, e_v, p_v)
+
+    j = names.index(param_name)
+    up = list(base_vals)
+    up[j] += h
+    dn = list(base_vals)
+    dn[j] -= h
+    with np.errstate(all="ignore"):
+        f_theta = (np.asarray(static(ys, up), dtype=float)
+                   - np.asarray(static(ys, dn), dtype=float)) / (2.0 * h)
+    if f_theta.shape != (len(variables),) or not np.all(np.isfinite(f_theta)):
+        return None
+    if not np.any(f_theta):
+        return np.zeros(len(variables))
+
+    cached = [getattr(model, a, None) for a in ("_A_plus", "_A_0", "_A_minus")]
+    if dyn is not None and all(c is not None for c in cached):
+        J = np.asarray(cached[0] + cached[1] + cached[2], dtype=float)
+    else:
+        with np.errstate(all="ignore"):
+            J = _jacobian(lambda y: static(y, base_vals), ys, len(variables),
+                          getattr(model, "method", "complex"))
+    if J.shape != (len(variables), len(variables)) or not np.all(np.isfinite(J)):
+        return None
+    sv = np.linalg.svd(J, compute_uv=False)
+    if sv.size == 0 or not (sv[-1] > 1e-10 * sv[0]):
+        return None
+    dys = -np.linalg.solve(J, f_theta)
+    return dys if np.all(np.isfinite(dys)) else None
+
+
+def _decision_rule_and_ss_derivatives(
+    model: Any, param_name: str
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Central differences ``(dghx, dghu, dys)`` with respect to ``param_name``.
+
+    ``dys`` is the derivative of the steady state (one entry per variable,
+    in ``model.variables`` order), which the measurement intercept ``d``
+    inherits. It comes from the implicit function theorem
+    (:func:`_steady_state_derivative`) where the static Jacobian is regular,
+    and the perturbed models at ``theta +- h`` then start their steady-state
+    solve from ``ys +- h dys``: a starting point whose residual is
+    ``O(h^2)``, so the decision rules are differentiated at the moved steady
+    state even when the parameter moves the static residual by less than the
+    re-solve's exactness tolerance (up to 4.3.0 the unmoved steady state was
+    accepted as exact there, and both ``dys`` and the steady-state effect on
+    the Jacobians were lost). A regular static Jacobian is not required: the
+    re-solved steady states are differenced otherwise.
+    """
+    params_dict = dict(getattr(model, "_params", {}) or getattr(model, "params", {}) or {})
+    theta_0 = float(params_dict.get(param_name, 0.0))
+    h = max(1e-6, 1e-5 * abs(theta_0))
+
+    p_plus = dict(params_dict); p_plus[param_name] = theta_0 + h
+    p_minus = dict(params_dict); p_minus[param_name] = theta_0 - h
+
+    variables = list(model.variables)
+    try:
+        dys_ift = _steady_state_derivative(model, params_dict, param_name, h)
+    except Exception:
+        dys_ift = None
+    prev_plus = prev_minus = None
+    if dys_ift is not None and np.any(dys_ift):
+        ys0 = np.asarray(pd.Series(model.steady_state).reindex(variables), dtype=float)
+        prev_plus = dict(zip(variables, (ys0 + h * dys_ift).tolist()))
+        prev_minus = dict(zip(variables, (ys0 - h * dys_ift).tolist()))
+
+    m_plus = _re_solve_model(model, p_plus, previous_ss=prev_plus)
+    m_minus = _re_solve_model(model, p_minus, previous_ss=prev_minus)
+
+    if dys_ift is not None:
+        dys = np.asarray(dys_ift, dtype=float)
+    else:
+        dys = np.zeros(len(variables))
+        ss_p = getattr(m_plus, "steady_state", None)
+        ss_m = getattr(m_minus, "steady_state", None)
+        if ss_p is not None and ss_m is not None:
+            try:
+                dys = (
+                    np.asarray(pd.Series(ss_p).reindex(variables), dtype=float)
+                    - np.asarray(pd.Series(ss_m).reindex(variables), dtype=float)
+                ) / (2.0 * h)
+            except Exception:
+                dys = np.zeros(len(variables))
+
+    if hasattr(m_plus, "dynare_dr") and m_plus.dynare_dr is not None:
+        ghx_p = np.asarray(m_plus.dynare_dr.ghx, dtype=float)
+        ghx_m = np.asarray(m_minus.dynare_dr.ghx, dtype=float)
+        ghu_p = np.asarray(m_plus.dynare_dr.ghu, dtype=float)
+        ghu_m = np.asarray(m_minus.dynare_dr.ghu, dtype=float)
+        dghx = (ghx_p - ghx_m) / (2.0 * h)
+        dghu = (ghu_p - ghu_m) / (2.0 * h)
+        return dghx, dghu, dys
+
+    if hasattr(m_plus, "solution") and hasattr(m_plus.solution, "G"):
+        G_p = np.asarray(m_plus.solution.G, dtype=float)
+        G_m = np.asarray(m_minus.solution.G, dtype=float)
+        N_p = np.asarray(m_plus.solution.N, dtype=float)
+        N_m = np.asarray(m_minus.solution.N, dtype=float)
+        return (G_p - G_m) / (2.0 * h), (N_p - N_m) / (2.0 * h), dys
+
+    raise ValueError("Model does not expose decision rules.")
 
 
 def compute_decision_rule_derivatives(
@@ -481,34 +677,20 @@ def compute_decision_rule_derivatives(
         Derivative \frac{\partial ghx}{\partial \theta}.
     dghu : np.ndarray of shape (N_var, N_shocks)
         Derivative \frac{\partial ghu}{\partial \theta}.
+
+    Notes
+    -----
+    The perturbed models are re-solved with their steady state at
+    ``theta +- h`` and, for a ``build_dynare`` / ``load_mod`` model, with the
+    re-solve state set (:func:`puremacro.dsge.dynare._resolve_states`): the
+    model's states plus every variable that enters with a lag. ``N_states``
+    is the size of that set, which exceeds ``len(model.states)`` when a lag
+    coefficient is 0 at the calibration; the derivative with respect to that
+    coefficient is then non-zero, as it must be. ``h_eps`` is unused (the
+    step is ``max(1e-6, 1e-5 |theta|)``) and kept for backward compatibility.
     """
-    params_dict = dict(getattr(model, "_params", {}) or getattr(model, "params", {}) or {})
-    theta_0 = float(params_dict.get(param_name, 0.0))
-    h = max(1e-6, 1e-5 * abs(theta_0))
-
-    p_plus = dict(params_dict); p_plus[param_name] = theta_0 + h
-    p_minus = dict(params_dict); p_minus[param_name] = theta_0 - h
-
-    m_plus = _re_solve_model(model, p_plus)
-    m_minus = _re_solve_model(model, p_minus)
-
-    if hasattr(m_plus, "dynare_dr") and m_plus.dynare_dr is not None:
-        ghx_p = np.asarray(m_plus.dynare_dr.ghx, dtype=float)
-        ghx_m = np.asarray(m_minus.dynare_dr.ghx, dtype=float)
-        ghu_p = np.asarray(m_plus.dynare_dr.ghu, dtype=float)
-        ghu_m = np.asarray(m_minus.dynare_dr.ghu, dtype=float)
-        dghx = (ghx_p - ghx_m) / (2.0 * h)
-        dghu = (ghu_p - ghu_m) / (2.0 * h)
-        return dghx, dghu
-
-    if hasattr(m_plus, "solution") and hasattr(m_plus.solution, "G"):
-        G_p = np.asarray(m_plus.solution.G, dtype=float)
-        G_m = np.asarray(m_minus.solution.G, dtype=float)
-        N_p = np.asarray(m_plus.solution.N, dtype=float)
-        N_m = np.asarray(m_minus.solution.N, dtype=float)
-        return (G_p - G_m) / (2.0 * h), (N_p - N_m) / (2.0 * h)
-
-    raise ValueError("Model does not expose decision rules.")
+    dghx, dghu, _ = _decision_rule_and_ss_derivatives(model, param_name)
+    return dghx, dghu
 
 
 def build_state_space_sensitivities(
@@ -535,10 +717,30 @@ def build_state_space_sensitivities(
 
     Returns
     -------
-    sensitivities : dict[str, StateSpaceSensitivity]
+    sensitivities : StateSpaceSensitivities
         Dictionary mapping each parameter name to its StateSpaceSensitivity.
+        It also carries ``.state_space``, the state space those derivatives
+        belong to, and ``.model``, the solved model it was built from; pass
+        ``.state_space`` to :func:`kalman_score` with them. For a
+        ``build_dynare`` / ``load_mod`` model whose calibration sets a lag
+        coefficient to 0 (``rho = 0`` in ``y = rho*y(-1) + ...``) the
+        derivatives are taken on the re-solve state set, which includes that
+        lag, so a state space built from the original model has fewer states
+        and does not match them (``kalman_score`` raises a ``ValueError``
+        saying so).
     """
     from puremacro.dsge.observation import make_state_space_from_varobs
+
+    if getattr(model, "_dynare_equations", None) is not None:
+        # The perturbed solves use the re-solve state set (the model's states
+        # plus every variable that enters with a lag); the base state space
+        # must have the same one, so a model whose calibration hides a lag
+        # (coefficient 0) is re-solved on it first. The likelihood is
+        # unchanged by the inert extra states; only the derivatives gain them.
+        from puremacro.dsge.dynare import _resolve_states
+
+        if tuple(model.states) != tuple(_resolve_states(model)):
+            model = _re_solve_model(model, dict(getattr(model, "_params", None) or {}))
 
     obs = list(varobs)
     n_obs = len(obs)
@@ -553,7 +755,9 @@ def build_state_space_sensitivities(
         model, obs, shock_cov=shock_cov, measurement_error=measurement_errors
     )
 
-    sens_dict: dict[str, StateSpaceSensitivity] = {}
+    sens_dict = StateSpaceSensitivities()
+    sens_dict.state_space = base_ssm
+    sens_dict.model = model
 
     for name in param_names:
         dT = np.zeros((m_dim, m_dim))
@@ -587,7 +791,7 @@ def build_state_space_sensitivities(
             continue
 
         # Case 3: Structural parameter
-        dghx, dghu = compute_decision_rule_derivatives(model, name)
+        dghx, dghu, dys = _decision_rule_and_ss_derivatives(model, name)
 
         state_indices = [variables.index(s) for s in states]
         obs_indices = [variables.index(o) for o in obs]
@@ -597,6 +801,20 @@ def build_state_space_sensitivities(
 
         dZ[:, :n_s] = dghx[obs_indices, :]
         dZ[:, n_s:] = dghu[obs_indices, :]
+
+        # The measurement intercept is the observables' steady state (level
+        # units), so it moves with any parameter that moves the steady state
+        # (SW07's robs with csigma or constebeta). A log-unit observable's
+        # intercept is log(ss): d log(ss) = d ss / ss.
+        units = getattr(model, "units", {}) or {}
+        ys = np.asarray(
+            pd.Series(model.steady_state).reindex(variables), dtype=float
+        )
+        for k, (o, r) in enumerate(zip(obs, obs_indices)):
+            if units.get(o, "level") == "log":
+                dd[k] = dys[r] / ys[r] if ys[r] > 0 else 0.0
+            else:
+                dd[k] = dys[r]
 
         sens_dict[name] = StateSpaceSensitivity(
             dT=dT, dZ=dZ, dR=dR, dQ=dQ, dH=dH, dc=dc, dd=dd
@@ -751,31 +969,11 @@ def log_posterior_and_gradient(
     from puremacro.dsge.observation import make_state_space_from_varobs
 
     try:
-        if getattr(model_template, "_dynare_equations", None) is not None:
-            from puremacro.dsge.dynare import build_dynare
-            m_curr = build_dynare(
-                model_template._dynare_equations,
-                variables=model_template.variables,
-                shocks=model_template.shocks,
-                params=param_dict,
-                steady_state=model_template.steady_state,
-                check_steady_state=False,
-                strict=False,
-            )
-        elif getattr(model_template, "_equations", None) is not None:
-            from puremacro.dsge.build import build as _build
-            m_curr = _build(
-                model_template._equations,
-                variables=model_template.variables,
-                states=model_template.states,
-                shocks=model_template.shocks,
-                params=param_dict,
-                guess=model_template.steady_state.to_dict() if hasattr(model_template.steady_state, "to_dict") else model_template.steady_state,
-                check_steady_state=False,
-                strict=False,
-            )
-        else:
-            m_curr = model_template
+        # The shared re-solve (steady state at theta, declared shock
+        # covariance, one predetermined set for theta and theta +- h). The
+        # build() branch used to pass check_steady_state=, which build() does
+        # not take, so every draw of a build() model raised and scored -inf.
+        m_curr = _re_solve_model(model_template, param_dict)
     except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         return -math.inf, np.zeros(len(names))
 

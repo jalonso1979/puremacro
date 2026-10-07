@@ -1,0 +1,32 @@
+{
+  "artifacts": [
+    {
+      "path": "/tmp/puremacro-research-candidate-20261001T214014Z/dist/puremacro-4.3.0-py3-none-any.whl",
+      "sha256": "191cafa80eef2f8663cd6301cc87a80dd69f1a87d8f94f91d4545705577d357c",
+      "bytes": 16861366,
+      "retained_path": "reviews/2026-10-01-research-release-candidate/artifacts/puremacro-research-candidate-20261001T214014Z/puremacro-4.3.0-py3-none-any.whl"
+    },
+    {
+      "path": "/tmp/puremacro-research-candidate-20261001T214014Z/dist/puremacro-4.3.0.tar.gz",
+      "sha256": "c15646a30d8342db8506cdcaf46439276cc9ede83232603a84ef625186d60267",
+      "bytes": 16472075,
+      "retained_path": "reviews/2026-10-01-research-release-candidate/artifacts/puremacro-research-candidate-20261001T214014Z/puremacro-4.3.0.tar.gz"
+    }
+  ],
+  "wheel_members": 884,
+  "matched_shipped_source_files": 878,
+  "all_package_python_modules_shipped": true,
+  "required_resources": [
+    "puremacro/dsge/_sw07_data.csv",
+    "puremacro/datasets/data/enigh2024_deciles.csv",
+    "puremacro/datasets/data/enigh2024_deciles_metadata.json",
+    "puremacro/replication/data/rr2010_original.csv",
+    "puremacro/replication/data/rr2010_original_metadata.json",
+    "puremacro/replication/data/rr2010_statsmodels_reference.json"
+  ],
+  "wheel_contains_no_png_bytecode_shared_libraries_or_mat_files": true,
+  "sdist_contains_all_package_python_modules_and_required_resources": true,
+  "sdist_authenticated_shipped_source_and_resource_files": 878,
+  "sdist_package_files_identical_to_wheel": true,
+  "sdist_contains_no_notebooks_docs_curso_or_png_files": true
+}

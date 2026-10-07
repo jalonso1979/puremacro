@@ -1,0 +1,13 @@
+{
+  "completed": true,
+  "benchmarks_passed": 6,
+  "structural_inference_valid": true,
+  "structural_parameters": {
+    "sigma": 1.4698752383270133,
+    "kappa": 0.15252822637082336,
+    "rho": 0.5944168873530574
+  },
+  "distributional_scenarios": 6,
+  "distributional_scope": "observed group baskets with illustrative partial-equilibrium policy assumptions",
+  "report": "README.md"
+}

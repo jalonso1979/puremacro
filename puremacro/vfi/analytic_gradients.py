@@ -940,8 +940,11 @@ def equilibrium_parameter_jacobian(
 
     Parameters
     ----------
-    solution : CollocationSolution, FEMSolution, SplineCollocationSolution, or AiyagariContinuousEquilibrium
-        Converged solution object.
+    solution : CollocationSolution, FEMSolution or SplineCollocationSolution
+        Converged representative-agent solution object. Heterogeneous-agent
+        solutions (for example ``AiyagariContinuousEquilibrium``) raise
+        ``NotImplementedError``: distribution and general-equilibrium
+        sensitivities are not implemented.
     problem : Any, optional
         Problem specification (if available).
     params : Sequence[str], optional

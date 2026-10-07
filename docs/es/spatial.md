@@ -139,9 +139,9 @@ print(irf.round(3))
 
 Un instrumento shift-share combina participaciones de exposición del periodo base `sᵢₖ` con shocks sectoriales `gₖ`: `zᵢ = Σₖ sᵢₖ gₖ`. Adão, Kolesár y Morales (2019) muestran que las unidades con vectores de participaciones parecidos tienen residuos correlacionados aunque estén lejos, así que los errores robustos a heterocedasticidad o agrupados geográficamente cubren de menos. Su estimador agrega los residuos al nivel sectorial:
 
-$$\widehat{\text{se}}_{\text{AKM}}(\hat\beta) = \frac{\sqrt{\sum_k \tilde g_k^2 \Big(\sum_i w_i s_{ik} \hat\varepsilon_i\Big)^2}}{\big|\sum_i w_i \tilde z_i \tilde x_i\big|},$$
+$$\widehat{\text{se}}_{\text{AKM}}(\hat\beta)=\frac{\sqrt{\sum_c\big(\sum_{k\in c}\hat{\mathcal X}_k \hat R_k\big)^2}}{\big|\sum_i w_i \ddot z_i \ddot x_i\big|},\quad \hat R_k=\sum_i w_i s_{ik}\hat\varepsilon_i,\quad \hat{\mathcal X}=\big(S'\operatorname{diag}(w)\,S\big)^{-1}S'\operatorname{diag}(w)\,\ddot z,$$
 
-donde las tildes denotan residuos respecto de los controles (y, para los shocks, respecto de los `shock_controls` ponderados por participaciones). `shift_share_iv` devuelve la estimación 2SLS, ambos errores estándar, el F robusto de primera etapa y los pesos de Rotemberg de Goldsmith-Pinkham, Sorkin y Swift (2020), que indican qué sectores mueven la estimación.
+donde las variables con doble punto ($\ddot z_i$, $\ddot x_i$) son residuos respecto de los controles, $S$ es la matriz de participaciones $s_{ik}$, $w_i$ son las ponderaciones de las unidades (uno por defecto), $\hat\varepsilon_i$ son los residuos de 2SLS, $\hat{\mathcal X}$ es la regresión del instrumento depurado de controles sobre las participaciones (AKM 2019, Remark 5, ec. 28; numeración de ecuaciones de arXiv:1806.07928v5) y $c$ recorre los conglomerados de sectores (`sector_clusters=`, ec. 40; por defecto cada sector es su propio conglomerado, que es la ec. 39). `akm_shocks="residualized"` con `shock_controls` da la alternativa a nivel sectorial de la viñeta de ShiftShareSE (sección 3.2, válida cuando todos los controles tienen estructura shift-share); `instrument=` admite un $z$ construido fuera. Con los datos de ADH que incluye el paquete de R ShiftShareSE (versión 1.1.0), agrupar por SIC de 3 dígitos reproduce su estimación −0.7742267 y su error estándar AKM 0.2403730. `shift_share_iv` devuelve la estimación 2SLS, ambos errores estándar, el F robusto de primera etapa y los pesos de Rotemberg de Goldsmith-Pinkham, Sorkin y Swift (2020), que indican qué sectores mueven la estimación.
 
 ```python
 import numpy as np
@@ -163,7 +163,7 @@ print(res.summary())
 print(res.rotemberg_weights.sort_values(ascending=False).head())
 ```
 
-Pase `se="robust"` para que el error convencional sea el principal, `weights=` para ponderaciones poblacionales y `controls=` para covariables a nivel de unidad. Las participaciones deben ser no negativas y se alinean con `df` por índice cuando se dan como DataFrame.
+Pase `se="robust"` para que el error convencional sea el principal, `weights=` para ponderaciones poblacionales y `controls=` para covariables a nivel de unidad. Las participaciones deben ser no negativas y se alinean con `df` por índice cuando se dan como DataFrame. $\hat{\mathcal X}$ necesita una matriz de participaciones de rango columna completo: un sector cuya columna de participaciones es combinación lineal de las columnas anteriores se excluye de la proyección con un `RuntimeWarning`, como hace ShiftShareSE, de modo que el error AKM pasa a depender del orden de los sectores.
 
 ---
 

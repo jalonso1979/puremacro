@@ -6,14 +6,23 @@ This module implements:
   normalized factor demand derivatives, outer nest (gross output) CES unit costs,
   exact Leontief gating, intermediate composite pricing, two-tier intermediate demands,
   and zero-profit producer pricing.
-- Declarative configuration dataclasses and stubs for general equilibrium integration.
+- Stone-Geary subsistence demand, fixed-coefficient or Armington final-demand
+  sourcing, Atkeson-Burstein markups and a smooth capacity penalty.
+- Declarative configuration dataclasses and :func:`solve_flexible_trade_equilibrium`,
+  which solves the default configuration with the legacy solver and any active
+  flexible configuration with the quasi-condensed solver (see its docstring for
+  the routing rule, the explicit ``sigma_trade`` switch, the 100-cell policy and
+  the metadata it records). All equilibria use the legacy accounting mode.
 
 Conforms strictly to the puremacro Pyodide runtime contract (NumPy, SciPy, Pandas only).
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field, replace
+from dataclasses import MISSING, asdict, dataclass, field, fields, replace
+import copy
 import sys
+import time
+import warnings
 from typing import Any, Mapping, Sequence
 import numpy as np
 import pandas as pd
@@ -31,14 +40,24 @@ if not hasattr(TradeCalibrationResult, "pfd"):
 
 
 def _get_replace_caller() -> Any | None:
-    """Inspect call stack to retrieve the original instance if called via dataclasses.replace."""
+    """Inspect call stack to retrieve the original instance if called via dataclasses.replace.
+
+    Python 3.13+ routes ``replace(obj, **changes)`` through ``obj.__replace__`` ->
+    ``dataclasses._replace(self, ...)``; Python 3.11 and 3.12 call the class directly
+    from ``dataclasses.replace(obj, ...)``. Both shapes are recognised; before 3.13
+    only the 3.13 one was, so ``replace`` on these configs failed on 3.11/3.12.
+    """
     for i in range(1, 6):
         try:
             f = sys._getframe(i)
-            if f.f_code.co_name == "_replace" and "self" in f.f_locals:
-                return f.f_locals["self"]
         except (AttributeError, ValueError):
             break
+        if f.f_globals.get("__name__") != "dataclasses":
+            continue
+        if f.f_code.co_name == "_replace" and "self" in f.f_locals:
+            return f.f_locals["self"]
+        if f.f_code.co_name == "replace" and "obj" in f.f_locals:
+            return f.f_locals["obj"]
     return None
 
 
@@ -47,7 +66,9 @@ def _get_replace_explicit_keys() -> set[str] | None:
     for i in range(1, 6):
         try:
             f = sys._getframe(i)
-            if f.f_code.co_name == "_replace":
+            if f.f_code.co_name == "_replace" and f.f_globals.get("__name__") == "dataclasses":
+                # Only 3.13+ keeps the caller's explicit keys apart; 3.11/3.12 fill
+                # ``changes`` with every field, so callers fall back to value comparison.
                 f_parent = sys._getframe(i + 1)
                 if f_parent.f_code.co_name == "replace" and "changes" in f_parent.f_locals:
                     return set(f_parent.f_locals["changes"].keys())
@@ -67,6 +88,36 @@ def _val_equal(a: Any, b: Any) -> bool:
     return bool(a == b)
 
 
+def _has_nonzero_setting(value: Any) -> bool:
+    """Whether an optional scalar/array/mapping contains a non-zero setting.
+
+    Values that cannot be read as numbers count as set (``True``), for the
+    mapping branch as well as for scalars and arrays, so a malformed value is
+    never mistaken for an inactive default.
+    """
+    if value is None:
+        return False
+    try:
+        if isinstance(value, Mapping):
+            vals = [np.asarray(v, dtype=float) for v in value.values()]
+            return any(bool(np.any(np.abs(v) > 1e-12)) for v in vals)
+        return bool(np.any(np.abs(np.asarray(value, dtype=float)) > 1e-12))
+    except (TypeError, ValueError):
+        return True
+
+
+def _differs_from(value: Any, baseline: Any) -> bool:
+    """Whether a scalar/array/None setting differs from its (scalar or None) default."""
+    if baseline is None:
+        return value is not None
+    if value is None:
+        return True
+    try:
+        return bool(np.any(np.abs(np.asarray(value, dtype=float) - float(baseline)) > 1e-12))
+    except (TypeError, ValueError):
+        return True
+
+
 # =============================================================================
 # R1. Flexible Nested CES Technology Configuration
 # =============================================================================
@@ -79,7 +130,11 @@ class FlexibleTechnologyConfig:
     ----------
     rho_va : float, default 1.0
         Elasticity of substitution between capital and labor in the value-added nest.
-        Aliased with `sigma_va`. Must be strictly positive (rho_va > 0).
+        Aliased with `sigma_va`. Must be strictly positive (rho_va > 0). A solve
+        with ``rho_va != 1`` uses the quasi-condensed route, whose Cobb-Douglas
+        limit is ``replicate_matlab_precedence=False``; compare it with a
+        default-configuration solve at that convention, not with the default
+        call (see ``replicate_matlab_precedence``).
     sigma_y : float, default 0.0
         Elasticity of substitution between value-added and intermediate composite
         in gross output. Must be non-negative (sigma_y >= 0).
@@ -87,13 +142,29 @@ class FlexibleTechnologyConfig:
         Elasticity of substitution in intermediate input sourcing across origins.
         Must be non-negative (sigma_inter >= 0).
     capacity_margins : Mapping[str | tuple[int, int], float] | np.ndarray | None, default None
-        Sectoral capacity buffer limits for smooth barrier penalties.
+        Sectoral capacity buffer limits for smooth barrier penalties. The
+        penalty ``pen(y) = penalty_scale * (y / ((1 + margin) y_0))^penalty_exponent``
+        multiplies the value-added unit cost, ``Phi(y) = c_va (1 + pen(y))``, in
+        the zero-profit price and in the labour and capital demands (see
+        :func:`compute_nested_ces_costs`). The penalty is positive at the
+        benchmark output, so an active margin moves the equilibrium away from
+        the calibrated point even without a shock (as in the legacy solver).
     penalty_scale : float, default 0.05
         Scale parameter for capacity barrier penalty.
     penalty_exponent : float, default 2.0
-        Exponent for capacity barrier penalty.
+        Exponent for capacity barrier penalty (the legacy solver and
+        ``BottleneckConfig`` default to 8.0).
     replicate_matlab_precedence : bool, default False
         Whether to replicate legacy MATLAB operator precedence in Cobb-Douglas pricing.
+        The quasi-condensed route uses this value (default False). The
+        default-configuration call of :func:`solve_flexible_trade_equilibrium`
+        runs the legacy solver, which uses True unless the keyword is passed
+        explicitly. The two conventions give materially different equilibria:
+        on the notebook-62 2x2 calibration with a 10% tariff the log
+        producer-price responses are -0.058/-0.090/0.045/0.061 under True and
+        -0.005/-0.013/0.010/0.011 under False (about ten times smaller), and
+        ``max|dx| = 1.15``. Flexible solutions converge continuously to the
+        False solution as their settings approach the defaults.
     sigma_va : float | None, default None
         Alias for rho_va. If provided, sets rho_va.
     """
@@ -202,11 +273,37 @@ class FlexiblePreferenceConfig:
     subsistence_shares : float | Mapping[str, float] | np.ndarray | None, default None
         Subsistence consumption expenditure shares mu_s in [0, 1) across sectors.
         Represents the committed subsistence expenditure as a fraction of baseline
-        consumption. Default 0.0 for all sectors (standard homothetic Cobb-Douglas).
-        Aliased with `mu_s` and `subsistence_ratio`.
-    sigma_trade : float | np.ndarray, default 5.0
-        Armington elasticity of substitution across source countries in international
-        trade sourcing. Must be strictly greater than 1.0 (empirically in [4.0, 8.0]).
+        consumption. Default 0.0 for all sectors (no subsistence: the household
+        basket of the legacy calibration). Aliased with `mu_s` and `subsistence_ratio`.
+        In the general-equilibrium household block the subsistence quantities
+        follow :func:`compute_stone_geary_final_demand` while supernumerary
+        expenditure buys the calibrated basket in fixed real proportions, so the
+        demand system is continuous at ``mu -> 0``. A uniform share (the same mu
+        in every sector) makes the subsistence bundle proportional to that basket
+        and therefore leaves equilibrium demand unchanged; Engel effects require
+        sector-specific shares (a mapping or an array).
+    sigma_trade : float | np.ndarray | None, default None
+        Final-demand sourcing rule across origin countries. ``None`` (default)
+        keeps fixed-coefficient (Leontief) sourcing at the benchmark shares
+        ``calib.afd``, i.e. the final-demand system of the legacy solver. A
+        value strictly greater than 1.0 switches on Armington CES sourcing at
+        that elasticity; 5.0 is the recommended value (empirical estimates lie
+        roughly in [4.0, 8.0]). Armington sourcing is therefore an explicit
+        opt-in: enabling another flexible block (for example ``rho_va``) no
+        longer changes final-demand sourcing. Values <= 1.0 are rejected.
+        Trade valuation under Armington sourcing: the general-equilibrium
+        trade-balance equations, and ``metadata["bilateral_trade"]``,
+        ``["T_fd"]`` and ``["tariffs_fd"]``, value final-demand deliveries at
+        the destination composite price ``ppfd = sum_i afd_i p_i tau_i`` (the
+        legacy convention, ``metadata["trade_balance_valuation"] ==
+        "ppfd_legacy"``), which is not the Armington expenditure identity:
+        with 25% intermediate and final-demand tariffs and ``rho_va=0.7`` on
+        the 2x2 test calibration the two valuations of a final-demand column
+        differ by up to 1.2% (sigma 5) and 1.6% (sigma 8). The
+        purchaser-valued deliveries ``p_i tau_i x_i``, whose origin sum equals
+        purchaser expenditure exactly, are reported in
+        ``metadata["final_demand_values"]`` and ``metadata["T_fd_purchaser"]``.
+        With ``None`` (fixed coefficients) the two valuations coincide.
     mu_s : float | Mapping[str, float] | np.ndarray | None, default None
         Alias for `subsistence_shares`. If multiple subsistence parameters are specified
         and differ, raises ValueError.
@@ -215,7 +312,7 @@ class FlexiblePreferenceConfig:
     """
 
     subsistence_shares: Any = None
-    sigma_trade: float | np.ndarray = 5.0
+    sigma_trade: float | np.ndarray | None = None
     mu_s: Any = None
     subsistence_ratio: Any = None
 
@@ -278,8 +375,10 @@ class FlexiblePreferenceConfig:
             else:
                 raw_mu = 0.0
 
-        # Validate and set sigma_trade
-        if isinstance(self.sigma_trade, (int, float)):
+        # Validate and set sigma_trade (None = fixed-coefficient sourcing)
+        if self.sigma_trade is None:
+            pass
+        elif isinstance(self.sigma_trade, (int, float)):
             sig = float(self.sigma_trade)
             if sig <= 1.0:
                 raise ValueError(
@@ -297,7 +396,9 @@ class FlexiblePreferenceConfig:
                 )
             object.__setattr__(self, "sigma_trade", self.sigma_trade)
         else:
-            raise TypeError(f"sigma_trade must be numeric or ndarray, got {type(self.sigma_trade).__name__}.")
+            raise TypeError(
+                f"sigma_trade must be None, numeric or ndarray, got {type(self.sigma_trade).__name__}."
+            )
 
         # Validate and set subsistence shares mu
         if isinstance(raw_mu, (int, float)):
@@ -362,6 +463,12 @@ class FlexibleMarketStructureConfig:
     variable_markups : bool, default False
         Whether endogenous Cournot-Armington oligopolistic markups are active.
         When False, competitive pricing with constant markups (1.0) is enforced.
+        In the quasi-condensed equilibrium the producer price satisfies
+        ``p (1 - tax) = mu_rel(p) * c_y`` with ``mu_rel`` the destination-averaged
+        markup relative to its benchmark (benchmark markups are embedded in the
+        calibrated costs), and the implied profits
+        ``(p (1 - tax) - c_y) y`` accrue to the households of the producing
+        country.
     sigma_j : float | dict | np.ndarray, default 6.0
         Within-industry variety substitution elasticity across origin countries.
         Must be strictly greater than 1.0 (finite markups requirement).
@@ -600,9 +707,13 @@ class FlexibleTradeModelConfig:
     market_structure : FlexibleMarketStructureConfig, default FlexibleMarketStructureConfig()
         Atkeson-Burstein imperfect competition and variable markups configuration.
     max_inner_iter : int, default 10
-        Maximum number of inner fixed-point iterations for the quasi-condensed
-        solver loop. Enforces a strict latency cap of 10 to guarantee deterministic
-        execution and Pyodide browser runtime compliance.
+        Maximum number of inner price fixed-point iterations in each
+        finite-difference Jacobian evaluation of the quasi-condensed solver
+        (at most 10, which bounds the cost of a Jacobian column). The
+        evaluations that accept a Newton step and that produce the reported
+        residual are not capped by this setting: they iterate the inner price
+        loop to 1e-13 (at most 5000 iterations) inside a quantity fixed point
+        of at most 500 passes, so the reported residual does not depend on it.
     """
 
     technology: FlexibleTechnologyConfig = field(default_factory=FlexibleTechnologyConfig)
@@ -618,9 +729,65 @@ class FlexibleTradeModelConfig:
         if self.max_inner_iter > 10:
             raise ValueError(
                 f"max_inner_iter ({self.max_inner_iter}) exceeds the latency cap of 10. "
-                "The fixed-point quasi-condensed solver enforces max_inner_iter <= 10 "
-                "to guarantee deterministic execution time and strict Pyodide runtime compliance."
+                "It caps the inner price loop of the quasi-condensed solver's "
+                "finite-difference Jacobian evaluations, which bounds the cost of each "
+                "Jacobian column; the step-acceptance and reported-residual evaluations "
+                "iterate that loop to 1e-13 independently of this setting."
             )
+
+
+def _config_field_default(cls: type, name: str) -> Any:
+    """Return the declared default of dataclass field ``name`` on ``cls``."""
+    for f in fields(cls):
+        if f.name == name:
+            if f.default is not MISSING:
+                return f.default
+            if f.default_factory is not MISSING:  # type: ignore[misc]
+                return f.default_factory()  # type: ignore[misc]
+            break
+    raise KeyError(f"{cls.__name__} has no defaulted field {name!r}.")
+
+
+def _active_flexible_settings(config: FlexibleTradeModelConfig) -> tuple[str, ...]:
+    """Names of the flexible blocks whose settings differ from the dataclass defaults.
+
+    This is the single routing predicate of the module: a configuration is
+    "active" (it changes the equations relative to the legacy Cobb-Douglas /
+    Leontief model) when this tuple is non-empty. The comparison baselines are
+    read from the dataclass field defaults (not from literals), with an
+    absolute tolerance of 1e-12 on numerical settings:
+
+    - ``rho_va`` (default 1.0), ``sigma_y`` (0.0), ``sigma_inter`` (0.0);
+    - ``capacity_margins`` (any value other than ``None``, since the barrier
+      penalty is positive for every finite margin);
+    - ``subsistence_shares`` (any non-zero share under any alias);
+    - ``sigma_trade`` (any value other than ``None``: explicit Armington sourcing);
+    - ``variable_markups`` (``True``).
+
+    Settings that only parameterize an inactive block (for example
+    ``penalty_scale`` without ``capacity_margins`` or ``sigma_j`` without
+    ``variable_markups``) are not reported.
+    """
+    tech, pref, market = config.technology, config.preference, config.market_structure
+    active: list[str] = []
+    for name in ("rho_va", "sigma_y", "sigma_inter"):
+        if _differs_from(getattr(tech, name), _config_field_default(FlexibleTechnologyConfig, name)):
+            active.append(name)
+    if tech.capacity_margins is not _config_field_default(FlexibleTechnologyConfig, "capacity_margins"):
+        active.append("capacity_margins")
+    if (
+        _has_nonzero_setting(pref.subsistence_shares)
+        or _has_nonzero_setting(pref.mu_s)
+        or _has_nonzero_setting(pref.subsistence_ratio)
+    ):
+        active.append("subsistence_shares")
+    if _differs_from(pref.sigma_trade, _config_field_default(FlexiblePreferenceConfig, "sigma_trade")):
+        active.append("sigma_trade")
+    if bool(market.variable_markups) != bool(
+        _config_field_default(FlexibleMarketStructureConfig, "variable_markups")
+    ):
+        active.append("variable_markups")
+    return tuple(active)
 
 
 # =============================================================================
@@ -1001,8 +1168,24 @@ def compute_nested_ces_costs(
     P_M: np.ndarray,
     calib: TradeCalibrationResult,
     tech_cfg: FlexibleTechnologyConfig,
+    *,
+    ytot: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Compute (c_va, c_y) tuple across sectors and countries.
+
+    Capacity barrier: when ``tech_cfg.capacity_margins`` is set and ``ytot``
+    is supplied, the penalty enters as the value-added cost multiplier that
+    :class:`puremacro.trade.extensions.BottleneckConfig` defines,
+    ``Phi(y) = c_va * (1 + pen(y))`` with
+    ``pen(y) = penalty_scale * (y / y_bar)^penalty_exponent`` and
+    ``y_bar = (1 + margin) * y_0``. The outer nest (and therefore the
+    zero-profit price ``p = c_y / (1 - tax)``) is evaluated at the penalized
+    value-added cost, while the returned ``c_va`` stays the factor-price cost
+    of one unit of value added. :func:`compute_nested_factor_demands` scales
+    labour and capital by the same ``1 + pen(y)``, so revenue net of
+    production taxes equals factor plus intermediate cost (cost exhaustion).
+    Without ``ytot`` no penalty is applied (backward-compatible behaviour);
+    pass the same ``ytot`` to both functions.
 
     Parameters
     ----------
@@ -1016,16 +1199,24 @@ def compute_nested_ces_costs(
         Calibrated model container.
     tech_cfg : FlexibleTechnologyConfig
         Technology configuration.
+    ytot : np.ndarray, optional, keyword-only
+        Gross output, shape (1, ns, nc), at which the capacity penalty is
+        evaluated. Ignored when ``tech_cfg.capacity_margins`` is None.
 
     Returns
     -------
     c_va : np.ndarray, shape (1, ns, nc)
-        Value-added unit cost.
+        Value-added unit cost at factor prices (without the capacity penalty).
     c_y : np.ndarray, shape (1, ns, nc)
-        Gross output unit cost (normalized to 1.0 at baseline).
+        Gross output unit cost (normalized to 1.0 at baseline), including the
+        capacity penalty when ``ytot`` is supplied.
     """
     c_va = compute_inner_ces_cost(r, w, calib, tech_cfg)
-    c_y = compute_outer_ces_cost(c_va, P_M, calib, tech_cfg, normalized=True)
+    c_va_eff = c_va
+    if tech_cfg.capacity_margins is not None and ytot is not None:
+        pen_arr = compute_capacity_penalty(np.asarray(ytot, dtype=float), calib, tech_cfg)
+        c_va_eff = c_va * (1.0 + pen_arr)
+    c_y = compute_outer_ces_cost(c_va_eff, P_M, calib, tech_cfg, normalized=True)
     return c_va, c_y
 
 
@@ -1048,13 +1239,17 @@ def compute_nested_factor_demands(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compute normalized factor demands (xl, xk) and intermediate demands (x_mat).
 
-    Formulas:
-        xl = theta_va,0 * Y * ( (c_y / c_y,0) / (c_va / c_va,0) )^sigma_y * [ (1/c_va,0) * d(c_va)/dw ]
-        xk = theta_va,0 * Y * ( (c_y / c_y,0) / (c_va / c_va,0) )^sigma_y * [ (1/c_va,0) * d(c_va)/dr ]
+    Formulas (``pen = 0`` unless ``tech_cfg.capacity_margins`` is set):
+        xl = theta_va,0 * Y * ( (c_y / c_y,0) / (c_va (1 + pen) / c_va,0) )^sigma_y * [ (1/c_va,0) * d(c_va)/dw ] * (1 + pen)
+        xk = theta_va,0 * Y * ( (c_y / c_y,0) / (c_va (1 + pen) / c_va,0) )^sigma_y * [ (1/c_va,0) * d(c_va)/dr ] * (1 + pen)
         x_mat = a * Y * ( (c_y / c_y,0) / (P_M / P_M,0) )^sigma_y * ( P_M / (p * tau) )^sigma
 
     Guarantees machine-precision baseline factor demand replication (xl0 == l0, xk0 == k0)
-    without theta_va,0^2 double-counting.
+    without theta_va,0^2 double-counting. With a capacity penalty, ``c_y``
+    must be the penalized unit cost returned by
+    ``compute_nested_ces_costs(..., ytot=ytot)``; then
+    ``w xl + r xk + sum_i p_i tau_i x_mat_i = (1 - tax) c_y Y`` (cost exhaustion
+    at the zero-profit price).
 
     Parameters
     ----------
@@ -1122,6 +1317,14 @@ def compute_nested_factor_demands(
 
     cy0_ref = 1.0 if is_norm else (1.0 - calib.tax)
 
+    # Capacity barrier penalty factor: the penalty multiplies the value-added
+    # cost (see compute_nested_ces_costs), hence the factor quantities needed
+    # per unit of value added and the value-added price seen by the outer nest.
+    pen_factor: float | np.ndarray = 1.0
+    if tech_cfg.capacity_margins is not None:
+        pen_arr = compute_capacity_penalty(ytot, calib, tech_cfg)
+        pen_factor = 1.0 + pen_arr
+
     # Outer nest substitution factor
     sigma_y = tech_cfg.sigma_y
     if sigma_y < 1e-6:
@@ -1129,18 +1332,12 @@ def compute_nested_factor_demands(
         term_mat_outer = 1.0
     else:
         cva0_safe = np.where(c_va_0 > 0, c_va_0, 1.0)
-        cva_rel = np.clip(np.maximum(c_va, 1e-12) / cva0_safe, 1e-30, 1e30)
+        cva_rel = np.clip(np.maximum(c_va * pen_factor, 1e-12) / cva0_safe, 1e-30, 1e30)
         cy_rel = np.clip(np.maximum(c_y, 1e-12) / cy0_ref, 1e-30, 1e30)
         pm_rel = np.clip(np.maximum(P_M, 1e-12) / 1.0, 1e-30, 1e30)
 
         term_va_outer = np.exp(np.clip(sigma_y * np.log(cy_rel / cva_rel), -300.0, 300.0))
         term_mat_outer = np.exp(np.clip(sigma_y * np.log(cy_rel / pm_rel), -300.0, 300.0))
-
-    # Capacity barrier penalty factor
-    pen_factor: float | np.ndarray = 1.0
-    if tech_cfg.capacity_margins is not None:
-        pen_arr = compute_capacity_penalty(ytot, calib, tech_cfg)
-        pen_factor = 1.0 + pen_arr
 
     # Normalized factor demands (theta_va,0 * Y * outer_ratio^sigma_y * norm_grad * pen)
     xl = np.where(
@@ -1441,11 +1638,23 @@ def compute_stone_geary_final_demand(
     """Compute household real consumption demand across sectors under Stone-Geary LES preferences.
 
     Formula:
-        c_{C, s} = c_bar_s + (theta_s^LES / P_{C, s}) * (Y_C^con - sum_k P_{C, k} * c_bar_k)
+        c_{C, s} = c_bar_s + (theta_s^LES / P_{C, s}) * max(Y_C^con - sum_k P_{C, k} * c_bar_k, 0)
 
     where:
         c_bar_s(Y) = mu_s * c_{s, 0} * g(Y_C^con / Y_{C, 0}^con)
         g(u) = tanh(3u) / tanh(3)
+
+    Feasibility. Supernumerary income ``Y_C^con - sum_k P_{C,k} c_bar_k`` is
+    clamped at zero. While it is non-negative the bundle exhausts the budget,
+    ``sum_s P_{C,s} c_{C,s} = Y_C^con``. When subsistence spending exceeds the
+    budget the function returns ``c_bar`` itself, which costs MORE than the
+    budget, and emits a RuntimeWarning naming the number of affected countries
+    and the largest overspend. Because ``g(u) > u`` on ``(0, 1)``, subsistence
+    spending falls more slowly than income; at benchmark prices the clamp can
+    bind at some income only if ``sum_s mu_s theta_s0 > tanh(3)/3 ~= 0.332``
+    (``theta_s0`` = benchmark expenditure shares), so a uniform ``mu <= 0.33``
+    never binds. The general-equilibrium household block
+    (:func:`_les_household_demand_fixed_proportions`) uses the same clamp.
 
     Parameters
     ----------
@@ -1507,7 +1716,22 @@ def compute_stone_geary_final_demand(
 
     # Supernumerary expenditure allocation
     sub_exp = np.sum(P_C_safe * c_bar, axis=1, keepdims=True)
-    super_inc = np.maximum(Y_C_con - sub_exp, 0.0)
+    raw_super = Y_C_con - sub_exp
+    # A deficit beyond rounding means the returned bundle overspends the budget.
+    scale = np.maximum(np.abs(Y_C_con), np.abs(sub_exp))
+    infeasible = raw_super < -1e-12 * scale
+    if np.any(infeasible):
+        overspend = np.where(infeasible, -raw_super / np.maximum(np.abs(Y_C_con), 1e-300), 0.0)
+        warnings.warn(
+            "Stone-Geary subsistence spending exceeds the household budget in "
+            f"{int(np.count_nonzero(infeasible))} of {infeasible.size} countries "
+            f"(largest overspend {100.0 * float(np.max(overspend)):.4g}% of the budget); "
+            "supernumerary income is clamped at zero, so the returned bundle c_bar "
+            "costs more than the budget. Lower the subsistence shares or raise income.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+    super_inc = np.maximum(raw_super, 0.0)
 
     # LES real demand
     c_C = c_bar + (theta_LES / P_C_safe) * super_inc
@@ -1596,10 +1820,13 @@ def _get_armington_weights(
         Sectoral expenditure shares within each category and destination country.
     b_4d : np.ndarray, shape (ns, nc, nfd, nc)
         Calibrated benchmark origin expenditure shares (sum over axis 1 == 1.0).
+        Signed: a negative benchmark delivery (for example an inventory
+        drawdown in gross capital formation) gives a negative share, and the
+        sign is carried rather than masked so the benchmark is reproduced.
     active_mask : np.ndarray, shape (ns, nfd, nc)
-        Boolean mask of active consumption flows.
+        Boolean mask of active consumption flows (non-zero sector composite).
     """
-    cached = getattr(calib, "_armington_weights_cache", None)
+    cached = getattr(calib, "_armington_weights_signed_cache", None)
     if cached is not None:
         return cached
 
@@ -1610,30 +1837,69 @@ def _get_armington_weights(
         afd_4d = calib.afd.reshape(nc, ns, nfd, nc).transpose(1, 0, 2, 3)
 
     theta_sec = np.sum(afd_4d, axis=1, keepdims=True)  # (ns, 1, nfd, nc)
-    theta_sec_safe = np.where(theta_sec > 0.0, theta_sec, 1.0)
-    b_4d = np.divide(afd_4d, theta_sec_safe, out=np.zeros_like(afd_4d), where=(theta_sec > 0.0))
+    nonzero = theta_sec != 0.0
+    theta_sec_safe = np.where(nonzero, theta_sec, 1.0)
+    b_4d = np.divide(afd_4d, theta_sec_safe, out=np.zeros_like(afd_4d), where=nonzero)
 
-    active_mask = (theta_sec[:, 0, :, :] > 0.0)  # (ns, nfd, nc)
+    active_mask = nonzero[:, 0, :, :]  # (ns, nfd, nc)
     cached_val = (theta_sec, b_4d, active_mask)
 
     try:
-        object.__setattr__(calib, "_armington_weights_cache", cached_val)
+        object.__setattr__(calib, "_armington_weights_signed_cache", cached_val)
     except Exception:
         pass
 
     return cached_val
 
 
+def _armington_split(
+    b_4d: np.ndarray,
+    p_tau_safe: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Split signed benchmark shares into a fixed-coefficient and a CES part.
+
+    Cells with a negative benchmark share are fixed-coefficient (Leontief)
+    deliveries per unit of the sector composite; cells with a positive share
+    form a CES aggregate with total weight ``B_plus = sum_{b > 0} b``.
+
+    Returns
+    -------
+    neg_cost : np.ndarray, shape (ns, 1, nfd, nc)
+        ``sum_{b < 0} b_i p_i tau_i`` (the fixed-coefficient cost per unit).
+    b_plus : np.ndarray, shape (ns, 1, nfd, nc)
+        ``sum_{b > 0} b_i``.
+    pos : np.ndarray, shape (ns, nc, nfd, nc)
+        Boolean mask of positive-share cells.
+    """
+    pos = b_4d > 0.0
+    neg = b_4d < 0.0
+    neg_cost = np.sum(np.where(neg, b_4d * p_tau_safe, 0.0), axis=1, keepdims=True)
+    b_plus = np.sum(np.where(pos, b_4d, 0.0), axis=1, keepdims=True)
+    return neg_cost, b_plus, pos
+
+
 def compute_armington_purchaser_prices(
     p: np.ndarray,
     tau_fd: np.ndarray,
     calib: TradeCalibrationResult,
-    sigma_trade: float | np.ndarray = 5.0,
+    sigma_trade: float | np.ndarray | None = 5.0,
 ) -> np.ndarray:
     """Compute Tier 2 Armington composite purchaser price index P_C across sectors and categories.
 
-    Formula:
+    Formula (all benchmark shares positive):
         P_{s, fd, n} = [ sum_i b_{s, i, fd, n} * (p_i^s * tau_{i, fd, n}^s)^(1 - sigma_trade) ]^(1 / (1 - sigma_trade))
+
+    Signed benchmark flows: origins with a negative benchmark share ``b_i < 0``
+    (for example inventory drawdowns recorded in gross capital formation) are
+    fixed-coefficient deliveries per unit of the composite, and the positive
+    origins form a CES aggregate with total weight ``B_+ = sum_{b > 0} b``:
+
+        P = sum_{b_i < 0} b_i p_i tau_i + B_+ * P_+,
+        P_+ = [ sum_{b_i > 0} (b_i / B_+) (p_i tau_i)^(1 - sigma) ]^(1 / (1 - sigma)).
+
+    At ``p = tau = 1`` this gives ``P = sum_i b_i = 1`` exactly for any signed
+    data, so the benchmark is reproduced. ``sigma_trade < 1e-6`` or ``None``
+    is fixed-coefficient (Leontief) sourcing, ``P = sum_i b_i p_i tau_i``.
 
     Parameters
     ----------
@@ -1643,8 +1909,9 @@ def compute_armington_purchaser_prices(
         Bilateral final demand tariff multipliers.
     calib : TradeCalibrationResult
         Calibrated model parameters.
-    sigma_trade : float or np.ndarray, default 5.0
-        Trade elasticity of substitution across origin countries.
+    sigma_trade : float, np.ndarray or None, default 5.0
+        Trade elasticity of substitution across origin countries (``None``
+        means fixed-coefficient sourcing).
 
     Returns
     -------
@@ -1653,6 +1920,8 @@ def compute_armington_purchaser_prices(
     """
     ns, nc, nfd = calib.n_sectors, calib.n_countries, calib.n_final_demand
     theta_sec, b_4d, active_mask = _get_armington_weights(calib)
+    if sigma_trade is None:
+        sigma_trade = 0.0
 
     # 4D tariff tensor reshaping
     if tau_fd.ndim == 3 and tau_fd.shape == (ns * nc, nfd, nc):
@@ -1673,53 +1942,69 @@ def compute_armington_purchaser_prices(
     p_tau = p_4d * taufd_4d
     p_tau_safe = np.maximum(p_tau, 1e-12)
 
+    # Signed benchmark shares: negative cells are fixed-coefficient deliveries,
+    # positive cells form the CES aggregate (weights renormalized by B_+ only in
+    # columns that contain a negative cell, so all-positive data is unchanged).
+    neg_cost_4d, b_plus_4d, pos = _armington_split(b_4d, p_tau_safe)
+    has_neg_4d = np.any(b_4d < 0.0, axis=1, keepdims=True)
+    b_plus_safe = np.where(b_plus_4d > 0.0, b_plus_4d, 1.0)
+    w_pos = np.where(pos, np.where(has_neg_4d, b_4d / b_plus_safe, b_4d), 0.0)
+    has_neg = has_neg_4d.squeeze(1)
+    neg_cost = neg_cost_4d.squeeze(1)
+    b_plus = b_plus_4d.squeeze(1)
+
+    def _combine(P_plus: np.ndarray) -> np.ndarray:
+        return np.where(has_neg, neg_cost + b_plus * P_plus, P_plus)
+
+    # Fixed-coefficient composite (exact for any signed data).
+    P_leo = np.sum(np.where(b_4d != 0.0, b_4d * p_tau_safe, 0.0), axis=1)
+
     # Analytical branches
     if isinstance(sigma_trade, (int, float)):
         sig = float(sigma_trade)
         if sig < 1e-6:
-            P = np.sum(np.where(b_4d > 0, b_4d * p_tau_safe, 0.0), axis=1)
+            P = P_leo
         elif abs(sig - 1.0) < 1e-6:
-            ln_pt = np.where(b_4d > 0, np.log(p_tau_safe), 0.0)
-            P = np.exp(np.sum(np.where(b_4d > 0, b_4d * ln_pt, 0.0), axis=1))
+            ln_pt = np.where(pos, np.log(p_tau_safe), 0.0)
+            P = _combine(np.exp(np.sum(np.where(pos, w_pos * ln_pt, 0.0), axis=1)))
         else:
             e = 1.0 - sig
-            has_active = np.any(b_4d > 0, axis=1, keepdims=True)
+            has_active = np.any(pos, axis=1, keepdims=True)
             if e < 0:
-                p_cand = np.where(b_4d > 0, p_tau_safe, np.inf)
+                p_cand = np.where(pos, p_tau_safe, np.inf)
                 p_min = np.min(p_cand, axis=1, keepdims=True)
                 p_ref = np.where(has_active, p_min, 1.0)
             else:
-                p_cand = np.where(b_4d > 0, p_tau_safe, -np.inf)
+                p_cand = np.where(pos, p_tau_safe, -np.inf)
                 p_max = np.max(p_cand, axis=1, keepdims=True)
                 p_ref = np.where(has_active, p_max, 1.0)
 
             p_ref_safe = np.maximum(p_ref, 1e-12)
-            u_pt = np.where(b_4d > 0, p_tau_safe / p_ref_safe, 1.0)
-            term = np.where(b_4d > 0, b_4d * (u_pt ** e), 0.0)
+            u_pt = np.where(pos, p_tau_safe / p_ref_safe, 1.0)
+            term = np.where(pos, w_pos * (u_pt ** e), 0.0)
             inner = np.sum(term, axis=1)
             inner_safe = np.maximum(inner, 1e-300)
-            P = p_ref.squeeze(1) * (inner_safe ** (1.0 / e))
+            P = _combine(p_ref.squeeze(1) * (inner_safe ** (1.0 / e)))
     else:
         sig_arr = np.asarray(sigma_trade, dtype=float).reshape(ns, 1, 1)
         e = 1.0 - sig_arr
         is_cd = np.abs(sig_arr - 1.0) < 1e-6
         is_leo = sig_arr < 1e-6
 
-        has_active = np.any(b_4d > 0, axis=1, keepdims=True)
-        p_min = np.where(has_active, np.min(np.where(b_4d > 0, p_tau_safe, np.inf), axis=1, keepdims=True), 1.0)
-        p_max = np.where(has_active, np.max(np.where(b_4d > 0, p_tau_safe, -np.inf), axis=1, keepdims=True), 1.0)
+        has_active = np.any(pos, axis=1, keepdims=True)
+        p_min = np.where(has_active, np.min(np.where(pos, p_tau_safe, np.inf), axis=1, keepdims=True), 1.0)
+        p_max = np.where(has_active, np.max(np.where(pos, p_tau_safe, -np.inf), axis=1, keepdims=True), 1.0)
         e_4d = e[:, :, np.newaxis]
         p_ref = np.where(e_4d < 0, p_min, p_max)
         p_ref_safe = np.maximum(p_ref, 1e-12)
-        u_pt = np.where(b_4d > 0, p_tau_safe / p_ref_safe, 1.0)
-        term = np.where(b_4d > 0, b_4d * (u_pt ** e_4d), 0.0)
+        u_pt = np.where(pos, p_tau_safe / p_ref_safe, 1.0)
+        term = np.where(pos, w_pos * (u_pt ** e_4d), 0.0)
         inner = np.sum(term, axis=1)
         inner_safe = np.maximum(inner, 1e-300)
-        P_ces = p_ref.squeeze(1) * (inner_safe ** (1.0 / e))
+        P_ces = _combine(p_ref.squeeze(1) * (inner_safe ** (1.0 / e)))
 
-        ln_pt = np.where(b_4d > 0, np.log(p_tau_safe), 0.0)
-        P_cd = np.exp(np.sum(np.where(b_4d > 0, b_4d * ln_pt, 0.0), axis=1))
-        P_leo = np.sum(np.where(b_4d > 0, b_4d * p_tau_safe, 0.0), axis=1)
+        ln_pt = np.where(pos, np.log(p_tau_safe), 0.0)
+        P_cd = _combine(np.exp(np.sum(np.where(pos, w_pos * ln_pt, 0.0), axis=1)))
         P = np.where(is_leo, P_leo, np.where(is_cd, P_cd, P_ces))
 
     return np.where(active_mask, P, 1.0)
@@ -1731,13 +2016,20 @@ def compute_armington_final_demands(
     p: np.ndarray,
     tau_fd: np.ndarray,
     calib: TradeCalibrationResult,
-    sigma_trade: float | np.ndarray = 5.0,
+    sigma_trade: float | np.ndarray | None = 5.0,
     as_3d: bool = True,
 ) -> np.ndarray:
     """Compute bilateral deliveries x_{s, i, fd, n} across all origin countries.
 
-    Formula:
+    Formula (all benchmark shares positive):
         x_{s, i, fd, n} = b_{s, i, fd, n} * c_{s, fd, n} * ( P_{s, fd, n} / (p_i^s * tau_{i, fd, n}^s) )^sigma_trade
+
+    With signed benchmark shares (see :func:`compute_armington_purchaser_prices`)
+    negative-share origins deliver the fixed quantity ``b_i * c`` and positive
+    origins are sourced at the CES sub-aggregate price
+    ``P_+ = (P - sum_{b < 0} b_i p_i tau_i) / B_+``, so that
+    ``sum_i p_i tau_i x_i = P * c`` holds exactly (purchaser expenditure
+    identity). ``sigma_trade=None`` is fixed-coefficient sourcing (``x = b c``).
 
     Parameters
     ----------
@@ -1751,8 +2043,9 @@ def compute_armington_final_demands(
         Bilateral final demand tariff multipliers.
     calib : TradeCalibrationResult
         Calibrated model parameters.
-    sigma_trade : float or np.ndarray, default 5.0
-        Trade elasticity of substitution.
+    sigma_trade : float, np.ndarray or None, default 5.0
+        Trade elasticity of substitution across origin countries (``None``
+        means fixed-coefficient sourcing, ``x = b c``).
     as_3d : bool, default True
         Whether to return flattened 3D array of shape (ns*nc, nfd, nc) or 4D (ns, nc, nfd, nc).
 
@@ -1763,6 +2056,8 @@ def compute_armington_final_demands(
     """
     ns, nc, nfd = calib.n_sectors, calib.n_countries, calib.n_final_demand
     theta_sec, b_4d, active_mask = _get_armington_weights(calib)
+    if sigma_trade is None:
+        sigma_trade = 0.0
 
     # 4D tariff tensor reshaping
     if tau_fd.ndim == 3 and tau_fd.shape == (ns * nc, nfd, nc):
@@ -1794,18 +2089,64 @@ def compute_armington_final_demands(
     else:
         P_C_use = P_C
 
-    rel_p = np.clip(P_C_use[:, np.newaxis, :, :] / p_tau_safe, 1e-30, 1e30)
+    # Positive-share origins are sourced at the CES sub-aggregate price P_+;
+    # negative-share origins are fixed-coefficient deliveries.
+    neg_cost_4d, b_plus_4d, pos = _armington_split(b_4d, p_tau_safe)
+    has_neg_4d = np.any(b_4d < 0.0, axis=1, keepdims=True)
+    b_plus_safe = np.where(b_plus_4d > 0.0, b_plus_4d, 1.0)
+    P_ref_4d = P_C_use[:, np.newaxis, :, :]
+    P_plus_4d = np.where(has_neg_4d, (P_ref_4d - neg_cost_4d) / b_plus_safe, P_ref_4d)
+
+    rel_p = np.clip(P_plus_4d / p_tau_safe, 1e-30, 1e30)
     if isinstance(sigma_trade, (int, float)):
         term_sourcing = np.exp(np.clip(float(sigma_trade) * np.log(rel_p), -80.0, 80.0))
     else:
         sig_arr = np.asarray(sigma_trade, dtype=float).reshape(ns, 1, 1, 1)
         term_sourcing = np.exp(np.clip(sig_arr * np.log(rel_p), -80.0, 80.0))
+    term_sourcing = np.where(pos, term_sourcing, 1.0)
 
     xfd_4d = b_4d * c_sec_use[:, np.newaxis, :, :] * term_sourcing
 
     if as_3d:
         return xfd_4d.transpose(1, 0, 2, 3).reshape(ns * nc, nfd, nc)
     return xfd_4d
+
+
+def _les_household_demand_fixed_proportions(
+    Y_con: np.ndarray,
+    P_C_hh: np.ndarray,
+    calib: TradeCalibrationResult,
+    pref_cfg: FlexiblePreferenceConfig,
+) -> np.ndarray:
+    """Stone-Geary household demand whose zero-subsistence limit is the legacy basket.
+
+    ``c_s = c_bar_s + theta_LES_s * (Y_C - sum_k P_k c_bar_k) / P_LES`` with
+    ``P_LES = sum_k theta_LES_k P_k``: subsistence quantities ``c_bar_s`` are
+    those of :func:`compute_stone_geary_final_demand` (``mu_s c_s0 g(u)``), and
+    supernumerary expenditure buys the fixed real proportions ``theta_LES``.
+    At ``mu = 0`` this is exactly the fixed-proportion household basket
+    ``theta_s Y_C / P_agg`` of the legacy calibration, so the general-equilibrium
+    demand system is continuous in ``mu``. Budget exhaustion
+    ``sum_s P_s c_s = Y_C`` holds whenever supernumerary income is non-negative.
+    """
+    nc, ns = calib.n_countries, calib.n_sectors
+    Y_con_3d = Y_con.reshape((1, 1, nc)) if Y_con.ndim != 3 else Y_con
+    P_C_safe = np.maximum(P_C_hh, 1e-12)
+    Ycon_0, E_C_0, theta_sec_0, E_Cs0, c_s0 = _extract_benchmark_household_data(calib)
+    theta_hh = (
+        calib.theta[:, 0:1, :]
+        if calib.theta is not None
+        else np.ones((1, 1, nc)) / calib.n_final_demand
+    )
+    Y_C_con = theta_hh * Y_con_3d
+    mu_arr = _resolve_subsistence_shares(calib, pref_cfg)
+    u = np.maximum(Y_con_3d / np.maximum(Ycon_0, 1e-12), 0.0)
+    c_bar = mu_arr * c_s0 * smooth_subsistence_scaling(u)
+    theta_LES = compute_les_marginal_budget_shares(calib, pref_cfg)
+    P_LES = np.sum(theta_LES * P_C_safe, axis=1, keepdims=True)
+    sub_exp = np.sum(P_C_safe * c_bar, axis=1, keepdims=True)
+    super_inc = np.maximum(Y_C_con - sub_exp, 0.0)
+    return c_bar + theta_LES * super_inc / np.maximum(P_LES, 1e-12)
 
 
 def compute_multi_category_final_demands(
@@ -1819,9 +2160,26 @@ def compute_multi_category_final_demands(
     """Allocate expenditure and source bilateral deliveries across all 3 final demand categories.
 
     Integrates:
-    - nfd=0 (Household): Stone-Geary LES across sectors + Tier 2 Armington sourcing.
-    - nfd=1 (GCF): Foreign investment transfer adjustment + homothetic CD + Armington sourcing.
-    - nfd=2 (Government): Public budget allocation + homothetic CD + Armington sourcing.
+    - nfd=0 (Household): fixed real proportions across sectors at zero
+      subsistence (the legacy basket), or Stone-Geary LES with supernumerary
+      expenditure in fixed proportions (see
+      :func:`_les_household_demand_fixed_proportions`), which nests the
+      zero-subsistence case continuously as ``mu -> 0``.
+    - nfd=1 (GCF): category budget net of the foreign-transfer closure
+      ``invforT``, fixed proportions across sectors.
+    - nfd=2 (Government): category budget, fixed proportions across sectors.
+
+    Origin sourcing within each sector composite follows
+    ``pref_cfg.sigma_trade``: ``None`` (default) keeps fixed-coefficient
+    sourcing at the benchmark shares, which reproduces the legacy final-demand
+    block exactly; a float > 1 applies Armington CES sourcing (negative
+    benchmark deliveries stay fixed-coefficient, see
+    :func:`compute_armington_purchaser_prices`).
+
+    Composite demands are not clipped at zero: as in the legacy solver, a large
+    foreign-transfer closure can drive the gross-capital-formation composite
+    negative, and the returned quantities carry that sign (callers that need to
+    flag such cells can compare the sign with the benchmark).
 
     Parameters
     ----------
@@ -1843,7 +2201,7 @@ def compute_multi_category_final_demands(
     xc : np.ndarray, shape (ns*nc, nfd, nc)
         Bilateral final demand delivery quantities.
     P_C : np.ndarray, shape (ns, nfd, nc)
-        Tier 2 Armington composite purchaser price index.
+        Composite purchaser price index (fixed-coefficient or Armington).
     P_agg : np.ndarray, shape (1, nfd, nc)
         Aggregate category-level price indices.
     Tax_c : np.ndarray, shape (1, nfd, nc)
@@ -1855,13 +2213,12 @@ def compute_multi_category_final_demands(
     ns, nc, nfd = calib.n_sectors, calib.n_countries, calib.n_final_demand
     theta_sec, b_4d, active_mask = _get_armington_weights(calib)
 
-    # 1. Tier 2 Armington Purchaser Prices P_C (ns, nfd, nc)
+    # 1. Composite purchaser prices P_C (ns, nfd, nc); None = fixed coefficients
     sigma_trade = pref_cfg.sigma_trade
     P_C = compute_armington_purchaser_prices(p, tau_fd, calib, sigma_trade=sigma_trade)
 
     # 2. Aggregate Category Prices P_agg (1, nfd, nc)
     P_agg = np.sum(theta_sec[:, 0, :, :] * P_C, axis=0, keepdims=True)
-
 
     # 3. Step-by-Step Category Allocation
     theta_arr = calib.theta if calib.theta is not None else np.ones((1, nfd, nc)) / nfd
@@ -1882,20 +2239,19 @@ def compute_multi_category_final_demands(
     has_subsistence = np.any(mu_arr_check > 0.0)
 
     if not has_subsistence:
-        # Default zero subsistence: exact Cobb-Douglas baseline reduction
+        # Zero subsistence: fixed real proportions (legacy household basket)
         c_all_sec[:, 0, :] = theta_sec[:, 0, 0, :] * c_net[0, 0, :]
     else:
-        # Tier 1 Stone-Geary LES for Household (nfd=0)
+        # Stone-Geary LES for Household (nfd=0), continuous at mu -> 0
         P_C_hh = P_C[:, 0, :][np.newaxis, :, :]  # (1, ns, nc)
-        c_hh = compute_stone_geary_final_demand(Y_con, P_C_hh, calib, pref_cfg)  # (1, ns, nc)
+        c_hh = _les_household_demand_fixed_proportions(Y_con, P_C_hh, calib, pref_cfg)
         c_all_sec[:, 0, :] = c_hh[0, :, :] * (1.0 - tax_fd_arr[0, 0, :])
 
-    # Category 1 (GCF) & Category 2 (Government): Linear homothetic Cobb-Douglas
+    # Category 1 (GCF) & Category 2 (Government): fixed proportions across sectors
     c_all_sec[:, 1, :] = theta_sec[:, 0, 1, :] * c_net[0, 1, :]
     c_all_sec[:, 2, :] = theta_sec[:, 0, 2, :] * c_net[0, 2, :]
-    c_all_sec = np.maximum(c_all_sec, 0.0)
 
-    # 5. Tier 2 Armington Sourcing
+    # 5. Origin sourcing (fixed-coefficient or Armington)
     xc = compute_armington_final_demands(
         c_sec=c_all_sec,
         P_C=P_C,
@@ -1907,7 +2263,6 @@ def compute_multi_category_final_demands(
     )
 
     return xc, P_C, P_agg, Tax_c
-
 
 
 def compute_benchmark_market_shares(
@@ -2521,6 +2876,22 @@ class FlexibleTradeEquilibriumResult:
         Cached factor allocation DataFrame.
     config : FlexibleTradeModelConfig | None, default None
         Resolved flexible model configuration used to generate this equilibrium.
+
+    Notes
+    -----
+    The ``cpi``, ``terms_of_trade``, ``exports``, ``imports``, ``gdp`` and
+    ``gdp_fc`` properties describe the solved model. On the legacy route they
+    are the values of the legacy solve (its tariffs, fiscal closure and pricing
+    convention). On the quasi-condensed route ``exports``/``imports`` are the
+    row/column sums of ``metadata["bilateral_trade"]``, ``gdp_fc`` is
+    ``w L + r K`` and ``gdp`` adds ``T`` and any markup profits (household
+    income); ``cpi`` and ``terms_of_trade`` are the legacy indices for the
+    default configuration (which is the legacy model at the recorded pricing
+    convention) and raise ``NotImplementedError`` for an active configuration,
+    whose model has no such index. Up to 4.4.0 these properties evaluated the
+    legacy flow equations at ``x_sol`` without the tariffs of the solve (see
+    ``docs/ADVISORY.md``). :meth:`welfare_decomposition` keeps that historical
+    evaluation for its proxy.
     """
 
     x_sol: np.ndarray
@@ -2543,15 +2914,72 @@ class FlexibleTradeEquilibriumResult:
             ns, nc, nfd = 11, 77, 3
         return unpack_equilibrium_vector(self.x_sol, ns=ns, nc=nc, nfd=nfd)
 
+    def _legacy_proxy_flows(self) -> dict[str, Any]:
+        """Legacy flow equations at ``x_sol`` without tariffs (the historical welfare proxy)."""
+        if self.calib is None:
+            return {}
+        from puremacro.trade.postprocessing import compute_postprocessing_flows
+        return compute_postprocessing_flows(x_sol=self.x_sol, calib=self.calib)
+
     def _get_postproc(self) -> dict[str, Any]:
         if self._postproc_cache is not None:
             return self._postproc_cache
-        if self.calib is not None:
+        if self.calib is None:
+            return {}
+        meta = self.metadata if isinstance(self.metadata, dict) else {}
+        if meta.get("effective_method") != "quasi_condensed":
+            # A result built outside solve_flexible_trade_equilibrium: the
+            # historical evaluation (legacy flow equations, no tariffs).
+            self._postproc_cache = self._legacy_proxy_flows()
+            return self._postproc_cache
+        # Quasi-condensed route: the flows of the solved flexible model.
+        bilateral = meta.get("bilateral_trade")
+        uv = self._get_unpacked()
+        calib = self.calib
+        gdp_fc = uv.w.ravel() * calib.l_endow.ravel() + uv.r.ravel() * calib.k_endow.ravel()
+        gdp = gdp_fc + uv.T.ravel()
+        if meta.get("markup_profits") is not None:
+            # Markup profits are household income (household_income in metadata).
+            gdp = gdp + np.asarray(meta["markup_profits"], dtype=float).ravel()
+        flows: dict[str, Any] = {"gdp": gdp, "gdp_fc": gdp_fc, "_withheld": {}}
+        if bilateral is not None:
+            bilateral = np.asarray(bilateral, dtype=float)
+            flows["exports"] = bilateral.sum(axis=1)
+            flows["imports"] = bilateral.sum(axis=0)
+        else:
+            for name in ("exports", "imports"):
+                flows["_withheld"][name] = "metadata['bilateral_trade'] is missing from this result"
+        if meta.get("active_flexible_settings"):
+            reason = (
+                "the flexible model with settings {} has no price index of this kind; the legacy "
+                "Cobb-Douglas/Leontief index evaluated at x_sol would describe another model. Use "
+                "metadata['bilateral_trade'], ['T_inter'], ['T_fd'], ['final_demand_values'] and "
+                "['household_income'] instead".format(list(meta["active_flexible_settings"]))
+            )
+            flows["_withheld"]["cpi"] = reason
+            flows["_withheld"]["terms_of_trade"] = reason
+        else:
+            # Default configuration: the solved model is the legacy one at the
+            # recorded pricing convention, with the tariffs of the call.
             from puremacro.trade.postprocessing import compute_postprocessing_flows
-            flows = compute_postprocessing_flows(x_sol=self.x_sol, calib=self.calib)
-            self._postproc_cache = flows
-            return flows
-        return {}
+            tariffs = meta.get("tariff_inputs") or {}
+            legacy = compute_postprocessing_flows(
+                x_sol=self.x_sol, calib=calib,
+                tau=tariffs.get("tau"), tau_fd=tariffs.get("tau_fd"),
+                tauf=tariffs.get("tauf"), tauf_fd=tariffs.get("tauf_fd"),
+                replicate_matlab_precedence=bool(meta.get("replicate_matlab_precedence", False)),
+            )
+            flows["cpi"] = legacy["cpi"]
+            flows["terms_of_trade"] = legacy["terms_of_trade"]
+        self._postproc_cache = flows
+        return flows
+
+    def _flow(self, name: str) -> np.ndarray | None:
+        flows = self._get_postproc()
+        withheld = flows.get("_withheld", {})
+        if name in withheld:
+            raise NotImplementedError(f"{name} is not available for this result: {withheld[name]}.")
+        return flows.get(name)
 
     @property
     def p_sol(self) -> np.ndarray:
@@ -2586,32 +3014,32 @@ class FlexibleTradeEquilibriumResult:
     @property
     def cpi(self) -> np.ndarray | None:
         """Domestic consumer price index relative to baseline."""
-        return self._get_postproc().get("cpi")
+        return self._flow("cpi")
 
     @property
     def terms_of_trade(self) -> np.ndarray | None:
         """National terms of trade index (export price index / import price index)."""
-        return self._get_postproc().get("terms_of_trade")
+        return self._flow("terms_of_trade")
 
     @property
     def exports(self) -> np.ndarray | None:
         """National total gross exports across intermediate and final goods."""
-        return self._get_postproc().get("exports")
+        return self._flow("exports")
 
     @property
     def imports(self) -> np.ndarray | None:
         """National total gross imports across intermediate and final goods."""
-        return self._get_postproc().get("imports")
+        return self._flow("imports")
 
     @property
     def gdp(self) -> np.ndarray | None:
         """National GDP at market prices."""
-        return self._get_postproc().get("gdp")
+        return self._flow("gdp")
 
     @property
     def gdp_fc(self) -> np.ndarray | None:
         """National GDP at factor cost (labor income plus capital income)."""
-        return self._get_postproc().get("gdp_fc")
+        return self._flow("gdp_fc")
 
     def summary_markups(self, by_sector: bool = True) -> pd.DataFrame:
         """Summary statistics of calibrated and counterfactual markups.
@@ -2660,13 +3088,20 @@ class FlexibleTradeEquilibriumResult:
 
         Computes solved general equilibrium labor and capital factor demands (xl, xk)
         across all countries and sectors from factor returns, gross output, and
-        CES technology parameters.
+        CES technology parameters. The intermediate composite price entering the
+        demands uses the tariff schedule of the solve (recorded by
+        :func:`solve_flexible_trade_equilibrium` in ``metadata["tariff_inputs"]``;
+        a result built without it is evaluated at ``tau = 1``).
 
         Returns
         -------
         pd.DataFrame
-            DataFrame with columns ["country", "sector", "labor", "capital", "xl", "xk"]
-            satisfying national endowment balance.
+            DataFrame with columns ["country", "sector", "labor", "capital", "xl", "xk"].
+            At a converged quasi-condensed solution the national totals equal the
+            endowments to solver tolerance. On the legacy route the frame
+            evaluates this module's technology at the legacy solution: it balances
+            for the default configuration, not for settings the legacy solve
+            ignored (``allow_legacy_fallback=True``).
         """
         if self._factors_frame is not None:
             return self._factors_frame
@@ -2682,14 +3117,29 @@ class FlexibleTradeEquilibriumResult:
                 else FlexibleTechnologyConfig()
             )
 
-            tau_a = getattr(calib, "tau_a", None)
+            tariff_inputs = self.metadata.get("tariff_inputs") if isinstance(self.metadata, dict) else None
+            tau_a = None
+            if isinstance(tariff_inputs, dict):
+                from puremacro.trade.solver import _resolve_tariffs
+
+                tau_a, _, _, _ = _resolve_tariffs(
+                    calib,
+                    tau=tariff_inputs.get("tau"),
+                    tau_fd=tariff_inputs.get("tau_fd"),
+                    tauf=tariff_inputs.get("tauf"),
+                    tauf_fd=tariff_inputs.get("tauf_fd"),
+                )
+            if tau_a is None:
+                tau_a = getattr(calib, "tau_a", None)
             if tau_a is None:
                 tau_a = np.ones((ns * nc, ns, nc), dtype=float)
 
             P_M, _, _ = compute_intermediate_composite_price(
                 p=p, tau_a=tau_a, calib=calib, sigma=float(tech_cfg.sigma_inter)
             )
-            c_va, c_y = compute_nested_ces_costs(r=r, w=w, P_M=P_M, calib=calib, tech_cfg=tech_cfg)
+            c_va, c_y = compute_nested_ces_costs(
+                r=r, w=w, P_M=P_M, calib=calib, tech_cfg=tech_cfg, ytot=y
+            )
             xl, xk, _ = compute_nested_factor_demands(
                 ytot=y, r=r, w=w, P_M=P_M, c_va=c_va, c_y=c_y, p=p, tau=tau_a,
                 calib=calib, tech_cfg=tech_cfg, normalized=True,
@@ -2722,6 +3172,17 @@ class FlexibleTradeEquilibriumResult:
         These labels do not establish a Hicksian expenditure-function calculation.
         The separately validated ``compute_hicksian_welfare`` interface requires
         consistent-accounting equilibria and does not cover this flexible model.
+
+        The proxy keeps its historical definition whatever demand system the
+        equilibrium used: household prices are an Armington index at
+        ``sigma_trade`` (5.0 when ``sigma_trade`` is None, although the solver
+        then sources final demand in fixed coefficients), evaluated without
+        tariffs; the index over sectors is log-linear (Cobb-Douglas), including
+        the LES branch, whereas the solver's household block buys supernumerary
+        expenditure in fixed real proportions; and the terms-of-trade split
+        uses the terms of trade, exports and imports of the legacy flow
+        equations evaluated at ``x_sol`` without tariffs, on every route (not
+        the result's properties; see the class Notes).
 
         Parameters
         ----------
@@ -2845,14 +3306,26 @@ class FlexibleTradeEquilibriumResult:
             e_P0_u1 = sub_exp_0 + super_inc_1 * P_LES_ratio
             EV = e_P0_u1 - Y_C_0
 
-        tot_1 = np.asarray(self.terms_of_trade, dtype=float).ravel() if self.terms_of_trade is not None else np.ones(nc)
-        tot_0 = (
-            np.asarray(base_result.terms_of_trade, dtype=float).ravel()
-            if getattr(base_result, "terms_of_trade", None) is not None
-            else np.ones(nc)
+        # Historical proxy: legacy flow equations at x_sol without tariffs, for
+        # every route (see the docstring); not the result's properties.
+        proxy_1 = self._legacy_proxy_flows()
+        if isinstance(base_result, FlexibleTradeEquilibriumResult):
+            tot_0_raw = base_result._legacy_proxy_flows().get("terms_of_trade")
+        else:
+            tot_0_raw = getattr(base_result, "terms_of_trade", None)
+        tot_1 = (
+            np.asarray(proxy_1["terms_of_trade"], dtype=float).ravel()
+            if proxy_1.get("terms_of_trade") is not None else np.ones(nc)
         )
-        exp_1 = np.asarray(self.exports, dtype=float).ravel() if self.exports is not None else np.zeros(nc)
-        imp_1 = np.asarray(self.imports, dtype=float).ravel() if self.imports is not None else np.zeros(nc)
+        tot_0 = np.asarray(tot_0_raw, dtype=float).ravel() if tot_0_raw is not None else np.ones(nc)
+        exp_1 = (
+            np.asarray(proxy_1["exports"], dtype=float).ravel()
+            if proxy_1.get("exports") is not None else np.zeros(nc)
+        )
+        imp_1 = (
+            np.asarray(proxy_1["imports"], dtype=float).ravel()
+            if proxy_1.get("imports") is not None else np.zeros(nc)
+        )
         trade_vol = 0.5 * (exp_1 + imp_1)
         tot_effect = (tot_1 - tot_0) * trade_vol
 
@@ -2884,6 +3357,137 @@ class FlexibleTradeEquilibriumResult:
 
 FlexibleEquilibriumResult = FlexibleTradeEquilibriumResult
 
+# Flow properties of FlexibleTradeEquilibriumResult taken from the legacy solve on that route.
+_LEGACY_ROUTE_FLOWS = ("cpi", "terms_of_trade", "exports", "imports", "gdp", "gdp_fc")
+
+
+# Inner price loop controls. The per-evaluation loop honours the configured
+# latency cap (max_inner_iter <= 10); the certification pass that produces the
+# reported residual iterates to a tight tolerance instead (see
+# _quasi_condensed_solve).
+_INNER_TOL = 1e-8
+_CERT_INNER_TOL = 1e-13
+_CERT_INNER_MAX_ITER = 5000
+_QUANTITY_FP_TOL = 1e-10
+_CERT_QUANTITY_FP_TOL = 1e-13
+_QUANTITY_FP_MAX_ITER = 50
+_CERT_QUANTITY_FP_MAX_ITER = 500
+
+
+def _market_shares_and_markups(
+    p_vec: np.ndarray,
+    calib: TradeCalibrationResult,
+    market_cfg: FlexibleMarketStructureConfig,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Destination market shares and Atkeson-Burstein markups at seller prices ``p_vec``.
+
+    ``s_ni = s_ni0 p_i^(1 - sigma) / sum_k s_nk0 p_k^(1 - sigma)`` with the share
+    elasticity ``getattr(calib, "sigma", 5.0)`` (the historical convention of this
+    module), then ``mu_ni`` from :func:`compute_atkeson_burstein_markups` and the
+    benchmark markups ``mu_ni0``. Shapes: (ns, nc, nc) for all three arrays.
+    """
+    ns, nc = calib.n_sectors, calib.n_countries
+    s_0 = compute_benchmark_market_shares(calib)
+    p_2d = np.asarray(p_vec, dtype=float).reshape((ns, nc), order="F")
+    sigma_share = getattr(calib, "sigma", 5.0)
+    sig_val = float(sigma_share) if isinstance(sigma_share, (int, float)) else float(np.mean(sigma_share))
+    p_term = (p_2d[:, :, None]) ** (1.0 - sig_val)
+    shares_unnorm = s_0 * p_term
+    sum_shares = np.sum(shares_unnorm, axis=1, keepdims=True)
+    s_ni = np.divide(shares_unnorm, sum_shares, out=s_0.copy(), where=(sum_shares > 1e-12))
+    mu_0 = compute_benchmark_markups(calib, market_cfg)
+    mu_ni, _ = compute_atkeson_burstein_markups(s_ni=s_ni, c_i=None, market_cfg=market_cfg, mu_0=mu_0)
+    return s_ni, mu_ni, mu_0
+
+
+def _relative_markups(
+    p_vec: np.ndarray,
+    calib: TradeCalibrationResult,
+    market_cfg: FlexibleMarketStructureConfig,
+) -> np.ndarray:
+    """Relative markup ``mu_rel_i = mean_n(mu_ni / mu_ni0)`` per seller cell, shape (M,).
+
+    This is the single pricing wedge used by the inner price solver, the
+    zero-profit residual and the markup-profit income of the quasi-condensed
+    solver: ``p_i (1 - tax_i) = mu_rel_i(p) * c_y,i`` with ``c_y`` the unit cost
+    in levels. ``mu_rel = 1`` at the benchmark.
+    """
+    _, mu_ni, mu_0 = _market_shares_and_markups(p_vec, calib, market_cfg)
+    mu_mean = np.mean(mu_ni / np.maximum(mu_0, 1e-12), axis=2)
+    return mu_mean.ravel(order="F")
+
+
+def _penalized_value_added_cost(
+    xm_curr: np.ndarray,
+    calib: TradeCalibrationResult,
+    config: FlexibleTradeModelConfig,
+    ytot: np.ndarray | None,
+) -> np.ndarray:
+    """Value-added unit cost at the macro state, times ``1 + pen(ytot)`` when capacity is active."""
+    nc, ns = calib.n_countries, calib.n_sectors
+    r = np.exp(xm_curr[:nc]).reshape((1, 1, nc))
+    w = np.exp(xm_curr[nc : 2 * nc]).reshape((1, 1, nc))
+    c_va, _ = compute_nested_ces_costs(
+        r=r, w=w, P_M=np.ones((1, ns, nc)), calib=calib, tech_cfg=config.technology
+    )
+    if config.technology.capacity_margins is not None and ytot is not None:
+        c_va = c_va * (1.0 + compute_capacity_penalty(np.asarray(ytot, dtype=float), calib, config.technology))
+    return c_va
+
+
+def _inner_price_iteration(
+    c_va: np.ndarray,
+    calib: TradeCalibrationResult,
+    config: FlexibleTradeModelConfig,
+    tau_a: np.ndarray,
+    lu_P: Any,
+    p_init: np.ndarray | None,
+    k_max: int,
+    tol_inner: float,
+) -> tuple[np.ndarray, int, float]:
+    """Damped fixed point ``p = mu_rel(p) * c_y(c_va, P_M(p)) / (1 - tax)``.
+
+    Returns ``(p, iterations, last_update_size)``; the linear configuration
+    (``sigma_y``, ``sigma_inter`` below 1e-6 and no variable markups) is solved
+    directly with the factorized Leontief price operator (0 iterations, exact).
+    """
+    tax_flat = calib.tax.flatten(order="F")
+    one_minus_tax = np.maximum(1.0 - tax_flat, 1e-12)
+    v_P = c_va.flatten(order="F") / one_minus_tax
+
+    is_linear = (
+        float(getattr(config.technology, "sigma_y", 0.0)) < 1e-6
+        and float(getattr(config.technology, "sigma_inter", 0.0)) < 1e-6
+        and not bool(getattr(config.market_structure, "variable_markups", False))
+    )
+    if is_linear:
+        return lu_P.solve(v_P), 0, 0.0
+
+    omega = 0.8
+    p_curr = p_init.copy() if p_init is not None else lu_P.solve(v_P)
+    diff = float("inf")
+    inner_iters = 0
+    for _ in range(k_max):
+        inner_iters += 1
+        P_M, _, _ = compute_intermediate_composite_price(
+            p=p_curr, tau_a=tau_a, calib=calib, sigma=float(config.technology.sigma_inter)
+        )
+        c_y = compute_outer_ces_cost(
+            c_va=c_va, P_M=P_M, calib=calib, tech_cfg=config.technology, normalized=False
+        )
+        c_y_flat = c_y.flatten(order="F")
+        if config.market_structure.variable_markups:
+            mu_rel = _relative_markups(p_curr, calib, config.market_structure)
+            p_target = (mu_rel * c_y_flat) / one_minus_tax
+        else:
+            p_target = c_y_flat / one_minus_tax
+
+        diff = float(np.max(np.abs(p_target - p_curr)))
+        p_curr = (1.0 - omega) * p_curr + omega * p_target
+        if diff <= tol_inner:
+            break
+    return p_curr, inner_iters, diff
+
 
 def _solve_inner_prices(
     xm_curr: np.ndarray,
@@ -2893,83 +3497,32 @@ def _solve_inner_prices(
     lu_P: Any,
     p_init: np.ndarray | None = None,
     replicate_matlab_precedence: bool = True,
+    *,
+    ytot: np.ndarray | None = None,
 ) -> tuple[np.ndarray, int]:
     """Solve inner price fixed point p = T_price(p; xm) with latency cap <= 10.
 
+    ``T_price(p) = mu_rel(p) * c_y(c_va (1 + pen), P_M(p)) / (1 - tax)``, where the
+    markup wedge ``mu_rel`` (see ``_relative_markups``) is 1 unless
+    ``variable_markups`` is on and the capacity penalty ``pen(ytot)`` is 0
+    unless ``capacity_margins`` is set and ``ytot`` is given (keyword-only).
+
     Under default settings (sigma_y < 1e-6, variable_markups=False, sigma_inter < 1e-6),
     short-circuits directly to LAPACK solve (0 inner iterations).
-    Under flexible settings, enforces an inner fixed-point iteration cap <= 10.
+    Under flexible settings, enforces an inner fixed-point iteration cap <= 10
+    (``config.max_inner_iter``) with tolerance 1e-8 on the update. The
+    quasi-condensed solver's reported residual does not depend on this cap: it
+    is re-evaluated with a fully converged inner solve.
+    ``replicate_matlab_precedence`` is accepted for backward compatibility and
+    has no effect: the Cobb-Douglas cost follows
+    ``config.technology.replicate_matlab_precedence``.
     """
-    nc = calib.n_countries
-    ns = calib.n_sectors
-    M = ns * nc
-    tax_flat = calib.tax.flatten(order="F")
-
-    r = np.exp(xm_curr[:nc]).reshape((1, 1, nc))
-    w = np.exp(xm_curr[nc : 2 * nc]).reshape((1, 1, nc))
-
-    # Evaluate Value-Added Unit Cost c_va(r, w)
-    c_va, _ = compute_nested_ces_costs(
-        r=r, w=w, P_M=np.ones((1, ns, nc)), calib=calib, tech_cfg=config.technology
+    c_va = _penalized_value_added_cost(xm_curr, calib, config, ytot)
+    k_max = min(max(1, int(getattr(config, "max_inner_iter", 10))), 10)
+    p_vec, inner_iters, _ = _inner_price_iteration(
+        c_va, calib, config, tau_a, lu_P, p_init, k_max, _INNER_TOL
     )
-    v_P = c_va.flatten(order="F") / np.maximum(1.0 - tax_flat, 1e-12)
-
-    # 1. Short-circuit directly to LAPACK solve under default linear settings
-    is_linear = (
-        float(getattr(config.technology, "sigma_y", 0.0)) < 1e-6
-        and float(getattr(config.technology, "sigma_inter", 0.0)) < 1e-6
-        and not bool(getattr(config.market_structure, "variable_markups", False))
-    )
-    if is_linear:
-        p_vec = lu_P.solve(v_P)
-        return p_vec, 0
-
-    # 2. Flexible setting: Contractive Fixed-Point Iteration (capped <= 10)
-    K_max = min(max(1, int(getattr(config, "max_inner_iter", 10))), 10)
-    omega = 0.8
-    tol_inner = 1e-8
-
-    p_curr = p_init.copy() if p_init is not None else lu_P.solve(v_P)
-
-    inner_iters = 0
-    for _ in range(K_max):
-        inner_iters += 1
-        P_M, _, _ = compute_intermediate_composite_price(
-            p=p_curr, tau_a=tau_a, calib=calib, sigma=float(config.technology.sigma_inter)
-        )
-        c_y = compute_outer_ces_cost(
-            c_va=c_va, P_M=P_M, calib=calib, tech_cfg=config.technology, normalized=False
-        )
-        c_y_flat = c_y.flatten(order="F")
-
-        if config.market_structure.variable_markups:
-            s_0 = compute_benchmark_market_shares(calib)
-            p_2d = p_curr.reshape((ns, nc), order="F")
-            sigma_trade = getattr(calib, "sigma", 5.0)
-            sig_val = float(sigma_trade) if isinstance(sigma_trade, (int, float)) else float(np.mean(sigma_trade))
-            exponent = 1.0 - sig_val
-            p_term = (p_2d[:, :, None]) ** exponent
-            shares_unnorm = s_0 * p_term
-            sum_shares = np.sum(shares_unnorm, axis=1, keepdims=True)
-            s_ni = np.divide(shares_unnorm, sum_shares, out=s_0.copy(), where=(sum_shares > 1e-12))
-
-            mu_0 = compute_benchmark_markups(calib, config.market_structure)
-            mu_ni, _ = compute_atkeson_burstein_markups(
-                s_ni=s_ni, c_i=None, market_cfg=config.market_structure, mu_0=mu_0
-            )
-            mu_mean = np.mean(mu_ni / np.maximum(mu_0, 1e-12), axis=2)
-            mu_rel = mu_mean.ravel(order="F")
-            p_target = (mu_rel * c_y_flat) / np.maximum(1.0 - tax_flat, 1e-12)
-        else:
-            p_target = c_y_flat / np.maximum(1.0 - tax_flat, 1e-12)
-
-        diff = float(np.max(np.abs(p_target - p_curr)))
-        p_curr = (1.0 - omega) * p_curr + omega * p_target
-
-        if diff <= tol_inner:
-            break
-
-    return p_curr, inner_iters
+    return p_vec, inner_iters
 
 
 def _quasi_condensed_solve(
@@ -2986,9 +3539,57 @@ def _quasi_condensed_solve(
     replicate_matlab_precedence: bool = True,
     **kwargs: Any,
 ) -> tuple[np.ndarray, bool, int, float, float, np.ndarray, dict[str, Any]]:
-    """Quasi-condensed Newton solver for general equilibrium with flexible trade extensions."""
+    """Quasi-condensed Newton solver for general equilibrium with flexible trade extensions.
+
+    The outer damped Newton iterates on the macro state ``(log r, log w, T, XN)``;
+    prices and gross outputs are condensed out. Two residual systems are used:
+
+    * Default configuration (``_active_flexible_settings(config) == ()``): the
+      legacy Cobb-Douglas / Leontief blocks, identical to
+      ``solve_trade_equilibrium(..., replicate_matlab_precedence=False)`` up to
+      solver tolerance.
+    * Active flexible configuration: nested-CES unit costs (``rho_va``,
+      ``sigma_y``, ``sigma_inter``), the capacity penalty as a value-added
+      cost multiplier, Atkeson-Burstein markups ``p (1 - tax) = mu_rel(p) c_y``
+      with markup profits ``sum_s (p (1 - tax) - c_y) y`` paid to the households
+      of the producing country, Stone-Geary household demand, and
+      fixed-coefficient or (if ``sigma_trade`` is set) Armington final-demand
+      sourcing. With capacity or markups, the dependence of prices and income
+      on gross output is resolved by a fixed point on ``y`` inside each
+      residual evaluation.
+
+    Trade valuation: in both systems the trade-balance block values
+    intermediate deliveries at seller prices and final-demand deliveries at
+    the destination composite price ``ppfd = sum_i afd_i p_i tau_i`` (the
+    legacy convention of this accounting mode). Under Armington sourcing the
+    purchaser-valued deliveries ``p_i tau_i x_i`` (whose origin sum equals
+    purchaser expenditure ``P_C c`` exactly) are reported in
+    ``meta["final_demand_values"]`` / ``meta["T_fd_purchaser"]`` but are not
+    used in the equations (``meta["trade_balance_valuation"] == "ppfd_legacy"``).
+    Under the legacy closure the net-foreign-transfer unknowns ``XN`` absorb
+    the valuation wedges, and a patched copy of this solver that values
+    final-demand deliveries at seller prices moves to a different equilibrium:
+    on the 2x2 test fixture with a 25% tariff and ``rho_va=0.7``, ``XN`` goes
+    from +3.9 to -101.2 (sigma_trade 5) and the log wages from
+    (-0.103, -0.085) to (0.033, -0.230); with fixed-coefficient sourcing
+    ``XN`` goes from -7.5 to +5.2; on the 3x3 test calibration with 50%/30%
+    tariffs Newton then fails for sigma_trade in {5, 6, 8} (residual 26 to 42
+    after 50 iterations). An accounting-consistent treatment of these flows
+    needs the ``accounting="consistent"`` closure, which this solver does not
+    implement.
+
+    Reported residual: the returned ``residual_norm``/``residuals`` and the
+    convergence flag are computed at the returned state with a cold-start,
+    fully converged inner price solve (tolerance 1e-13) and quantity fixed
+    point (relative tolerance 1e-13), so they are reproducible from ``x_sol``
+    (``max_iter=0`` with ``x0=x_sol`` performs the same evaluation). The
+    per-iteration inner loop keeps the ``max_inner_iter <= 10`` latency cap. If
+    the certified inner iteration does not reach its tolerance the solve is
+    reported as not converged.
+    """
     from puremacro.trade.solver import _resolve_tariffs, build_initial_guess, unpack_equilibrium_vector
 
+    t_start = time.perf_counter()
     ns, nc = calib.n_sectors, calib.n_countries
     nfd = calib.n_final_demand
     M = ns * nc
@@ -2996,11 +3597,13 @@ def _quasi_condensed_solve(
 
     if tau_a is None or taufd_a is None or tauf_vec is None or tauf_fd_vec is None:
         tau_a, taufd_a, tauf_vec, tauf_fd_vec = _resolve_tariffs(
-            calib, tau=kwargs.get("tau"), tau_fd=kwargs.get("tau_fd")
+            calib, tau=kwargs.get("tau"), tau_fd=kwargs.get("tau_fd"),
+            tauf=kwargs.get("tauf"), tauf_fd=kwargs.get("tauf_fd"),
         )
 
     # Pre-factorize Leontief operators for fast linear solves
     tax_flat = calib.tax.flatten(order="F")
+    one_minus_tax = np.maximum(1.0 - tax_flat, 1e-12)
     a_eff_2d = (calib.a * tau_a).reshape((M, M), order="F")
     denom = 1.0 - tax_flat[:, np.newaxis]
     B_T_mat = a_eff_2d.T / np.maximum(denom, 1e-12)
@@ -3034,69 +3637,229 @@ def _quasi_condensed_solve(
         vars0.XN.ravel(),
     ])
 
-    def eval_macro(xm_curr: np.ndarray, p_warm: np.ndarray | None = None, compute_full: bool = True):
+    active = _active_flexible_settings(config)
+    is_flexible = bool(active)
+    use_markups = bool(config.market_structure.variable_markups)
+    use_capacity = config.technology.capacity_margins is not None
+    needs_y_loop = is_flexible and (use_markups or use_capacity)
+    leontief_intermediates = (
+        float(config.technology.sigma_y) < 1e-6 and float(config.technology.sigma_inter) < 1e-6
+    )
+    y_bench = np.asarray(calib.ytot, dtype=float).flatten(order="F")
+    theta_arr = calib.theta if calib.theta is not None else np.ones((1, nfd, nc)) / nfd
+    tax_fd_arr = calib.tax_fd if calib.tax_fd is not None else np.zeros((1, nfd, nc))
+    k_inner = min(max(1, int(getattr(config, "max_inner_iter", 10))), 10)
+
+    def _flows(p_vec, x_mat, xc, fd_prices):
+        """Bilateral intermediate and final-demand trade values (diagonal kept).
+
+        ``fd_prices`` is either the (1, nfd*nc) destination composite price
+        row ``ppfd`` (legacy convention, used in the trade-balance block) or the
+        (M, nfd*nc) purchaser-price matrix ``p_i tau_i`` (reported flows).
+        """
+        x_sum_c2 = np.sum(x_mat, axis=1)  # (M, nc) intermediate sales by destination country
+        T_inter_full = np.sum((x_sum_c2 * p_vec[:, np.newaxis]).reshape(nc, ns, nc), axis=1)
+        val_fd = xc.reshape((M, nfd * nc), order="F") * fd_prices
+        fd_sum_c2 = np.sum(val_fd.reshape(M, nc, nfd), axis=2)
+        T_fd_full = np.sum(fd_sum_c2.reshape(nc, ns, nc), axis=1)
+        return T_inter_full, T_fd_full, val_fd
+
+    def eval_macro(
+        xm_curr: np.ndarray,
+        p_warm: np.ndarray | None = None,
+        compute_full: bool = True,
+        y_warm: np.ndarray | None = None,
+        certify: bool = False,
+        details: bool = False,
+    ):
+        """Residuals at the macro state. ``certify=True`` iterates the inner price
+        loop and the quantity fixed point to tight tolerances (starting from the
+        warm starts if given, cold otherwise); ``False`` honours the latency cap."""
         r = np.exp(xm_curr[:nc]).reshape((1, 1, nc))
         w = np.exp(xm_curr[nc : 2 * nc]).reshape((1, 1, nc))
         T = xm_curr[2 * nc : 3 * nc].reshape((1, 1, nc))
         XN = xm_curr[3 * nc :]
         invforT = np.append(XN, -np.sum(XN))
+        extras: dict[str, Any] = {"inner_converged": True, "quantity_fixed_point_converged": True}
 
-        p_vec, inner_iters = _solve_inner_prices(
-            xm_curr=xm_curr,
-            calib=calib,
-            config=config,
-            tau_a=tau_a,
-            lu_P=lu_P,
-            p_init=p_warm,
-            replicate_matlab_precedence=replicate_matlab_precedence,
+        if not is_flexible:
+            # Default configuration: legacy Cobb-Douglas / Leontief blocks,
+            # kept byte-for-byte as in the pre-routing implementation.
+            p_vec, inner_iters = _solve_inner_prices(
+                xm_curr=xm_curr, calib=calib, config=config, tau_a=tau_a, lu_P=lu_P, p_init=p_warm,
+            )
+            p_3d = p_vec.reshape((1, ns, nc), order="F")
+            ppfd = np.tensordot(p_vec, calib.afd * taufd_a, axes=(0, 0))[np.newaxis, :, :]
+            Ycon = w * calib.l_endow + r * calib.k_endow + T
+            cd = calib.theta * Ycon / ppfd
+            Tax_c = tax_fd_arr * ppfd * cd
+            c = cd.copy()
+            c[:, 1:2, :] -= invforT.reshape((1, 1, nc)) / ppfd[:, 1:2, :]
+            xc = calib.afd * (c - tax_fd_arr * cd)
+            xc_2d = xc.reshape((M, nfd * nc), order="F")
+            d = np.sum(xc_2d, axis=1)
+
+            y_vec = lu_Y.solve(d)
+            ytot = y_vec.reshape((1, ns, nc), order="F")
+            c_va, c_y = compute_nested_ces_costs(
+                r=r, w=w, P_M=np.ones((1, ns, nc)), calib=calib, tech_cfg=config.technology
+            )
+            xl, xk, _ = compute_nested_factor_demands(
+                ytot=ytot, r=r, w=w, P_M=np.ones((1, ns, nc)), c_va=c_va, c_y=c_y,
+                p=p_3d, tau=tau_a, calib=calib, tech_cfg=config.technology,
+            )
+
+            pp_col = p_vec[:, np.newaxis]
+            ppfd_row = ppfd.reshape((1, nfd * nc), order="F")
+            y_blocks = y_vec.reshape(nc, ns)
+            a_blocks = a_2d.reshape(M, nc, ns)
+            x_sum_c2 = np.sum(a_blocks * y_blocks[None, :, :], axis=2)
+            val_sum = x_sum_c2 * pp_col
+            T_inter = np.sum(val_sum.reshape(nc, ns, nc), axis=1)
+
+            xc_blocks = xc_2d.reshape(M, nc, nfd)
+            ppfd_blocks = ppfd_row.reshape(nc, nfd)
+            fd_sum_c2 = np.sum(xc_blocks * ppfd_blocks[None, :, :], axis=2)
+            T_fd = np.sum(fd_sum_c2.reshape(nc, ns, nc), axis=1)
+            if details:
+                x_mat_d = calib.a * ytot
+                val_fd_d = xc_2d * ppfd_row
+                extras.update(_tariff_details(p_vec, x_mat_d, val_fd_d, T_inter, T_fd))
+                p_tau_fd_d = (p_vec[:, np.newaxis, np.newaxis] * taufd_a).reshape((M, nfd * nc), order="F")
+                _, T_fd_purch_d, val_fd_purch_d = _flows(p_vec, x_mat_d, xc, p_tau_fd_d)
+                extras["T_fd_purchaser"] = T_fd_purch_d.copy()
+                extras["final_demand_values"] = val_fd_purch_d.reshape((M, nfd, nc), order="F").copy()
+                extras["household_income"] = Ycon.ravel().copy()
+            np.fill_diagonal(T_inter, 0.0)
+            np.fill_diagonal(T_fd, 0.0)
+
+            X0 = np.sum(T_inter, axis=1)
+            M0 = np.sum(T_inter, axis=0)
+            XFD = np.sum(T_fd, axis=1)
+            MFD = np.sum(T_fd, axis=0)
+            invforT_realized = X0 + XFD - M0 - MFD
+
+            Tax_Total = np.sum(calib.tax * ytot, axis=1).ravel() + np.sum(Tax_c, axis=1).ravel()
+            Tarifs_Totals = M0 * tauf_vec + MFD * tauf_fd_vec
+
+            ff2 = calib.l_endow.ravel() - np.sum(xl, axis=1).ravel()
+            ff3 = calib.k_endow.ravel() - np.sum(xk, axis=1).ravel()
+            ff4 = XN - invforT_realized[:nc - 1]
+            ff5 = T.ravel() - (Tax_Total + Tarifs_Totals)
+            f_m = np.concatenate([ff2, ff3, ff4, ff5])
+
+            if compute_full:
+                ff0 = y_vec - (a_2d @ y_vec + d)
+                v_P_val = c_va.flatten(order="F") / one_minus_tax
+                ff1 = p_vec - (v_P_val + B_T_mat @ p_vec)
+                f_full = np.concatenate([ff0, ff1, ff2, ff3, ff4, ff5])
+            else:
+                f_full = None
+            return f_m, f_full, p_vec, y_vec, inner_iters, extras
+
+        # ------------------------------------------------------------------
+        # Active flexible configuration.
+        # ------------------------------------------------------------------
+        k_max = _CERT_INNER_MAX_ITER if certify else k_inner
+        tol_inner = _CERT_INNER_TOL if certify else _INNER_TOL
+        if needs_y_loop:
+            n_loop = _CERT_QUANTITY_FP_MAX_ITER if certify else _QUANTITY_FP_MAX_ITER
+            fp_tol = _CERT_QUANTITY_FP_TOL if certify else _QUANTITY_FP_TOL
+        else:
+            n_loop, fp_tol = 1, 0.0
+        y_guess = (
+            np.asarray(y_warm, dtype=float).copy() if (y_warm is not None and needs_y_loop) else y_bench.copy()
         )
-        p_3d = p_vec.reshape((1, ns, nc), order="F")
+        p_guess = p_warm
+        inner_iters = 0
+        fp_ok = not needs_y_loop
+        Ycon_base = w * calib.l_endow + r * calib.k_endow + T
+        for _ in range(n_loop):
+            y_g3 = np.maximum(y_guess, 0.0).reshape((1, ns, nc), order="F")
+            c_va_eff = _penalized_value_added_cost(xm_curr, calib, config, y_g3 if use_capacity else None)
+            p_vec, it_in, inner_diff = _inner_price_iteration(
+                c_va_eff, calib, config, tau_a, lu_P, p_guess, k_max, tol_inner
+            )
+            inner_iters += it_in
+            if certify and inner_diff > tol_inner:
+                extras["inner_converged"] = False
+            p_3d = p_vec.reshape((1, ns, nc), order="F")
+            P_M, _inter_cost, _p_tau = compute_intermediate_composite_price(
+                p=p_3d, tau_a=tau_a, calib=calib, sigma=float(config.technology.sigma_inter),
+            )
+            c_va, c_y = compute_nested_ces_costs(
+                r=r, w=w, P_M=P_M, calib=calib, tech_cfg=config.technology,
+                ytot=y_g3 if use_capacity else None,
+            )
+            Ycon = Ycon_base
+            if use_markups:
+                margin = p_vec * one_minus_tax - c_y.flatten(order="F") * one_minus_tax
+                profits = np.sum((margin * np.maximum(y_guess, 0.0)).reshape(nc, ns), axis=1)
+                Ycon = Ycon_base + profits.reshape((1, 1, nc))
+            xc, P_C, P_agg, Tax_c = compute_multi_category_final_demands(
+                Y_con=Ycon, p=p_3d, tau_fd=taufd_a, invforT=invforT,
+                calib=calib, pref_cfg=config.preference,
+            )
+            xc_2d = xc.reshape((M, nfd * nc), order="F")
+            d = np.sum(xc_2d, axis=1)
+            # Conditional on prices, flexible intermediate deliveries are linear
+            # in destination output: x_mat = A_flex(p) y (the capacity penalty
+            # enters x_mat only through c_y, which already carries it). With
+            # Leontief outer nest and sourcing A_flex is the calibrated matrix.
+            if leontief_intermediates:
+                y_new = lu_Y.solve(d)
+            else:
+                _, _, x_unit = compute_nested_factor_demands(
+                    ytot=np.ones((1, ns, nc)), r=r, w=w, P_M=P_M, c_va=c_va, c_y=c_y,
+                    p=p_3d, tau=tau_a, calib=calib, tech_cfg=config.technology,
+                )
+                A_flex = x_unit.reshape((M, M), order="F")
+                y_new = np.linalg.solve(np.eye(M) - A_flex, d)
+            if not needs_y_loop:
+                break
+            change = float(np.max(np.abs(y_new - y_guess))) / max(1.0, float(np.max(np.abs(y_new))))
+            y_guess = y_new
+            p_guess = p_vec
+            if change <= fp_tol:
+                fp_ok = True
+                break
+        extras["quantity_fixed_point_converged"] = bool(fp_ok)
 
-        # Final demand
+        y_vec = y_new
+        # Negative gross output is infeasible: demands are evaluated at
+        # max(y, 0), so such a state keeps a non-zero goods-market residual
+        # instead of raising inside the factor-demand primitive.
+        ytot = np.maximum(y_vec, 0.0).reshape((1, ns, nc), order="F")
+        if use_capacity:
+            c_va, c_y = compute_nested_ces_costs(
+                r=r, w=w, P_M=P_M, calib=calib, tech_cfg=config.technology, ytot=ytot,
+            )
+        xl, xk, x_mat = compute_nested_factor_demands(
+            ytot=ytot, r=r, w=w, P_M=P_M, c_va=c_va, c_y=c_y,
+            p=p_3d, tau=tau_a, calib=calib, tech_cfg=config.technology,
+        )
+
+        # Bilateral flows entering the trade-balance block: intermediate
+        # deliveries at seller prices, final demand at the destination
+        # composite price ppfd (the legacy valuation convention, kept for every
+        # sourcing rule; see the docstring for why the purchaser valuation is
+        # reported in metadata but not used in the legacy closure).
         ppfd = np.tensordot(p_vec, calib.afd * taufd_a, axes=(0, 0))[np.newaxis, :, :]
-        Ycon = w * calib.l_endow + r * calib.k_endow + T
-        cd = calib.theta * Ycon / ppfd
-        tax_fd_arr = calib.tax_fd if calib.tax_fd is not None else np.zeros((1, nfd, nc))
-        Tax_c = tax_fd_arr * ppfd * cd
-        c = cd.copy()
-        c[:, 1:2, :] -= invforT.reshape((1, 1, nc)) / ppfd[:, 1:2, :]
-        xc = calib.afd * (c - tax_fd_arr * cd)
-        xc_2d = xc.reshape((M, nfd * nc), order="F")
-        d = np.sum(xc_2d, axis=1)
-
-        y_vec = lu_Y.solve(d)
-        ytot = y_vec.reshape((1, ns, nc), order="F")
-
-        # Factor demands
-        c_va, c_y = compute_nested_ces_costs(
-            r=r, w=w, P_M=np.ones((1, ns, nc)), calib=calib, tech_cfg=config.technology
-        )
-        xl, xk, _ = compute_nested_factor_demands(
-            ytot=ytot,
-            r=r,
-            w=w,
-            P_M=np.ones((1, ns, nc)),
-            c_va=c_va,
-            c_y=c_y,
-            p=p_3d,
-            tau=tau_a,
-            calib=calib,
-            tech_cfg=config.technology,
-        )
-
-        # Bilateral flows
-        pp_col = p_vec[:, np.newaxis]
-        ppfd_row = ppfd.reshape((1, nfd * nc), order="F")
-        y_blocks = y_vec.reshape(nc, ns)
-        a_blocks = a_2d.reshape(M, nc, ns)
-        x_sum_c2 = np.sum(a_blocks * y_blocks[None, :, :], axis=2)
-        val_sum = x_sum_c2 * pp_col
-        T_inter = np.sum(val_sum.reshape(nc, ns, nc), axis=1)
-
-        xc_blocks = xc_2d.reshape(M, nc, nfd)
-        ppfd_blocks = ppfd_row.reshape(nc, nfd)
-        fd_sum_c2 = np.sum(xc_blocks * ppfd_blocks[None, :, :], axis=2)
-        T_fd = np.sum(fd_sum_c2.reshape(nc, ns, nc), axis=1)
+        T_inter, T_fd, val_fd = _flows(p_vec, x_mat, xc, ppfd.reshape((1, nfd * nc), order="F"))
+        if details:
+            extras.update(_tariff_details(p_vec, x_mat, val_fd, T_inter, T_fd))
+            p_tau_fd = (p_vec[:, np.newaxis, np.newaxis] * taufd_a).reshape((M, nfd * nc), order="F")
+            _, T_fd_purch, val_fd_purch = _flows(p_vec, x_mat, xc, p_tau_fd)
+            extras["T_fd_purchaser"] = T_fd_purch.copy()
+            extras["final_demand_values"] = val_fd_purch.reshape((M, nfd, nc), order="F").copy()
+            cd_d = theta_arr * Ycon / P_agg
+            c_net_d = cd_d.copy()
+            c_net_d[:, 1:2, :] -= invforT.reshape((1, 1, nc)) / P_agg[:, 1:2, :]
+            c_net_d = c_net_d - tax_fd_arr * cd_d
+            extras["final_demand_composite"] = c_net_d
+            extras["household_income"] = Ycon.ravel().copy()
+            if use_markups:
+                extras["markup_profits"] = profits.copy()
         np.fill_diagonal(T_inter, 0.0)
         np.fill_diagonal(T_fd, 0.0)
 
@@ -3116,39 +3879,108 @@ def _quasi_condensed_solve(
         f_m = np.concatenate([ff2, ff3, ff4, ff5])
 
         if compute_full:
-            ff0 = y_vec - (a_2d @ y_vec + d)
-            v_P_val = c_va.flatten(order="F") / np.maximum(1.0 - tax_flat, 1e-12)
-            ff1 = p_vec - (v_P_val + B_T_mat @ p_vec)
+            ff0 = y_vec - (np.sum(x_mat, axis=(1, 2)) + d)
+            # ``c_y`` is the normalized full gross-output unit cost (value-added
+            # nest with the capacity penalty plus the intermediate nest); the
+            # markup wedge is the one the inner price solver imposes.
+            v_P_val = c_y.flatten(order="F")
+            if use_markups:
+                v_P_val = _relative_markups(p_vec, calib, config.market_structure) * v_P_val
+            ff1 = p_vec - v_P_val
             f_full = np.concatenate([ff0, ff1, ff2, ff3, ff4, ff5])
         else:
             f_full = None
 
-        return f_m, f_full, p_vec, y_vec, inner_iters
+        return f_m, f_full, p_vec, y_vec, inner_iters, extras
 
-    f_m, f_full, p_sol, y_sol, inner_iters = eval_macro(xm, compute_full=True)
+    def _tariff_details(p_vec, x_mat, val_fd, T_inter_full, T_fd_full):
+        """Tariff revenue by importing (country, sector) / (country, category) and gross trade."""
+        tau_mat = tau_a.reshape((M, M), order="F")
+        taufd_mat = taufd_a.reshape((M, nfd * nc), order="F")
+        val_inter = x_mat.reshape((M, M), order="F") * p_vec[:, np.newaxis]
+        tariffs_interm = np.sum(val_inter * (tau_mat - 1.0), axis=0).reshape(nc, ns)
+        # Same valuation as postprocess_trade_equilibrium on the legacy route.
+        tariffs_fd = np.sum(val_fd * (taufd_mat - 1.0), axis=0).reshape(nc, nfd)
+        bilateral = (T_inter_full + T_fd_full).copy()
+        np.fill_diagonal(bilateral, 0.0)
+        return {
+            "bilateral_trade": bilateral,
+            "T_inter": T_inter_full.copy(),
+            "T_fd": T_fd_full.copy(),
+            "tariffs_interm": tariffs_interm,
+            "tariffs_fd": tariffs_fd,
+        }
+
+    def _finish(xm_fin, converged_flag, iters, extras_fin, f_full_fin, p_fin, y_fin, note=None):
+        max_res_fin = float(np.max(np.abs(f_full_fin)))
+        diff_fin = float(np.sum(np.abs(f_full_fin)))
+        x_full = np.concatenate([np.log(np.maximum(p_fin, 1e-12)), np.log(np.maximum(y_fin, 1e-12)), xm_fin])
+        meta: dict[str, Any] = {
+            "inner_price_converged": bool(extras_fin.get("inner_converged", True)),
+            "quantity_fixed_point_converged": bool(extras_fin.get("quantity_fixed_point_converged", True)),
+            "active_flexible_settings": list(active),
+            "solve_duration_seconds": time.perf_counter() - t_start,
+            "residual_evaluation": "certified: cold-start inner price solve to 1e-13",
+            "trade_balance_valuation": "ppfd_legacy",
+        }
+        for key in ("bilateral_trade", "T_inter", "T_fd", "T_fd_purchaser", "tariffs_interm", "tariffs_fd",
+                    "final_demand_values", "household_income", "markup_profits"):
+            if key in extras_fin:
+                meta[key] = extras_fin[key]
+        comp = extras_fin.get("final_demand_composite")
+        if comp is not None:
+            neg_cells = []
+            c_codes = list(calib.country_codes) if calib.country_codes else [f"C{i:02d}" for i in range(nc)]
+            for fd_i in range(nfd):
+                for c_i in range(nc):
+                    if float(comp[0, fd_i, c_i]) < 0.0 < float(theta_arr[0, fd_i, c_i]):
+                        neg_cells.append({
+                            "category": int(fd_i), "country": c_codes[c_i],
+                            "real_composite": float(comp[0, fd_i, c_i]),
+                        })
+            meta["negative_final_demand_composites"] = neg_cells
+        ok_internal = meta["inner_price_converged"] and meta["quantity_fixed_point_converged"]
+        conv = bool(converged_flag and ok_internal and max_res_fin <= tol)
+        if not conv:
+            diag = compute_convergence_diagnostics(f_full_fin, calib)
+            if note is not None:
+                diag["remediation"] = note
+            if not ok_internal:
+                diag["remediation"] = (
+                    str(diag.get("remediation", ""))
+                    + " The certified inner price / quantity fixed point did not reach its tolerance"
+                    " at the returned state."
+                ).strip()
+            meta["convergence_diagnostic"] = diag
+        return x_full, conv, iters, max_res_fin, diff_fin, f_full_fin, meta
+
+    # Certified evaluation at the starting point (cold start).
+    f_m, f_full, p_sol, y_sol, inner_iters, ex0 = eval_macro(xm, compute_full=True, certify=True, details=True)
     max_res = float(np.max(np.abs(f_full)))
     diff = float(np.sum(np.abs(f_full)))
 
     if max_iter == 0:
-        x_full = np.concatenate([np.log(np.maximum(p_sol, 1e-12)), np.log(np.maximum(y_sol, 1e-12)), xm])
-        diag = compute_convergence_diagnostics(f_full, calib)
-        diag["remediation"] = "Increase solver max_iter or reduce shock magnitude."
-        return x_full, False, 0, max_res, diff, f_full, {"convergence_diagnostic": diag}
+        return _finish(xm, False, 0, ex0, f_full, p_sol, y_sol,
+                       note="Increase solver max_iter or reduce shock magnitude.")
 
-    if max_res <= tol:
-        x_full = np.concatenate([np.log(np.maximum(p_sol, 1e-12)), np.log(np.maximum(y_sol, 1e-12)), xm])
-        return x_full, True, 0, max_res, diff, f_full, {}
+    if max_res <= tol and ex0["inner_converged"] and ex0["quantity_fixed_point_converged"]:
+        return _finish(xm, True, 0, ex0, f_full, p_sol, y_sol)
 
     # Damped Newton loop on macro state
     h = np.array([eps_fd if j < 2 * nc else eps_fd * max(abs(xm[j]), 1.0) for j in range(n_m)])
+    ex_last = ex0
 
     for it in range(max_iter):
+        # Finite-difference Jacobian from capped (latency-bounded) inner solves,
+        # differenced against a base evaluated the same way; the Newton
+        # right-hand side and the step acceptance use accurate evaluations.
+        f_m_fd = eval_macro(xm, p_warm=p_sol, compute_full=False, y_warm=y_sol)[0] if is_flexible else f_m
         J = np.empty((n_m, n_m), dtype=float)
         for j in range(n_m):
             xm_pert = xm.copy()
             xm_pert[j] += h[j]
-            f_p, _, _, _, _ = eval_macro(xm_pert, p_warm=p_sol, compute_full=False)
-            J[:, j] = (f_p - f_m) / h[j]
+            f_p = eval_macro(xm_pert, p_warm=p_sol, compute_full=False, y_warm=y_sol)[0]
+            J[:, j] = (f_p - f_m_fd) / h[j]
 
         c_norm = np.linalg.norm(J, axis=0)
         c_norm[c_norm == 0] = 1.0
@@ -3177,7 +4009,9 @@ def _quasi_condensed_solve(
         for _ in range(15):
             xm_trial = xm + alpha_step * delta_m
             xm_trial[:2 * nc] = np.clip(xm_trial[:2 * nc], -5.0, 5.0)
-            f_t_m, f_t_full, p_t, y_t, _ = eval_macro(xm_trial, p_warm=p_sol, compute_full=True)
+            f_t_m, f_t_full, p_t, y_t, _, _ = eval_macro(
+                xm_trial, p_warm=p_sol, compute_full=True, y_warm=y_sol, certify=True
+            )
             norm_t = float(np.linalg.norm(D_L * f_t_m))
             res_t = float(np.max(np.abs(f_t_full)))
 
@@ -3195,12 +4029,19 @@ def _quasi_condensed_solve(
         diff = float(np.sum(np.abs(f_full)))
 
         if max_res <= tol or diff <= tol:
-            x_full = np.concatenate([np.log(np.maximum(p_sol, 1e-12)), np.log(np.maximum(y_sol, 1e-12)), xm])
-            return x_full, True, it + 1, max_res, diff, f_full, {}
+            # Certify at the accepted state before reporting convergence.
+            f_m_c, f_full_c, p_c, y_c, _, ex_c = eval_macro(xm, compute_full=True, certify=True, details=True)
+            ex_last = ex_c
+            if (
+                float(np.max(np.abs(f_full_c))) <= tol
+                and ex_c["inner_converged"]
+                and ex_c["quantity_fixed_point_converged"]
+            ):
+                return _finish(xm, True, it + 1, ex_c, f_full_c, p_c, y_c)
+            f_m, f_full, p_sol, y_sol = f_m_c, f_full_c, p_c, y_c
 
-    x_full = np.concatenate([np.log(np.maximum(p_sol, 1e-12)), np.log(np.maximum(y_sol, 1e-12)), xm])
-    diag = compute_convergence_diagnostics(f_full, calib)
-    return x_full, False, max_iter, max_res, diff, f_full, {"convergence_diagnostic": diag}
+    f_m_c, f_full_c, p_c, y_c, _, ex_c = eval_macro(xm, compute_full=True, certify=True, details=True)
+    return _finish(xm, False, max_iter, ex_c, f_full_c, p_c, y_c)
 
 
 TECH_FIELDS = {
@@ -3450,21 +4291,8 @@ def _build_markups_frame(
         })
 
     uv = unpack_equilibrium_vector(x_sol, ns=ns, nc=nc, nfd=calib.n_final_demand)
-    p_2d = uv.p[0]
-
-    s_0 = compute_benchmark_market_shares(calib)
-    sigma_trade = getattr(calib, "sigma", 5.0)
-    sig_val = float(sigma_trade) if isinstance(sigma_trade, (int, float)) else float(np.mean(sigma_trade))
-    exponent = 1.0 - sig_val
-    p_term = (p_2d[:, :, None]) ** exponent
-    shares_unnorm = s_0 * p_term
-    sum_shares = np.sum(shares_unnorm, axis=1, keepdims=True)
-    s_ni = np.divide(shares_unnorm, sum_shares, out=s_0.copy(), where=(sum_shares > 1e-12))
-
-    mu_0 = compute_benchmark_markups(calib, config.market_structure)
-    mu_ni, _ = compute_atkeson_burstein_markups(
-        s_ni=s_ni, c_i=None, market_cfg=config.market_structure, mu_0=mu_0
-    )
+    p_vec = uv.p[0].flatten(order="F")
+    _, mu_ni, _ = _market_shares_and_markups(p_vec, calib, config.market_structure)
     mu_ods = np.transpose(mu_ni, (1, 2, 0))
 
     return pd.DataFrame({
@@ -3475,18 +4303,103 @@ def _build_markups_frame(
     })
 
 
+# Largest calibration (country-sector cells) that an active flexible
+# configuration is routed to the dense quasi-condensed Newton automatically.
+_AUTO_QUASI_CONDENSED_MAX_CELLS = 100
+
+_LUMP_SUM_CLOSURES = (None, "lump_sum", "baseline", "")
+
+
 def solve_flexible_trade_equilibrium(
     calib: TradeCalibrationResult,
     config: FlexibleTradeModelConfig | None = None,
     rho_va: float | None = None,
     sigma_y: float | None = None,
+    *,
+    allow_legacy_fallback: bool = False,
     **kwargs: Any,
 ) -> FlexibleTradeEquilibriumResult:
     """Solve multi-country multi-sector general equilibrium with flexible trade model extensions.
 
     High-level declarative solver supporting progressive disclosure: allows solving
     scenarios directly via keyword arguments (e.g. `rho_va=0.7`, `variable_markups=True`,
-    `subsistence_ratio=0.2`) or via pre-configured `FlexibleTradeModelConfig` dataclasses.
+    `subsistence_shares={"FOOD": 0.3}`) or via pre-configured `FlexibleTradeModelConfig`
+    dataclasses.
+
+    Routing rule
+    ------------
+    A configuration is *active* when at least one flexible block differs from
+    its dataclass default (``rho_va != 1``, ``sigma_y > 0``, ``sigma_inter > 0``,
+    ``capacity_margins`` set, a non-zero subsistence share, ``sigma_trade``
+    set, or ``variable_markups=True``; tolerance 1e-12). A uniform subsistence
+    share (the same value in every sector, e.g. ``subsistence_ratio=0.2``)
+    counts as active but has no effect on the equilibrium: the household block
+    buys supernumerary expenditure in the calibrated proportions, so the
+    subsistence bundle is proportional to the basket it replaces. Such a solve
+    returns the default quasi-condensed solution (not the default call, see
+    below); Engel effects need sector-specific shares. Then:
+
+    1. Default configuration, no ``method``: the legacy solver
+       (:func:`puremacro.trade.solve_trade_equilibrium`, Newton), which keeps
+       exact parity with the 4.x baseline, including its default
+       ``replicate_matlab_precedence=True`` Cobb-Douglas pricing convention.
+    2. Active configuration, no ``method``, at most 100 country-sector cells:
+       the quasi-condensed solver, which evaluates this module's nested-CES,
+       capacity, Stone-Geary, sourcing and markup equations.
+    3. ``method="quasi_condensed"``: the quasi-condensed solver at any size
+       (the caller accepts a dense ``(4 n_countries - 1)^2`` Jacobian per Newton
+       iteration; one iteration on the bundled 77x11 table takes tens of seconds).
+    4. Active configuration on a path that cannot apply it (an explicit
+       ``method`` other than ``"quasi_condensed"``, or more than 100 cells
+       without an explicit method): ``ValueError`` naming the settings and the
+       path. With ``allow_legacy_fallback=True`` the legacy solver runs
+       instead, a ``RuntimeWarning`` is emitted and
+       ``metadata["flexible_settings_applied"]`` is ``False`` with the ignored
+       settings in ``metadata["ignored_flexible_settings"]``.
+
+    ``max_iter=0`` evaluates the residual at the starting point without solving;
+    for an active configuration this is the quasi-condensed (flexible) residual
+    at any size, since no Jacobian is formed. On the legacy route the
+    evaluation uses the same model as the solve: the tariffs (``tau``,
+    ``tau_fd``, ``tauf``, ``tauf_fd``), ``fiscal_closure``,
+    ``recycling_params`` and an explicit ``replicate_matlab_precedence`` are
+    forwarded, so a converged solution re-evaluates to its residual.
+
+    Final-demand sourcing is fixed-coefficient (the legacy benchmark shares)
+    unless ``sigma_trade`` is given: Armington CES sourcing is an explicit
+    opt-in (5.0 is the recommended elasticity). Consequently the solution is
+    continuous at the routing switch: for example ``rho_va = 1 + 1e-9`` agrees
+    with ``method="quasi_condensed"`` at the default configuration to solver
+    precision. Across routes, the default legacy solve differs from the
+    quasi-condensed family by the Cobb-Douglas operator-precedence convention,
+    and the difference is large: on the notebook-62 2x2 calibration with a
+    10% tariff the default call gives log producer-price responses
+    -0.058/-0.090/0.045/0.061, while ``rho_va = 1 + 1e-9`` (or ``rho_va=0.7``)
+    gives -0.005/-0.013/0.010/0.011, and ``max|dx| = 1.15``. Comparing an
+    active setting with the default call therefore attributes the convention
+    to the setting. Pass ``replicate_matlab_precedence=False`` to the
+    default-configuration solve (or use ``method="quasi_condensed"``) for a
+    comparator that the flexible solutions nest continuously (4e-11 on that
+    calibration); ``metadata["replicate_matlab_precedence"]`` records the
+    convention every result used. The ``replicate_matlab_precedence`` keyword
+    sets ``FlexibleTechnologyConfig.replicate_matlab_precedence`` (used by the
+    quasi-condensed route, default False) and, when passed explicitly, the
+    legacy solver's convention; without the keyword the legacy route keeps its
+    own default (True).
+    The quasi-condensed route implements the lump-sum fiscal closure only; any
+    other ``fiscal_closure`` or ``recycling_params`` raises ``ValueError``.
+
+    Trade valuation: on both routes the trade-balance equations value
+    final-demand deliveries at the destination composite price
+    ``ppfd = sum_i afd_i p_i tau_i`` (``metadata["trade_balance_valuation"]
+    == "ppfd_legacy"``). With Armington sourcing (``sigma_trade`` set) this is
+    not the Armington expenditure identity; ``metadata["bilateral_trade"]``,
+    ``["T_fd"]`` and ``["tariffs_fd"]`` use the same ppfd valuation, while
+    ``metadata["final_demand_values"]`` and ``["T_fd_purchaser"]`` are the
+    purchaser-valued deliveries ``p_i tau_i x_i`` (up to 1.6% apart on the
+    2x2 test calibration with 25% intermediate and final-demand tariffs;
+    identical under fixed-coefficient sourcing). See
+    ``FlexiblePreferenceConfig.sigma_trade``.
 
     Parameters
     ----------
@@ -3499,6 +4412,10 @@ def solve_flexible_trade_equilibrium(
         Value-added substitution elasticity between labor and capital.
     sigma_y : float | None, optional
         Gross output substitution elasticity between value-added and intermediate composite.
+    allow_legacy_fallback : bool, default False, keyword-only
+        Accept the legacy Cobb-Douglas/Leontief solve (with a ``RuntimeWarning``)
+        when active flexible settings reach a path that cannot apply them,
+        instead of raising ``ValueError``.
     **kwargs : Any
         Additional configuration overrides or numerical solver settings, including:
         - Technology: `sigma_va`, `sigma_inter`, `capacity_margins`
@@ -3509,7 +4426,39 @@ def solve_flexible_trade_equilibrium(
     Returns
     -------
     FlexibleTradeEquilibriumResult
-        Inspectable general equilibrium solution container.
+        Inspectable general equilibrium solution container. ``metadata`` always
+        carries ``config``, ``method`` (the solver requested or run; ``"newton"``
+        for a legacy-route ``max_iter=0`` call without ``method``),
+        ``effective_method`` (``"residual_evaluation"`` for a legacy-route
+        ``max_iter=0`` call), ``routing`` (``"default"``, ``"explicit"``,
+        ``"auto"`` or ``"fallback"``), ``flexible_settings_applied``,
+        ``active_flexible_settings``, ``replicate_matlab_precedence`` (the
+        convention used), ``trade_balance_valuation`` and ``tariff_inputs``
+        (the ``tau``/``tau_fd``/``tauf``/``tauf_fd`` arguments of the call, used
+        by :meth:`FlexibleTradeEquilibriumResult.factor_allocation_frame`). On
+        the quasi-condensed route it also carries ``solve_duration_seconds``,
+        ``tol``, ``max_iter``, ``final_demand_sourcing``, ``bilateral_trade``
+        (``nc x nc`` gross trade, diagonal zero), ``T_inter`` and ``T_fd``
+        (with the domestic diagonal), ``tariffs_interm`` (``nc x ns``),
+        ``tariffs_fd`` (``nc x nfd``), ``final_demand_values``
+        (``ns*nc x nfd x nc`` purchaser-valued deliveries) and
+        ``T_fd_purchaser`` (their ``nc x nc`` origin-destination sums, with the
+        domestic diagonal), ``household_income``, ``inner_price_converged``,
+        ``quantity_fixed_point_converged``, ``negative_final_demand_composites``
+        and, with markups, ``markup_profits``. These metadata flows are the
+        flows of the solved flexible model, and the ``exports``/``imports``/
+        ``gdp`` properties are computed from them; ``cpi``/``terms_of_trade``
+        raise ``NotImplementedError`` for an active configuration (see
+        :class:`FlexibleTradeEquilibriumResult`). The reported residual is
+        evaluated at ``x_sol`` with a cold-start, fully converged inner price
+        solve, so it is reproducible by calling again with ``x0=x_sol`` and
+        ``max_iter=0``.
+
+    Raises
+    ------
+    ValueError
+        Active flexible settings on a path that cannot apply them (see rule 4),
+        or a non-lump-sum fiscal closure on the quasi-condensed route.
 
     Examples
     --------
@@ -3523,43 +4472,86 @@ def solve_flexible_trade_equilibrium(
         config=config, rho_va=rho_va, sigma_y=sigma_y, **kwargs
     )
 
+    active = _active_flexible_settings(config)
+    n_cells = int(calib.n_countries * calib.n_sectors)
+    requested = solver_kwargs.get("method")
     max_iter = solver_kwargs.get("max_iter", 100)
-    tol = solver_kwargs.get("tol", 2.5e-3)
-    method = solver_kwargs.get("method")
+    ignored: list[str] = []
 
-    if max_iter == 0:
-        x_init = solver_kwargs.get("x0")
-        if x_init is None:
-            from puremacro.trade.solver import build_initial_guess
-            x_init = build_initial_guess(calib)
+    if requested == "quasi_condensed":
+        route, routing = "quasi_condensed", "explicit"
+    elif not active:
+        route, routing = "legacy", ("default" if requested is None else "explicit")
+    elif requested is None and (n_cells <= _AUTO_QUASI_CONDENSED_MAX_CELLS or max_iter == 0):
+        route, routing = "quasi_condensed", "auto"
+    else:
+        if requested is not None:
+            path_desc = (
+                f"method={requested!r}, which solves the legacy Cobb-Douglas/Leontief equations"
+            )
         else:
-            x_init = np.asarray(x_init, dtype=float).ravel()
-        from puremacro.trade.equilibrium import compute_equilibrium_residuals
-        raw_res = compute_equilibrium_residuals(x_init, calib)
-        diag = compute_convergence_diagnostics(raw_res, calib)
-        diag["remediation"] = "Increase solver max_iter or reduce shock magnitude."
-        df_markups = _build_markups_frame(x_init, calib, config)
-        return FlexibleTradeEquilibriumResult(
-            x_sol=x_init,
-            converged=False,
-            iterations=0,
-            residual_norm=float(np.max(np.abs(raw_res))),
-            residuals=raw_res,
-            metadata={"config": config, "convergence_diagnostic": diag},
-            markups=df_markups,
-            calib=calib,
-            config=config,
+            path_desc = (
+                f"the legacy Cobb-Douglas/Leontief solver used automatically for calibrations "
+                f"above {_AUTO_QUASI_CONDENSED_MAX_CELLS} country-sector cells (this one has {n_cells})"
+            )
+        msg = (
+            f"Flexible settings {list(active)} cannot be applied on {path_desc}. "
+            "Pass method='quasi_condensed' to solve the configured model (dense Newton on "
+            f"{4 * calib.n_countries - 1} macro unknowns), or allow_legacy_fallback=True to accept "
+            "the legacy equilibrium with these settings ignored."
         )
+        if not allow_legacy_fallback:
+            raise ValueError(msg)
+        warnings.warn(
+            msg + " Proceeding with the legacy solver because allow_legacy_fallback=True.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        route, routing = "legacy", "fallback"
+        ignored = list(active)
 
-    if method == "quasi_condensed":
+    routing_meta: dict[str, Any] = {
+        "routing": routing,
+        "requested_method": requested,
+        "flexible_settings_applied": not ignored,
+        "active_flexible_settings": list(active),
+        "trade_balance_valuation": "ppfd_legacy",
+        # Copies, so a caller that mutates its tariff arrays after the solve does
+        # not change what the result describes (factor_allocation_frame).
+        "tariff_inputs": {
+            k: copy.deepcopy(solver_kwargs.get(k)) for k in ("tau", "tau_fd", "tauf", "tauf_fd")
+        },
+    }
+    if ignored:
+        routing_meta["ignored_flexible_settings"] = ignored
+
+    if route == "quasi_condensed":
+        closure = solver_kwargs.get("fiscal_closure")
+        if closure not in _LUMP_SUM_CLOSURES or solver_kwargs.get("recycling_params") is not None:
+            raise ValueError(
+                "The quasi-condensed route implements the lump-sum fiscal closure only; got "
+                f"fiscal_closure={closure!r}, recycling_params={solver_kwargs.get('recycling_params')!r}."
+            )
+        qc_kwargs = dict(solver_kwargs)
+        qc_kwargs.pop("method", None)
         x_sol, conv, iters, max_res, diff, res_vec, meta = _quasi_condensed_solve(
             calib=calib,
             config=config,
-            **solver_kwargs,
+            **qc_kwargs,
         )
-        diag = meta.get("convergence_diagnostic", {})
-        if not conv and not diag:
-            diag = compute_convergence_diagnostics(res_vec, calib)
+        if not conv and not meta.get("convergence_diagnostic"):
+            meta["convergence_diagnostic"] = compute_convergence_diagnostics(res_vec, calib)
+        meta.update(routing_meta)
+        meta.update({
+            "method": "quasi_condensed",
+            "effective_method": "quasi_condensed",
+            "tol": solver_kwargs.get("tol", 2.5e-3),
+            "max_iter": solver_kwargs.get("max_iter", 50),
+            "replicate_matlab_precedence": bool(config.technology.replicate_matlab_precedence),
+            "final_demand_sourcing": (
+                "fixed_coefficients" if config.preference.sigma_trade is None else "armington"
+            ),
+        })
         meta["config"] = config
         df_markups = _build_markups_frame(x_sol, calib, config)
         return FlexibleTradeEquilibriumResult(
@@ -3574,11 +4566,61 @@ def solve_flexible_trade_equilibrium(
             config=config,
         )
 
+    if max_iter == 0:
+        x_init = solver_kwargs.get("x0")
+        if x_init is None:
+            from puremacro.trade.solver import build_initial_guess
+            x_init = build_initial_guess(calib)
+        else:
+            x_init = np.asarray(x_init, dtype=float).ravel()
+        from puremacro.trade.equilibrium import compute_equilibrium_residuals
+        # Evaluate the model the legacy solve would solve: its tariffs, fiscal
+        # closure and (when given explicitly) its pricing convention.
+        res_kwargs = {
+            k: solver_kwargs[k]
+            for k in ("tau", "tau_fd", "tauf", "tauf_fd", "fiscal_closure", "recycling_params")
+            if solver_kwargs.get(k) is not None
+        }
+        prec_used = True
+        if "replicate_matlab_precedence" in kwargs:
+            prec_used = bool(kwargs["replicate_matlab_precedence"])
+            res_kwargs["replicate_matlab_precedence"] = prec_used
+        raw_res = compute_equilibrium_residuals(x_init, calib, **res_kwargs)
+        diag = compute_convergence_diagnostics(raw_res, calib)
+        diag["remediation"] = "Increase solver max_iter or reduce shock magnitude."
+        df_markups = _build_markups_frame(x_init, calib, config)
+        meta0: dict[str, Any] = {"config": config, "convergence_diagnostic": diag}
+        meta0.update(routing_meta)
+        meta0.update({
+            "method": requested if requested is not None else "newton",
+            "effective_method": "residual_evaluation",
+            "replicate_matlab_precedence": prec_used,
+        })
+        from puremacro.trade.postprocessing import compute_postprocessing_flows
+        flows0 = compute_postprocessing_flows(x_init, calib, **res_kwargs)
+        return FlexibleTradeEquilibriumResult(
+            x_sol=x_init,
+            converged=False,
+            iterations=0,
+            residual_norm=float(np.max(np.abs(raw_res))),
+            residuals=raw_res,
+            metadata=meta0,
+            markups=df_markups,
+            calib=calib,
+            config=config,
+            _postproc_cache={k: flows0[k] for k in _LEGACY_ROUTE_FLOWS},
+        )
+
     # Dispatch to solve_trade_equilibrium with dynamic sparsity and flexible configs
     solve_kwargs = dict(solver_kwargs)
     solve_kwargs["sigma_y"] = float(config.technology.sigma_y)
     solve_kwargs["variable_markups"] = bool(config.market_structure.variable_markups)
     solve_kwargs["config"] = config
+    if "replicate_matlab_precedence" in kwargs:
+        # The keyword sets FlexibleTechnologyConfig.replicate_matlab_precedence
+        # (quasi-condensed route) and, when given explicitly, the legacy
+        # solver's pricing convention as well.
+        solve_kwargs["replicate_matlab_precedence"] = bool(kwargs["replicate_matlab_precedence"])
 
     res_base = solve_trade_equilibrium(calib, **solve_kwargs)
 
@@ -3594,6 +4636,7 @@ def solve_flexible_trade_equilibrium(
 
     df_markups = _build_markups_frame(res_base.x_sol, calib, config)
     meta = dict(getattr(res_base, "metadata", {}))
+    meta.update(routing_meta)
     meta["config"] = config
     if not res_base.converged:
         meta["convergence_diagnostic"] = diag
@@ -3608,6 +4651,8 @@ def solve_flexible_trade_equilibrium(
         markups=df_markups,
         calib=calib,
         config=config,
+        # The flows of the legacy solve (its tariffs, closure and convention).
+        _postproc_cache={k: getattr(res_base, k) for k in _LEGACY_ROUTE_FLOWS},
     )
 
 

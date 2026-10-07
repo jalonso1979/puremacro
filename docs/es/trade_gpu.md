@@ -379,14 +379,14 @@ El solucionador de dispositivo alcanza los mismos salarios que la referencia Num
 
 ### 4.6 Forma de la llamada de los solucionadores completos PyTorch / MLX (calibración ICIO de 45 sectores)
 
-`solve_trade_equilibrium_gpu`, `solve_trade_equilibrium_mlx` y `solve_homotopy_continuation` están diseñados para la calibración ICIO completa de la OCDE, con 45 sectores y 77 países, y se prueban contra ella; sus operadores de Leontief de dimensión $M = 3465$ son los que el GEMM por lotes está pensado para amortizar. Ese conjunto de datos no se distribuye con el paquete, por lo que aquí solo se muestra la forma de las llamadas, no un ejemplo ejecutado:
+`solve_trade_equilibrium_gpu`, `solve_trade_equilibrium_mlx` y `solve_homotopy_continuation` están diseñados para la calibración ICIO completa de la OCDE, con 45 sectores y 77 países, y se prueban contra ella; sus operadores de Leontief de dimensión $M = 3465$ son los que el GEMM por lotes está pensado para amortizar. Los puntos de control de referencia de 45 sectores que usan esas pruebas se construyeron a partir de la exportación corrupta `data_2020_SML.csv` (véase el [aviso de procedencia](ADVISORY.md)), de modo que son regresiones de software, no resultados sobre las tablas limpias de la OCDE. Ese conjunto de datos no se distribuye con el paquete, por lo que aquí solo se muestra la forma de las llamadas, no un ejemplo ejecutado:
 
 ```text
 from puremacro.trade import build_tariff_matrices, calibrate_trade_model
 from puremacro.trade.data import load_raw_45sector_icio
 from puremacro.trade.gpu import solve_homotopy_continuation, solve_trade_equilibrium_gpu, solve_trade_equilibrium_mlx
 
-raw   = load_raw_45sector_icio()                       # requiere data_2020_SML.csv (IO_RAW45_PATH)
+raw   = load_raw_45sector_icio()                       # requiere un ICIOextended/2020_SML.csv limpio de la OCDE (IO_RAW45_PATH); se rechaza la exportación corrupta data_2020_SML.csv
 calib = calibrate_trade_model(raw, ns=45, nc=77, nfd=3)
 tau, tau_fd, tauf, tauf_fd = build_tariff_matrices("t10", calib)   # (ns,nc,ns,nc), (ns,nc,nfd,nc), (1,nc), (1,nc)
 

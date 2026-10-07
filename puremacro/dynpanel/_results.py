@@ -68,6 +68,11 @@ class GMMResult:
         (Blundell-Bond system GMM).
     converged : bool
         Whether the estimator produced finite estimates.
+    notes : tuple[str, ...], default ()
+        Human-readable notes about the fit, e.g. instrument columns that
+        were identically zero on the estimation sample and were dropped
+        (they carry no moment condition; ``n_instruments`` and
+        ``hansen_j_df`` count only the columns actually used).
 
     References
     ----------
@@ -90,6 +95,7 @@ class GMMResult:
     windmeijer: bool
     estimator: str
     converged: bool
+    notes: tuple = ()
 
     def summary(self) -> str:
         """Multi-line human-readable summary of the fit."""
@@ -113,6 +119,9 @@ class GMMResult:
         for nm, b, s in zip(self.names, self.coefs, self.se):
             z = b / s if s > 0 else float("nan")
             lines.append(f"  {nm:<18s} {b:+.4f}        {s:.4f}    {z:+.2f}")
+        if self.notes:
+            lines.append("")
+            lines.extend(f"  note: {n}" for n in self.notes)
         return "\n".join(lines) + "\n"
 
     def to_frame(self):

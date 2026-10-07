@@ -11,6 +11,8 @@ Scope:
 3. Cyprus CYP Micro-Economy Manifold:
    - Test open micro-economy shock configurations with steep gradient spikes.
    - Verify 1D secant sub-solver converges without stalling, handles singular S_76, and enforces max_disp <= 0.30.
+   - A clamped step reports the residual of the step actually returned (it is not converged);
+     the unclamped direction is an exact solve. CYP is index 17 of CANONICAL_COUNTRY_CODES.
 
 Strictly conforms to the puremacro Pyodide runtime contract (NumPy, SciPy only).
 """
@@ -20,11 +22,15 @@ import numpy as np
 import pytest
 import scipy.linalg as la
 
+from puremacro.trade.data import CANONICAL_COUNTRY_CODES
 from puremacro.trade.solver import (
     anderson_accelerate,
     solve_cyprus_manifold_step,
     svd_clamped_newton_step,
 )
+
+# Position of Cyprus in the canonical 77-country roster (17; index 14 is CMR).
+IDX_CYP = CANONICAL_COUNTRY_CODES.index("CYP")
 
 
 # =============================================================================
@@ -224,34 +230,73 @@ class TestCyprusManifoldAdversarial:
     def test_cyprus_linear_manifold_gradient_spikes(
         self, scale: float, spike: float
     ) -> None:
-        """Verify linear manifold solver resolves micro-economy scale disparities and gradient spikes."""
+        """Linear block elimination under stiff scaling and gradient spikes.
+
+        Every parametrization needs a step far beyond ``max_disp``, so the
+        returned step is the exact solve scaled by ``s = max_disp / max|dw|``.
+        The reported residual and ``converged`` flag describe that returned
+        step, which leaves about ``(1 - s) * rhs_w`` unexplained and is not
+        converged; the unclamped direction (``return_info=True``) is an exact
+        solve. Up to 4.3.0 the pre-clamp values were reported for the clamped
+        step, and this test pinned them.
+        """
         nc = 77
-        idx_cyp = 14
+        tol = 2.5e-3
         rng = np.random.default_rng(42)
         A = rng.standard_normal((nc, nc))
         S_ww = A.T @ A + 10.0 * np.eye(nc)
 
-        # Scale Cyprus row and column to simulate small open micro-economy
-        S_ww[idx_cyp, :] *= scale
-        S_ww[:, idx_cyp] *= scale
-        S_ww[idx_cyp, idx_cyp] = scale
+        # Scale the CYP row and column to simulate a small open micro-economy
+        S_ww[IDX_CYP, :] *= scale
+        S_ww[:, IDX_CYP] *= scale
+        S_ww[IDX_CYP, IDX_CYP] = scale
 
         rhs_w = rng.standard_normal(nc) * 0.1
-        rhs_w[idx_cyp] = spike
+        rhs_w[IDX_CYP] = spike
 
-        dw_full, best_res, conv = solve_cyprus_manifold_step(
+        dw_full, best_res, conv, info = solve_cyprus_manifold_step(
             S_ww=S_ww,
             rhs_w=rhs_w,
             eval_cyp_fn=None,
-            idx_cyp=idx_cyp,
-            tol=2.5e-3,
+            tol=tol,
             max_disp=0.30,
+            country_codes=CANONICAL_COUNTRY_CODES,
+            return_info=True,
         )
 
-        assert conv is True, f"Linear manifold failed to converge for scale={scale}, spike={spike}"
-        assert best_res <= 2.5e-3
+        assert info["idx_cyp"] == IDX_CYP and info["country"] == "CYP"
         assert np.all(np.isfinite(dw_full))
         assert np.max(np.abs(dw_full)) <= 0.30 + 1e-12
+
+        # The reported residual is that of the returned step; converged follows it.
+        actual = float(np.max(np.abs(S_ww @ dw_full - rhs_w)))
+        assert best_res == pytest.approx(actual, rel=1e-12, abs=1e-15)
+        assert conv == (best_res <= tol)
+
+        # The unclamped direction is the exact linear solve and does converge.
+        direction = info["unclamped_step"]
+        exact = la.solve(S_ww, rhs_w)
+        np.testing.assert_allclose(direction, exact, rtol=0, atol=1e-9 * np.max(np.abs(exact)))
+        assert info["direction_converged"] is True
+        assert info["direction_residual"] <= tol
+
+        # The clamp keeps the direction and shortens the step. Since
+        # S (s d) - rhs = s (S d - rhs) - (1 - s) rhs, the returned step leaves
+        # (1 - s) max|rhs| unexplained, far above tol: not converged.
+        s = info["clamp_scale"]
+        assert info["clamped"] is True and 0.0 < s < 1.0
+        np.testing.assert_allclose(dw_full, s * direction, rtol=1e-12, atol=0.0)
+        rhs_inf = float(np.max(np.abs(rhs_w)))
+        assert abs(best_res - (1.0 - s) * rhs_inf) <= s * info["direction_residual"] + 1e-9 * rhs_inf
+        assert best_res > tol
+        assert conv is False, f"Clamped step reported as converged for scale={scale}, spike={spike}"
+
+        # Without the clamp the same call returns the exact solve, converged.
+        dw_free, res_free, conv_free = solve_cyprus_manifold_step(
+            S_ww, rhs_w, idx_cyp=IDX_CYP, tol=tol, max_disp=None,
+        )
+        np.testing.assert_allclose(dw_free, direction, rtol=0, atol=1e-12 * np.max(np.abs(exact)))
+        assert conv_free is True and res_free <= tol
 
     @pytest.mark.parametrize("theta", [2.0, 5.0, 10.0, 20.0, 50.0])
     @pytest.mark.parametrize("target", [0.01, 0.1, 0.5])
@@ -260,7 +305,7 @@ class TestCyprusManifoldAdversarial:
     ) -> None:
         """Verify 1D secant sub-solver converges without stalling under steep Armington elasticity responses."""
         nc = 77
-        idx_cyp = 14
+        idx_cyp = IDX_CYP
         rng = np.random.default_rng(2026)
         A = rng.standard_normal((nc, nc))
         S_ww = A.T @ A + 5.0 * np.eye(nc)
@@ -292,7 +337,7 @@ class TestCyprusManifoldAdversarial:
     def test_cyprus_singular_s76_subsystem_fallback(self) -> None:
         """Verify solve_cyprus_manifold_step falls back to lstsq and converges when S_76 is singular."""
         nc = 77
-        idx_cyp = 14
+        idx_cyp = IDX_CYP
         # Create a rank-deficient S_ww matrix
         S_ww = np.ones((nc, nc))
         rhs_w = np.ones(nc) * 0.1
@@ -308,5 +353,7 @@ class TestCyprusManifoldAdversarial:
 
         assert conv is True
         assert best_res <= 2.5e-3
+        # No clamp is needed here, and the residual is that of the returned step.
+        assert best_res == pytest.approx(float(np.max(np.abs(S_ww @ dw_full - rhs_w))), abs=1e-15)
         assert np.all(np.isfinite(dw_full))
         assert np.max(np.abs(dw_full)) <= 0.30 + 1e-12

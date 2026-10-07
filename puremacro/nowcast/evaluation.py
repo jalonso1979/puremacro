@@ -66,13 +66,17 @@ class PITUniformityResult:
     ks_pvalue : float
         P-value of Kolmogorov-Smirnov test.
     is_uniform : bool
-        True if neither Berkowitz LR test nor KS test reject at nominal level (p > 0.05).
+        True if neither the Berkowitz LR test nor the KS test rejects at level
+        ``alpha``. This is a failure to reject, not evidence that the density
+        forecasts are correct: with few forecasts both tests have little power.
     n_obs : int
         Sample size (number of forecast evaluations T).
     hist_counts : np.ndarray
         Bin counts of the PIT histogram.
     hist_edges : np.ndarray
         Bin edges on [0, 1].
+    alpha : float
+        Significance level used for ``is_uniform`` and the reported verdicts.
     """
 
     pit: np.ndarray
@@ -89,55 +93,67 @@ class PITUniformityResult:
     n_obs: int
     hist_counts: np.ndarray = field(default_factory=lambda: np.zeros(0))
     hist_edges: np.ndarray = field(default_factory=lambda: np.zeros(0))
+    alpha: float = 0.05
 
     def summary(self) -> str:
-        """Text summary of PIT uniformity and calibration tests."""
+        """Text summary of the PIT tests.
+
+        The verdict reports what the tests do: they either reject the null of
+        i.i.d. uniform PITs or fail to reject it. A failure to reject is not a
+        certificate of calibration.
+        """
+        pct = f"{100 * self.alpha:g}%"
         verdict = (
-            "PASS: Forecast distribution is well-calibrated (cannot reject uniformity)"
+            f"Cannot reject uniformity or independence of the PITs at {pct}"
             if self.is_uniform
-            else "FAIL: Forecast distribution is mis-calibrated (rejects uniformity)"
+            else f"Rejects i.i.d. uniform PITs at {pct} (at least one test)"
         )
         lines = [
             "=" * 72,
             "Probability Integral Transform (PIT) Calibration Evaluation",
             "=" * 72,
             f"Observations evaluated (T)     : {self.n_obs}",
-            f"Calibration Verdict            : {verdict}",
+            f"Verdict                        : {verdict}",
             "-" * 72,
             "Berkowitz (2001) Likelihood Ratio Test [H0: z ~ i.i.d. N(0, 1)]:",
             f"  LR test statistic            : {self.lr_stat:.4f}",
             f"  Degrees of freedom           : {self.df}",
             f"  p-value                      : {self.lr_pvalue:.4f} "
-            + ("(Reject H0 at 5%)" if self.lr_pvalue <= 0.05 else "(Fail to reject H0)"),
+            + (f"(Reject H0 at {pct})" if self.lr_pvalue <= self.alpha else "(Fail to reject H0)"),
             f"  Estimated AR(1) parameters   : μ = {self.mu:+.4f}, σ = {self.sigma:.4f}, ρ = {self.rho:+.4f}",
             "-" * 72,
             "Kolmogorov-Smirnov Goodness-of-Fit Test [H0: PIT ~ U(0, 1)]:",
             f"  KS test statistic            : {self.ks_stat:.4f}",
             f"  p-value                      : {self.ks_pvalue:.4f} "
-            + ("(Reject H0 at 5%)" if self.ks_pvalue <= 0.05 else "(Fail to reject H0)"),
+            + (f"(Reject H0 at {pct})" if self.ks_pvalue <= self.alpha else "(Fail to reject H0)"),
             "-" * 72,
-            "Diagnostic Interpretation:",
+            "Point estimates (descriptive; the LR test above is the joint test):",
         ]
         if self.mu > 0.15:
-            lines.append("  • Positive μ: Forecasts are underpredicting on average (negative bias).")
+            lines.append("  • μ > 0: outcomes tend to lie above the forecast mean (under-prediction).")
         elif self.mu < -0.15:
-            lines.append("  • Negative μ: Forecasts are overpredicting on average (positive bias).")
+            lines.append("  • μ < 0: outcomes tend to lie below the forecast mean (over-prediction).")
         if self.sigma > 1.15:
-            lines.append("  • High σ > 1: Forecast uncertainty is underestimated (intervals too narrow).")
+            lines.append("  • σ > 1: errors are wider than the forecast densities (bands too narrow).")
         elif self.sigma < 0.85:
-            lines.append("  • Low σ < 1: Forecast uncertainty is overestimated (intervals too wide).")
+            lines.append("  • σ < 1: errors are narrower than the forecast densities (bands too wide).")
         if abs(self.rho) > 0.2:
-            lines.append(f"  • Non-zero ρ ({self.rho:+.2f}): Forecast errors exhibit temporal autocorrelation.")
+            lines.append(f"  • ρ = {self.rho:+.2f}: the transformed forecast errors are autocorrelated.")
         if self.is_uniform:
-            lines.append("  • Predictive density satisfies both calibration and independence.")
+            lines.append(
+                "  • Neither test rejects. This is a failure to reject, not evidence of"
+            )
+            lines.append(
+                f"    calibration: with T = {self.n_obs} forecasts both tests have limited power."
+            )
         lines.append("=" * 72)
         return "\n".join(lines)
 
     def to_frame(self) -> pd.DataFrame:
         """Diagnostics summary table."""
         data = [
-            {"Test": "Berkowitz LR (3-df)", "Statistic": self.lr_stat, "P-Value": self.lr_pvalue, "Verdict": "Fail to Reject" if self.lr_pvalue > 0.05 else "Reject"},
-            {"Test": "Kolmogorov-Smirnov", "Statistic": self.ks_stat, "P-Value": self.ks_pvalue, "Verdict": "Fail to Reject" if self.ks_pvalue > 0.05 else "Reject"},
+            {"Test": "Berkowitz LR (3-df)", "Statistic": self.lr_stat, "P-Value": self.lr_pvalue, "Verdict": "Fail to Reject" if self.lr_pvalue > self.alpha else "Reject"},
+            {"Test": "Kolmogorov-Smirnov", "Statistic": self.ks_stat, "P-Value": self.ks_pvalue, "Verdict": "Fail to Reject" if self.ks_pvalue > self.alpha else "Reject"},
             {"Test": "AR(1) Mean (μ)", "Statistic": self.mu, "P-Value": float("nan"), "Verdict": f"Null: 0.0"},
             {"Test": "AR(1) Volatility (σ)", "Statistic": self.sigma, "P-Value": float("nan"), "Verdict": f"Null: 1.0"},
             {"Test": "AR(1) Persistence (ρ)", "Statistic": self.rho, "P-Value": float("nan"), "Verdict": f"Null: 0.0"},
@@ -159,10 +175,17 @@ class PITUniformityResult:
         return _df_to_typst(self.to_frame(), **kwargs)
 
     def plot(self, *, ax: Any = None, title: str = "PIT Calibration Diagnostics") -> Any:
-        """Plot PIT histogram and Normal QQ plot side-by-side."""
+        """Plot the PIT histogram and a normal QQ plot of Φ⁻¹(PIT).
+
+        Without ``ax`` a new two-panel figure is drawn and ``title`` becomes
+        its suptitle. With ``ax`` only the histogram is drawn on it and
+        ``title`` becomes that axes' title; the caller's figure suptitle is
+        left alone.
+        """
         import matplotlib.pyplot as plt
 
-        if ax is None:
+        own_figure = ax is None
+        if own_figure:
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9, 3.8))
         else:
             fig = ax.figure
@@ -205,7 +228,10 @@ class PITUniformityResult:
             ax2.legend(loc="upper left", fontsize=8)
             ax2.grid(True, ls=":", alpha=0.5)
 
-        fig.suptitle(title, fontsize=11, fontweight="semibold")
+        if own_figure:
+            fig.suptitle(title, fontsize=11, fontweight="bold")
+        else:
+            ax1.set_title(title)
         fig.tight_layout()
         return fig
 
@@ -221,8 +247,11 @@ def pit_uniformity_test(
 ) -> PITUniformityResult:
     """Compute Probability Integral Transform (PIT) uniformity tests.
 
-    Tests whether density forecasts are well-calibrated and temporally independent
-    using the Berkowitz (2001) Likelihood Ratio test and the Kolmogorov-Smirnov test.
+    Tests the null that the PITs are i.i.d. uniform (calibrated and temporally
+    independent density forecasts) with the Berkowitz (2001) Likelihood Ratio
+    test and the Kolmogorov-Smirnov test. Not rejecting the null does not show
+    that the forecasts are calibrated; it only means these tests could not
+    detect a departure with the forecasts at hand.
 
     Parameters
     ----------
@@ -347,6 +376,7 @@ def pit_uniformity_test(
         n_obs=T,
         hist_counts=hist_counts,
         hist_edges=hist_edges,
+        alpha=float(alpha),
     )
 
 
@@ -428,18 +458,26 @@ class FanChartResult:
         else:
             fig = ax.figure
 
-        # Palette colors
+        from matplotlib.colors import is_color_like
+
+        # Palette colors: a named theme, or any matplotlib colour
         palette_map = {
             "banxico": "#006847",       # Mexican green
             "bcb": "#0b3b60",           # Brazilian navy
             "bank_of_england": "#a00000",# Crimson
             "default": "#1f77b4",       # Deep royal blue
         }
-        base_color = palette_map.get(self.palette.lower(), palette_map["default"])
+        if self.palette.lower() in palette_map:
+            base_color = palette_map[self.palette.lower()]
+        elif is_color_like(self.palette):
+            base_color = self.palette
+        else:
+            base_color = palette_map["default"]
 
-        # Plot history
+        # Plot history in the style's foreground colour (black by default)
         h_idx = self.history.index
-        ax.plot(h_idx, self.history.values, color="black", lw=1.8, label="Historical Data")
+        ax.plot(h_idx, self.history.values, color=plt.rcParams["text.color"], lw=1.8,
+                label="Historical Data")
 
         # Connect history last point to forecast origin
         f_idx = self.forecast_mean.index
@@ -473,7 +511,7 @@ class FanChartResult:
         ax.axvline(h_idx[-1], color="grey", lw=1.0, ls=":")
 
         default_title = f"Central Bank Fan Chart ({self.palette.title()} Theme)"
-        ax.set_title(title or default_title, fontsize=11, fontweight="semibold")
+        ax.set_title(title or default_title, fontsize=11, fontweight="bold")
         ax.set_xlabel("Period")
         ax.set_ylabel("Value / Rate")
         ax.legend(loc="best", frameon=True, fontsize=8)
@@ -508,7 +546,8 @@ def fan_chart(
     levels : sequence of float, default (0.3, 0.6, 0.9)
         Central confidence intervals to display (e.g. 0.3 for 30%, 0.6 for 60%, 0.9 for 90%).
     palette : str, default 'default'
-        Color theme: 'banxico', 'bcb', 'bank_of_england', 'default'.
+        Color theme: 'banxico', 'bcb', 'bank_of_england', 'default', or any
+        matplotlib colour (e.g. a gray for a monochrome figure).
     dates : sequence, optional
         Time index for the forecast horizon if not inferred from forecast_mean.
 

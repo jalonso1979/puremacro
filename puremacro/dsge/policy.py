@@ -6,9 +6,22 @@ This module implements:
    with a continuous numerical penalty surface when determinacy fails.
 2. ``discretionary_policy()``: Markov-perfect time-consistent discretionary
    policy equilibrium using Dennis (2007) policy function iteration.
-3. ``lq_commitment()``: Linear-quadratic optimal commitment policy under the
-   timeless perspective (lambda_{-1} = 0), augmenting the first-order system
-   with forward-looking Lagrange multipliers and solving via Klein QZ.
+3. ``lq_commitment()``: Linear-quadratic optimal commitment policy, augmenting
+   the first-order system with forward-looking Lagrange multipliers and solving
+   via Klein QZ. The solved law of motion is the timeless-perspective rule;
+   impulse responses and the conditional loss start from the steady state with
+   lambda_{-1} = 0, where the Ramsey plan chosen at t0 and the timeless rule
+   coincide, and the unconditional loss averages over the stationary
+   distribution of (z_t, lambda_t).
+
+References
+----------
+Jensen, C., and McCallum, B. T. (2002). The non-optimality of proposed monetary
+    policy rules under timeless-perspective commitment. Economics Letters,
+    77(2), 163-168 (NBER Working Paper 8882).
+Sauer, S. (2010). Discretion rather than rules? When is discretionary
+    policymaking better than the timeless perspective? International Journal of
+    Central Banking, 6(2), 1-29.
 """
 from __future__ import annotations
 
@@ -35,44 +48,26 @@ __all__ = ["osr", "discretionary_policy", "lq_commitment", "optimal_policy"]
 # ==============================================================================
 
 def _solve_with_params(model: LinearModel, new_params: dict[str, float]) -> LinearModel:
-    """Re-solve model with updated parameters, preserving declarations."""
-    merged_params = dict(getattr(model, "_params", {}) or {})
-    merged_params.update(new_params)
-    guess = model.steady_state.to_dict()
+    """Re-solve model with updated parameters, preserving declarations.
 
+    ``build_dynare`` / ``load_mod`` models go through
+    :func:`puremacro.dsge.dynare._resolve_dynare_model`: the steady state is
+    re-evaluated (``steady_state_model``) or re-solved when the parameters
+    move it, the declared shock covariance is kept, and the predetermined set
+    includes every lagged variable, so a lag calibrated to 0 is not lost when
+    a rule parameter makes it live. ``build`` models go through
+    :func:`puremacro.dsge.build._resolve_build_model`, which keeps the
+    model's linearisation. Both return ``strict=False`` solutions: an
+    indeterminate rule is flagged in ``solution.eu`` for the caller's penalty.
+    """
     if getattr(model, "_dynare_equations", None) is not None:
-        from puremacro.dsge.dynare import build_dynare
+        from puremacro.dsge.dynare import _resolve_dynare_model
 
-        m_new = build_dynare(
-            model._dynare_equations,
-            variables=model.variables,
-            shocks=model.shocks,
-            params=merged_params,
-            steady_state=guess,
-            guess=guess,
-            states=model.states,
-            order=1,
-            shock_cov=getattr(model, "_shock_cov", None),
-            method=model.method,
-            verify_derivatives=False,
-            strict=False,
-            check_steady_state=False,
-        )
+        m_new = _resolve_dynare_model(model, new_params, strict=False)
     elif getattr(model, "_equations", None) is not None:
-        from puremacro.dsge.build import build as _build
+        from puremacro.dsge.build import _resolve_build_model
 
-        m_new = _build(
-            model._equations,
-            variables=model.variables,
-            states=model.states,
-            shocks=model.shocks,
-            params=merged_params,
-            steady_state=guess,
-            guess=guess,
-            method=model.method,
-            verify_derivatives=False,
-            strict=False,
-        )
+        m_new = _resolve_build_model(model, new_params, strict=False)
     else:
         raise ValueError(
             "Model carries neither _dynare_equations nor _equations; cannot re-solve parameters."
@@ -85,7 +80,18 @@ def _solve_with_params(model: LinearModel, new_params: dict[str, float]) -> Line
         if val is not None:
             replacements[attr] = val
     if replacements:
+        # `replace` keeps only dataclass fields; carry the attributes the
+        # builders attach by hand.
+        attached = {
+            a: getattr(m_new, a)
+            for a in ("_dag", "_compiled", "_is_linear", "_qz_criterium",
+                      "_steady_state_info", "_linearize", "_resolve_states_cache",
+                      "_allow_singular")
+            if hasattr(m_new, a)
+        }
         m_new = dataclasses.replace(m_new, **replacements)
+        for a, v in attached.items():
+            object.__setattr__(m_new, a, v)
 
     return m_new
 
@@ -104,16 +110,48 @@ def osr(
     optimizer: str = "Nelder-Mead",
     maxiter: int = 1000,
     penalty: float = 1e6,
+    xatol: float = 1e-8,
+    fatol: float | None = None,
+    options: Mapping[str, Any] | None = None,
 ) -> OSRResult:
     """Optimize policy rule parameters against theoretical variance loss.
 
     Minimizes the quadratic variance loss:
         L(gamma) = sum_{i in targets} w_i * Var(y_i; gamma)
-    subject to Blanchard-Kahn saddle-path determinacy. When determinacy fails
-    or an evaluation error occurs, returns a continuous quadratic penalty:
+    subject to Blanchard-Kahn saddle-path determinacy. Var is the unconditional
+    (stationary) variance of the first-order solution, in the model's units
+    (squared deviations from steady state; the shock covariance is the
+    model's). When determinacy fails or an evaluation error occurs, returns a
+    continuous quadratic penalty:
         L_penalty(gamma) = 10^8 + 10^4 * ||gamma - gamma_0||^2
     preventing simplex collapse and allowing gradient-free optimizers
     (Nelder-Mead, Powell) to contract cleanly away from unstable regions.
+
+    Achievable accuracy. The loss is quadratic at its minimum,
+    L(gamma) ~ L* (1 + c/2 * ((gamma - gamma*)/gamma*)^2) with normalised
+    curvature c = gamma*^2 L''(gamma*) / L*, so a search that only compares loss
+    values locates the minimizing coefficients, and the allocation they imply,
+    to a relative error of about sqrt(2 eps / c), where eps is the relative
+    precision of the loss (at best machine epsilon, 2.2e-16). For a well-scaled
+    problem (c of order one) this is roughly 1e-8, whatever the tolerances; a
+    flat or badly scaled loss is located less precisely: for the targeting
+    rule x = -phi*pi under the Phillips curve pi = beta*pi(+1) + kappa*x + u
+    with AR(1) cost push, where phi* = kappa / (alpha (1 - beta rho)) = 500
+    and c = 0.02, osr stops at a relative error of 1e-7 under both the new and
+    the old tolerances. The loss itself is then accurate to about 1e-15 relative.
+    With the default Nelder-Mead tolerances (``xatol=1e-8``, ``fatol`` scaled
+    to 1e-12 of the initial loss), at 25 random calibrations of the Clarida,
+    Gali and Gertler (1999) economy with the rule
+    ``i = g/phi + phi_pi*pi + phi_x*x`` (bounds phi_pi in [1, 10],
+    phi_x in [0, 10]), the implied output-gap response to a cost-push shock
+    matches the closed-form optimal simple rule with a relative error of
+    9e-9 (median) and 7e-8 (worst), and the loss to within 4e-15. SciPy's own
+    Nelder-Mead defaults (xatol = fatol = 1e-4, used before this option
+    existed) left errors up to 2.7e-5 when the optimum lies on a bound,
+    for about 1.8 times fewer loss evaluations. When the optimum is a ridge
+    (a continuum of rules implementing the same allocation), the allocation
+    is determined to this accuracy but the coefficients are not: the
+    returned point is one point of the ridge.
 
     Parameters
     ----------
@@ -132,13 +170,46 @@ def osr(
     maxiter : int, default 1000
         Maximum optimizer iterations.
     penalty : float, default 1e6
-        Baseline penalty scale factor.
+        Unused; kept for backward compatibility. It used to be stored as
+        ``loss_initial`` when the baseline moments could not be evaluated,
+        which is now NaN with a RuntimeWarning. The penalty surface above does
+        not depend on it.
+    xatol : float, default 1e-8
+        Nelder-Mead only: absolute tolerance on the rule coefficients (the
+        largest distance of the simplex vertices from the best vertex), in the
+        coefficients' own units. Being absolute, it should scale with the
+        coefficients: about 1e-8 times their magnitude. Much smaller values fall
+        under the precision floor described above and mostly add evaluations;
+        for coefficients much smaller than one, 1e-8 is a loose relative
+        tolerance and a smaller value is needed.
+    fatol : float, optional
+        Nelder-Mead only: absolute tolerance on the spread of the loss across
+        the simplex. Default ``1e-12 * max(1, |initial loss|)`` when the
+        initial loss is finite, else 1e-12. Nelder-Mead stops when both
+        ``xatol`` and ``fatol`` are met.
+    options : Mapping[str, Any], optional
+        Passed to ``scipy.optimize.minimize(options=...)`` and applied last, so
+        it overrides ``maxiter``, ``xatol`` and ``fatol``; use it to set the
+        tolerances of other optimizers (e.g. ``{"xtol": ..., "ftol": ...}``
+        for Powell).
 
     Returns
     -------
     OSRResult
         Frozen dataclass containing optimal coefficients, initial and optimal loss,
         variance breakdown table, and standard presentation methods.
+        ``converged`` is the optimizer's own success flag.
+
+    Warns
+    -----
+    RuntimeWarning
+        When the baseline loss at the initial coefficients cannot be computed
+        (``loss_initial`` is NaN), or when re-solving the model at the returned
+        coefficients fails or gives an indeterminate rule (``loss_opt`` is NaN
+        and ``optimal_model`` is None). The optimizer's own objective value is
+        never reported as the loss, because it may be the penalty. The
+        ``variance_reduction_pct`` column is NaN wherever a variance is missing
+        or the initial variance is zero.
     """
     if isinstance(rule_params, str):
         rule_params = [rule_params]
@@ -161,19 +232,37 @@ def osr(
 
     gamma_0 = np.array([float(model_params[p]) for p in rule_params], dtype=float)
 
-    # Evaluate baseline loss and variances
+    # Evaluate baseline loss and variances. A baseline that cannot be computed is
+    # NaN (with a warning), never a placeholder number.
     try:
         tm_init = model.theoretical_moments()
         cov_init = tm_init.covariance
         var_init = {
-            v: float(cov_init.loc[v, v]) if v in cov_init.index else 0.0
+            v: float(cov_init.loc[v, v]) if v in cov_init.index else np.nan
             for v in targets
         }
         loss_initial = float(sum(weights_dict.get(v, 0.0) * var_init[v] for v in targets))
     except Exception as exc:
-        warnings.warn(f"Failed to evaluate initial baseline moments: {exc}")
+        warnings.warn(
+            f"osr(): failed to evaluate initial baseline moments ({type(exc).__name__}: {exc}); "
+            "loss_initial is NaN.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
         var_init = {v: np.nan for v in targets}
-        loss_initial = float(penalty)
+        loss_initial = float("nan")
+    else:
+        if not np.isfinite(loss_initial):
+            missing = [v for v in targets if not np.isfinite(var_init[v])]
+            warnings.warn(
+                "osr(): the baseline loss at the initial rule is not finite"
+                + (f" (no finite variance for {missing})" if missing else "")
+                + "; loss_initial is NaN.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            loss_initial = float("nan")
+    initial_loss_ok = bool(np.isfinite(loss_initial))
 
     # Define continuous BK failure penalty function
     def _penalty(gamma: np.ndarray, extra_dist: float = 0.0) -> float:
@@ -225,13 +314,25 @@ def osr(
     if bounds is not None:
         scipy_bounds = [bounds.get(p, (None, None)) for p in rule_params]
 
+    # Optimizer options: SciPy's Nelder-Mead defaults (xatol = fatol = 1e-4) stop
+    # far above the attainable precision, so tighter defaults are set here.
+    opt_options: dict[str, Any] = {"maxiter": maxiter}
+    if str(optimizer).strip().lower().replace("_", "-") == "nelder-mead":
+        if fatol is None:
+            scale = abs(loss_initial) if initial_loss_ok else 1.0
+            fatol = 1e-12 * max(1.0, scale)
+        opt_options["xatol"] = float(xatol)
+        opt_options["fatol"] = float(fatol)
+    if options:
+        opt_options.update(dict(options))
+
     # Run optimizer
     opt_res = scipy.optimize.minimize(
         _objective,
         gamma_0,
         method=optimizer,
         bounds=scipy_bounds if optimizer in ("Nelder-Mead", "Powell", "L-BFGS-B") else None,
-        options={"maxiter": maxiter},
+        options=opt_options,
     )
 
     opt_gamma = np.asarray(opt_res.x, dtype=float)
@@ -242,9 +343,15 @@ def osr(
     opt_params = {p: float(opt_gamma[idx]) for idx, p in enumerate(rule_params)}
     initial_params = {p: float(gamma_0[idx]) for idx, p in enumerate(rule_params)}
 
-    # Re-solve at optimum to obtain optimal model and exact variances
+    # Re-solve at optimum to obtain optimal model and exact variances. When that
+    # fails, or the rule found is not determinate, loss_opt is NaN with a warning:
+    # the optimizer's last objective value may be a penalty (>= 1e8), not a loss.
     try:
         m_opt = _solve_with_params(model, opt_params)
+        if not m_opt.is_determinate:
+            raise RuntimeError(
+                f"the rule at the returned coefficients is not determinate (eu = {tuple(m_opt.solution.eu)})"
+            )
         tm_opt = m_opt.theoretical_moments()
         cov_opt = tm_opt.covariance
         var_optimal = {
@@ -252,20 +359,35 @@ def osr(
             for v in targets
         }
         loss_opt = float(sum(weights_dict.get(v, 0.0) * var_optimal[v] for v in targets))
-    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+    except Exception as exc:
         m_opt = None
         var_optimal = {v: np.nan for v in targets}
-        loss_opt = float(opt_res.fun)
+        loss_opt = float("nan")
+        warnings.warn(
+            f"osr(): re-solving the model at the returned coefficients failed ({type(exc).__name__}: "
+            f"{exc}); loss_opt is NaN and optimal_model is None (the optimizer's last objective "
+            f"value was {float(opt_res.fun):.6g}, which is a penalty when >= 1e8).",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+    else:
+        if not np.isfinite(loss_opt):
+            warnings.warn(
+                "osr(): the loss at the returned coefficients is not finite; loss_opt is NaN.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            loss_opt = float("nan")
 
-    # Construct variance table
+    # Construct variance table (NaN wherever a variance, or the reduction, is undefined)
     rows = []
     for v in targets:
         w = weights_dict.get(v, 0.0)
         vi = var_init.get(v, np.nan)
         vo = var_optimal.get(v, np.nan)
-        li = w * vi if not np.isnan(vi) else np.nan
-        lo = w * vo if not np.isnan(vo) else np.nan
-        red_pct = 100.0 * (vi - vo) / vi if (vi > 0 and not np.isnan(vi) and not np.isnan(vo)) else 0.0
+        li = w * vi if np.isfinite(vi) else np.nan
+        lo = w * vo if np.isfinite(vo) else np.nan
+        red_pct = 100.0 * (vi - vo) / vi if (np.isfinite(vi) and np.isfinite(vo) and vi > 0) else np.nan
         rows.append({
             "weight": w,
             "var_initial": vi,
@@ -375,6 +497,45 @@ def _identify_policy_equations(
 # 2. Discretionary Policy (Dennis 2007)
 # ==============================================================================
 
+_LOSS_CRITERIA = ("unconditional", "conditional")
+
+# A closed-loop transition with a root this close to (or beyond) the unit circle
+# has no stationary distribution, so its unconditional loss does not exist.
+_UNIT_ROOT_TOL = 1e-10
+
+
+def _spectral_radius(transition: np.ndarray) -> float:
+    A = np.asarray(transition, dtype=float)
+    if A.size == 0:
+        return 0.0
+    return float(np.max(np.abs(np.linalg.eigvals(A))))
+
+
+def _nonstationary_warning(caller: str, radius: float) -> None:
+    warnings.warn(
+        f"{caller}: the closed-loop transition has spectral radius {radius:.10g} >= 1, so the "
+        "stationary distribution does not exist and the unconditional loss is NaN.",
+        RuntimeWarning,
+        stacklevel=3,
+    )
+
+
+def _discounted_second_moment(
+    transition: np.ndarray, impact_cov: np.ndarray, beta: float
+) -> np.ndarray | None:
+    """Return X = sum_j beta^j G^j S G'^j, i.e. the solution of X = beta G X G' + S.
+
+    With S = N Sigma N', X is (1 - beta) E_0 sum_t beta^t x_t x_t' for
+    x_t = G x_{t-1} + N u_t started from x_{-1} = 0. Returns None when the
+    discounted sum diverges (sqrt(beta) times the spectral radius of G >= 1).
+    """
+    A = np.sqrt(beta) * np.asarray(transition, dtype=float)
+    if A.size and float(np.max(np.abs(np.linalg.eigvals(A)))) >= 1.0:
+        return None
+    X = scipy.linalg.solve_discrete_lyapunov(A, np.asarray(impact_cov, dtype=float))
+    return 0.5 * (X + X.T)
+
+
 def discretionary_policy(
     model: LinearModel,
     target_vars: Sequence[str],
@@ -391,6 +552,7 @@ def discretionary_policy(
     compare_commitment: bool = True,
     kappa: float | None = None,
     slope_pc: float | None = None,
+    loss_criterion: str = "unconditional",
     **kwargs: Any,
 ) -> DiscretionaryPolicyResult:
     """Solve optimal discretionary policy using Dennis (2007) policy iteration.
@@ -428,12 +590,30 @@ def discretionary_policy(
     target_output : float, optional
         Alias for y_star.
     compare_commitment : bool, default True
-        Whether to run lq_commitment to quantify stabilization bias.
+        Whether to run lq_commitment to quantify stabilization bias. With False,
+        ``stabilization_bias`` is NaN (not computed) and ``commitment_result``
+        is None.
     kappa : float, optional
         Phillips curve slope parameter for computing theoretical inflation bias.
         If None, resolved dynamically from model parameters, kwargs, or dynamic Jacobian.
     slope_pc : float, optional
         Alias for kappa.
+    loss_criterion : {"unconditional", "conditional"}, default "unconditional"
+        Loss that ``stabilization_bias`` compares. "unconditional" uses the
+        average loss over the stationary distribution (the ``loss`` field of
+        each regime), which evaluates the timeless-perspective rule on average.
+        Its sign depends on the calibration: for a small enough discount
+        factor, discretion beats the timeless rule under this criterion
+        whenever the output gap has some weight and prices are not flexible
+        (Sauer 2010, Prop. 2). In Sauer's benchmark (Calvo parameter 0.8722,
+        i.e. slope 0.02 at beta = 0.99, output weight 0.0625, serially
+        uncorrelated shocks) discretion wins for beta < 0.839. Nor is the
+        timeless rule the best rule of its own form under this criterion
+        (Jensen and McCallum 2002).
+        "conditional" uses (1 - beta) E_0 sum_t beta^t loss_t from the steady
+        state (the ``conditional_loss`` field), the planner's own criterion,
+        under which commitment is the Ramsey optimum and the bias is
+        non-negative.
     **kwargs : Any
         Additional options passed to solver or parameter overrides.
 
@@ -441,9 +621,24 @@ def discretionary_policy(
     -------
     DiscretionaryPolicyResult
         Frozen dataclass carrying optimal reaction functions, Riccati value matrix V,
-        policy feedback matrix F, closed-loop transition matrices, unconditional loss,
-        inflation bias, stabilization bias, and solved LinearModel under discretion.
+        policy feedback matrix F, closed-loop transition matrices, unconditional and
+        conditional losses, inflation bias, stabilization bias, and solved
+        LinearModel under discretion.
+
+    Warns
+    -----
+    RuntimeWarning
+        When the commitment comparison cannot be computed: ``lq_commitment``
+        raises (``commitment_result`` is then None), or the discretion or
+        commitment loss under ``loss_criterion`` is NaN (for instance when the
+        closed-loop transition has a unit root, so the unconditional loss does
+        not exist). ``stabilization_bias`` is NaN in both cases.
     """
+    loss_criterion = str(loss_criterion).strip().lower()
+    if loss_criterion not in _LOSS_CRITERIA:
+        raise ValueError(
+            f"loss_criterion must be 'unconditional' or 'conditional', got {loss_criterion!r}."
+        )
     if isinstance(instruments, str):
         instruments = [instruments]
     instruments = list(instruments)
@@ -644,13 +839,32 @@ def discretionary_policy(
     else:
         sigma_u = np.asarray(sigma_u, dtype=float)
 
-    try:
-        sigma_x = scipy.linalg.solve_discrete_lyapunov(G, N_mat @ sigma_u @ N_mat.T)
-        sigma_x = 0.5 * (sigma_x + sigma_x.T)
-        loss = float(np.trace(W_full @ sigma_x))
-    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+    radius_G = _spectral_radius(G)
+    if radius_G >= 1.0 - _UNIT_ROOT_TOL:
+        _nonstationary_warning("discretionary_policy()", radius_G)
         sigma_x = np.zeros((N, N))
         loss = np.nan
+    else:
+        try:
+            sigma_x = scipy.linalg.solve_discrete_lyapunov(G, N_mat @ sigma_u @ N_mat.T)
+            sigma_x = 0.5 * (sigma_x + sigma_x.T)
+            loss = float(np.trace(W_full @ sigma_x))
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError) as exc:
+            warnings.warn(
+                f"discretionary_policy(): the unconditional loss is NaN because the Lyapunov "
+                f"solve failed ({type(exc).__name__}: {exc}).",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            sigma_x = np.zeros((N, N))
+            loss = np.nan
+
+    # Conditional loss from the steady state: trace(W X), X = beta G X G' + N Sigma N'
+    try:
+        X_cond = _discounted_second_moment(G, N_mat @ sigma_u @ N_mat.T, beta)
+        conditional_loss = np.nan if X_cond is None else float(np.trace(W_full @ X_cond))
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError):
+        conditional_loss = np.nan
 
     # Policy reaction function table
     # Columns are variables in perm order [y_names + instruments]
@@ -768,8 +982,11 @@ def discretionary_policy(
     else:
         inflation_bias = 0.0
 
+    # Stabilization bias: NaN whenever it is not computed (compare_commitment=False)
+    # or cannot be computed (the commitment solve fails, or either loss is NaN);
+    # the last two cases also warn. It is never reported as a silent 0.0.
     commitment_res = None
-    stabilization_bias = 0.0
+    stabilization_bias = float("nan")
     if compare_commitment:
         try:
             commitment_res = lq_commitment(
@@ -780,11 +997,32 @@ def discretionary_policy(
                 beta=beta,
                 policy_eq=policy_eq,
             )
-            if commitment_res is not None and not np.isnan(commitment_res.loss):
-                stabilization_bias = float(loss - commitment_res.loss)
-        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+        except Exception as exc:  # the comparison must not abort the discretion solve
             commitment_res = None
-            stabilization_bias = 0.0
+            warnings.warn(
+                f"discretionary_policy(): the commitment solve failed ({type(exc).__name__}: {exc}); "
+                "stabilization_bias is NaN and commitment_result is None.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+        else:
+            if loss_criterion == "conditional":
+                disc_loss, comm_loss = conditional_loss, commitment_res.conditional_loss
+            else:
+                disc_loss, comm_loss = loss, commitment_res.loss
+            unavailable = [
+                f"the {name} {loss_criterion} loss is {'NaN' if np.isnan(value) else 'infinite'}"
+                for name, value in (("discretion", disc_loss), ("commitment", comm_loss))
+                if not np.isfinite(value)
+            ]
+            if unavailable:
+                warnings.warn(
+                    f"discretionary_policy(): {'; '.join(unavailable)}; stabilization_bias is NaN.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+            else:
+                stabilization_bias = float(disc_loss - comm_loss)
 
     # Wrap into LinearModel for seamless .irf(), .fevd(), .simulate()
     sol_discretion = KleinSolution(
@@ -824,6 +1062,7 @@ def discretionary_policy(
         instruments=tuple(instruments),
         beta=float(beta),
         loss=loss,
+        conditional_loss=conditional_loss,
         policy_rules=df_policy_rules,
         F=df_F,
         V=V_model,
@@ -837,6 +1076,7 @@ def discretionary_policy(
         multipliers=(),
         linear_model=m_discretion,
         commitment_result=commitment_res,
+        loss_criterion=loss_criterion,
     )
 
 
@@ -852,21 +1092,43 @@ def lq_commitment(
     *,
     beta: float = 0.99,
     discount: float | None = None,
-    timeless: bool = True,
+    timeless: bool | None = None,
     policy_eq: int | str | Sequence[int | str] | None = None,
     **kwargs: Any,
 ) -> PolicyResult:
-    """Solve optimal linear-quadratic commitment policy under the timeless perspective.
+    """Solve optimal linear-quadratic commitment policy.
 
     Forms the social planner's Lagrangian over the linear rational-expectations
     constraints and quadratic loss:
-        min_{z_t} 1/2 E_0 sum_{t=0}^infty beta^t z_t^T W z_t
-    subject to the private sector equilibrium conditions:
+        min_{z_t} 1/2 E_0 sum_{t=0}^infty beta^t z_t^T W z_t,  W = diag(weights),
+    subject to the M private sector equilibrium conditions left after removing
+    the instrument's policy rule:
         A_+ E_t z_{t+1} + A_0 z_t + A_- z_{t-1} + B_u u_t = 0
-    yielding the augmented 2N-dimensional saddle-path system in (z_t, lambda_t):
+    yielding the augmented (N + M)-dimensional saddle-path system in
+    X_t = (z_t, lambda_t):
         cal_A_+ E_t X_{t+1} + cal_A_0 X_t + cal_A_- X_{t-1} + cal_B_u u_t = 0
-    solved via klein_solve under stationary timeless-perspective initial conditions
-    (lambda_{-1} = 0). Policy multipliers are exposed as model variables.
+    with planner rows W z_t + A_0' lambda_t + beta^{-1} A_+' lambda_{t-1}
+    + beta A_-' E_t lambda_{t+1} = 0, solved by klein_solve. Policy multipliers
+    are exposed as model variables (states when they enter with a lag).
+
+    Ramsey versus timeless perspective. The solved law of motion, with lagged
+    multipliers as states, is the same under both; they differ only in the
+    initial multiplier. The Ramsey plan chosen at t0 sets lambda_{-1} = 0
+    whatever the history; the timeless perspective applies the t >= 1
+    condition at t0 as well, i.e. uses the multiplier implied by past policy
+    (Jensen and McCallum 2002, eqs. 4a-4c and 5). The outputs are evaluated as
+    follows:
+
+    * the linear model's impulse responses and ``conditional_loss`` start from
+      the steady state with lagged variables and multipliers at zero
+      (lambda_{-1} = 0). From the steady state the multiplier implied by past
+      policy is also zero, so the Ramsey plan and the timeless rule coincide
+      there (JM 2002, fn. 12: rule (5) is optimal if y_0 = 0);
+    * ``loss`` is the unconditional expectation over the stationary
+      distribution of (z_t, lambda_t): the timeless rule evaluated on average,
+      the criterion of the literature reviewed by Jensen and McCallum (2002).
+      It is NaN, with a RuntimeWarning, when the closed-loop transition has a
+      root on or outside the unit circle.
 
     Parameters
     ----------
@@ -882,8 +1144,10 @@ def lq_commitment(
         Policymaker discount factor.
     discount : float, optional
         Alias for beta.
-    timeless : bool, default True
-        If True, applies the timeless-perspective stationary initial condition (lambda_{-1} = 0).
+    timeless : bool, optional
+        Deprecated; it never changed the result and passing it (either value)
+        emits a FutureWarning. See "Ramsey versus timeless perspective" above
+        for what the outputs are.
     policy_eq : int, str, or sequence, optional
         Explicit index or tag name of the policy rule equation(s) to remove.
 
@@ -892,7 +1156,23 @@ def lq_commitment(
     PolicyResult
         Frozen dataclass carrying augmented LinearModel where Lagrange multipliers
         (mult_*) are accessible as model variables for IRFs, FEVD, and moments.
+
+    References
+    ----------
+    Jensen, C., and McCallum, B. T. (2002). The non-optimality of proposed
+        monetary policy rules under timeless-perspective commitment. Economics
+        Letters, 77(2), 163-168 (NBER Working Paper 8882).
     """
+    if timeless is not None:
+        warnings.warn(
+            "lq_commitment(timeless=...) is deprecated and has no effect: the solved law of "
+            "motion is the same for the Ramsey plan and the timeless-perspective rule, impulse "
+            "responses and conditional_loss start from the steady state (lambda_{-1} = 0), where "
+            "the two coincide, and loss averages over the stationary distribution. Omit the "
+            "argument.",
+            FutureWarning,
+            stacklevel=2,
+        )
     if discount is not None:
         beta = float(discount)
     beta = float(beta)
@@ -1028,14 +1308,38 @@ def lq_commitment(
     else:
         sigma_u = np.asarray(sigma_u, dtype=float)
 
-    try:
-        sigma_s = scipy.linalg.solve_discrete_lyapunov(G, N_state @ sigma_u @ N_state.T)
-        sigma_s = 0.5 * (sigma_s + sigma_s.T)
-        cov_X = F_full @ sigma_s @ F_full.T + L_full @ sigma_u @ L_full.T
-        loss = float(np.trace(W @ cov_X[:N, :N]))
-    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+    radius_G = _spectral_radius(G)
+    if radius_G >= 1.0 - _UNIT_ROOT_TOL:
+        _nonstationary_warning("lq_commitment()", radius_G)
         cov_X = np.zeros((total_vars, total_vars))
         loss = np.nan
+    else:
+        try:
+            sigma_s = scipy.linalg.solve_discrete_lyapunov(G, N_state @ sigma_u @ N_state.T)
+            sigma_s = 0.5 * (sigma_s + sigma_s.T)
+            cov_X = F_full @ sigma_s @ F_full.T + L_full @ sigma_u @ L_full.T
+            loss = float(np.trace(W @ cov_X[:N, :N]))
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError) as exc:
+            warnings.warn(
+                f"lq_commitment(): the unconditional loss is NaN because the Lyapunov solve "
+                f"failed ({type(exc).__name__}: {exc}).",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            cov_X = np.zeros((total_vars, total_vars))
+            loss = np.nan
+
+    # Conditional loss from the steady state (zero lagged multipliers, so the
+    # Ramsey plan): z_t = F s_{t-1} + L u_t gives L Sigma L' + beta F X_s F'.
+    try:
+        X_s = _discounted_second_moment(G, N_state @ sigma_u @ N_state.T, beta)
+        if X_s is None:
+            conditional_loss = np.nan
+        else:
+            cov_cond = beta * F_full @ X_s @ F_full.T + L_full @ sigma_u @ L_full.T
+            conditional_loss = float(np.trace(W @ cov_cond[:N, :N]))
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError):
+        conditional_loss = np.nan
 
     # Build steady state series (original model steady state for z, 0.0 for multipliers)
     ss_dict = {v: float(model.steady_state[v]) for v in variables if v in model.steady_state.index}
@@ -1087,6 +1391,7 @@ def lq_commitment(
         impact_matrix=N_state,
         multipliers=tuple(mult_names),
         linear_model=m_commitment,
+        conditional_loss=conditional_loss,
     )
 
 
@@ -1109,6 +1414,7 @@ def optimal_policy(
     tol: float = 1e-9,
     policy_eq: int | str | Sequence[int | str] | None = None,
     compare_commitment: bool = True,
+    loss_criterion: str = "unconditional",
     **kwargs: Any,
 ) -> DiscretionaryPolicyResult | PolicyResult:
     """Solve optimal monetary and macroeconomic policy under discretion or commitment.
@@ -1128,7 +1434,10 @@ def optimal_policy(
           or ``"pi^2 + 0.25 * (y - 0.05)^2"``.
         - sequence: loss weights matching ``target_vars``.
     rule : {"discretion", "commitment"}, default "discretion"
-        Policy regime to solve.
+        Policy regime to solve. "ramsey" and "timeless" are accepted aliases of
+        "commitment" and return the same :func:`lq_commitment` result: its law
+        of motion is common to both, and its responses and conditional loss
+        start from the steady state, where they coincide.
     instruments : Sequence[str] or str, optional
         Policy instrument(s). If omitted, inferred from model variables (e.g. "r", "i").
     target_vars : Sequence[str], optional
@@ -1149,6 +1458,10 @@ def optimal_policy(
         Equation(s) in model corresponding to policy rule to remove.
     compare_commitment : bool, default True
         Under discretion, whether to solve commitment and compute stabilization bias.
+    loss_criterion : {"unconditional", "conditional"}, default "unconditional"
+        Under discretion, the loss that ``stabilization_bias`` compares; see
+        :func:`discretionary_policy`. Both results always carry ``loss`` and
+        ``conditional_loss``.
     **kwargs : Any
         Additional keyword arguments forwarded to the solver.
 
@@ -1242,6 +1555,7 @@ def optimal_policy(
             y_star=y_star,
             target_output=target_output,
             compare_commitment=compare_commitment,
+            loss_criterion=loss_criterion,
             **kwargs,
         )
     elif rule_lower in ("commitment", "comm", "ramsey", "timeless"):

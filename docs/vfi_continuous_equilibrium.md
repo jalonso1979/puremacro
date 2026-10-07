@@ -163,12 +163,18 @@ ge_result = solve_aiyagari_continuous(
     n_z=3,
     max_evals=25,
 )
+# converged: household EGM fixed point, stationary distribution and
+# |K^s - K^d| < tol_ge (1e-4), all checked at r*
 assert ge_result.converged
+assert ge_result.metadata["egm_converged"]
 assert abs(ge_result.capital_market_clearing_error) < 1e-4
 
 summary_df = ge_result.summary()
 print(f"Equilibrium r* = {ge_result.r:.4f}, K* = {ge_result.K:.4f}, w* = {ge_result.w:.4f}")
+print(f"EGM iterations at r*: {ge_result.metadata['egm_iterations']}")
 ```
+
+`ge_result.converged` is True only when three things hold at $r^*$: the household's consumption policy is a fixed point of the EGM (Coleman) operator to `egm_tol` within `egm_max_iter` iterations, the stationary distribution solver converged, and $|K^s - K^d| <$ `tol_ge`. Otherwise it is False and a `RuntimeWarning` names the failed criterion; `metadata` keeps `egm_iterations`, `egm_residual`, `dist_converged` and `clearing_ok`. This example needs about 2,600 EGM iterations at $r^*$, because $\beta(1+r^*)$ is close to one. Up to 4.3.0 the loop stopped silently at 500 iterations and `converged` was always True: the policy was left up to 0.09 from the fixed point, the true excess demand at the reported $r^*$ was $1.6\cdot10^{-2}$ against a reported $-2.5\cdot10^{-6}$, and $r^*$ came out at 0.039421 instead of 0.039416 ($K^*$ 6.6252 instead of 6.6257).
 
 ---
 
@@ -220,8 +226,15 @@ solve_aiyagari_continuous(
     r_bracket: tuple[float, float] | None = None,
     solver: str = "auto",
     backend: str = "numpy",
-    xtol: float = 1e-6,
-    max_evals: int = 60,
+    xtol: float = 1e-8,
+    max_evals: int = 100,
+    dist_options: dict | None = None,
+    P_z: np.ndarray | None = None,
+    z_grid: np.ndarray | None = None,
+    n_a: int = 150,
+    egm_tol: float = 1e-8,
+    egm_max_iter: int = 10000,
+    tol_ge: float = 1e-4,
     **kwargs: Any,
 ) -> AiyagariContinuousEquilibrium
 ```
@@ -233,7 +246,15 @@ solve_aiyagari_continuous(
 - `shock_grid`: 1D array of discrete shock values $z_1, \dots, z_{n_z}$.
 - `method`: Invariant distribution solver algorithm: `"auto"`, `"sparse_direct"`, `"power"`, or `"arnoldi"`.
 - `tol`: Absolute convergence tolerance for invariant distribution solvers (default $10^{-12}$).
-- `r_bracket`: Tuple $(r_{\min}, r_{\max})$ bracketing the equilibrium interest rate for Brent's bisection.
+- `r_bracket`: Tuple $(r_{\min}, r_{\max})$ bracketing the equilibrium interest rate for Brent's method, with $-\delta < r_{\min}$ and $r_{\max} < 1/\beta - 1 - 10^{-4}$. When omitted, the search starts on $(10^{-3}, 1/\beta - 1 - 5\cdot10^{-4})$; if savings already exceed the firm's capital demand at $10^{-3}$, the lower end moves to $-\delta + 10^{-3}$, so equilibria with negative rates are found.
+- `solver`: `"auto"` or `"egm"` (case-insensitive; `None` is read as `"auto"`); both select the endogenous grid method, the only household solver implemented here. Any other value, `"collocation"` and `"fem"` included, raises `ValueError` (up to 4.3.0 every value was silently solved by EGM). For a collocation or finite-element household, pass your own problem to `continuous_stationary_equilibrium`.
+- `xtol`: Brent's tolerance on the interest rate $r$ itself; `tol_ge` checks the market-clearing residual, which is roughly `xtol` times the slope of $K^s - K^d$ in $r$ (several hundred near $r^*$ with `n_z=3`). `AiyagariContinuousModel.solve` and `AiyagariContinuousEquilibrium.solve` use the same default, $10^{-8}$; up to 4.3.0 they used $10^{-6}$, which leaves $|K^s - K^d| \approx 6\cdot10^{-4}$ in the example above, so with that value `converged` is False.
+- `P_z`, `z_grid`: A Markov chain for productivity used instead of the Tauchen discretization of `rho_z`, `sigma_z`, `n_z`.
+- `n_a`: Nodes of the household's EGM asset grid, $a_{\max} \cdot \operatorname{linspace}(0, 1, n_a)^{1.5}$. Raise it together with `a_max`: the spacing near the borrowing constraint drives the error in $r$. For Aiyagari's $\sigma = 0.4$, $\rho = 0.9$, $\mu = 5$ economy, `a_max=200` with the default 150 nodes misplaces the equilibrium ($-0.09\%$) by 0.03 percentage points, and `n_a=800` brings it within 0.003.
+- `egm_tol`: Stopping rule of the household EGM loop, the sup-norm change of the consumption policy between two iterations (in units of consumption; default $10^{-8}$). When the iteration contracts slowly the policy is further from the fixed point than this step: about $2\cdot10^{-7}$ at the defaults.
+- `egm_max_iter`: Cap on EGM iterations per trial rate (default 10,000; it was a fixed, hidden 500 up to 4.3.0). The count grows as $r$ approaches $1/\beta - 1$ and depends on the calibration: the example above needs about 2,600 at $r^*$ and about 3,700 at the default upper end of the bracket; riskier calibrations need more there (about 13,300 with `sigma_z=0.35`, `n_z=3` and the default `a_max=30`), so the cap can bind at the end of the bracket; in that economy $r^*$ is the same to $10^{-10}$ with `egm_max_iter=20000`. Hitting the cap at a trial rate other than $r^*$ (in practice the upper end of the bracket, where Brent needs only the sign) can only steer the search and is counted in `metadata["egm_cap_hits"]`; hitting it at $r^*$ makes `converged` False and warns.
+- `tol_ge`: Market-clearing tolerance on $|K^s - K^d|$, in units of capital (default $10^{-4}$), required for `converged`.
+- `**kwargs`: Not used. An unknown keyword (for example `tol` or `max_iter`) emits a `FutureWarning` naming it and is ignored; it will raise `TypeError` in a future release. Up to 4.3.0 unknown keywords were dropped silently.
 
 ---
 

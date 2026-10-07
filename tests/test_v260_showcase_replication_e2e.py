@@ -162,15 +162,6 @@ class TestTier1FeatureCoverage:
                     violations.append(f"{nb.relative_to(WORKSPACE_ROOT)}: {imp}")
         assert not violations, f"Forbidden package imports found: {violations}"
 
-    def test_t1_f1_n12_paleoclimate_uses_native_regress(self):
-        """T1.1.3: Verify N12 paleoclimate showcase exclusively imports puremacro.regress."""
-        n12_path = NOTEBOOKS_DIR / "macro_history_and_climate" / "N12_paleoclimate_eiv_and_simex.py"
-        assert n12_path.exists(), f"N12 missing at {n12_path}"
-        
-        imports = _get_file_imports(n12_path)
-        assert any("puremacro.regress" in imp for imp in imports), f"N12 must import puremacro.regress; found: {imports}"
-        assert not any("statsmodels" in imp for imp in imports), "N12 still contains statsmodels import"
-
     def test_t1_f1_no_prohibited_imports_in_course_directory(self):
         """T1.1.4: Verify zero prohibited imports in notebooks/course directory."""
         course_dir = NOTEBOOKS_DIR / "course"

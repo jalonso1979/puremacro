@@ -27,7 +27,7 @@
 # Europe (`puremacro.fetch.vacancies_eurostat`), both frozen offline here.
 
 # %% [markdown]
-# ## The matching function in math
+# ## The method in math: the matching function
 #
 # The workhorse model (Pissarides 2000; survey in Petrongolo-Pissarides
 # 2001) generates the curve from a matching technology
@@ -43,6 +43,17 @@
 # a rise in separations $s$ or mismatch shifts it outward. JOLTS measures
 # every object in these equations directly: openings ($V$), hires ($M$),
 # quits and layoffs (the two faces of $s$).
+#
+# ### Baseline Model Parameters
+#
+# | Symbol | Parameter Description | Baseline Value | Units / Accounting Convention |
+# | :--- | :--- | :--- | :--- |
+# | $\alpha$ | Matching function elasticity with respect to unemployment | $0.408$ | Dimensionless Cobb–Douglas exponent ($M = \mu U^\alpha V^{1-\alpha}$) |
+# | $\mu$ | Labor market matching efficiency | $0.823$ | Monthly matching productivity constant |
+# | $\theta_{\text{peak}}$ | Peak historical US labor market tightness (March 2022) | $2.04$ | Vacancies per unemployed worker ($V/U$) |
+# | $s$ | Monthly job separation rate (quits + layoffs) | $0.035$ | Fraction of employed workers separating per month |
+# | $T_{\text{US}}$ | US JOLTS sample length (2000-12 to 2026-05) | $305$ | Monthly observations ($25.5$ years) |
+# | $N_{\text{EU}}$ | Eurostat job-vacancy panel dimensions | $29 \text{ countries}$ | $1,825$ country-quarter observations |
 
 # %% [markdown]
 # **Intuition.** The curve slopes down because vacancies and unemployment
@@ -55,6 +66,14 @@
 # vacancies fell from historic highs with almost no rise in unemployment —
 # a nearly vertical descent that neither side of the 2022 debate predicted
 # in full.
+#
+# ### Key References
+#
+# - **Beveridge, W. H. (1944).** *Full Employment in a Free Society.* London: Allen & Unwin.
+# - **Blanchard, O. J., & Diamond, P. (1989).** *The Beveridge curve.* Brookings Papers on Economic Activity, 1989(1), 1–76.
+# - **Petrongolo, B., & Pissarides, C. A. (2001).** *Looking into the black box: A survey of the matching function.* Journal of Economic Literature, 39(2), 390–431.
+# - **Figura, A., & Waller, C. J. (2022).** *What does the Beveridge curve tell us about the likelihood of a soft landing?* FEDS Notes, Board of Governors of the Federal Reserve System.
+# - **Blanchard, O., Domash, A., & Summers, L. H. (2022).** *Bad news for the Fed: Lessons from the Beveridge curve.* PIIE Policy Brief 22-7.
 
 # %% [markdown]
 # ## Setup — two frozen panels
@@ -248,7 +267,7 @@ print(f"IP at h=12: slack {r_ip['beta_L'].iloc[0]:+.2f} "
       f"[{r_ip['lo_H'].iloc[0]:+.2f},{r_ip['hi_H'].iloc[0]:+.2f}]")
 
 # %% [markdown]
-# **Honest read.** On this sample the answer is a null — and worth
+# **Read the output.** On this sample the answer is a null — and worth
 # teaching as one. No horizon in either regime is significant at 90%,
 # and the point estimates lean the *opposite* way from the
 # "uncertainty bites harder in slack markets" prior: tight-regime IP
@@ -272,7 +291,7 @@ print(f"IP at h=12: slack {r_ip['beta_L'].iloc[0]:+.2f} "
 # splits are not available in this freeze.)
 
 # %%
-# ← Change these:
+# ← change this: country code and sample split date
 COUNTRY_TRY = "ESP"
 SPLIT_TRY = "2013-01-01"
 

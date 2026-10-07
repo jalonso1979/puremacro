@@ -27,13 +27,14 @@ bibliography: paper.bib
      public ORCID registry (checked 2026-09-13); confirm it is yours. Set `date` to
      the day you submit. -->
 
-<!-- This draft is NOT pinned to an old release: it tracks the current one, 3.4.0.
+<!-- This draft is NOT pinned to an old release: it tracks the current one, 4.6.0.
      Every count in the text (modules, lines, tests, swept library modules,
-     validation checks, notebook pairs, commits) was recomputed from the 3.4.0 tree
-     on 2026-09-16, and `scorecard.png` was re-verified against `validation.scorecard()`
-     on the same tree — 107 checks, 15 subsystems, 19 external / 29 analytical /
-     59 internal, all passing, identical to 3.3.0. Re-run the commands in
-     RELEASING.md §6.5 before submitting. -->
+     validation checks, notebook pairs, commits) was recomputed from the 4.6.0 tree
+     (commit d2634362) on 2026-10-04, and `scorecard.png` was regenerated from
+     `validation.scorecard()` on the same tree: 114 checks, 16 subsystems,
+     21 external (14 package + 5 SciPy + 2 published) / 31 analytical / 62 internal,
+     all passing (4.4.0 had 110: 20 / 31 / 59; 3.4.0 had 107: 19 / 29 / 59). Re-run
+     the commands in RELEASING.md §6.5 before submitting. -->
 
 # Summary
 
@@ -125,7 +126,7 @@ tests, not a feature that can be added to another project's dependency graph.
 Matplotlib (plus requests, in the data layer) at module scope; anything else, from
 Parquet support to optional accelerators, is optional and imported only when
 available. Two tests enforce the rule against the packages most likely to leak in.
-The first imports each of the 547 library modules (examples, teaching helpers,
+The first imports each of the 597 library modules (examples, teaching helpers,
 text-scraping sources and optional Numba kernels are excluded) and fails if
 statsmodels, linearmodels, arch or the scraping packages bs4, pdfplumber and pypdf
 have entered `sys.modules`. The second repeats the sweep in a subprocess in which
@@ -159,32 +160,38 @@ best-effort target rather than a supported one: Parquet and Excel files need
 engines that not every Pyodide distribution provides. A headless harness in the
 repository runs the library in Node.js against a pinned Pyodide, and an opt-in
 release gate installs the package there exactly as the playground does and runs a
-31-test smoke subset of the suite.
+31-test smoke subset of the suite. On 3 October 2026 the same harness ran the
+whole validation gallery inside Pyodide 0.28.3 and 314.0.5 (the version the
+playground pins): all 114 checks passed on both, in about 36 to 38 seconds
+against 21 on the desktop, with the same pass flags everywhere and four margins
+differing between WebAssembly and native arithmetic by at most $5 \times 10^{-4}$.
 
-<!-- AUTHOR: re-run `python tools/release_check.py --pyodide` on the submitted
-     commit and, if the full validation gallery passes there, say so and name the
-     Pyodide version it reported. -->
+<!-- AUTHOR: re-run `python tools/pyodide_gallery.py` on the submitted commit and
+     update the sentence above if the counts or Pyodide versions changed. -->
 
-**Scale.** Version 3.4.0 comprises about 750 modules and 231,000 lines of Python,
-exercised by about 14,300 tests that CI runs on Linux, macOS and Windows under
-Python 3.11–3.13. Before a release is tagged, a script checks the suite against a
-recorded baseline, the import invariant, a snapshot of the public API that must be
+**Scale.** Version 4.6.0 comprises about 810 modules and 282,000 lines of Python,
+exercised by about 19,100 tests, of which CI runs 18,900 on Linux, macOS and Windows
+under Python 3.11–3.13 on every push and the remaining slow, reference and
+replication tests weekly and on every release tag, where they gate publication.
+Before a release is tagged, a script checks the suite against a recorded
+baseline, the import invariant, a snapshot of the public API that must be
 regenerated deliberately when the interface changes, that every shipped file still
 parses on the oldest supported Python, and that the version string agrees across
 the package metadata, changelog and citation file.
 
 ## Verification
 
-The validation gallery, `puremacro.validation.scorecard()`, runs 107 checks across
-15 subsystems in under a minute, with none of the oracle packages installed; all
+The validation gallery, `puremacro.validation.scorecard()`, runs 114 checks across
+16 subsystems in under a minute, with none of the oracle packages installed; all
 pass (\autoref{fig:scorecard}). The checks differ in strength, and each records
-its reference. Nineteen compare against an external reference: stored outputs of
-statsmodels, arch, linearmodels and esda, SciPy results computed at run time, or a
-published table. Agreement with independent implementations is typically at
+its reference. Twenty-one compare against an external reference: stored outputs of
+statsmodels, arch, linearmodels and esda, SciPy results computed at run time, a
+published table, or, for the trade model, the solution of the author's legacy
+MATLAB implementation on the same input-output table. Agreement with independent implementations is typically at
 machine precision (median relative difference of order $10^{-15}$); the exception
 is GARCH, whose estimates differ from arch's by up to 0.35% because the two
-packages use different optimisers. Twenty-nine checks compare against analytical
-results, and 59 test internal consistency, such as agreement between alternative
+packages use different optimisers. Thirty-one checks compare against analytical
+results, and 62 test internal consistency, such as agreement between alternative
 algorithms and recovery of parameters from simulated data.
 
 A separate replication gallery, `puremacro.replication.scorecard()`, reproduces
@@ -194,9 +201,9 @@ output effect of tax changes [@romer2010], as well as two qualitative prediction
 of incomplete-markets models [@huggett1993; @aiyagari1994]: precautionary saving
 holds the interest rate below the rate of time preference, and the rate falls as
 income risk rises. Most model solvers (sequence-space, continuous-time, spatial,
-trade and climate) are covered by unit tests but not yet by gallery checks.
+and climate) are covered by unit tests but not yet by gallery checks; the trade model gained its first four checks in 4.6.0, on a 77-country, 11-sector OECD table rebuilt from a clean release.
 
-![The validation gallery of `puremacro` 3.4.0: 107 checks in 15 subsystems, by kind of reference; all pass. *External reference*: stored outputs of statsmodels, arch, linearmodels or esda, SciPy computed at run time, or a published table. *Analytical result*: a closed form, or an effect planted in simulated data. *Internal consistency*: agreement between alternative algorithms, identities that correct output must satisfy, or recovery of parameters from simulated data. Regenerate with `python paper/make_scorecard_fig.py`.\label{fig:scorecard}](scorecard.png){ width=80% }
+![The validation gallery of `puremacro` 4.6.0: 114 checks in 16 subsystems, by kind of reference; all pass. *External reference*: stored outputs of statsmodels, arch, linearmodels or esda, SciPy computed at run time, or a published table. *Analytical result*: a closed form, or an effect planted in simulated data. *Internal consistency*: agreement between alternative algorithms, identities that correct output must satisfy, or recovery of parameters from simulated data. Regenerate with `python paper/make_scorecard_fig.py`.\label{fig:scorecard}](scorecard.png){ width=80% }
 
 # Research impact statement
 
@@ -213,7 +220,7 @@ on evidence a reviewer can check.
 material on it. The course's 22 Spanish lesson notebooks are in the repository
 (`notebooks/course`), and 20 of them call `puremacro` directly.
 
-*Reproducible material.* The repository contains 60 bilingual (English/Spanish)
+*Reproducible material.* The repository contains 70 bilingual (English/Spanish)
 pairs of worked-example notebooks; all of them, with the lesson notebooks, are also
 published as a JupyterLite [@jupyterlite] site that runs them in the browser.
 
@@ -230,9 +237,9 @@ guidelines, and CI on three operating systems.
 
 Generative AI was used extensively in writing `puremacro`, its documentation and
 this paper. Anthropic's Claude models, used through the Claude Code agent (Claude
-Opus 5, Claude Fable 5 and Claude Fable 5.1), generated or co-wrote much of the
-code, tests, documentation and notebooks: 111 of the 214 commits in the public
-repository carry a Claude co-author trailer. Google's Jules coding agent
+Opus 5, Claude Opus 5.5, Claude Fable 5 and Claude Fable 5.1), generated or
+co-wrote much of the code, tests, documentation and notebooks: 205 of the 344
+commits in the public repository carry a Claude co-author trailer. Google's Jules coding agent
 contributed 20 pull requests (refactoring, performance and test improvements),
 each reviewed and merged by the author. Claude also drafted and revised this
 paper, including checking its claims against the code and its references against
@@ -246,13 +253,31 @@ alone: it is checked by the test suite, the validation and replication galleries
 and CI.
 
 <!-- AUTHOR, required before submitting (JOSS treats an incomplete or inaccurate
-     disclosure as an ethical breach):
-     (1) confirm that the review assertion in the paragraph above is accurate;
-     (2) add the AI tools used during private development (2026-04-28 to
-         2026-07-20, squashed into the first public commit), and the model and
-         version behind Jules;
-     (3) refresh the counts: `git rev-list --count HEAD` and
-         `git log -i --grep='co-authored-by: claude' --oneline | wc -l`. -->
+     disclosure as an ethical breach). Only you can confirm items 1-4; do not
+     submit with this comment still here.
+     (1) TOOLS AND MODELS, PUBLIC PERIOD (2026-07-20 onward). The commit trailers
+         on origin/main at d2634362 (4.6.0) name: Claude Opus 5 (105 commits),
+         Claude Opus 5.5 (31), Claude Fable 5.1 (29), Claude Opus 5 (1M context)
+         (26) and Claude Fable 5 (14); the sentence above now names all four model
+         families. Confirm that no other assistant (Copilot, ChatGPT, Cursor,
+         Gemini, ...) was used without leaving a trailer.
+     (2) TOOLS AND MODELS, PRIVATE PERIOD (2026-04-28 to 2026-07-20, inside the
+         private `uncertainty_examples` monorepo and squashed into the first
+         public commit, so no trailer records it): list every AI tool and model
+         used then, and say roughly how much of the code it produced. The
+         sentence above currently covers only the public repository.
+     (3) JULES: 20 commits by google-labs-jules[bot], merged through 20 pull
+         requests, are on origin/main. Name the model and version behind Jules
+         (the commits do not record it), and confirm "each reviewed and merged
+         by the author".
+     (4) REVIEW ASSERTION: confirm that "reviewed, edited and validated all
+         AI-assisted output before it was merged" is literally true, including
+         for multi-agent workflow commits; if not, soften it to what is true.
+     (5) COUNTS ("205 of the 344 commits"): recomputed on 2026-10-04 at
+         d2634362 with RELEASING.md §6.5, i.e.
+         `git rev-list --count origin/main` and
+         `git log origin/main -i --grep='co-authored-by: claude' --oneline | wc -l`.
+         Re-run on the submitted commit; commits after 4.6.0 will move both. -->
 
 # Acknowledgements
 

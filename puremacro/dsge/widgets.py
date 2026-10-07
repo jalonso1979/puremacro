@@ -92,7 +92,17 @@ def _fast_resolve(
     strict: bool = False,
     qz_criterium: float = 1.0 + 1e-8,
 ) -> LinearModel:
-    """Re-solve a LinearModel rapidly with updated parameter dictionary."""
+    """Re-solve a LinearModel rapidly with updated parameter dictionary.
+
+    ``build_dynare`` / ``load_mod`` and ``build`` models go through the same
+    re-solve as ``osr`` and estimation (:func:`puremacro.dsge.dynare.
+    _resolve_dynare_model`, :func:`puremacro.dsge.build._resolve_build_model`):
+    the steady state follows the parameters, the declared shock covariance is
+    kept and a lag calibrated to 0 stays a state when a slider makes it live.
+    A parsed model (``ParsedModelDAG``) goes through
+    :func:`puremacro.dsge.dynare._resolve_parsed_dag_model`, with the same
+    guarantees.
+    """
     if hasattr(model, "first_order") and isinstance(getattr(model, "first_order"), LinearModel):
         model = model.first_order
 
@@ -101,68 +111,32 @@ def _fast_resolve(
 
     # 1. Lead-lag Dynare model (from build_dynare or load_mod)
     if getattr(model, "_dynare_equations", None) is not None:
-        from puremacro.dsge.dynare import build_dynare
+        from puremacro.dsge.dynare import _resolve_dynare_model
 
-        ss = getattr(model, "_steady_state_dict", None)
-        if ss is None and hasattr(model, "steady_state"):
-            ss = model.steady_state.to_dict() if hasattr(model.steady_state, "to_dict") else dict(model.steady_state)
-
-        return build_dynare(
-            model._dynare_equations,
-            variables=list(model.variables),
-            shocks=list(model.shocks),
-            params=new_params,
-            steady_state=ss,
-            states=list(model.states) if hasattr(model, "states") else None,
-            shock_cov=getattr(model, "_shock_cov", None),
-            method=getattr(model, "method", "complex"),
-            check_steady_state=False,
-            verify_derivatives=False,
-            strict=strict,
-            qz_criterium=qz_criterium,
+        return _resolve_dynare_model(
+            model, new_params, strict=strict, qz_criterium=qz_criterium,
         )
 
-    # 2. Parsed Model DAG / AST equations
+    # 2. Parsed Model DAG / AST equations: the sliders are merged with the
+    # file's calibration (a DAG has no ``_params``, so they used to be the
+    # only parameters passed), the steady_state_model block is re-evaluated
+    # at the merged values and the shocks; block is kept.
     elif hasattr(model, "compile_equations") and hasattr(model, "variables"):
-        from puremacro.dsge.dynare import build_dynare
+        from puremacro.dsge.dynare import _resolve_parsed_dag_model
 
-        eq_fn = model.compile_equations()
-        ss = getattr(model, "steady_state", {v: 0.0 for v in model.variables})
-        if hasattr(ss, "to_dict"):
-            ss = ss.to_dict()
-        return build_dynare(
-            eq_fn,
-            variables=list(model.variables),
-            shocks=list(model.shocks),
-            params=new_params,
-            steady_state=ss,
-            shock_cov=getattr(model, "_shock_cov", None),
-            check_steady_state=False,
-            verify_derivatives=False,
-            strict=strict,
-            qz_criterium=qz_criterium,
+        return _resolve_parsed_dag_model(
+            model, dict(p_dict), strict=strict, qz_criterium=qz_criterium,
         )
 
     # 3. Klein timing model (from build)
     elif getattr(model, "_equations", None) is not None:
-        from puremacro.dsge.build import build
+        from puremacro.dsge.build import _resolve_build_model
 
-        ss = getattr(model, "_steady_state_dict", None)
-        if ss is None and hasattr(model, "steady_state"):
-            ss = model.steady_state.to_dict() if hasattr(model.steady_state, "to_dict") else dict(model.steady_state)
-
-        return build(
-            model._equations,
-            variables=list(model.variables),
-            states=list(model.states),
-            shocks=list(model.shocks),
-            params=new_params,
-            steady_state=ss,
-            method=getattr(model, "method", "complex"),
-            check_steady_state=False,
-            verify_derivatives=False,
-            strict=strict,
-            qz_criterium=qz_criterium,
+        # build() has no check_steady_state switch, so the old call raised
+        # TypeError; the stored steady state is reused only where it still
+        # solves the model.
+        return _resolve_build_model(
+            model, new_params, strict=strict, qz_criterium=qz_criterium,
         )
 
     else:

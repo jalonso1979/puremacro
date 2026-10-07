@@ -16,7 +16,7 @@
 # **¿Cómo se propaga un ajuste monetario imprevisto sobre la producción y la inflación, y por qué la conclusión causal depende de si la política reacciona dentro del trimestre?** Un VAR en forma reducida captura la dinámica pero no la estructura *causal*. Aquí plantamos un choque monetario contractivo conocido en un VAR(2) sintético y lo recuperamos de dos formas — identificación recursiva por **Cholesky** y **restricciones de signo** — usando `puremacro.var.identify`. Todo se ejecuta en el navegador con datos sintéticos.
 
 # %% [markdown]
-# ## De la forma reducida a la estructura
+# ## El método en matemáticas: de la forma reducida a la estructura
 #
 # Un VAR($p$) en forma reducida proyecta cada variable sobre el pasado reciente de todas las variables:
 # $$ y_t = A_1 y_{t-1} + \cdots + A_p y_{t-p} + u_t, \qquad \mathbb{E}[u_t u_t'] = \Sigma_u. $$
@@ -38,9 +38,28 @@
 #   cuyas respuestas de impacto coinciden con una prior de signos. Muchas $B$ son admisibles, por lo que
 #   el choque está **identificado en conjunto** — se reporta la mediana y una banda sobre las rotaciones admisibles.
 #
+# ### Parametrización base
+#
+# | Símbolo | Parámetro | Significado económico | Calibración base | Unidades contables / físicas |
+# |---|---|---|---|---|
+# | $p$ | Orden de rezago | Rezagos autorregresivos incluidos en el VAR empírico | $2$ | Trimestres (Entero) |
+# | $T$ | Longitud muestral | Número de observaciones trimestrales simuladas | $400$ | Trimestres (100 Años) |
+# | $H$ | Horizonte de FIR | Trimestres hacia adelante para la propagación del impulso | $16$ | Trimestres (4 Años) |
+# | $B_{0,\text{true}}$ | Matriz de impacto | Matriz de transmisión contemporánea de choques estructurales | VAR(2) plantado | Elasticidad / Impacto |
+# | $n_{\text{boot}}$ | Iteraciones de bootstrap | Remuestreos para el intervalo de confianza bootstrap residual | $400$ | Extracciones enteras |
+# | $n_{\text{draws}}$ | Rotaciones de Haar | Extracciones ortogonales aleatorias para el conjunto de signos | $600$ | Extracciones enteras |
+# | $\text{CI}$ | Nivel de confianza | Cobertura probabilística de las bandas de error | $0.90$ | Probabilidad adimensional |
+#
 # **Intuición.** Un ordenamiento recursivo es un supuesto *económico* sobre qué puede moverse dentro del
 # período; reordenar las variables cambia el "choque". Las restricciones de signo asumen menos, por lo que
 # identifican un *conjunto* de respuestas — de ahí que sus bandas sean más amplias.
+#
+# ### Referencias bibliográficas seminales
+#
+# - Christiano, L. J., Eichenbaum, M., & Evans, C. L. (2005). Nominal rigidities and the dynamic effects of a shock to monetary policy. *Journal of Political Economy*, 113(1), 1–45.
+# - Rubio-Ramírez, J. F., Waggoner, D. F., & Zha, T. (2010). Structural vector autoregressions: Theory of identification and algorithms for inference. *Review of Economic Studies*, 77(2), 665–696.
+# - Sims, C. A. (1980). Macroeconomics and reality. *Econometrica*, 48(1), 1–48.
+# - Uhlig, H. (2005). What are the effects of monetary policy on output? Results from an agnostic identification procedure. *Journal of Monetary Economics*, 52(2), 381–419.
 
 # %%
 import sys
@@ -151,9 +170,9 @@ assert np.all(s_med <= s_upper + 1e-9)
 assert c_point[0, RATE] > 0 and s_med[0, RATE] > 0
  
 # %% [markdown]
-# ## Lectura del resultado
+# ## Lectura de los resultados
 #
-# **Lectura del resultado.** Las tablas de resumen impresas y los vectores de impacto revelan
+# **Lectura de los resultados.** Las tablas de resumen impresas y los vectores de impacto revelan
 # cómo los dos esquemas de identificación recuperan el choque monetario contractivo plantado:
 #
 # 1. **Ordenamiento recursivo de Cholesky (`chol.summary()`)**: Con la tasa de política ordenada
@@ -264,7 +283,7 @@ assert abs(out_to_rate) > 1e-8
 # (`order=[0, 1, 2]`) y confirma que `out_to_rate` regresa a ≈0 (el cero recursivo original).
 # (3) Amplía el bootstrap (`n_boot=800`) y comprueba cuánto se mueve la FIR puntual.
 #
-# **¿Qué tan completa es la biblioteca?** `puremacro.var` / `puremacro.svar` van mucho más
+# **¿Qué tan exhaustivo es esto?** `puremacro.var` / `puremacro.svar` van mucho más
 # allá de estos dos esquemas: restricciones de largo plazo de Blanchard-Quah, proxy-SVAR /
 # identificación por instrumentos externos (p. ej., choques fiscales narrativos de
 # Mertens-Ravn), descomposiciones de varianza del error de pronóstico y descomposiciones

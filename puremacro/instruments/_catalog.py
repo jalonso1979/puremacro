@@ -337,21 +337,40 @@ register(InstrumentSpec(
 # --------------------------------------------------------------------------
 def _load_gk2015_ffr_surprise(*, ff_futures_pre, ff_futures_post,
                                days_remaining_in_month, dates,
-                               days_in_month=30, freq: str = "M") -> Instrument:
+                               days_in_month=30, freq: str = "M",
+                               quote: str = "rate",
+                               aggregation: str = "sum") -> Instrument:
     """Loader for the Gertler-Karadi 2015 month-end-adjusted FFR surprise.
+
+    The series is the surprise in the futures-implied **rate**, positive for a
+    tightening (GK 2015, NBER WP 20224, eq. (19)), scaled by ``T/(T - t)``
+    (footnote 6), in the rate units of the inputs (percentage points when the
+    quotes are in percent). See :func:`puremacro.hfi.gk2015_surprise`.
 
     Parameters
     ----------
     ff_futures_pre, ff_futures_post : array-like
-        Federal-funds-futures contracts before and after each FOMC announcement.
+        Current-month federal-funds-futures quotes just before and after each
+        FOMC announcement, in the convention named by ``quote``.
     days_remaining_in_month : array-like
-        Days remaining in the announcement month at each FOMC date.
+        ``T - t``: days remaining in the announcement month at each FOMC date,
+        the announcement day included.
     dates : array-like of pandas Timestamps
         FOMC announcement dates aligned with the futures arrays.
     days_in_month : int or array-like, default 30
-        Days in the announcement month (scalar or per-announcement).
+        ``T``: days in the announcement month (scalar or per-announcement).
     freq : str, default "M"
         Aggregation frequency.
+    quote : {'rate', 'price'}, default 'rate'
+        ``'rate'`` for futures-implied rates (``100 - price``); ``'price'`` for
+        exchange prices quoted as ``100 - rate``, whose change is negated so
+        that a tightening is positive either way.
+    aggregation : {'sum', 'gk2015'}, default 'sum'
+        Passed to :func:`puremacro.hfi.aggregate_to_period` as ``method``.
+        ``'sum'`` adds each surprise to its own period; ``'gk2015'`` is the
+        GK (2015) footnote-11 period-average surprise, which splits a surprise
+        between its period and the next and matches a VAR in period-average
+        rates.
     """
     import numpy as np
     from ..hfi import gk2015_surprise, aggregate_to_period
@@ -360,15 +379,22 @@ def _load_gk2015_ffr_surprise(*, ff_futures_pre, ff_futures_post,
         np.asarray(ff_futures_post, dtype=float),
         np.asarray(days_remaining_in_month, dtype=float),
         days_in_month=days_in_month,
+        quote=quote,
     )
-    series = aggregate_to_period(surprises, dates, freq=freq)
+    series = aggregate_to_period(surprises, dates, freq=freq, method=aggregation)
     return Instrument(
         series=series,
         name="gk2015_ffr_surprise",
         source="Gertler-Karadi 2015 FFR-futures month-end-adjusted surprise",
         category="monetary_hfi",
         frequency=freq,
-        metadata={"reference": "Gertler-Karadi 2015"},
+        metadata={
+            "reference": "Gertler-Karadi 2015",
+            "quote": quote,
+            "aggregation": aggregation,
+            "units": "implied-rate surprise in the rate units of the inputs; "
+                     "positive = tightening",
+        },
     )
 
 
@@ -378,7 +404,8 @@ register(InstrumentSpec(
     category="monetary_hfi",
     description=(
         "Month-end-adjusted FFR-futures monetary policy surprise around "
-        "FOMC announcements."
+        "FOMC announcements (implied-rate change, positive = tightening; "
+        "pass quote='price' for CME prices quoted as 100 - rate)."
     ),
     reference="Gertler, M. and Karadi, P. (2015). Monetary policy surprises, credit costs, and economic activity. AEJ Macro 7(1), 44-76.",
     loader=_load_gk2015_ffr_surprise,

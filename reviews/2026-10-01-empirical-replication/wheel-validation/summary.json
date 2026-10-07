@@ -1,0 +1,13 @@
+{
+  "validation_passed": true,
+  "wheel_sha256": "aa047fa43f0f748838128a4c4ff36688511f27b2f32e0f02a720697087f0742d",
+  "strict_docs_passed": true,
+  "installed_smoke_passed": true,
+  "all970_copied_source_files_match_final_checkout": true,
+  "scientific_benchmark_passes": 7,
+  "scientific_benchmark_total": 8,
+  "expected_scientific_failure": "rr2010_published_peak, t_h10 only, unchanged absolute tolerance0.005",
+  "rr2010_cli_expected_exit": 1,
+  "artifacts": "/tmp/puremacro-empirical-wheel-final",
+  "scope": "Offline installed-wheel validation; current worktree including pre-existing work; no package published"
+}

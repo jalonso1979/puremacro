@@ -7,7 +7,9 @@ via mean-group ± cross-country fan bands.
 Identification schemes wrapped:
   - "cholesky" — recursive ordering as listed in `var_names` (puremacro.var.identify.cholesky)
   - "sign"     — Rubio-Ramírez-Waggoner-Zha sign restrictions (puremacro.var.identify.sign)
-  - "bq"       — Blanchard-Quah long-run zero (puremacro.var.identify.bq)
+  - "bq"       — Blanchard-Quah long-run zero (puremacro.var.identify.bq);
+                 the rows selected by ``cumulate`` are returned cumulated
+                 over the horizon (levels of differenced variables)
   - "maxshare" — Faust/Uhlig FEVD-max-share (puremacro.var.identify.maxshare)
 
 Each scheme returns IRF arrays of shape (H+1, n, n) (point, lo, hi).
@@ -20,6 +22,7 @@ labelling.
 from __future__ import annotations
 
 import sys
+import zlib
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
@@ -106,7 +109,17 @@ def fit_svar_country(
     ``scheme == "sign"`` the dict additionally carries
     ``"n_accepted"`` (admissible rotations across ``n_draws`` prior
     samples) and ``"n_draws"`` (the requested draw count).
+
+    For ``scheme == "bq"`` the keyword ``cumulate`` (default ``True``) is
+    passed to :func:`puremacro.var.identify.bq.bq_svar`: the selected
+    response rows of ``point``/``lo``/``hi`` are cumulated over the
+    horizon, the others are raw responses. Cumulate only the
+    first-differenced columns of ``Y``; a column in levels must not be
+    cumulated. A malformed ``cumulate`` raises instead of returning None.
     """
+    if scheme == "bq":
+        from puremacro.var.identify.bq import _cumulate_mask
+        _cumulate_mask(scheme_kwargs.get("cumulate", True), Y.shape[1])
     if Y.shape[0] < p + 6:
         return None
 
@@ -152,6 +165,7 @@ def fit_svar_country(
                 Y, p=p, horizon=horizon,
                 permanent_var_idx=permanent_var_idx,
                 n_boot=n_boot, ci=ci, seed=seed,
+                cumulate=scheme_kwargs.get("cumulate", True),
             )
             # Accept both legacy tuple (point, lo, hi) and new BQSVARResult dataclass.
             if hasattr(res, "irf_point"):
@@ -186,7 +200,25 @@ def fit_per_country(
 ) -> dict[str, dict]:
     """Run :func:`fit_svar_country` for each `code`. Skips countries whose
     cleaned sample is shorter than `min_obs`. Returns ``{code: result}``.
+
+    The system is ``[*vars_levels, *vars_diff]`` (see
+    :func:`prep_country_system`). For ``scheme="bq"`` without an explicit
+    ``cumulate=``, only the ``vars_diff`` rows are cumulated (they are
+    reported as level responses) and the ``vars_levels`` rows are raw
+    responses; pass ``cumulate=`` to override. Do not apply
+    :func:`cross_country_irf`'s ``cumulative=True`` to rows that are
+    already cumulated.
+
+    ``n_boot`` (default 300) and ``ci`` (default 0.9) in ``scheme_kwargs``
+    apply to every country. Each country's bootstrap seed is a
+    deterministic function of ``(code, scheme)``.
     """
+    n_boot = scheme_kwargs.pop("n_boot", 300)
+    ci = scheme_kwargs.pop("ci", 0.9)
+    if scheme == "bq" and "cumulate" not in scheme_kwargs:
+        scheme_kwargs["cumulate"] = (
+            [False] * len(vars_levels) + [True] * len(vars_diff)
+        )
     out: dict[str, dict] = {}
     for code in codes:
         _, Y, _ = prep_country_system(
@@ -198,9 +230,11 @@ def fit_per_country(
             continue
         res = fit_svar_country(
             Y, p=p, horizon=horizon, scheme=scheme,
-            n_boot=scheme_kwargs.pop("n_boot", 300),
-            ci=scheme_kwargs.pop("ci", 0.9),
-            seed=hash((code, scheme)) & 0xFFFFFFFF,
+            n_boot=n_boot,
+            ci=ci,
+            # zlib.crc32, not hash(): str hashes are salted per process
+            # (PYTHONHASHSEED), so hash() seeds changed on every run.
+            seed=zlib.crc32(f"{code}|{scheme}".encode()),
             **scheme_kwargs,
         )
         if res is not None:
@@ -222,7 +256,10 @@ def cross_country_irf(
 
     `cumulative=True` returns the cumulative-sum IRF along the horizon
     axis — useful when the variable of interest is a first-difference
-    and the structural concept is the level (e.g. dlog_y → log_y).
+    and the structural concept is the level (e.g. dlog_y → log_y). Do not
+    use it on ``scheme="bq"`` results for a row that ``bq_svar`` already
+    cumulated (by default every ``vars_diff`` row in
+    :func:`fit_per_country`): that would cumulate twice.
     """
     if not results:
         return pd.DataFrame()

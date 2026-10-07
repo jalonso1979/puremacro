@@ -1,0 +1,15 @@
+{
+  "wheel": "/tmp/puremacro-empirical-wheel-final/dist/puremacro-4.3.0-py3-none-any.whl",
+  "sha256": "aa047fa43f0f748838128a4c4ff36688511f27b2f32e0f02a720697087f0742d",
+  "verified_resources": [
+    "puremacro/structural/empirical_sw07.py",
+    "puremacro/replication/romer_romer_2010.py",
+    "puremacro/examples/empirical_sw07_matching.py",
+    "puremacro/examples/romer_romer_2010_replication.py",
+    "puremacro/replication/data/rr2010_original.csv",
+    "puremacro/replication/data/rr2010_original_metadata.json",
+    "puremacro/replication/data/rr2010_statsmodels_reference.json",
+    "puremacro/dsge/_sw07_data.csv"
+  ],
+  "file_count": 877
+}

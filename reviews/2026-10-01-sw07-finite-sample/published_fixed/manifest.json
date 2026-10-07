@@ -1,0 +1,351 @@
+{
+  "study": "SW07 finite-sample conditional Gaussian diagnosis",
+  "source": {
+    "data_kind": "observed US macroeconomic data",
+    "is_synthetic": false,
+    "vintage": "revised FRED snapshot built 2026-09-30; not original SW07 estimation vintage",
+    "source_csv_sha256": "8f8e9c123d01a9d9b51ce128fce2fa0cf5d65e1add2bda22522fbdf05717c5e9",
+    "source_csv_normalized_sha256": "8f8e9c123d01a9d9b51ce128fce2fa0cf5d65e1add2bda22522fbdf05717c5e9",
+    "source_authentication": "pinned reviewed SHA256 after CRLF normalization, exact seven columns and complete 156-quarter sample",
+    "source_csv": "puremacro/dsge/_sw07_data.csv",
+    "source_header": [
+      "# puremacro SW07 dataset \u2014 1966Q1 to 2004Q4 (156 quarterly obs)",
+      "# Definitions: Smets & Wouters (2007), ECB WP 722 data appendix (printed p.47).",
+      "# Source FRED series (fredgraph.csv; quarterly averages of monthly series):",
+      "#   gdp: GDPC1",
+      "#   cons_nom: PCEC",
+      "#   inv_nom: FPI",
+      "#   deflator: GDPDEF",
+      "#   hours_avg: PRS85006023",
+      "#   emp: CE16OV",
+      "#   wage_nom: COMPNFB",
+      "#   ffr: FEDFUNDS",
+      "#   pop: CNP16OV",
+      "# gdp_growth  = 100*dlog(GDPC1/CNP16OV)",
+      "# cons_growth = 100*dlog(PCEC/GDPDEF/CNP16OV)",
+      "# inv_growth  = 100*dlog(FPI/GDPDEF/CNP16OV)",
+      "# wage_growth = 100*dlog(COMPNFB/GDPDEF)",
+      "# log_hours   = 100*log(PRS85006023*CE16OV/CNP16OV), demeaned over the sample",
+      "# infl        = 100*dlog(GDPDEF);  ffr = FEDFUNDS/4 (quarterly percent)",
+      "# Built: 2026-09-30 by tools/build_sw07_data.py"
+    ],
+    "sources": [
+      "https://fred.stlouisfed.org/series/GDPC1",
+      "https://fred.stlouisfed.org/series/PCEC",
+      "https://fred.stlouisfed.org/series/FPI",
+      "https://fred.stlouisfed.org/series/GDPDEF",
+      "https://fred.stlouisfed.org/series/PRS85006023",
+      "https://fred.stlouisfed.org/series/CE16OV",
+      "https://fred.stlouisfed.org/series/COMPNFB",
+      "https://fred.stlouisfed.org/series/FEDFUNDS",
+      "https://fred.stlouisfed.org/series/CNP16OV"
+    ],
+    "data_definition_reference": "https://www.ecb.europa.eu/pub/pdf/scpwps/ecbwp722.pdf",
+    "published_estimation_replication": false
+  },
+  "checkpointing": {
+    "enabled": true,
+    "resumed_draws": {
+      "published_fixed": 0
+    },
+    "interval": "first, every10, final; atomic NPZ/JSON, no pickle"
+  },
+  "replications_per_scenario": 399,
+  "master_seed": 20261001,
+  "scenarios": {
+    "published_fixed": {
+      "scenario_index": 1,
+      "dgp": {
+        "ctou": 0.025,
+        "clandaw": 1.5,
+        "cg": 0.18,
+        "curvp": 10.0,
+        "curvw": 10.0,
+        "calfa": 0.19,
+        "cbeta": 0.9995,
+        "csigma": 1.39,
+        "cfc": 1.61,
+        "cgy": 0.52,
+        "csadjcost": 5.48,
+        "chabb": 0.71,
+        "cprobw": 0.73,
+        "csigl": 1.92,
+        "cprobp": 0.65,
+        "cindw": 0.59,
+        "cindp": 0.22,
+        "czcap": 0.54,
+        "crpi": 2.03,
+        "crr": 0.81,
+        "cry": 0.08,
+        "crdy": 0.22,
+        "crhoa": 0.95,
+        "crhob": 0.18,
+        "crhog": 0.97,
+        "crhoqs": 0.71,
+        "crhoas": 1.0,
+        "crhoms": 0.12,
+        "crhopinf": 0.9,
+        "crhow": 0.97,
+        "cmap": 0.74,
+        "cmaw": 0.88,
+        "constelab": 0.0,
+        "constepinf": 0.81,
+        "constebeta": 0.16,
+        "ctrend": 0.43,
+        "ea": 0.45,
+        "eb": 0.24,
+        "eg": 0.52,
+        "eqs": 0.45,
+        "em": 0.24,
+        "epinf": 0.14,
+        "ew": 0.24
+      },
+      "is_plugin": false,
+      "true_parameters": {
+        "crr": 0.81,
+        "em": 0.24
+      },
+      "observed_objective": 25.2554104021646,
+      "exact_sampling_metadata": {
+        "parameters": {
+          "ctou": 0.025,
+          "clandaw": 1.5,
+          "cg": 0.18,
+          "curvp": 10.0,
+          "curvw": 10.0,
+          "calfa": 0.19,
+          "cbeta": 0.9995,
+          "csigma": 1.39,
+          "cfc": 1.61,
+          "cgy": 0.52,
+          "csadjcost": 5.48,
+          "chabb": 0.71,
+          "cprobw": 0.73,
+          "csigl": 1.92,
+          "cprobp": 0.65,
+          "cindw": 0.59,
+          "cindp": 0.22,
+          "czcap": 0.54,
+          "crpi": 2.03,
+          "crr": 0.81,
+          "cry": 0.08,
+          "crdy": 0.22,
+          "crhoa": 0.95,
+          "crhob": 0.18,
+          "crhog": 0.97,
+          "crhoqs": 0.71,
+          "crhoas": 1.0,
+          "crhoms": 0.12,
+          "crhopinf": 0.9,
+          "crhow": 0.97,
+          "cmap": 0.74,
+          "cmaw": 0.88,
+          "constelab": 0.0,
+          "constepinf": 0.81,
+          "constebeta": 0.16,
+          "ctrend": 0.43,
+          "ea": 0.45,
+          "eb": 0.24,
+          "eg": 0.52,
+          "eqs": 0.45,
+          "em": 0.24,
+          "epinf": 0.14,
+          "ew": 0.24
+        },
+        "transition_spectral_radius": 0.9699999999999995,
+        "lyapunov_relative_residual": 1.744016139108465e-15,
+        "stationary_covariance_factor": {
+          "negative_eigenvalues_clipped_for_roundoff": 14,
+          "minimum_eigenvalue": -9.292067017039027e-14,
+          "roundoff_tolerance": 9.588070252580454e-11,
+          "factor_relative_residual": 3.663478864226532e-15
+        },
+        "measurement_error_included": false,
+        "measurement_error_note": "economic H=0; Kalman numerical ridge excluded",
+        "evidence_kind": "exact_conditional_gaussian_sampling_moments",
+        "is_observed_data": false,
+        "nobs": 156,
+        "effective_observations": 152,
+        "frequency": "Q",
+        "common_max_lag": 4,
+        "demean": true,
+        "mean_treatment": "estimated mean over all nobs observations",
+        "moment_orientation": "Cov(left_t, right_t-lag)",
+        "covariance_scale": "exact covariance of finite-sample moment estimators",
+        "covariance_method": "Gaussian Isserlis fourth moments after exact finite-sample centering; not HAC",
+        "distribution_warning": "quadratic forms in Gaussian observations are not generally Gaussian; moments alone do not establish finite-sample parameter or J inference",
+        "conditioning": "full fixed calibration, stationary Gaussian initial state and independent Gaussian innovations; no calibration uncertainty"
+      },
+      "scope": "fixed Gaussian DGP diagnostic; not composite-null p-value or boundary bootstrap inference"
+    }
+  },
+  "seed_rule": "uint64 first generated state of SeedSequence([master_seed, fixed scenario index, zero-based replication])",
+  "all_scenario_indices": {
+    "baseline_fixed": 0,
+    "published_fixed": 1,
+    "baseline_fitted": 2,
+    "published_fitted": 3
+  },
+  "observations": 156,
+  "common_max_lag": 4,
+  "effective_observations": 152,
+  "moment_labels": [
+    "cov(gdp_growth,gdp_growth;lag=0)",
+    "cov(gdp_growth,infl;lag=0)",
+    "cov(gdp_growth,ffr;lag=0)",
+    "cov(infl,infl;lag=0)",
+    "cov(infl,ffr;lag=0)",
+    "cov(ffr,ffr;lag=0)",
+    "cov(gdp_growth,gdp_growth;lag=1)",
+    "cov(infl,infl;lag=1)",
+    "cov(ffr,ffr;lag=1)",
+    "cov(gdp_growth,gdp_growth;lag=2)",
+    "cov(infl,infl;lag=2)",
+    "cov(ffr,ffr;lag=2)",
+    "cov(gdp_growth,gdp_growth;lag=4)",
+    "cov(infl,infl;lag=4)",
+    "cov(ffr,ffr;lag=4)"
+  ],
+  "fit_moment_count": 9,
+  "reserved_moment_count": 6,
+  "bandwidth": 8,
+  "audited_hac_bandwidths": [
+    4,
+    8,
+    12
+  ],
+  "starts": [
+    [
+      0.5,
+      0.1
+    ],
+    [
+      0.75,
+      0.4
+    ],
+    [
+      0.95,
+      0.7
+    ],
+    [
+      0.8762,
+      0.2397
+    ]
+  ],
+  "bounds": [
+    [
+      0.2,
+      0.98
+    ],
+    [
+      0.01,
+      1.0
+    ]
+  ],
+  "optimizer_tolerance": 1e-09,
+  "max_nfev": 500,
+  "fitting_stages": "full15 sample covariance/HAC, select9, all4 original bounded minimum-distance starts, local diagnostics,6reserved moments; no per-draw profiles or historical splits",
+  "parameter_inference_reported": false,
+  "tail_interpretation": "conditional fixed-DGP diagnostic fractions; no composite-null or boundary-bootstrap validity claimed",
+  "monte_carlo_uncertainty": "95% Clopper-Pearson binomial intervals; unresolved draws included as both none and all exceedances, never silently discarded",
+  "naive_chi2_scope": "deliberately naive chi2(7) rule on usable fits including boundary cases; diagnostic, not valid boundary inference",
+  "regular_j_scope": "numerical-regular subset only; selected denominator reported, not general coverage or size proof",
+  "parameter_bias_scope": "conditional on usable optimization; failure counts remain explicit",
+  "moment_audit_scope": "available empirical moment draws, independently of optimizer success; counts retained",
+  "small_replication_warning": false,
+  "limitations": [
+    "Gaussian stationary state-space DGP conditional on fixed calibration",
+    "revised data and possible historical regime instability",
+    "plug-in scenarios do not supply composite-null p-values",
+    "no calibration uncertainty or strong-identification proof",
+    "finite Monte Carlo precision; no normal parameter intervals restored"
+  ],
+  "references": [
+    "https://www.ecb.europa.eu/pub/pdf/scpwps/ecbwp722.pdf",
+    "https://www.nber.org/papers/t0055",
+    "https://jeanmariedufour.research.mcgill.ca/Dufour_2006_JE_MCT.pdf"
+  ],
+  "package_version": "4.3.0",
+  "environment": {
+    "python": "3.14.6",
+    "numpy": "2.5.2",
+    "scipy": "1.18.1",
+    "pandas": "3.0.5"
+  },
+  "array_shapes": {
+    "moments": [
+      399,
+      15
+    ],
+    "covariances": [
+      399,
+      15,
+      15
+    ]
+  },
+  "summary": [
+    {
+      "scenario": "published_fixed",
+      "is_plugin": false,
+      "replications": 399,
+      "usable_fits": 390,
+      "unresolved_draws": 9,
+      "boundary_fits": 7,
+      "numerically_regular_fits": 383,
+      "observed_objective": 25.2554104021646,
+      "tail_exceedances": 166,
+      "tail_fraction_lower": 0.41604010025062654,
+      "tail_fraction_upper": 0.43859649122807015,
+      "tail_mc_95_lower": 0.3672037208601615,
+      "tail_mc_95_upper": 0.4888422009774748,
+      "naive_chi2_rejections": 248,
+      "naive_chi2_rate_lower": 0.6215538847117794,
+      "naive_chi2_rate_upper": 0.6441102756892231,
+      "naive_chi2_mc_95_lower": 0.5719516652132219,
+      "naive_chi2_mc_95_upper": 0.6911196739613545,
+      "regular_j_rejections": 241,
+      "regular_j_rate_conditional": 0.6292428198433421,
+      "regular_j_mc_95_lower_conditional": 0.5787136461979865,
+      "regular_j_mc_95_upper_conditional": 0.6777574199951707,
+      "criterion_median": 20.679716523807578,
+      "criterion_q95": 115.08561459938197,
+      "true_crr": 0.81,
+      "bias_crr_usable": 0.006284846428689485,
+      "rmse_crr_usable": 0.045026447060724895,
+      "true_em": 0.24,
+      "bias_em_usable": -0.01970769433610552,
+      "rmse_em_usable": 0.062181470150648135
+    }
+  ],
+  "observed_fits": [
+    {
+      "calibration": "published",
+      "crr": 0.8382576403491104,
+      "em": 0.2540855996259026,
+      "objective": 25.2554104021646,
+      "optimizer_success": true,
+      "numerically_regular": true,
+      "boundary": false,
+      "boundary_crr": false,
+      "boundary_em": false,
+      "rank": 2,
+      "j_pvalue": 0.0006836012213876184,
+      "start_successes": 4,
+      "starts_agree": true,
+      "unresolved": false,
+      "start_diagnostics_json": "[{\"start\": [0.5, 0.1], \"theta\": [0.838256125212424, 0.2540878028226058], \"objective\": 25.255410402863326, \"success\": true, \"message\": \"`ftol` termination condition is satisfied.\", \"evaluations\": 13, \"inference_unavailable_reasons\": []}, {\"start\": [0.75, 0.4], \"theta\": [0.8382560719871731, 0.2540878587520038], \"objective\": 25.255410402954148, \"success\": true, \"message\": \"`ftol` termination condition is satisfied.\", \"evaluations\": 12, \"inference_unavailable_reasons\": []}, {\"start\": [0.95, 0.7], \"theta\": [0.8382559415845054, 0.2540880422067202], \"objective\": 25.25541040325473, \"success\": true, \"message\": \"`ftol` termination condition is satisfied.\", \"evaluations\": 16, \"inference_unavailable_reasons\": []}, {\"start\": [0.8762, 0.2397], \"theta\": [0.8382576403491104, 0.2540855996259026], \"objective\": 25.2554104021646, \"success\": true, \"message\": \"`ftol` termination condition is satisfied.\", \"evaluations\": 11, \"inference_unavailable_reasons\": []}]",
+      "status": "regular",
+      "error": ""
+    }
+  ],
+  "json_missing_values": "Unavailable or nonfinite numerical diagnostics are null; retained draw failures are not successful results.",
+  "artifacts": {
+    "summary.csv": "bfd3d60430d8d5382e150eb775161505396f45a0be79e0f55f7ea7f939abb9dd",
+    "draws.csv": "541d753c167ab4df6c9461e04a21b16d7e5feca8cf28720de97c8637a3c06c42",
+    "moment_audit.csv": "4032e2a3185495df4a4f8a79710476bde67c49accd0c36472bb5dbb26074e043",
+    "covariance_audit.csv": "aef358a6f842d441068783edd7e4ff62faa522336e44dddc465db93d15441d9c",
+    "observed_fits.csv": "cfe5c7a06c281d78a178f04a6f69ddf47a4e32de745e46ef60835dbe67ee101e",
+    "draw_evidence.npz": "2c6a799b2c8b62f9b66f7ef4cc66d5699c0ef12536893fa23e736b217a76ebdb",
+    "criterion_distribution.png": "3dfc979b9f9574e952f4bf8f4fd14d50a8e192a2293c1f236e6e0a8d580cb0e2"
+  }
+}

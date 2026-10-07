@@ -1,10 +1,12 @@
 > 🇬🇧 English · 🇪🇸 [Español](es/vfi_analytic_gradients.md)
 
-# Exact Analytic Gradients via the Implicit Function Theorem
+# Parameter Gradients via the Implicit Function Theorem
 
-`puremacro.vfi.analytic_gradients` provides exact machine-precision Jacobians of continuous dynamic programming solutions and general equilibrium macroeconomic aggregates with respect to structural model parameters $\theta = (\beta, \alpha, \delta, \sigma, \dots)$ using the **Implicit Function Theorem (IFT)**. It operates uniformly across Chebyshev orthogonal polynomial collocation, Finite Element Method (FEM) Galerkin projections, and Cubic/Schumaker spline systems.
+`puremacro.vfi.analytic_gradients` provides Jacobians of representative-agent continuous projection solutions, and of the deterministic steady-state aggregates they imply, with respect to structural model parameters $\theta = (\beta, \alpha, \delta, \sigma, \dots)$ using the **Implicit Function Theorem (IFT)**. It operates uniformly across Chebyshev orthogonal polynomial collocation, Finite Element Method (FEM) Galerkin projections, and Cubic/Schumaker spline systems.
 
-In structural econometric estimation (GMM, SMM) and Bayesian posterior sampling (HMC, NUTS), gradient evaluations of dynamic economic models have historically relied on numerical finite differences. However, finite differences suffer from a severe step-size dilemma ($\epsilon \sim 10^{-5}$ balances truncation and round-off error), exhibit numerical chatter near non-linear borrowing constraints, and require $2 \times \dim(\theta)$ full non-linear model re-solves. The `puremacro` analytic gradient engine eliminates these limitations, computing exact derivatives via a **single LU factorization** of the pre-converged residual Jacobian, delivering a **70x+ execution speedup** without step-size tuning.
+**Scope (4.3.0 and later).** The IFT step is one linear solve with the converged residual Jacobian (no re-solve of the model); the residual Jacobians $\mathbf{J}_c$ and $\mathbf{J}_\theta$ it consumes are built by central finite differences with steps `step_c` and `h` (a custom `residual_fn` replaces the built-in residual evaluator and is differenced the same way). Only representative-agent solutions are supported: `compute_ift_gradients` and `equilibrium_parameter_jacobian` raise `NotImplementedError` for any solution that carries a `distribution` attribute (for example `AiyagariContinuousEquilibrium`). The adjoint stationary-distribution sensitivity described in section 1.3 is not implemented.
+
+In structural econometric estimation (GMM, SMM) and Bayesian posterior sampling (HMC, NUTS), gradient evaluations of dynamic economic models have historically relied on numerical finite differences. However, finite differences suffer from a severe step-size dilemma ($\epsilon \sim 10^{-5}$ balances truncation and round-off error), exhibit numerical chatter near non-linear borrowing constraints, and require $2 \times \dim(\theta)$ full non-linear model re-solves. The `puremacro` analytic gradient engine removes the $2 \times \dim(\theta)$ re-solves by computing the coefficient sensitivities from a **single LU factorization** of the converged residual Jacobian. The repository test suite asserts at least a 5x speedup over two-sided finite differences on the worked example of section 4; larger ratios are typical on bigger bases, but the timings quoted in section 3 are indicative rather than a contract.
 
 ---
 
@@ -54,13 +56,17 @@ In a representative-agent continuous projection economy, the deterministic stead
 
 $$\nabla_\theta k^* = \left( 1 - \frac{\partial g(k^*)}{\partial k} \right)^{-1} \nabla_\theta g(k^*)$$
 
-Equilibrium factor prices $r^* = \alpha z (k^*)^{\alpha - 1} - \delta$ and $w^* = (1 - \alpha) z (k^*)^\alpha$ have exact sensitivities:
+Equilibrium factor prices $r^* = \alpha z (k^*)^{\alpha - 1} - \delta$ and $w^* = (1 - \alpha) z (k^*)^\alpha$ have sensitivities:
 
 $$\nabla_\theta r^* = \frac{\partial r^*}{\partial k} \nabla_\theta k^* + \left. \nabla_\theta r^* \right|_{\text{direct}}, \quad \nabla_\theta w^* = \frac{\partial w^*}{\partial k} \nabla_\theta k^* + \left. \nabla_\theta w^* \right|_{\text{direct}}$$
 
-In heterogeneous-agent incomplete-markets economies (Aiyagari 1994), aggregate capital supply is $K^* = \int k \, d\mu^*(k; \theta)$. The adjoint stationary distribution sensitivity propagates through the lottery operator:
+These representative-agent steady-state sensitivities are what `grad_aggregates` returns (keys `K`, `C`, `r`, `w`). They are semi-analytic: the steady-state fixed point is located numerically and its derivative is then propagated analytically through the formulas above.
+
+**Not implemented: heterogeneous-agent economies.** In incomplete-markets economies (Aiyagari 1994) aggregate capital supply is $K^* = \int k \, d\mu^*(k; \theta)$ and its sensitivity would have to propagate through the adjoint of the stationary-distribution (lottery) operator,
 
 $$\nabla_\theta K^* = \sum_{i, m} k_i \nabla_\theta \mu^*(k_i, z_m) = \mathbf{k}^\top (\mathbf{I} - \mathbf{T}^*)^{-1} \nabla_\theta \mathbf{T}^* \boldsymbol{\mu}^*$$
+
+together with the general-equilibrium price response. puremacro 4.3.0 removed the earlier fixed-distribution shortcut because it was not a general-equilibrium sensitivity; since then `compute_ift_gradients`, `equilibrium_parameter_jacobian` and the internal aggregate routine raise `NotImplementedError` for any solution with a `distribution` attribute. The formula is recorded here as the target of future work, not as a shipped feature.
 
 ### 1.4 Fast Structural Estimation (SMM & GMM)
 
@@ -68,11 +74,11 @@ Structural estimation seeks parameter vector $\hat{\theta}$ minimizing the weigh
 
 $$Q(\theta) = \left( m(\theta) - \hat{m} \right)^\top \mathbf{W} \left( m(\theta) - \hat{m} \right)$$
 
-Applying the chain rule, the exact gradient of the GMM objective is:
+Applying the chain rule, the gradient of the GMM objective is:
 
 $$\nabla_\theta Q(\theta) = 2 \left[ \nabla_\theta m(\theta) \right]^\top \mathbf{W} \left( m(\theta) - \hat{m} \right)$$
 
-where $\nabla_\theta m(\theta) = \nabla_c m(c^*) \nabla_\theta c^* + \partial_\theta m$. Because $\nabla_\theta c^*$ is evaluated to machine precision via the IFT, gradient-based quasi-Newton optimizers (L-BFGS-B, SLSQP) converge reliably in a fraction of the time required under finite differences.
+where $\nabla_\theta m(\theta) = \nabla_c m(c^*) \nabla_\theta c^* + \partial_\theta m$. Because $\nabla_\theta c^*$ comes from one linear solve of the converged system rather than from $2p$ noisy re-solves, gradient-based quasi-Newton optimizers (L-BFGS-B, SLSQP) converge reliably in a fraction of the time required under finite differences.
 
 ---
 
@@ -82,7 +88,7 @@ where $\nabla_\theta m(\theta) = \nabla_c m(c^*) \nabla_\theta c^* + \partial_\t
 |---|---|---|---|
 | **Mathematical Basis** | $\mathbf{P} \mathbf{L} \mathbf{U} = \mathbf{J}_c$ | $(\mathbf{J}_c^\top \mathbf{J}_c + \lambda \mathbf{I})^{-1} \mathbf{J}_c^\top$ | $\mathbf{V} \mathbf{\Sigma}^+ \mathbf{U}^\top$ with cutoff $\sigma_i > \epsilon \sigma_1$ |
 | **Condition Threshold** | $\text{cond}(\mathbf{J}_c) \le 10^{12}$ | $10^{12} < \text{cond}(\mathbf{J}_c) \le 10^{15}$ | Singular or ill-posed systems |
-| **Accuracy** | Machine precision ($10^{-14}$) | Damped regularized gradient | Filtered subspace gradient |
+| **Accuracy** | Backward-stable LU solve (error of order $\text{cond}(\mathbf{J}_c) \cdot \epsilon_{\text{mach}}$) on top of the central-difference error of $\mathbf{J}_c$ and $\mathbf{J}_\theta$ | Damped regularized gradient | Filtered subspace gradient |
 | **Cost** | $\frac{2}{3} N^3$ flops | $O(N^3)$ flops | $O(N^3)$ (full singular value spectrum) |
 | **Selection** | Automatic default (`"auto"`) | Triggered on ill-conditioned bases | High-degree collinear polynomials |
 
@@ -90,20 +96,20 @@ where $\nabla_\theta m(\theta) = \nabla_c m(c^*) \nabla_\theta c^* + \partial_\t
 
 ## 3. Comparative Benchmarks & Precision Analysis
 
-| Dimension | Exact Analytic IFT (`puremacro`) | Two-Sided Finite Differences |
+| Dimension | IFT gradients (`puremacro`) | Two-Sided Finite Differences |
 |---|---|---|
-| **Gradient Accuracy** | Exact to machine precision ($10^{-14}$) | Discretization error $O(\epsilon^2) \approx 10^{-5}$ |
-| **Step-Size Dilemma** | None (step-size free) | Requires careful tuning ($\epsilon = 10^{-4}$ vs $10^{-6}$) |
+| **Gradient Accuracy** | Backward-stable IFT solve given $\mathbf{J}_c$, $\mathbf{J}_\theta$ (themselves central differences with steps `step_c`, `h`); the shipped test checks agreement with a finite-difference re-solve to relative $10^{-5}$ | Discretization error $O(\epsilon^2) \approx 10^{-5}$ plus re-solve tolerance noise |
+| **Step-Size Dilemma** | Reduced: steps `step_c`, `h` difference the residual at the fixed converged coefficients, with no re-solve inside the difference | Requires careful tuning ($\epsilon = 10^{-4}$ vs $10^{-6}$) |
 | **Model Evaluations** | $1$ (converged steady state) | $2 \times p$ full non-linear re-solves |
-| **Execution Time ($p = 4$)** | $\approx 1.2 \text{ ms}$ | $\approx 85 \text{ ms}$ (**70x speedup**) |
-| **Numerical Chatter** | Zero chatter (analytical smooth path) | Severe round-off noise near borrowing kinks |
+| **Execution Time ($p = 4$)** | one Jacobian build and one LU solve (indicative: milliseconds on the section 4 example) | $2p$ non-linear re-solves (the shipped test asserts the IFT path is at least 5x faster) |
+| **Numerical Chatter** | No re-solve tolerance noise (the residual is differenced at fixed coefficients); round-off of the residual differences remains | Severe round-off noise near borrowing kinks |
 | **Optimizer Stability** | Robust Hessian updates (BFGS/L-BFGS) | Spurious gradient reversals trigger premature termination |
 
 ---
 
 ## 4. Runnable Worked Examples
 
-The following script solves a neoclassical growth model via Chebyshev collocation, computes exact parameter sensitivities via the IFT, and evaluates macroeconomic aggregate derivatives:
+The following script solves a neoclassical growth model via Chebyshev collocation, computes IFT parameter sensitivities, and evaluates macroeconomic aggregate derivatives:
 
 ```python
 import numpy as np
@@ -134,7 +140,7 @@ prob = CollocationProblem(
 )
 sol = prob.solve(backend="numpy")
 
-# 2. Compute Exact Machine-Precision IFT Jacobians
+# 2. IFT Jacobians (J_c, J_theta by central differences; one LU solve)
 ift_res = compute_ift_gradients(sol, prob, params=["alpha", "beta", "delta"])
 assert ift_res.condition_number < 1e6
 assert ift_res.grad_coefficients.shape == (7, 3)
@@ -198,7 +204,7 @@ gmm_objective_and_gradient(
 ```
 
 #### Parameters:
-- `solution`: Converged solution object from `CollocationProblem.solve()`, `FEMProblem.solve()`, `SplineCollocationProblem.solve()`, or `AiyagariContinuousEquilibrium`.
+- `solution`: Converged representative-agent solution object from `CollocationProblem.solve()`, `FEMProblem.solve()` or `SplineCollocationProblem.solve()`. Heterogeneous-agent solutions (any object with a `distribution` attribute, such as `AiyagariContinuousEquilibrium`) raise `NotImplementedError`.
 - `problem`: Associated economic problem definition.
 - `params`: Sequence of parameter names to differentiate (e.g. `['alpha', 'beta', 'delta']`). If `None`, automatically inspects model parameters.
 - `h`: Step size for parameter differentiation $\nabla_\theta \mathbf{R}$ (default $10^{-5}$).
@@ -216,7 +222,7 @@ gmm_objective_and_gradient(
 
 ### Attributes
 - `grad_coefficients`: $N \times p$ Jacobian matrix $\nabla_\theta c^*$ of basis coefficients.
-- `grad_aggregates`: Dictionary of macroeconomic aggregate derivatives `{"K": (p,), "C": (p,), "r": (p,), "w": (p,)}`.
+- `grad_aggregates`: Dictionary of representative-agent steady-state aggregate derivatives `{"K": (p,), "C": (p,), "r": (p,), "w": (p,), "mu": None}` (semi-analytic, section 1.3). The `"mu"` entry is always `None`: no stationary-distribution sensitivity is computed.
 - `param_names`: Ordered list of differentiated structural parameter names.
 - `jacobian_resid_c`: Residual Jacobian $\mathbf{J}_c = \nabla_c \mathbf{R}$ of shape $(N, N)$.
 - `jacobian_resid_theta`: Parameter Jacobian $\mathbf{J}_\theta = \nabla_\theta \mathbf{R}$ of shape $(N, p)$.

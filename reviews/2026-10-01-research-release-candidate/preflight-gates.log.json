@@ -1,0 +1,10 @@
+{
+  "command": [
+    "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python",
+    "tools/release_check.py",
+    "--no-tests"
+  ],
+  "returncode": 1,
+  "completed_at_utc": "2026-10-01T21:34:00.764943+00:00",
+  "stage": "preflight; current checkout remains under active development"
+}

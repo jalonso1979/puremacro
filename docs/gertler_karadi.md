@@ -121,19 +121,24 @@ res_occbin = solve_gertler_karadi(
     threshold=0.0025,  # Intervene if spread exceeds 100 bps
 )
 
-# 4. Compare Responses
+# 4. Compare Responses. to_frame() holds level deviations x_t - x_ss (the model
+#    is linearised in levels); to_frame(units="pct") gives 100 * (x_t - x_ss) / x_ss.
 df_klein = res_klein.to_frame()
 df_occbin = res_occbin.to_frame()
+pct_klein = res_klein.to_frame(units="pct")
+pct_occbin = res_occbin.to_frame(units="pct")
 
-print("Peak Net Worth Contraction (Klein) :", df_klein["N"].min())
-print("Peak Net Worth Contraction (OccBin):", df_occbin["N"].min())
-print("Peak Spread Surge (Klein, bps)     :", df_klein["prem"].max() * 40000)
-print("Peak Spread Surge (OccBin, bps)    :", df_occbin["prem"].max() * 40000)
+print("Peak Net Worth Contraction (Klein, %) :", pct_klein["N"].min())
+print("Peak Net Worth Contraction (OccBin, %):", pct_occbin["N"].min())
+print("Peak Spread Surge (Klein, bps)        :", df_klein["prem"].max() * 40000)
+print("Peak Spread Surge (OccBin, bps)       :", df_occbin["prem"].max() * 40000)
 
 # 5. Diagnostic Summary & Visualizations
 print(res_occbin.summary())
-fig = res_occbin.plot()
+fig = res_occbin.plot(units="pct")
 ```
+
+Bank net worth falls 61.7% on impact under Klein and 49.2% under OccBin, where the credit policy absorbs part of the loss; the annualised spread rises by up to about 604 bps and 256 bps above its steady state of 100 bps. Read the percentages from `to_frame(units="pct")`: in levels net worth falls by 0.852 and 0.679 against $N_{ss} = 1.381$, and multiplying a level deviation by 100 gives a percentage only for variables whose steady state is 1.
 
 ---
 
@@ -171,13 +176,19 @@ solve_gertler_karadi(
 `GertlerKaradiResult` provides structured model simulations and outputs:
 
 - **Attributes**:
-  - `irf`: Dictionary mapping variable names to their $(T,)$ time paths.
-  - `variables`: List of model variable identifiers (`['y', 'c', 'i', 'q', 'k', 'n', 'phi', 'prem', ...]`).
-  - `steady_state`: Dictionary of calculated steady-state values.
+  - `irf`: `pandas.DataFrame` of impulse responses, one column per model variable and one row per quarter (row 0 is the impact quarter). The entries are **level deviations from the steady state**, $x_t - x_{ss}$, in model units: the equilibrium conditions are linearised in levels, so they are neither percent nor log deviations. `res["N"]` returns one column.
+  - `variables`: List of the model's variable names, the columns of `irf`: `['Y', 'C', 'I', 'K', 'L', 'w', 'rho_c', 'Q', 'R', 'Rk', 'prem', 'N', 'Ne', 'Nn', 'phi', 'nu', 'eta', 'Omega', 'Pm', 'Z', 'U', 'Pi', 'Rn', 'xi', 'a', 'psi']`.
+  - `steady_state`: Dictionary of calculated steady-state values, keyed by the same names (plus calibration targets such as `spread_ann`).
   - `regimes`: for OccBin, the regime indicator per quarter (`0` = reference, `1` = constrained); `binding_periods` counts the constrained quarters.
   - `converged`: `False` when the OccBin regime iteration hit `max_iter` (a `RuntimeWarning` is emitted and `summary()` flags it).
+- **Units of a level deviation**:
+  - `Y`, `C`, `I`, `K`, `N`, `Ne`, `Nn`, `L`, `w`: model units ($L_{ss} = 1/3$).
+  - `R`, `Rk`, `Rn`: gross *quarterly* returns, so the deviation is the change in the net quarterly rate as a fraction (0.0025 = 25 bps per quarter, 100 bps annualised). `Pi` is gross quarterly inflation.
+  - `prem`: the expected quarterly spread $\mathbb{E}_t[R_{k,t+1} - R_{t+1}]$ as a fraction; `40000 * prem` is annualised basis points.
+  - `phi`: private bank leverage $(1 - \psi_t) Q_t K_t / N_t$, a ratio; `psi`: the public share of intermediated assets, whose steady state is 0.
+  - `100 * (x_t - x_ss)` is a percentage only for variables whose steady state is 1 (`Q`, `U`, `xi`, `a`, `Pi`). At the default solve capital falls by 0.2866 in level on impact against $K_{ss} = 5.6601$: that is −5.06%, not −28.66%.
 - **Methods**:
-  - `to_frame()`: Returns a `pandas.DataFrame` indexed by simulation quarters $t = 0, \dots, T-1$.
-  - `.plot()`: Matplotlib multi-panel figure displaying trajectories for GDP, Investment, Bank Net Worth, Asset Price $Q$, Leverage $\phi$, and Credit Spread.
-  - `.summary()`: Comprehensive plain-text report of steady state, shock calibration, and peak responses.
-  - `.to_markdown()`, `.to_latex()`, `.to_typst()`: Formatted tables for academic manuscripts.
+  - `to_frame(units="level")`: Returns a `pandas.DataFrame` indexed by simulation quarters $t = 0, \dots, T-1$. `units="level"` (the default) returns `irf` unchanged; `units="pct"` returns percent deviations $100\,(x_t - x_{ss})/x_{ss}$. `psi`, whose steady state is 0, has no percent deviation: it is NaN and listed in `df.attrs["pct_undefined"]`. `df.attrs["units"]` records the choice.
+  - `.plot(variables=None, style="publication", figsize=None, units="level")`: Matplotlib multi-panel figure; by default Output, Investment, Bank Net Worth, Credit Spread, Policy Rate `Rn` and Leverage $\phi$, with the constrained OccBin quarters shaded. `units` is passed to `to_frame`, and the y-axis label states it.
+  - `.summary()`: Plain-text report of the steady state, the shock and the impact, minimum, maximum, mean and final values of the key variables, in level deviations (the header says so and points to `units="pct"`).
+  - `.to_markdown(units="level")`, `.to_latex(units="level")`, `.to_typst(units="level")`: Formatted tables for academic manuscripts; `units` is passed to `to_frame`.

@@ -215,7 +215,9 @@ def harmonic_mean_mdd(
     cov = np.atleast_2d(cov)
     cov = 0.5 * (cov + cov.T)
     sign, logdet = np.linalg.slogdet(cov)
-    if sign <= 0:
+    # The sign of an exactly singular determinant is rounding noise (it came out
+    # positive on some BLAS builds), so the numerical rank is checked as well.
+    if sign <= 0 or np.linalg.matrix_rank(cov) < d:
         raise ValueError(
             "harmonic_mean_mdd: the posterior covariance of the draws is "
             "singular, so Geweke's weighting function is undefined. The chain "

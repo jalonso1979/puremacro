@@ -11,6 +11,9 @@ Scope (seven cases across the mechanisms that admit a SOUND, INDEPENDENT check):
 * PUBLISHED ``stock_yogo_cv`` returns the Stock-Yogo (2005, Table 5.2) 2SLS
             relative-bias critical values for the single-endogenous-regressor
             case — asserted EXACTLY against the published constants.
+            ``llsw_critical_value`` returns the Kiefer-Vogelsang (2005, Table I)
+            Bartlett fixed-b critical values, two-sided alpha -> 1 - alpha/2
+            row — asserted EXACTLY against the published constants.
 * ANALYTICAL ``cragg_donald_f`` collapses to the textbook first-stage F in the
             just-identified, no-controls design; and ``newey_west_se`` with
             bandwidth 0 collapses to the White (HC0) heteroskedasticity-robust
@@ -247,6 +250,22 @@ def _supt_corr_mc() -> dict:
     return {"c_diff": float(res.crit_value - 1.95996)}
 
 
+# (b, two-sided alpha) keys for the Kiefer-Vogelsang (2005) Table I check.
+# A two-sided test at level alpha uses the 1 - alpha/2 row of Table I.
+_FIXED_B_KEYS = [
+    (0.02, 0.05), (0.10, 0.10), (0.20, 0.05), (0.30, 0.02), (0.50, 0.10),
+    (0.50, 0.05), (0.66, 0.20), (0.88, 0.05), (1.00, 0.10), (1.00, 0.05),
+    (1.00, 0.02),
+]
+
+
+def _fixed_b_published() -> dict:
+    from puremacro.inference.hac_fixed_b import llsw_critical_value
+
+    return {"cv": np.array([llsw_critical_value(b, a) for (b, a) in _FIXED_B_KEYS],
+                           dtype=float)}
+
+
 # --------------------------------------------------------------------------- #
 CASES: list[ValidationCase] = [
     ValidationCase(
@@ -381,6 +400,36 @@ CASES: list[ValidationCase] = [
         citation=(
             "Montiel Olea & Plagborg-Møller (2019, JAE 34(1), 1-17): simultaneous "
             "bands widen pointwise bands, satisfying c_supt >= z_{1-alpha/2} for all H >= 2."
+        ),
+    ),
+    ValidationCase(
+        id="inference.fixed_b_kv2005_table1",
+        subsystem="inference",
+        title="Bartlett fixed-b critical values match Kiefer-Vogelsang (2005) Table I",
+        title_es="Los valores críticos fixed-b (núcleo de Bartlett) coinciden con la Tabla I de Kiefer-Vogelsang (2005)",
+        mechanism=Mechanism.PUBLISHED,
+        compute=_fixed_b_published,
+        # Published right-tail quantiles, Table I, read from CAE WP 05-08
+        # (https://cae.economics.cornell.edu/05-08.pdf, printed p. 24 = PDF
+        # p. 26). Keys in _FIXED_B_KEYS order; row = 1 - alpha/2:
+        # 97.5%@0.02, 95%@0.1, 97.5%@0.2, 99%@0.3, 95%@0.5, 97.5%@0.5,
+        # 90%@0.66, 97.5%@0.88, 95%@1, 97.5%@1, 99%@1 (b = 1 analytical).
+        reference=lambda: {
+            "cv": np.array([2.018, 1.861, 2.553, 3.580, 2.781, 3.514,
+                            2.272, 4.524, 3.764, 4.771, 6.090], dtype=float)
+        },
+        tol=Tol.EXACT,
+        citation=(
+            "Kiefer, N.M. & Vogelsang, T.J. (2005), 'A New Asymptotic Theory for "
+            "Heteroskedasticity-Autocorrelation Robust Tests', Econometric Theory "
+            "21(6), 1130-1164, Table I (Bartlett kernel, M = bT); two-sided level "
+            "alpha uses the 1 - alpha/2 quantile."
+        ),
+        notes=(
+            "Pins the (b, alpha) -> Table I row mapping of llsw_critical_value. "
+            "The two-sided 1% (99.5%) row is not in Table I; it is computed "
+            "(see the puremacro.inference.hac_fixed_b docstring) and checked "
+            "against an independent Imhof computation in the test suite."
         ),
     ),
 ]

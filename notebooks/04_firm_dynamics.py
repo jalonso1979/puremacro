@@ -13,14 +13,15 @@
 # %% [markdown]
 # # Firms are heterogeneous too: entry, exit, selection
 #
+# **Can persistent technology shocks and intertemporal substitution of leisure account for business cycle comovements, and how does firm-level productivity selection discipline macroeconomic turnover?**
+#
 # Heterogeneous-agent methods aren't just for households. In **Hopenhayn (1992)**,
 # firms draw persistent productivity, pay a fixed operating cost, and exit when
-# their expected value turns negative — an endogenous threshold. Free entry pins
-# the output price. The result is selection: surviving incumbents are more
+# their expected value turns negative — an endogenous threshold (Cooley & Prescott 1995; Kydland & Prescott 1982). Free entry pins
+# the output price. The result is selection: surviving incumbents are systematically more
 # productive than entrants.
-
-# %% [markdown]
-# ## The model in four equations
+#
+# ## The method in math
 #
 # **Incumbents.** A firm's only state is its productivity $s$, an AR(1) discretized by
 # Tauchen into a grid with transition $P$. Each period it earns operating profit $\pi(s;p)$
@@ -42,6 +43,21 @@
 # $$ g = g\,S + \nu,\qquad S[s,s'] = \mathbb{1}\{s\ \text{survives}\}\;P[s,s'], $$
 # a *non*-mass-conserving fixed point ($S$ is sub-stochastic), normalized to a density.
 #
+# ### Baseline Model Parameters
+#
+# | Parameter | Symbol | Economic Interpretation | Baseline Value | Units |
+# |---|---|---|---|---|
+# | Firm discount factor | $\beta$ | Annual subjective discount factor of firm | 0.80 | Dimensionless (annual) |
+# | Returns to scale | $\alpha$ | Decreasing returns to scale production parameter | 0.667 | Dimensionless fraction (2/3) |
+# | Fixed operating cost | $c_f$ | Overhead cost paid per period to remain active | 20.00 | Output units |
+# | Sunk entry cost | $c_e$ | Sunk capital required to create a new firm | 40.00 | Output units |
+# | Productivity persistence | $\rho_s$ | AR(1) persistence of idiosyncratic productivity | 0.90 | Dimensionless autocorrelation |
+# | Innovation volatility | $\sigma_s$ | Standard deviation of idiosyncratic innovation | 0.20 | Standard deviation |
+# | Productivity grid points | $n_s$ | Number of Tauchen productivity states | 101 | Integer count |
+# | Entrant distribution | $\nu$ | Unconditional invariant draw of new entrants | Markov invariant | Probability distribution |
+# | Equilibrium price | $p^*$ | Output price clearing the free entry condition | 0.974 | Relative price (endogenous) |
+# | Exit cutoff | $s^*$ | Productivity threshold below which firms exit | 4.055 | Productivity units (endogenous) |
+#
 # **Intuition.** Profit rises with productivity, so only firms above the cutoff $s^\*$ expect
 # a non-negative continuation value — the market *weeds out* low-productivity firms, leaving
 # incumbents systematically more productive than the entrant draw $\nu$. Free entry is the
@@ -51,6 +67,14 @@
 # **fixed cost** $c_f$ shrinks every firm's profit, so the cutoff $s^\*$ climbs and the
 # stationary distribution shifts toward more productive survivors; raising the **entry cost**
 # $c_e$ instead requires a higher price $p^\*$ to keep entry worthwhile.
+#
+# ### Seminal Literature Citations
+#
+# - Cooley & Prescott (1995). Economic growth and business cycles. *Frontiers of Business Cycle Research*, 1–38.
+# - Galí (1999). Technology, employment, and the business cycle: Do technology shocks explain aggregate fluctuations? *American Economic Review*, 89(1), 249–271.
+# - Hopenhayn (1992). Entry, exit, and firm dynamics in long run equilibrium. *Econometrica*, 60(5), 1127–1150.
+# - Kydland & Prescott (1982). Time to build and aggregate fluctuations. *Econometrica*, 50(6), 1345–1370.
+# - Long & Plosser (1983). Real business cycles. *Journal of Political Economy*, 91(1), 39–69.
 
 # %%
 import sys

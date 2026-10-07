@@ -13,61 +13,56 @@
 # %% [markdown]
 # # Continuous Transition Dynamics and MIT Shocks: Non-Linear Distributional Sequence Space
 #
-# **How do continuous household wealth distributions $\mu_t(k, z)$ and general equilibrium factor prices $\{r_t, w_t\}$ transition non-linearly following an unexpected aggregate macroeconomic shock in an incomplete-markets economy, and how does endogenous precautionary savings shape macroeconomic persistence and wealth inequality?**
+# **How do the wealth distribution $\mu_t(k, z)$ and the factor prices $\{r_t, w_t\}$ of an incomplete-markets economy move after an unexpected, temporary productivity shock, and how long does the response outlast the shock itself?**
 #
-# In modern macroeconomic theory, the cross-sectional distribution of wealth is not merely an accounting artifact; it is an active, aggregate state variable that governs macroeconomic transmission. When an economy experiences an unexpected aggregate shock—such as a persistent total factor productivity (TFP) surge or a sudden monetary policy tightening—the transmission through an incomplete-markets economy (Bewley-Huggett-Aiyagari) is fundamentally non-linear. The initial cross-sectional wealth distribution $\mu_0(k, z)$ is physically predetermined on impact, preventing aggregate capital supply from adjusting instantaneously. Consequently, clearing factor markets requires sharp, immediate jumps in the real wage and real interest rate.
+# In a Bewley-Huggett-Aiyagari economy the cross-sectional distribution of wealth is a state variable. When an unexpected aggregate shock hits (an "MIT shock": a zero-probability event that, once it happens, everyone foresees perfectly), the distribution $\mu_0(k, z)$ is predetermined on impact, so aggregate capital cannot jump. Factor markets clear through the prices instead: the real wage and the real interest rate move on impact, and capital adjusts only as households save.
 #
-# Over time, heterogeneous households adjust their consumption and savings behavior in response to shifted factor prices and altered precautionary savings motives. Using backward continuous Endogenous Grid Method (EGM) policy iterations and forward time-dependent Young (2010) non-stochastic density evolution $\mu_{t+1} = \mathcal{T}_t^* \mu_t$, this notebook computes the exact non-linear transition path of continuous wealth distributions and resolves the sequence of capital market-clearing conditions via sequence-space Broyden Quasi-Newton relaxation. We examine how aggregate productivity shocks compress or expand wealth inequality (measured by time-varying Gini coefficients and Lorenz curves) and how precautionary savings create endogenous propagation persistence far beyond the duration of the exogenous shock itself.
+# This notebook computes the non-linear transition path of the whole distribution. A backward Endogenous Grid Method (EGM) pass gives the household policies along a price path, a forward pass with the Young (2010) lottery moves the distribution, $\mu_{t+1} = \mathcal{T}_t^* \mu_t$, and a Broyden quasi-Newton iteration on the whole interest-rate path clears the capital market at every date. The calibration is annual ($\beta = 0.96$, $\delta = 0.08$), so one period is one year.
 
 # %% [markdown]
 # ## The method in math — Continuous Transition Dynamics and MIT Shocks
 #
-# **1. Backward Continuous Endogenous Grid Method (EGM).** Given a path of factor prices $\{r_t, w_t\}_{t=0}^{T-1}$ converging to terminal steady-state values $(r^*, w^*)$ at horizon $T$, household policy functions are computed recursively backward in time from $t = T-1$ to $t = 0$. Using CRRA utility $u(c) = \frac{c^{1-\gamma} - 1}{1-\gamma}$, the Euler equation for a household with asset state $k$, productivity state $z_i$, and continuation policy $c_{t+1}(a', z')$ satisfies:
-# $$ \mathbb{E}_t\left[u'\left(c_{t+1}(a', z')\right)\right] = \beta (1 + r_{t+1}) \sum_{j=1}^{n_z} P_z(z_i, z_j) \left[c_{t+1}(a', z_j)\right]^{-\gamma}. $$
-# Inverting the marginal utility yields the endogenous consumption policy:
-# $$ c_t^{\text{endo}}(a', z_i) = \left( \mathbb{E}_t\left[u'\left(c_{t+1}(a', z')\right)\right] \right)^{-1/\gamma}. $$
-# From the budget constraint $(1 + r_t) a_t + w_t z_i = c_t + a'$, the endogenous beginning-of-period asset level $a_t^{\text{endo}}$ associated with target savings choice $a'$ is:
+# **1. Backward Endogenous Grid Method (EGM).** Given a path of factor prices $\{r_t, w_t\}_{t=0}^{T-1}$ and the consumption policy of the terminal steady state at date $T$, household policies are computed backward from $t = T-1$ to $t = 0$. With CRRA utility $u(c) = \frac{c^{1-\gamma} - 1}{1-\gamma}$, a household with productivity $z_i$ that chooses savings $a'$ satisfies the Euler equation
+# $$ u'\left(c_t^{\text{endo}}(a', z_i)\right) = \beta (1 + r_{t+1}) \sum_{j=1}^{n_z} P_z(z_i, z_j) \left[c_{t+1}(a', z_j)\right]^{-\gamma}, $$
+# so the endogenous consumption is obtained by inverting marginal utility, $c_t^{\text{endo}}(a', z_i) = \left(\beta (1 + r_{t+1}) \sum_{j} P_z(z_i, z_j) \left[c_{t+1}(a', z_j)\right]^{-\gamma}\right)^{-1/\gamma}$. From the budget constraint $(1 + r_t) a_t + w_t z_i = c_t + a'$, the beginning-of-period assets that lead to the choice $a'$ are:
 # $$ a_t^{\text{endo}}(a', z_i) = \frac{c_t^{\text{endo}}(a', z_i) + a' - w_t z_i}{1 + r_t}. $$
-# Linearly interpolating the pairs $(a_t^{\text{endo}}, a')$ onto the fixed continuous asset grid $\mathcal{K} = \{k_1, \dots, k_{N_k}\}$ and imposing the borrowing constraint $a' \ge 0$ yields the continuous policy functions $a'_t(k, z_i) = \max\left\{0, \text{interp}\left(k; a_t^{\text{endo}}(\cdot, z_i), a'\right)\right\}$ and $c_t(k, z_i) = (1 + r_t) k + w_t z_i - a'_t(k, z_i)$.
+# Linearly interpolating the pairs $(a_t^{\text{endo}}, a')$ onto the fixed asset grid $\mathcal{K} = \{k_1, \dots, k_{N_k}\}$ and imposing the borrowing constraint $a' \ge 0$ gives the policies $a'_t(k, z_i) = \max\left\{0, \text{interp}\left(k; a_t^{\text{endo}}(\cdot, z_i), a'\right)\right\}$ and $c_t(k, z_i) = (1 + r_t) k + w_t z_i - a'_t(k, z_i)$.
 #
-# **2. Forward Non-Stochastic Density Evolution (Young 2010 Lottery Operator).** Given the initial stationary distribution $\mu_0(k, z)$ and the backward policy sequence $\{a'_t\}_{t=0}^{T-1}$, the cross-sectional probability density $\mu_t(k, z)$ advances forward in time. For every savings decision $a' = a'_t(k_i, z_j)$ falling in the grid bracket $[k_m, k_{m+1}]$, the Young (2010) linear lottery operator assigns mass to adjacent nodes to strictly preserve the conditional expectation $\mathbb{E}[a']$:
+# **2. Forward density evolution (Young 2010 lottery).** Starting from the stationary distribution $\mu_0(k, z)$, the density moves forward with the policy sequence $\{a'_t\}_{t=0}^{T-1}$. A savings choice $a' = a'_t(k_i, z_j)$ in the grid bracket $[k_m, k_{m+1}]$ is split between the two nodes so that the expected value of $a'$ is preserved:
 # $$ w_{\text{lo}}(a') = \frac{k_{m+1} - a'}{k_{m+1} - k_m}, \qquad w_{\text{hi}}(a') = 1 - w_{\text{lo}}(a'). $$
-# The joint forward push operator $\mathcal{T}_t^*$ scatters mass along the asset grid and updates exogenous Markov productivity states:
+# The forward operator $\mathcal{T}_t^*$ scatters mass along the asset grid and then applies the productivity transition:
 # $$ \mu_{t+1}(k_m, z_l) = \sum_{j=1}^{n_z} P_z(z_j, z_l) \sum_{i=1}^{N_k} \mu_t(k_i, z_j) \left[ w_{\text{lo}}\left(a'_t(k_i, z_j)\right) \mathbf{1}_{\{m = j_{\text{lo}}\}} + w_{\text{hi}}\left(a'_t(k_i, z_j)\right) \mathbf{1}_{\{m = j_{\text{hi}}\}} \right]. $$
-# This operator guarantees strict probability mass conservation to machine precision: $\sum_{k, z} \mu_t(k, z) = 1.0 \pm 10^{-15}$ for all $t \in [0, T]$.
+# The weights sum to one, so the operator conserves total mass up to rounding error; the run below prints the largest deviation of $\sum_{k, z} \mu_t(k, z)$ from one.
 #
-# **3. Sequence-Space General Equilibrium Market Clearing.** Aggregate capital supply $K_t^s$ is obtained by integrating the continuous asset distribution:
-# $$ K_t^s(\mathbf{r}) = \sum_{i=1}^{N_k} \sum_{j=1}^{n_z} k_i \, \mu_t(k_i, z_j). $$
-# A representative competitive firm operates a Cobb-Douglas technology $Y_t = Z_t (K_t^d)^\alpha L^{1-\alpha}$ with capital depreciation $\delta$. Factor demands satisfy $r_t = \alpha Z_t (K_t^d / L)^{\alpha - 1} - \delta$ and $w_t = (1 - \alpha) Z_t (K_t^d / L)^\alpha$. Inverting for capital demand gives:
+# **3. Market clearing in sequence space.** Aggregate capital supply is $K_t^s(\mathbf{r}) = \sum_{i=1}^{N_k} \sum_{j=1}^{n_z} k_i \, \mu_t(k_i, z_j)$. A competitive firm with technology $Y_t = Z_t (K_t^d)^\alpha L^{1-\alpha}$ and depreciation $\delta$ sets $r_t = \alpha Z_t (K_t^d / L)^{\alpha - 1} - \delta$ and $w_t = (1 - \alpha) Z_t (K_t^d / L)^\alpha$, so capital demand is
 # $$ K_t^d(r_t; Z_t) = L \left( \frac{r_t + \delta}{\alpha Z_t} \right)^{\frac{1}{\alpha - 1}}. $$
-# General equilibrium requires clearing the capital market at every transition date $t = 0, \dots, T-1$:
+# Equilibrium requires clearing at every date $t = 0, \dots, T-1$:
 # $$ H_t(\mathbf{r}) \equiv K_t^s(\mathbf{r}) - K_t^d(r_t; Z_t) = 0, \qquad \mathbf{H}(\mathbf{r}) = \mathbf{0} \in \mathbb{R}^T. $$
+# The terminal condition at date $T$ is the initial steady state for every transitory shock ($\rho < 1$), and the shock is set to zero from $T$ on. `continuous_mit_shock` records the shock left at $T-1$, $s\rho^{T-1}$, in `metadata["mit_shock"]` and warns when its share of the impact, $\rho^{T-1}$, exceeds `truncation_tol` $= 10^{-3}$; at $T = 40$ that is any $\rho$ above $0.838$ (printed in Experiment 2). A permanent shock must be asked for with `persistence=1.0`, which solves a terminal steady state at $Z = 1 + s$. Through release 4.3.0 a transitory shock whose $Z_{T-1}$ differed from one by more than about $10^{-5}$ was silently solved as a permanent one at $Z_{T-1}$; at $T = 40$ and $s = 0.05$ that happened for every $\rho$ above $0.806$.
 #
-# **4. Sequence-Space Broyden Quasi-Newton Solver.** The non-linear equation system $\mathbf{H}(\mathbf{r}) = \mathbf{0}$ is solved via Broyden's method with Sherman-Morrison rank-1 approximate inverse Jacobian updates:
+# **4. Broyden quasi-Newton.** The system $\mathbf{H}(\mathbf{r}) = \mathbf{0}$ is solved with Broyden's method, which updates an approximate inverse Jacobian by rank-one (Sherman-Morrison) corrections:
 # $$ B_{k+1} = B_k + \frac{(\Delta \mathbf{r}_k - B_k \Delta \mathbf{H}_k)(\Delta \mathbf{r}_k^\top B_k)}{\Delta \mathbf{r}_k^\top B_k \Delta \mathbf{H}_k}, \qquad \mathbf{r}_{k+1} = \mathbf{r}_k - \theta \, B_k \mathbf{H}(\mathbf{r}_k), $$
-# where $\theta \in (0, 1]$ is a damping parameter and $B_0$ is initialized analytically from the static diagonal firm demand derivative $B_0 = \text{diag}\left( \frac{1 - \alpha}{K_t^d} (r_t + \delta) \right)$.
+# where $\theta \in (0, 1]$ is the step accepted by a backtracking line search and $B_0 = \text{diag}\left( \frac{1 - \alpha}{K_t^d} (r_t + \delta) \right)$ inverts the diagonal of the firm's demand derivative. The `damping` keyword does not enter this iteration. Broyden uses it only for a fallback step, taken when the line search fails, and that never happens in this notebook. It is the relaxation weight $\omega$ of the shooting solver of Experiment 4, $\mathbf{r}_{k+1} = (1 - \omega)\,\mathbf{r}_k + \omega\,\mathbf{r}_k^{\text{implied}}$.
+#
+# **5. A closed form for the impact response.** Because $K_0 = K^*$, the firm's conditions give the date-0 prices directly. With $Z_0 = 1 + s$,
+# $$ r_0 - r^* = s\,(r^* + \delta), \qquad \frac{w_0}{w^*} - 1 = s. $$
+# This is derived by hand from the firm's first-order conditions and does not use the solver, so it is an independent check on the date-0 prices it returns.
 
 # %% [markdown]
 # ## Intuition
 #
-# **Intuition.** In representative-agent macro models, unexpected aggregate productivity or interest rate shocks produce instantaneous capital adjustments along a saddle path. In an incomplete-markets world with idiosyncratic earnings risk, however, aggregate dynamics are constrained by the physical inertia of the cross-sectional wealth distribution. Households cannot instantaneously reallocate their balance sheets; rather, asset accumulation requires real time, giving rise to rich distributional propagation.
+# **Intuition.** In a representative-agent model, a productivity shock moves capital along a saddle path. With uninsurable earnings risk, the wealth distribution adds inertia: capital is the sum of many households' savings, and those savings take time to accumulate.
 #
-# When a positive TFP shock ($+5\%$) hits an Aiyagari economy unexpectedly, the marginal product of capital and the real wage jump immediately. Because the pre-shock wealth distribution $\mu_0(k, z)$ is physically predetermined at date $t=0$, aggregate capital supply $K_0^s$ cannot change on impact. For firms to clear the capital market, the equilibrium real interest rate $r_0$ must spike upward to absorb the increased marginal productivity of the fixed capital stock.
+# When a $+5\%$ TFP shock hits unexpectedly, the marginal products of capital and labour rise at once. Capital is predetermined at $t = 0$, so the interest rate and the wage absorb the whole impact, exactly as the closed form above says. The higher return and the higher wage both raise saving. Households near the borrowing constraint, whose income is mostly labour income, can rebuild their buffer stocks, and wealthier households earn more on their capital.
 #
-# This initial price response alters household savings incentives through two opposing channels:
-# 1. **Substitution & Return Effects:** A higher real return $r_t$ increases the reward to saving, encouraging households to postpone consumption and accumulate wealth.
-# 2. **Precautionary Savings & Income Effects:** Concurrently, the surge in real wages $w_t$ boosts labor earnings across all employment states. For wealth-poor households near the borrowing constraint ($k = 0$), this positive earnings windfall relaxes credit constraints and allows them to build up their liquid buffer stocks.
+# Capital therefore rises for several years, even as the shock decays. As capital accumulates, its marginal product falls, and the interest rate drops below its steady-state value while capital is still above $K^*$. Capital keeps rising as long as net saving is positive, so its peak comes after the interest rate has already turned. The wealth distribution then drifts back toward the stationary one.
 #
-# Consequently, wealth inequality experiences a distinct cyclical pattern. On impact, the wage surge disproportionately elevates the earnings of low-wealth workers relative to the return on pre-existing capital, causing the cross-sectional wealth Gini coefficient to compress. Over the subsequent 5 to 10 quarters, as households channel high savings into physical capital, aggregate capital deepens ($K_t$ expands toward a peak). As capital accumulates, the marginal product of capital falls, dampening the interest rate and gradually reverting the wealth distribution $\mu_t(k, z)$ toward the stationary steady state.
-#
-# Solving this dynamic feedback loop requires finding the unique price sequence $\mathbf{r} = \{r_t\}_{t=0}^{T-1}$ such that asset supply generated by millions of forward-looking households exactly matches capital demand generated by firms at every point in time. Traditional shooting algorithms frequently suffer from catastrophic numerical instability due to explosive backward roots. Sequence-space Broyden Quasi-Newton resolves this by treating the entire $T$-period price trajectory as a single unified vector, updating the sequence-space Jacobian with rank-1 Sherman-Morrison corrections to achieve robust quadratic-like convergence in a few seconds.
+# Finding the equilibrium means finding the whole path $\mathbf{r} = \{r_t\}_{t=0}^{T-1}$ at which household saving equals firm demand at every date. Broyden's method treats that path as one vector and updates an approximate Jacobian, which typically converges superlinearly. Damped fixed-point iteration ("shooting") on the same system also converges here, only in more iterations.
 
 # %%
 # Preamble: import numerical libraries, plotting style, and continuous solvers
 import sys
 from pathlib import Path
-import time
-import warnings
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -80,38 +75,31 @@ _nbstyle.apply_style()
 from puremacro.vfi import (
     solve_aiyagari_continuous,
     continuous_mit_shock,
-    solve_continuous_transition,
     ContinuousStationaryDistribution,
 )
 
-# Set deterministic random generator seed for reproducibility
+# Nothing below is random; the seed is set only by convention.
 rng = np.random.default_rng(42)
 
-# Global model calibration parameters
-# Household subjective discount factor (annualized calibration)
-beta = 0.96
-# Coefficient of relative risk aversion (CRRA)
-gamma = 2.0
-# Capital share of output (Cobb-Douglas)
-alpha = 0.36
-# Annual capital depreciation rate
-delta = 0.08
-# Autoregressive persistence of idiosyncratic labor productivity
-rho_z = 0.90
-# Standard deviation of labor productivity innovations
-sigma_z = 0.20
-# Number of continuous asset grid nodes
-N_k = 150
-# Number of discrete labor productivity states
-n_z = 5
+# Calibration (annual: one period is one year)
+beta = 0.96      # household discount factor
+gamma = 2.0      # coefficient of relative risk aversion (CRRA)
+alpha = 0.36     # capital share (Cobb-Douglas)
+delta = 0.08     # depreciation rate per year
+rho_z = 0.90     # persistence of idiosyncratic labour productivity
+sigma_z = 0.20   # standard deviation of productivity innovations
+N_k = 150        # asset grid nodes
+n_z = 5          # productivity states
 
-print("Calibration loaded: beta=0.96, gamma=2.0, alpha=0.36, delta=0.08, N_k=150, n_z=5")
+print(f"Calibration: beta={beta}, gamma={gamma}, alpha={alpha}, delta={delta}, "
+      f"rho_z={rho_z}, sigma_z={sigma_z}, N_k={N_k}, n_z={n_z}")
 
 # %%
-# --- Experiment 1: Baseline Continuous Stationary Incomplete-Markets Equilibrium ---
-# Solve the pre-shock stationary general equilibrium using continuous EGM and Young (2010)
-print("Solving baseline continuous stationary equilibrium (Aiyagari)...")
-t0 = time.perf_counter()
+# --- Experiment 1: Baseline stationary incomplete-markets equilibrium ---
+# The solver's controls are written out explicitly: the EGM stops when the consumption
+# policy moves by less than egm_tol (or after egm_max_iter steps, which it reports),
+# Brent's method on r stops at xtol, and the equilibrium counts as converged only if
+# |K^s - K^d| < tol_ge at r* and the stationary distribution converged too.
 ss_base = solve_aiyagari_continuous(
     beta=beta,
     gamma=gamma,
@@ -122,43 +110,54 @@ ss_base = solve_aiyagari_continuous(
     N_k=N_k,
     n_z=n_z,
     max_evals=60,
+    egm_tol=1e-8,
+    egm_max_iter=10_000,
+    xtol=1e-8,
+    tol_ge=1e-4,
 )
-t_ss = time.perf_counter() - t0
+meta = ss_base.metadata
 
-# Compute baseline wealth inequality statistics
+# Baseline wealth inequality statistics
 K_hist = ss_base.distribution.asset_grid
 gini_base = ss_base.distribution.gini()
 p_lorenz, L_base = ss_base.distribution.lorenz(100)
 p50_base = ss_base.distribution.percentile(50.0)
 p90_base = ss_base.distribution.percentile(90.0)
-
-print(f"Baseline Stationary Equilibrium Solved in {t_ss:.2f}s:")
-print(f"  Equilibrium Interest Rate r* = {ss_base.r:.6f} ({ss_base.r * 100:.3f}%)")
-print(f"  Equilibrium Real Wage     w* = {ss_base.w:.6f}")
-print(f"  Aggregate Capital Stock   K* = {ss_base.K:.4f}")
 Y_base = float((ss_base.K ** alpha) * (ss_base.L ** (1.0 - alpha)))
-print(f"  Aggregate Output          Y* = {Y_base:.4f}")
-print(f"  Capital-to-Output Ratio  K/Y = {ss_base.K / Y_base:.3f}")
-print(f"  Wealth Gini Coefficient   G* = {gini_base:.4f}")
-print(f"  Median Wealth (P50)          = {p50_base:.3f}")
-print(f"  Top 10% Wealth Cutoff (P90)  = {p90_base:.3f}")
 
-# Verification assertions for baseline equilibrium
-assert ss_base.converged, "Baseline stationary equilibrium failed to converge"
-assert ss_base.K > 0, "Aggregate capital stock must be strictly positive"
-assert ss_base.distribution.mass_error < 1e-12, f"Stationary distribution mass error {ss_base.distribution.mass_error:.2e} exceeds 1e-12"
-assert 0.005 < ss_base.r < 1.0 / beta - 1.0, f"Interest rate r*={ss_base.r:.4f} must reside strictly in (0, 1/beta - 1)"
-assert 0.40 < gini_base < 0.65, f"Wealth Gini {gini_base:.4f} outside plausible incomplete-markets empirical range"
+print("Baseline stationary equilibrium:")
+print(f"  Interest rate r*          = {ss_base.r:.6f} ({ss_base.r * 100:.3f}%), 1/beta - 1 = {(1 / beta - 1) * 100:.3f}%")
+print(f"  Real wage w*              = {ss_base.w:.6f}")
+print(f"  Capital K*                = {ss_base.K:.4f}")
+print(f"  Output Y*                 = {Y_base:.4f}")
+print(f"  Capital-output ratio K/Y  = {ss_base.K / Y_base:.3f}")
+print(f"  Wealth Gini G*            = {gini_base:.4f}")
+print(f"  Median wealth (P50)       = {p50_base:.3f}")
+print(f"  90th percentile (P90)     = {p90_base:.3f}")
+print("Convergence diagnostics:")
+print(f"  converged                 = {ss_base.converged}")
+print(f"  EGM at r*                 : converged={meta['egm_converged']}, {meta['egm_iterations']} iterations, "
+      f"step {meta['egm_residual']:.1e} (egm_tol {meta['egm_tol']:.0e}); cap hits in the search: {meta['egm_cap_hits']}")
+print(f"  Stationary distribution   : converged={meta['dist_converged']}, mass error {ss_base.distribution.mass_error:.1e}")
+print(f"  Market clearing |K^s-K^d| = {ss_base.capital_market_clearing_error:.1e} (tol_ge {meta['tol_ge']:.0e}) "
+      f"after {ss_base.n_evals} evaluations of r")
+
+# Each flag is a real check since the 30 September fixes: through 4.3.0 `converged` was always True
+# and the household EGM stopped silently at 500 iterations.
+assert ss_base.converged and meta["egm_converged"] and meta["dist_converged"] and not meta["nonconvergence_reasons"]
+assert ss_base.capital_market_clearing_error < meta["tol_ge"]
+assert ss_base.distribution.mass_error < 1e-12
+assert 0.0 < ss_base.r < 1.0 / beta - 1.0, "precautionary saving must push r* below the rate of time preference"
+assert 0.40 < gini_base < 0.65, "sanity range for this calibration, not an empirical target"
 
 # %%
-# --- Experiment 2: Non-Linear Transition Path under an Unexpected MIT TFP Shock ---
-# Simulate a 40-quarter transition following an unexpected +5% TFP shock with persistence rho=0.80
+# --- Experiment 2: Non-linear transition after an unexpected TFP shock ---
+# A 40-year transition after a +5% TFP shock that decays at rate 0.8 per year.
+# damping keeps its default: Broyden uses it only if the line search fails (math, section 4).
 horizon = 40
 shock_size = 0.05
 persistence = 0.80
 
-print(f"Simulating {horizon}-quarter transition under unexpected {shock_size * 100:+.1f}% TFP shock (rho={persistence})...")
-t0 = time.perf_counter()
 trans_res = continuous_mit_shock(
     ss_base,
     shock_type="tfp",
@@ -166,10 +165,9 @@ trans_res = continuous_mit_shock(
     persistence=persistence,
     horizon=horizon,
     solver="broyden",
-    damping=0.4,
     tol=1e-4,
 )
-t_trans = time.perf_counter() - t0
+mit = trans_res.metadata["mit_shock"]
 
 # Headline transition metrics
 impact_r = trans_res.r_path[0]
@@ -177,30 +175,41 @@ impact_w = trans_res.w_path[0]
 impact_K_s = trans_res.K_s_path[0]
 peak_K_idx = int(np.argmax(trans_res.K_s_path))
 peak_K = trans_res.K_s_path[peak_K_idx]
-r_jump_bps = (impact_r - ss_base.r) * 10000.0
+cross_idx = int(np.argmax(trans_res.r_path < ss_base.r))  # first year with r_t below r*
+r_jump_bps = (impact_r - ss_base.r) * 1e4
 w_jump_pct = (impact_w / ss_base.w - 1.0) * 100.0
 
-print(f"Transition Solved in {t_trans:.2f}s ({trans_res.iterations} Broyden iterations):")
-print(f"  Max Market Clearing Residual ||H||_inf = {trans_res.max_residual:.2e}")
-print(f"  Max Mass Conservation Error            = {trans_res.mass_conservation_error:.2e}")
-print(f"  Impact Interest Rate r_0               = {impact_r * 100:.3f}% (jump: {r_jump_bps:+.1f} bps)")
-print(f"  Impact Real Wage     w_0               = {impact_w:.4f} (jump: {w_jump_pct:+.2f}%)")
-print(f"  Initial Capital Supply K_0^s           = {impact_K_s:.4f} (Baseline K*={ss_base.K:.4f})")
-print(f"  Peak Capital Deepening K_peak          = {peak_K:.4f} at Quarter t={peak_K_idx}")
+# Independent check: the closed form of section 5 of the math
+pred_r_jump_bps = shock_size * (ss_base.r + delta) * 1e4
+pred_w_jump_pct = shock_size * 100.0
 
-# Inline verification assertions for non-linear transition path
-assert trans_res.converged, "Sequence-space Broyden solver failed to converge"
-assert trans_res.max_residual < 1e-4, f"Market clearing residual {trans_res.max_residual:.2e} exceeds 1e-4"
-assert trans_res.mass_conservation_error < 1e-12, f"Mass conservation error {trans_res.mass_conservation_error:.2e} exceeds 1e-12"
-assert np.isclose(impact_K_s, ss_base.K, atol=1e-4), "Capital supply must be physically predetermined at date t=0"
-assert impact_r > ss_base.r, "Interest rate must spike on impact following positive TFP shock"
-assert impact_w > ss_base.w, "Real wage must jump on impact following positive TFP shock"
-assert peak_K > ss_base.K, "Capital stock must accumulate along the transition path"
-assert np.isclose(trans_res.K_s_path[-1], ss_base.K, atol=0.05), "Capital must revert toward steady state at horizon T"
+print(f"Transition: {horizon} years, TFP shock {shock_size * 100:+.1f}% with persistence {persistence}")
+print(f"  Broyden iterations                 = {trans_res.iterations}; converged = {trans_res.converged} "
+      f"(relaxation {trans_res.metadata['relaxation_converged']})")
+print(f"  Max market-clearing residual       = {trans_res.max_residual:.2e} (tol 1e-04)")
+print(f"  Max mass conservation error        = {trans_res.mass_conservation_error:.1e}")
+print(f"  Terminal condition                 = {mit['terminal_condition']}")
+print(f"  Shock left at T-1                  = {mit['shock_at_last_date']:.1e} ({mit['remaining_share'] * 100:.3f}% of the impact; "
+      f"truncation_tol {mit['truncation_tol'] * 100:.1f}%, truncated = {mit['truncated']})")
+print(f"  Warns for persistence above        = {mit['truncation_tol'] ** (1 / (horizon - 1)):.3f} (rho^(T-1) > truncation_tol at T = {horizon})")
+print(f"  |K_0^s - K*|                     = {abs(impact_K_s - ss_base.K):.1e}")
+print(f"  Impact interest rate r_0           = {impact_r * 100:.3f}% (jump {r_jump_bps:+.2f} bps; closed form {pred_r_jump_bps:+.2f} bps)")
+print(f"  Impact real wage w_0               = {impact_w:.4f} (jump {w_jump_pct:+.4f}%; closed form {pred_w_jump_pct:+.4f}%)")
+print(f"  First year with r_t < r*           = {cross_idx}")
+print(f"  Peak capital K_peak                = {peak_K:.4f} in year {peak_K_idx} (TFP shock left: {shock_size * persistence ** peak_K_idx * 100:.2f}%)")
+print(f"  Capital in the last year, t = {horizon - 1}   = {trans_res.K_s_path[-1]:.4f} (K* = {ss_base.K:.4f})")
+
+assert trans_res.converged and trans_res.max_residual < 1e-4
+assert mit["terminal_condition"] == "initial_steady_state" and not mit["truncated"]
+assert trans_res.mass_conservation_error < 1e-12
+assert abs(impact_K_s - ss_base.K) < 1e-10, "capital is predetermined at t = 0"
+assert abs(r_jump_bps - pred_r_jump_bps) < 0.1, "impact rate must match the closed form"
+assert abs(w_jump_pct - pred_w_jump_pct) < 1e-3, "impact wage must match the closed form"
+assert 0 < cross_idx < peak_K_idx, "capital keeps rising after r_t falls below r*"
+assert np.isclose(trans_res.K_s_path[-1], ss_base.K, atol=0.05), "capital must be back near K* by the last year"
 
 # %%
-# --- Experiment 3: Wealth Inequality Dynamics & Publication Hero Figures ---
-# Evaluate the time-varying Gini coefficient and Lorenz curves across the transition
+# --- Experiment 3: Wealth inequality along the transition ---
 ginis = np.array([
     ContinuousStationaryDistribution(pdf=d, asset_grid=K_hist).gini()
     for d in trans_res.distributions
@@ -208,103 +217,97 @@ ginis = np.array([
 time_grid = np.arange(horizon + 1)
 min_gini_idx = int(np.argmin(ginis))
 min_gini = ginis[min_gini_idx]
+# Share of households at the borrowing constraint k = 0 (first grid node)
+at_constraint = np.array([d[0].sum() for d in trans_res.distributions])
+# Change since year 0 in the mass of each asset grid node (summed over productivity)
+density_mat = np.array([np.sum(d, axis=1) if d.ndim == 2 else d for d in trans_res.distributions])
+d_mass = density_mat - density_mat[0]
 
-# Extract Lorenz curves at baseline (t=0), peak capital deepening (t=7), and terminal (t=40)
-dist_0 = ContinuousStationaryDistribution(pdf=trans_res.distributions[0], asset_grid=K_hist)
 dist_peak = ContinuousStationaryDistribution(pdf=trans_res.distributions[peak_K_idx], asset_grid=K_hist)
 dist_term = ContinuousStationaryDistribution(pdf=trans_res.distributions[-1], asset_grid=K_hist)
-
 _, L_peak = dist_peak.lorenz(100)
 _, L_term = dist_term.lorenz(100)
 
-print(f"Wealth Inequality Transition Path:")
-print(f"  Initial Gini (t=0)   = {ginis[0]:.4f}")
-print(f"  Minimum Gini (t={min_gini_idx})   = {min_gini:.4f} (compression: {(min_gini - ginis[0]):+.4f})")
-print(f"  Terminal Gini (t={horizon}) = {ginis[-1]:.4f}")
+print("Wealth inequality along the transition:")
+print(f"  Gini in year 0        = {ginis[0]:.4f}")
+print(f"  Minimum Gini (year {min_gini_idx}) = {min_gini:.4f} (change {min_gini - ginis[0]:+.4f})")
+print(f"  Gini in year {horizon}       = {ginis[-1]:.4f}")
+print(f"  Share at k = 0        : {at_constraint[0]:.4f} in year 0, minimum {at_constraint.min():.4f} in year {int(np.argmin(at_constraint))}")
+print(f"  Change in mass by year {peak_K_idx}: largest loss {d_mass[peak_K_idx].min() * 100:+.2f} pp at k = "
+      f"{K_hist[np.argmin(d_mass[peak_K_idx])]:.2f}, largest gain {d_mass[peak_K_idx].max() * 100:+.2f} pp at k = "
+      f"{K_hist[np.argmax(d_mass[peak_K_idx])]:.2f}")
 
-# Verification assertions for distributional inequality dynamics
-assert ginis[0] > min_gini, "Wealth inequality must compress during initial expansion"
-assert np.isclose(ginis[-1], ginis[0], atol=0.01), "Wealth Gini must revert close to initial level"
-assert len(trans_res.distributions) == horizon + 1, "Distribution path length must match T + 1"
+assert len(trans_res.distributions) == horizon + 1
+assert min_gini < ginis[0], "wealth inequality must compress during the expansion"
+assert np.isclose(ginis[-1], ginis[0], atol=0.01), "the Gini must return close to its initial level"
 
-# Figure 1: 4-Panel Macroeconomic Transition and Wealth Inequality Hero Plot
+# Figure 1: factor prices, market clearing, Gini path and Lorenz curves
 fig1, axes1 = _nbstyle.figura(2, 2, figsize=(11, 8))
-t_quarters = np.arange(horizon)
+t_years = np.arange(horizon)
 
-# Panel 1: Factor Prices Path (Real Rate and Wage)
 ax1 = axes1[0, 0]
-ax1.plot(t_quarters, trans_res.r_path * 100, label="Real Rate $r_t$ (%)", lw=2, color=_nbstyle.S1["color"])
+ax1.plot(t_years, trans_res.r_path * 100, label="Real rate $r_t$ (%)", lw=2, color=_nbstyle.S1["color"])
 ax1.axhline(ss_base.r * 100, ls="--", color=_nbstyle.SPINE, label=f"Initial $r^*={ss_base.r * 100:.2f}\\%$")
-ax1.set_title("Factor Prices: Real Interest Rate Path")
-ax1.set_xlabel("Quarter $t$")
-ax1.set_ylabel("Percent (%)")
+ax1.set_title("Factor prices: real interest rate path")
+ax1.set_xlabel("Year $t$")
+ax1.set_ylabel("Percent per year (%)")
 ax1.legend(loc="upper right")
 
-# Panel 2: Capital Market Clearing (Supply vs Demand)
 ax2 = axes1[0, 1]
-ax2.plot(t_quarters, trans_res.K_s_path, label="Capital Supply $K_t^s$", lw=2, color=_nbstyle.S1["color"])
-ax2.plot(t_quarters, trans_res.K_d_path, label="Capital Demand $K_t^d$", ls="--", lw=1.8, color=_nbstyle.S2["color"])
+ax2.plot(t_years, trans_res.K_s_path, label="Capital supply $K_t^s$", lw=2, color=_nbstyle.S1["color"])
+ax2.plot(t_years, trans_res.K_d_path, label="Capital demand $K_t^d$", ls="--", lw=1.8, color=_nbstyle.S2["color"])
 ax2.axhline(ss_base.K, ls=":", color=_nbstyle.SPINE, label=f"Initial $K^*={ss_base.K:.2f}$")
-ax2.set_title("Capital Market Clearing ($K_t^s$ vs $K_t^d$)")
-ax2.set_xlabel("Quarter $t$")
-ax2.set_ylabel("Aggregate Capital")
+ax2.set_title("Capital market clearing ($K_t^s$ vs $K_t^d$)")
+ax2.set_xlabel("Year $t$")
+ax2.set_ylabel("Aggregate capital (model units)")
 ax2.legend(loc="upper right")
 
-# Panel 3: Wealth Inequality Path (Gini Coefficient)
 ax3 = axes1[1, 0]
 ax3.plot(time_grid, ginis, label="Wealth Gini $G_t$", lw=2, color=_nbstyle.S1["color"])
 ax3.axhline(ginis[0], ls="--", color=_nbstyle.SPINE, label=f"Initial Gini $G_0={ginis[0]:.4f}$")
-ax3.scatter([min_gini_idx], [min_gini], color=_nbstyle.S1["color"], s=40, zorder=5, label=f"Min Gini ({min_gini:.4f})")
-ax3.set_title("Wealth Inequality Dynamics: Gini Coefficient")
-ax3.set_xlabel("Quarter $t$")
-ax3.set_ylabel("Gini Coefficient")
+ax3.scatter([min_gini_idx], [min_gini], color=_nbstyle.S1["color"], s=40, zorder=5, label=f"Minimum Gini ({min_gini:.4f})")
+ax3.set_title("Wealth inequality: Gini coefficient")
+ax3.set_xlabel("Year $t$")
+ax3.set_ylabel("Gini coefficient")
 ax3.legend(loc="upper right")
 
-# Panel 4: Lorenz Curves Comparison
 ax4 = axes1[1, 1]
-ax4.plot(p_lorenz * 100, p_lorenz * 100, linestyle=":", color=_nbstyle.SPINE, label="45° Equality Line", alpha=0.5)
+ax4.plot(p_lorenz * 100, p_lorenz * 100, linestyle=":", color=_nbstyle.SPINE, label="45° equality line", alpha=0.5)
 ax4.plot(p_lorenz * 100, L_base * 100, label=f"Lorenz $t=0$ ($G={ginis[0]:.3f}$)", lw=2, color=_nbstyle.S1["color"])
 ax4.plot(p_lorenz * 100, L_peak * 100, label=f"Lorenz $t={peak_K_idx}$ ($G={ginis[peak_K_idx]:.3f}$)", lw=1.8, ls="--", color=_nbstyle.S2["color"])
 ax4.plot(p_lorenz * 100, L_term * 100, label=f"Lorenz $t={horizon}$ ($G={ginis[-1]:.3f}$)", lw=1.5, ls="-.", color=_nbstyle.S3["color"])
-ax4.set_title("Wealth Lorenz Curve Dynamics")
-ax4.set_xlabel("Cumulative Population (%)")
-ax4.set_ylabel("Cumulative Wealth (%)")
+ax4.set_title("Wealth Lorenz curves")
+ax4.set_xlabel("Cumulative population (%)")
+ax4.set_ylabel("Cumulative wealth (%)")
 ax4.legend(loc="upper left")
 
-# Figure 2: 3D Perspective Surface and 2D Density Evolution Heatmap
-density_mat = np.array([np.sum(d, axis=1) if d.ndim == 2 else d for d in trans_res.distributions])
+# Figure 2: how the wealth distribution moves. The level is dominated by the mass at k = 0,
+# so plot the change since year 0 in the mass of each asset grid node.
 k_mask = K_hist <= 15.0
 k_sub = K_hist[k_mask]
-dens_sub = density_mat[:, k_mask]
 
-fig2 = plt.figure(figsize=(12.5, 4.6), layout="constrained")
+fig2, (ax_lines, ax_heat) = _nbstyle.figura(1, 2, figsize=(12.5, 4.6))
+line_styles = [_nbstyle.S1, _nbstyle.S2, _nbstyle.S3, _nbstyle.S4]
+for style, t_show in zip(line_styles, sorted({1, peak_K_idx, 20, horizon})):
+    ax_lines.plot(k_sub, d_mass[t_show, k_mask] * 100, **style, label=f"Year {t_show}")
+ax_lines.axhline(0, color=_nbstyle.SPINE, lw=0.8)
+ax_lines.set_title("Change in wealth mass since year 0", fontsize=11)
+ax_lines.set_xlabel("Assets $k$ (grid nodes up to 15)")
+ax_lines.set_ylabel("Change in mass per grid node (pp)")
+ax_lines.legend(loc="lower right")
 
-# Subplot 1: 3D Wealth Distribution Surface
-ax_3d = fig2.add_subplot(121, projection="3d")
-K_mesh, T_mesh = np.meshgrid(k_sub, time_grid)
-surf = ax_3d.plot_surface(K_mesh, T_mesh, dens_sub, cmap=_nbstyle.CMAP_SEQ, edgecolor="none", alpha=0.9)
-ax_3d.set_title(r"3D Wealth Distribution Surface $\mu_t(k)$", fontsize=11)
-ax_3d.set_xlabel("Assets $k$", fontsize=9)
-ax_3d.set_ylabel("Quarter $t$", fontsize=9)
-ax_3d.set_zlabel("Density", fontsize=9)
-ax_3d.view_init(elev=28, azim=-55)
-
-# Subplot 2: 2D Heatmap with Density Slices
-ax_heat = fig2.add_subplot(122)
-im = ax_heat.imshow(dens_sub, aspect="auto", origin="lower", extent=[k_sub[0], k_sub[-1], 0, horizon], cmap=_nbstyle.CMAP_SEQ)
-cbar = plt.colorbar(im, ax=ax_heat)
-cbar.set_label(r"Probability Density $\mu_t(k)$")
-ax_heat.set_title(r"Heatmap: Wealth Mass Transition over Time", fontsize=11)
-ax_heat.set_xlabel("Assets $k$")
-ax_heat.set_ylabel("Transition Quarter $t$")
+im = ax_heat.imshow(d_mass[:, k_mask] * 100, aspect="auto", origin="lower",
+                    extent=[k_sub[0], k_sub[-1], 0, horizon], cmap=_nbstyle.CMAP_SEQ)
+cbar = fig2.colorbar(im, ax=ax_heat)
+cbar.set_label("Change in mass per grid node (pp)")
+ax_heat.set_title("Change in wealth mass since year 0, all years", fontsize=11)
+ax_heat.set_xlabel("Assets $k$ (grid nodes up to 15)")
+ax_heat.set_ylabel("Year $t$")
 
 # %%
-# --- Experiment 4: Algorithm Benchmark: Broyden Quasi-Newton vs Damped Shooting ---
-# Compare sequence-space Broyden method against traditional damped fixed-point shooting
-print("Benchmarking sequence-space relaxation algorithms on 40-quarter transition...")
-
-# Broyden already executed in Experiment 2
-t0 = time.perf_counter()
+# --- Experiment 4: Broyden quasi-Newton against damped shooting ---
+# Both solve the same system H(r) = 0, so their paths must agree to the tolerance.
+# This is an internal consistency check: both routes run through puremacro's code.
 shoot_res = continuous_mit_shock(
     ss_base,
     shock_type="tfp",
@@ -316,42 +319,40 @@ shoot_res = continuous_mit_shock(
     tol=1e-4,
     max_iter=30,
 )
-t_shoot = time.perf_counter() - t0
+gap_r_bps = np.max(np.abs(shoot_res.r_path - trans_res.r_path)) * 1e4
+gap_K = np.max(np.abs(shoot_res.K_s_path - trans_res.K_s_path))
 
-print(f"Algorithm Performance Comparison:")
-print(f"  Broyden Quasi-Newton : {trans_res.iterations:2d} iterations | Wall Time = {t_trans:.3f}s | Max Res = {trans_res.max_residual:.2e}")
-print(f"  Damped Shooting      : {shoot_res.iterations:2d} iterations | Wall Time = {t_shoot:.3f}s | Max Res = {shoot_res.max_residual:.2e}")
+print("Algorithm comparison (same system, same tolerance):")
+print(f"  Broyden quasi-Newton : {trans_res.iterations:2d} iterations, max residual {trans_res.max_residual:.2e}")
+print(f"  Damped shooting      : {shoot_res.iterations:2d} iterations, max residual {shoot_res.max_residual:.2e}")
+print(f"  Largest gap between the two paths: r {gap_r_bps:.1e} bps, K {gap_K:.1e}")
 
-# Performance assertions
-assert trans_res.converged, "Broyden solver must converge"
-assert shoot_res.converged or trans_res.iterations <= shoot_res.iterations, "Broyden should converge in fewer iterations than fixed-point relaxation"
+assert trans_res.converged and shoot_res.converged
+assert gap_K < 1e-4, "two solvers of the same system must agree to the tolerance"
 
 # %% [markdown]
 # ## Read the output
 #
-# **Read the output.** The numerical experiments elucidate the continuous macroeconomic transmission mechanism and confirm the theoretical properties of distributional sequence space:
+# **Read the output.**
 #
-# 1. **Stationary Equilibrium Baseline (Experiment 1):** In the pre-shock Aiyagari steady state, the equilibrium interest rate settles at $r^* = 1.976\%$ ($0.019762$), strictly below the subjective rate of time preference $\rho = 1/\beta - 1 = 4.167\%$. This gap quantifies the precautionary savings motive induced by uninsurable labor income risk. Aggregate capital stock is $K^* = 8.7924$, supporting real wage $w^* = 1.3173$ and generating a realistic wealth Gini coefficient of $0.5269$. Median wealth ($P_{50} = 5.800$) is less than one-third of the 90th percentile cutoff ($P_{90} = 22.702$), reflecting typical right-skewed wealth concentration.
-# 2. **Immediate Impact Dynamics & Predetermined Capital (Experiment 2):** At date $t=0$, capital supply $K_0^s = 8.7924$ matches the baseline steady state to machine precision ($|K_0^s - K^*| < 10^{-12}$). Because household wealth is predetermined, the $+5\%$ TFP surge raises the marginal product of capital instantaneously, forcing the equilibrium interest rate to spike from $1.976\%$ to $2.475\%$ ($+49.9$ basis points). Concurrently, the competitive real wage leaps by $+5.00\%$ to $w_0 = 1.3832$.
-# 3. **Endogenous Propagation & Capital Deepening (Experiment 2):** In response to elevated interest rates and wages, households save aggressively. Aggregate capital expands steadily along the transition path, peaking at $K_{\text{peak}} = 9.0388$ around quarter 7—long after the exogenous shock has decayed to less than $21\%$ of its initial magnitude ($0.80^7 \approx 0.2097$). This capital accumulation depresses the interest rate below its initial peak, illustrating the endogenous propagation persistence generated by wealth redistribution.
-# 4. **Wealth Inequality Compression & Redistribution (Experiment 3):** The wealth Gini coefficient temporarily compresses from $G_0 = 0.5269$ down to $G_{\min} = 0.5212$ at quarter 7. This equalization occurs because higher labor income disproportionately benefits earnings-dependent, low-wealth households, allowing them to accumulate buffer-stock assets faster in percentage terms than wealthy capital owners. As shown in the Lorenz curves and the 3D density surface, mass shifts away from the borrowing constraint ($k=0$) toward the asset-rich interior before slowly returning to the ergodic baseline.
-# 5. **Algorithmic Convergence & Precision (Experiment 4):** Sequence-space Broyden Quasi-Newton converges in 5 iterations ($0.22$ seconds) to a maximum market clearing residual of $2.67 \times 10^{-5}$, while the Young (2010) lottery operator conserves probability mass across all 40 quarters to machine precision ($6.66 \times 10^{-16}$).
+# 1. **Steady state (Experiment 1).** The equilibrium interest rate is $r^* = 1.976\%$ a year, well below the rate of time preference $1/\beta - 1 = 4.167\%$. Households hold more capital than they would under full insurance, because they save against uninsurable earnings risk and the borrowing limit. Capital is $K^* = 8.7924$, or 3.609 years of output. Wealth is concentrated: the Gini is $0.5269$, and the median household holds $5.800$ against $22.702$ at the 90th percentile. The diagnostics are now informative: at $r^*$ the household EGM met its tolerance after 308 iterations, the stationary distribution converged, and the capital market clears to $8.0 \times 10^{-7}$ against `tol_ge` $= 10^{-4}$. Through release 4.3.0 `converged` was always True and the EGM stopped silently after 500 iterations.
+# 2. **Impact (Experiment 2).** Capital is predetermined ($|K_0^s - K^*| = 1.8 \times 10^{-15}$), so the $+5\%$ TFP shock is absorbed by prices. The interest rate jumps by $+49.88$ basis points to $2.475\%$, and the wage by $+5.0000\%$. Both equal the closed form $s(r^* + \delta)$ and $s$, an independent check derived by hand from the firm's first-order conditions. The Your-turn cell below repeats it for any shock.
+# 3. **Propagation (Experiment 2).** The interest rate falls below $r^*$ in year 5, but capital keeps rising until year 7, when it peaks at $K_{\text{peak}} = 9.0388$ and only $1.05\%$ of the TFP shock is left. Capital is a stock: it grows as long as net saving is positive, even after the return has fallen below its steady-state value. In the last year of the horizon ($t = 39$) capital is still $8.8324$ against $K^* = 8.7924$, so a 40-year horizon only just contains this response. Prompt 3 measures the truncation error, for this shock and for a more persistent one.
+# 4. **Inequality (Experiment 3).** The Gini falls from $0.5269$ to $0.5212$ in year 7, a change of $-0.0057$, and is $0.5251$ in year 40. The share of households at the borrowing constraint falls from $0.0707$ to $0.0679$ in year 6. Figure 2 shows where that mass goes: by year 7 the node at $k = 0$ has lost $0.28$ percentage points of the population and the node at $k = 2.62$ has gained $0.29$ points, while the distribution above about $k = 4$ barely moves. The jagged profile comes from the lottery, which places mass on the two grid nodes around each savings choice. This is consistent with constrained, labour-income-dependent households rebuilding their buffers during the boom, but both effects are small.
+# 5. **Solvers (Experiments 2 and 4).** Broyden needs 5 iterations and damped shooting 11 to reach the same tolerance. The two paths agree to $6.6 \times 10^{-6}$ in capital and $3.9 \times 10^{-3}$ basis points in the interest rate. That agreement is an internal check, since both evaluate the same puremacro system $\mathbf{H}(\mathbf{r})$. Mass is conserved to $4.4 \times 10^{-16}$. The shock left at $T-1$ is $8.3 \times 10^{-6}$, $0.017\%$ of the impact and below `truncation_tol` $= 0.1\%$, so there is no truncation warning. The terminal condition is the initial steady state, as for every transitory shock.
+
+# %% [markdown]
+# ## Your turn
+#
+# Predict the impact response before you run the cell. Write down $r_0 - r^*$ in basis points and $w_0 / w^* - 1$ in percent from the closed form of section 5, using the printed $r^*$ and $\delta = 0.08$. The cell recomputes the transition and checks the solver against that closed form, and checks that capital moves in the direction of the shock. Both checks hold for every shock in the advertised range and every persistence in it. For a persistence above 0.838 the cell also prints a truncation warning, because the shock has not died out by year 39 (prompt 3).
 
 # %%
-# Your turn: customize shock magnitude, persistence, and relaxation damping
-# Adjust the continuous MIT shock settings below to test alternative macroeconomic scenarios.
-# The executable cell re-simulates the transition and validates downstream stability assertions.
+# Your turn: change the shock, predict the impact, and let the solver check you
+user_shock_size = 0.05    # ← change this: TFP shock on impact, -0.08 to 0.08 (not 0)
+user_persistence = 0.80   # ← change this: yearly persistence of the shock, 0.5 to 0.92
+assert user_shock_size != 0.0 and -0.08 <= user_shock_size <= 0.08
+assert 0.5 <= user_persistence <= 0.92
 
-# ← change this: TFP shock magnitude in percentage points (e.g., 0.02, 0.05, 0.08)
-user_shock_size = 0.05
-
-# ← change this: Shock autoregressive persistence rho in [0, 1) (e.g., 0.50, 0.80, 0.90)
-user_persistence = 0.80
-
-# ← change this: Broyden Quasi-Newton relaxation damping theta in (0, 1] (e.g., 0.20, 0.40, 0.60)
-user_damping = 0.40
-
-# Re-simulate transition under custom user parameters
 user_res = continuous_mit_shock(
     ss_base,
     shock_type="tfp",
@@ -359,40 +360,40 @@ user_res = continuous_mit_shock(
     persistence=user_persistence,
     horizon=40,
     solver="broyden",
-    damping=user_damping,
     tol=1e-4,
 )
+user_dr_bps = (user_res.r_path[0] - ss_base.r) * 1e4
+user_dw_pct = (user_res.w_path[0] / ss_base.w - 1.0) * 100.0
+my_dr_bps = user_shock_size * (ss_base.r + delta) * 1e4   # the closed form; replace it with your own number
+my_dw_pct = user_shock_size * 100.0
+user_mit = user_res.metadata["mit_shock"]
+K_gap = user_res.K_s_path[1:] - ss_base.K
+term_text = f"{user_mit['terminal_condition']}; shock left at T-1 = {user_mit['remaining_share'] * 100:.3f}% of the impact"
+if user_mit["truncated"]:
+    term_text += f" (truncated; horizon={user_mit['horizon_needed']} would be long enough)"
 
-print(f"Custom Transition Simulation (Shock = {user_shock_size * 100:+.1f}%, rho = {user_persistence:.2f}, damping = {user_damping:.2f}):")
-print(f"  Broyden Iterations           = {user_res.iterations}")
-print(f"  Max Market Clearing Residual = {user_res.max_residual:.2e}")
-print(f"  Max Mass Conservation Error  = {user_res.mass_conservation_error:.2e}")
-print(f"  Initial Real Rate Jump       = {(user_res.r_path[0] - ss_base.r) * 10000.0:+.1f} bps")
-print(f"  Peak Capital Stock           = {user_res.K_s_path.max():.4f}")
+print(f"Shock {user_shock_size * 100:+.1f}%, persistence {user_persistence:.2f}:")
+print(f"  Impact rate jump : solver {user_dr_bps:+.3f} bps, prediction {my_dr_bps:+.3f} bps")
+print(f"  Impact wage jump : solver {user_dw_pct:+.4f}%, prediction {my_dw_pct:+.4f}%")
+print(f"  Capital peak/trough in year {int(np.argmax(np.abs(user_res.K_s_path - ss_base.K)))}, "
+      f"largest gap K_t - K* = {K_gap[np.argmax(np.abs(K_gap))]:+.4f}")
+print(f"  Terminal condition: {term_text}")
 
-# Downstream assertions validating user parameters and transition integrity
-assert user_shock_size != 0.0, "Shock size must be non-zero"
-assert 0.0 <= user_persistence < 1.0, "Persistence must lie in [0, 1)"
-assert 0.0 < user_damping <= 1.0, "Damping must lie in (0, 1]"
-assert user_res.converged, "Custom transition solver failed to converge"
-assert user_res.max_residual < 1e-4, f"Custom residual {user_res.max_residual:.2e} exceeds 1e-4"
-assert user_res.mass_conservation_error < 1e-12, f"Mass conservation violated: {user_res.mass_conservation_error:.2e}"
-if user_shock_size > 0:
-    assert user_res.r_path[0] > ss_base.r
-elif user_shock_size < 0:
-    assert user_res.r_path[0] < ss_base.r
-
+assert user_res.converged, "the transition must converge"
+assert user_mit["terminal_condition"] == "initial_steady_state", "a transitory shock keeps the initial steady state"
+assert abs(user_dr_bps - my_dr_bps) < 0.1, "impact rate differs from the prediction by more than 0.1 bps"
+assert abs(user_dw_pct - my_dw_pct) < 1e-3, "impact wage differs from the prediction"
+assert np.sign(K_gap.mean()) == np.sign(user_shock_size), "capital must move in the direction of the shock"
 
 # %% [markdown]
 # **Prompts.**
-# 1. *Basic:* Vary `user_shock_size` from $+0.02$ to $+0.08$. Notice how the initial interest rate jump scales near-linearly with shock magnitude, while peak capital accumulation shifts proportionately higher.
-# 2. *Intermediate:* Increase the persistence parameter `user_persistence` from $0.60$ to $0.92$. Observe how greater shock persistence extends the half-life of capital accumulation, pushing the peak capital date from quarter 4 out past quarter 15.
-# 3. *Stretch:* Test a contractionary shock (`user_shock_size = -0.05`). Verify that real wages fall on impact, the interest rate drops, capital decumulates, and the wealth Gini expands as liquidity-constrained households deplete their precautionary savings buffers.
+# 1. *Basic.* Take $s \in \{0.02, 0.05, 0.08, -0.05\}$. Predict the rate jump for each before running. Is the jump "near-linear" in $s$ or exactly linear, and why does changing `user_persistence` leave it unchanged?
+# 2. *Intermediate.* For $\rho \in \{0.6, 0.8, 0.92\}$ with $s = 0.05$, record `t_peak = int(np.argmax(res.K_s_path))` and `t_cross = int(np.argmax(res.r_path < ss_base.r))`. Predict first: does the capital peak come later as $\rho$ rises, and does capital stop rising as soon as $r_t$ falls below $r^*$? Check with `assert t_peak[0] < t_peak[1] < t_peak[2]` and `assert all(0 < c < p for c, p in zip(t_cross, t_peak))`. Explain the ordering with $r_t = \alpha Z_t (K_t/L)^{\alpha-1} - \delta$, which equals $r^*$ when $K_t / K^* = Z_t^{1/(1-\alpha)}$.
+# 3. *Stretch.* With $\rho = 0.92$ and a 40-year horizon the shock has not died out at $T-1$. The solver still uses the initial steady state as the terminal condition, sets the shock to zero from year 40 on, and warns, naming a horizon that would be long enough; print `user_res.metadata["mit_shock"]`. Solve the same transition with `horizon=150` and compute the truncation error `e = np.abs(r40.K_s_path - r150.K_s_path[:40])`. Where is it largest, how does it compare with the terminal gap `r40.K_s_path[-1] - ss_base.K`, and how small is it over the first 10 years? Repeat with $\rho = 0.8$, where no warning is issued, and state a rule for choosing $T$ that looks at capital as well as at the shock.
 #
 # ## How comprehensive is this?
 #
-# `puremacro.vfi` unifies continuous dynamic programming and sequence-space general equilibrium transitions across the macroeconomic literature:
-# - `puremacro.vfi.continuous_transition`: Sequence-space Broyden and shooting transition solvers for unexpected MIT shocks (`solve_continuous_transition`, `continuous_mit_shock`, `TransitionShock`).
-# - `puremacro.vfi.continuous_distribution`: Continuous stationary distribution and general equilibrium engine using Young (2010) lotteries (`solve_aiyagari_continuous`, `continuous_stationary_distribution`, `ContinuousStationaryDistribution`).
-# - `puremacro.models.hank_sequence_space`: Multi-asset Heterogeneous Agent New Keynesian (HANK) sequence-space Jacobians and non-linear transitions via fake news algorithms.
-# - `puremacro.vfi.collocation` & `puremacro.vfi.fem`: Continuous policy projection solvers (Chebyshev collocation and finite element Galerkin methods).
+# - `puremacro.vfi.continuous_transition`: the Broyden and shooting transition solvers (`solve_continuous_transition`, `continuous_mit_shock`, `TransitionShock`); `shock_type` also takes `"rate"` and `"beta"`.
+# - `puremacro.vfi.continuous_distribution`: the stationary equilibrium and the Young (2010) distribution (`solve_aiyagari_continuous`, `continuous_stationary_distribution`, `ContinuousStationaryDistribution`); `docs/vfi_continuous_equilibrium.md` documents the convergence controls used above.
+# - `puremacro.models.hank_sequence_space`: linear sequence-space Jacobians for HANK economies (notebook 31), the linear counterpart of the non-linear transition solved here.
+# - `puremacro.vfi.collocation` and `puremacro.vfi.fem`: projection solvers for the household problem (notebook 51).

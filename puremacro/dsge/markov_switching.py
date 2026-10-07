@@ -124,7 +124,23 @@ class MSDSGEResult:
     iterations : int
         Number of iterations executed by the solver.
     diff : float
-        Final solver residual norm ||F(T)||_infty.
+        Final solver residual norm ||F(T)||_infty (absolute, in the units of
+        the structural equations).
+    relative_residual : float
+        Componentwise backward error of the returned ``T`` over the residual
+        entries that miss the absolute tolerance: the largest ratio
+        ``|F_i(T)| / W_i(T)`` over regimes and entries with ``|F_i| > tol``,
+        where ``F_i(T) = (A_i sum_k p_ik T_k + B_i) T_i + C_i`` and
+        ``W_i(T) = |A_i| (sum_k p_ik |T_k|) |T_i| + |B_i| |T_i| + |C_i|``
+        are the magnitudes of the terms that cancel in each entry. It is the
+        smallest ``rtol`` under which the entrywise gate of
+        :func:`solve_ms_dsge` accepts ``T``, so ``converged`` equals
+        ``relative_residual <= rtol`` (0.0 when every entry already meets
+        ``tol``, i.e. when the 4.3.0 absolute gate alone certifies the
+        solve). The ratio does not change when an equation (row) or a
+        variable (column) is rescaled, so a value of a few machine epsilons
+        means the entries above ``tol`` are floating-point noise relative to
+        the terms that cancel in them. ``nan`` when not computed.
     mean_square_stable : bool
         Whether the MSRE system is Mean-Square Stable (MSS), rho(M_2) < 1.
     spectral_radius_mss : float
@@ -158,6 +174,7 @@ class MSDSGEResult:
     solver_method: str
     M1: np.ndarray = field(default_factory=lambda: np.zeros((0, 0)))
     M2: np.ndarray = field(default_factory=lambda: np.zeros((0, 0)))
+    relative_residual: float = float("nan")
 
     def _resolve_regime_idx(self, regime: int | str) -> int:
         """Resolve integer index from regime name or integer."""
@@ -399,7 +416,7 @@ class MSDSGEResult:
             f"Exogenous Shocks   : {len(self.shocks)} ({', '.join(self.shocks)})",
             f"Solver Algorithm   : {self.solver_method.capitalize()} "
             f"({'converged' if self.converged else 'DID NOT CONVERGE'} in {self.iterations} iter, "
-            f"residual diff={self.diff:.2e})",
+            f"residual diff={self.diff:.2e}, relative={self.relative_residual:.2e})",
             "",
             "STABILITY DIAGNOSTICS:",
             f"  First-Moment Stability (Mean)      : {'PASS' if self.spectral_radius_mean < 1.0 else 'FAIL'} "
@@ -746,6 +763,109 @@ def _compute_ergodic_moments(
 # Coupled Quadratic Solvers
 # ==============================================================================
 
+#: Default relative tolerance of the MS-DSGE convergence gate: 64 machine
+#: epsilons (about 1.4e-14). A residual entry within this fraction of the
+#: magnitude of the terms that cancel in it is floating-point noise.
+_MS_DEFAULT_RTOL = 64.0 * float(np.finfo(float).eps)
+
+
+def _ms_residuals(
+    A: Sequence[np.ndarray],
+    B: Sequence[np.ndarray],
+    C: Sequence[np.ndarray],
+    P: np.ndarray,
+    T: Sequence[np.ndarray],
+) -> list[np.ndarray]:
+    """Residual blocks ``F_i(T) = (A_i sum_k p_ik T_k + B_i) T_i + C_i``."""
+    S = len(A)
+    return [(A[i] @ sum(P[i, k] * T[k] for k in range(S)) + B[i]) @ T[i] + C[i] for i in range(S)]
+
+
+def _ms_term_magnitudes(
+    A: Sequence[np.ndarray],
+    B: Sequence[np.ndarray],
+    C: Sequence[np.ndarray],
+    P: np.ndarray,
+    T: Sequence[np.ndarray],
+) -> list[np.ndarray]:
+    """Entrywise magnitudes ``W_i = |A_i| (sum_k p_ik |T_k|) |T_i| + |B_i| |T_i| + |C_i|``.
+
+    ``|F_i| <= W_i`` entrywise in exact arithmetic, and the rounding error of
+    evaluating ``F_i`` is bounded by a small multiple of ``eps * W_i`` entry
+    by entry, so ``|F_i| / W_i`` is the componentwise (Oettli-Prager-type)
+    backward error of ``T``. Rescaling an equation (a row of ``A_i``,
+    ``B_i``, ``C_i``) or a variable (``y = D x`` with ``D`` positive diagonal)
+    rescales ``F_i`` and ``W_i`` by the same factors, so the ratio does not
+    depend on the units the model is written in.
+    """
+    S = len(A)
+    out = []
+    for i in range(S):
+        T_sum_abs = sum(P[i, k] * np.abs(T[k]) for k in range(S))
+        abs_Ti = np.abs(T[i])
+        out.append(np.abs(A[i]) @ T_sum_abs @ abs_Ti + np.abs(B[i]) @ abs_Ti + np.abs(C[i]))
+    return out
+
+
+def _ms_componentwise_error(F: Sequence[np.ndarray], W: Sequence[np.ndarray], tol: float) -> float:
+    """Smallest ``rtol`` accepted by :func:`_ms_entrywise_ok`: ``max |F| / W`` over entries with ``|F| > tol``.
+
+    0.0 when every entry meets ``tol``; ``inf`` for a non-finite residual or
+    for an entry above ``tol`` whose term magnitude ``W`` is zero.
+    """
+    worst = 0.0
+    for Fi, Wi in zip(F, W):
+        a = np.abs(Fi)
+        if not (np.all(np.isfinite(a)) and np.all(np.isfinite(Wi))):
+            return float("inf")
+        miss = a > tol
+        if not np.any(miss):
+            continue
+        a_m, w_m = a[miss], Wi[miss]
+        if np.any(w_m <= 0.0):
+            return float("inf")
+        worst = max(worst, float(np.max(a_m / w_m)))
+    return worst
+
+
+def _ms_entrywise_ok(F: Sequence[np.ndarray], W: Sequence[np.ndarray], tol: float, rtol: float) -> bool:
+    """Mixed entrywise gate: every entry satisfies ``|F| <= tol`` or ``|F| <= rtol * W``."""
+    for Fi, Wi in zip(F, W):
+        a = np.abs(Fi)
+        if not (np.all(np.isfinite(a)) and np.all(np.isfinite(Wi))):
+            return False
+        if not np.all((a <= tol) | (a <= rtol * Wi)):
+            return False
+    return True
+
+
+def _ms_converged(
+    A: Sequence[np.ndarray],
+    B: Sequence[np.ndarray],
+    C: Sequence[np.ndarray],
+    P: np.ndarray,
+    T: Sequence[np.ndarray],
+    F: Sequence[np.ndarray],
+    diff: float,
+    tol: float,
+    rtol: float,
+) -> bool:
+    """Convergence gate at ``T``: ``diff <= tol``, or (``rtol > 0``) the mixed entrywise test.
+
+    The absolute branch is the 4.3.0 gate. The entrywise branch accepts a
+    residual entry above ``tol`` only when it is within ``rtol`` of the
+    magnitude of its own terms, so an O(1) equation is never accepted at a
+    residual set by a large-unit equation elsewhere in the system.
+    """
+    if not np.isfinite(diff):
+        return False
+    if diff <= tol:
+        return True
+    if rtol <= 0.0:
+        return False
+    return _ms_entrywise_ok(F, _ms_term_magnitudes(A, B, C, P, T), tol, rtol)
+
+
 def _solve_coupled_quadratic_newton(
     A: Sequence[np.ndarray],
     B: Sequence[np.ndarray],
@@ -754,11 +874,16 @@ def _solve_coupled_quadratic_newton(
     tol: float = 1e-10,
     max_iter: int = 1000,
     initial_T: Sequence[np.ndarray] | None = None,
+    rtol: float = 0.0,
 ) -> tuple[list[np.ndarray], bool, int, float]:
     """Solve coupled matrix quadratics via Block Newton-Raphson with exact Kronecker Jacobian.
 
     F_i(T) = A_i (sum_k p_{ik} T_k) T_i + B_i T_i + C_i = 0
     d vec(F_i) / d vec(T_k) = delta_{ik} (I_n (x) Omega_i(T)) + p_{ik} (T_i^T (x) A_i)
+
+    Convergence: ``max_i ||F_i||_max < tol`` or, when ``rtol > 0``, every
+    residual entry satisfies ``|F| <= tol`` or ``|F| <= rtol * W`` with ``W``
+    the entrywise term magnitudes of :func:`_ms_term_magnitudes`.
     """
     S = len(A)
     n = A[0].shape[0]
@@ -774,12 +899,15 @@ def _solve_coupled_quadratic_newton(
         converged = False
         diff = float("inf")
         iterations = 0
+        # Negligible steps still applied when the entrywise gate is active (see step 3).
+        polish_left = 2 if rtol > 0.0 else 0
 
         for it in range(1, max_iter + 1):
             iterations = it
 
             # 1. Evaluate residuals
             f_blocks = []
+            F_mats = []
             max_res = 0.0
             Omega_list = []
             for i in range(S):
@@ -787,11 +915,15 @@ def _solve_coupled_quadratic_newton(
                 Omega_i = A[i] @ T_sum + B[i]
                 Omega_list.append(Omega_i)
                 Fi = Omega_i @ T[i] + C[i]
+                F_mats.append(Fi)
                 f_blocks.append(Fi.flatten("F"))
                 max_res = max(max_res, float(np.max(np.abs(Fi))))
 
             diff = max_res
-            if max_res < tol:
+            if max_res < tol or (
+                rtol > 0.0 and np.isfinite(max_res)
+                and _ms_entrywise_ok(F_mats, _ms_term_magnitudes(A, B, C, P, T), tol, rtol)
+            ):
                 converged = True
                 break
 
@@ -820,7 +952,17 @@ def _solve_coupled_quadratic_newton(
                 delta = -scipy.linalg.lstsq(J, f_stacked)[0]
             
             if np.max(np.abs(delta)) < 1e-12:
-                # Stalled with negligible step direction
+                # Stalled with negligible step direction. The residual is above
+                # tol here (else the loop stopped at step 1). With the entrywise
+                # gate active, apply up to two such steps (each moves T by less
+                # than 1e-12) so that the iterate reaches the rounding floor of
+                # its own residual before the gate is judged; with rtol == 0
+                # this is the 4.3.0 stall exit.
+                if polish_left > 0:
+                    polish_left -= 1
+                    for i in range(S):
+                        T[i] = T[i] + delta[i * n**2 : (i + 1) * n**2].reshape((n, n), order="F")
+                    continue
                 break
 
             # 4. Backtracking line search
@@ -852,10 +994,9 @@ def _solve_coupled_quadratic_newton(
                     delta_i = delta[i * n**2 : (i + 1) * n**2].reshape((n, n), order="F")
                     T[i] += 0.1 * delta_i
 
-        diff = max(float(np.max(np.abs(
-            (A[i] @ sum(P[i, k] * T[k] for k in range(S)) + B[i]) @ T[i] + C[i]
-        ))) for i in range(S))
-        converged = bool(np.isfinite(diff) and diff <= tol)
+        F_fin = _ms_residuals(A, B, C, P, T)
+        diff = max(float(np.max(np.abs(Fi))) for Fi in F_fin)
+        converged = _ms_converged(A, B, C, P, T, F_fin, diff, tol, rtol)
         return T, converged, iterations, diff
 
     if initial_T is not None:
@@ -908,8 +1049,14 @@ def _solve_coupled_quadratic_fp(
     max_iter: int = 1000,
     damping: float = 0.8,
     initial_T: Sequence[np.ndarray] | None = None,
+    rtol: float = 0.0,
 ) -> tuple[list[np.ndarray], bool, int, float]:
-    """Solve coupled matrix quadratics via damped functional iteration."""
+    """Solve coupled matrix quadratics via damped functional iteration.
+
+    Convergence: residual ``||F(T)||_max <= tol`` or, when ``rtol > 0``,
+    every residual entry satisfies ``|F| <= tol`` or ``|F| <= rtol * W``
+    (see :func:`_ms_converged`).
+    """
     S = len(A)
     n = A[0].shape[0]
 
@@ -947,10 +1094,9 @@ def _solve_coupled_quadratic_fp(
             T_new.append(T_up)
 
         T = T_new
-        diff = max(float(np.max(np.abs(
-            (A[i] @ sum(P[i, k] * T[k] for k in range(S)) + B[i]) @ T[i] + C[i]
-        ))) for i in range(S))
-        if np.isfinite(diff) and diff <= tol:
+        F_it = _ms_residuals(A, B, C, P, T)
+        diff = max(float(np.max(np.abs(Fi))) for Fi in F_it)
+        if _ms_converged(A, B, C, P, T, F_it, diff, tol, rtol):
             converged = True
             break
 
@@ -1100,6 +1246,7 @@ def solve_ms_dsge(
     damping: float = 0.8,
     initial_T: Mapping[int | str, np.ndarray] | Sequence[np.ndarray] | None = None,
     shock_cov: np.ndarray | None = None,
+    rtol: float = _MS_DEFAULT_RTOL,
 ) -> MSDSGEResult:
     """Solve a Markov-Switching DSGE (MS-DSGE) model in first-order perturbation form.
 
@@ -1128,7 +1275,38 @@ def solve_ms_dsge(
     max_iter : int, default 1000
         Maximum solver iterations.
     tol : float, default 1e-10
-        Convergence tolerance on sup-norm of residuals.
+        Absolute convergence tolerance on the sup-norm residual
+        ``diff = max_i ||(A_i sum_k p_ik T_k + B_i) T_i + C_i||_max``, in the
+        units of the structural equations.
+    rtol : float, default 64 machine epsilons (``64 * np.finfo(float).eps``, about 1.42e-14)
+        Relative tolerance of the entrywise (componentwise backward-error)
+        branch of the convergence gate. Convergence is declared when
+        ``diff <= tol`` or, entry by entry of every regime's residual
+        ``F_i(T) = (A_i sum_k p_ik T_k + B_i) T_i + C_i``,
+        ``|F_i| <= tol`` or ``|F_i| <= rtol * W_i`` with
+        ``W_i = |A_i| (sum_k p_ik |T_k|) |T_i| + |B_i| |T_i| + |C_i|``, the
+        magnitudes of the terms that cancel in that entry. Rescaling an
+        equation or a variable leaves ``|F_i| / W_i`` unchanged but rescales
+        ``diff``, so an equation written in large units (a level identity in
+        currency, say) whose absolute residual is pure cancellation noise
+        above ``tol`` is still certified, while every other entry must still
+        meet ``tol`` or its own relative bound: an O(1) equation is never
+        accepted at a residual set by a large-unit equation elsewhere. The
+        default admits only residual entries at the floating-point floor of
+        their own evaluation (functional iteration reaches about one machine
+        epsilon). The relative bound exceeds ``tol`` only for an entry with
+        ``W_i > tol / rtol`` (about 7e3 with the default ``tol``), so a
+        model whose term magnitudes stay below that (coefficients of order
+        one) is accepted exactly when ``diff <= tol``, as in 4.3.0, and a
+        user-tightened ``tol`` is honoured down to about ``64 eps * max W``.
+        When the Newton step falls below 1e-12 while the residual still
+        exceeds ``tol`` (4.3.0 stopped there and reported failure), up to two
+        such steps are applied before the gate is judged. The smallest
+        ``rtol`` that certifies the returned ``T`` is reported as
+        ``MSDSGEResult.relative_residual``. A failed solve still reports NaN
+        impact matrices, moments and stability (see Returns). ``rtol=0.0``
+        restores the purely absolute 4.3.0 gate, including the Newton stall
+        exit.
     damping : float, default 0.8
         Damping parameter for functional iteration.
     initial_T : Sequence[np.ndarray] or Mapping[Any, np.ndarray], optional
@@ -1139,7 +1317,11 @@ def solve_ms_dsge(
     Returns
     -------
     MSDSGEResult
-        Solved MS-DSGE equilibrium result dataclass.
+        Solved MS-DSGE equilibrium result dataclass. ``converged`` is decided
+        at the returned ``T`` by the gate described under ``rtol``; when it is
+        False, ``R``, ``c``, ``M1``, ``M2``, the spectral radii and the ergodic
+        moments are NaN and ``mean_square_stable`` is False, because a
+        non-solution has no equilibrium stability or moments.
     """
     # 1. Parse .mod text or DAG if passed as single source
     if B is None and C is None and D is None:
@@ -1218,23 +1400,29 @@ def solve_ms_dsge(
 
     # 2. Solve coupled quadratic equations for T_1, ..., T_S
     method_clean = method.lower().strip()
+    rtol = float(rtol)
+    if not (np.isfinite(rtol) and rtol >= 0.0):
+        raise ValueError(f"rtol must be a finite non-negative float; got {rtol!r}")
     if method_clean in ("newton", "block_newton", "nr"):
         T_list, converged, iters, diff = _solve_coupled_quadratic_newton(
-            A_list, B_list, C_list, P, tol=tol, max_iter=max_iter, initial_T=init_T_list
+            A_list, B_list, C_list, P, tol=tol, max_iter=max_iter, initial_T=init_T_list, rtol=rtol
         )
         used_method = "newton"
     elif method_clean in ("functional_iteration", "fp", "fixed_point"):
         T_list, converged, iters, diff = _solve_coupled_quadratic_fp(
-            A_list, B_list, C_list, P, tol=tol, max_iter=max_iter, damping=damping, initial_T=init_T_list
+            A_list, B_list, C_list, P, tol=tol, max_iter=max_iter, damping=damping, initial_T=init_T_list,
+            rtol=rtol,
         )
         used_method = "functional_iteration"
     else:
         raise ValueError(f"Unknown method '{method}'; expected 'newton' or 'functional_iteration'.")
 
-    diff = max(float(np.max(np.abs(
-        (A_list[i] @ sum(P[i, k] * T_list[k] for k in range(S)) + B_list[i]) @ T_list[i] + C_list[i]
-    ))) for i in range(S))
-    converged = bool(np.isfinite(diff) and diff <= tol)
+    F_final = _ms_residuals(A_list, B_list, C_list, P, T_list)
+    diff = max(float(np.max(np.abs(Fi))) for Fi in F_final)
+    converged = _ms_converged(A_list, B_list, C_list, P, T_list, F_final, diff, tol, rtol)
+    relative_residual = _ms_componentwise_error(
+        F_final, _ms_term_magnitudes(A_list, B_list, C_list, P, T_list), tol
+    )
     pi_infty = markov_stationary(P)
     if converged:
         # 3. Compute shock impact matrices R_1, ..., R_S
@@ -1300,4 +1488,5 @@ def solve_ms_dsge(
         solver_method=used_method,
         M1=M1,
         M2=M2,
+        relative_residual=relative_residual,
     )

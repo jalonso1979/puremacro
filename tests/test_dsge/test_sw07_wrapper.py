@@ -1,67 +1,57 @@
 """Tests for the SW07 thin-wrapper layer over the generic Bayesian DSGE engine."""
 from __future__ import annotations
 
-from pathlib import Path
+from importlib import resources
 
 import numpy as np
 import pytest
 
 
-FIXTURE = Path(__file__).parent.parent / "fixtures" / "sw07_parity_seed0_200draws.npz"
+# The same file the dsge_estimation replication cases read: shipped as package
+# data and rebuilt by ``python tools/build_sw07_data.py fixture``.
+FIXTURE = resources.files("puremacro.replication.data") / "sw07_parity_seed0_200draws.npz"
+
+
+def _load_reference() -> dict[str, np.ndarray]:
+    """Arrays of the package-data SW07 fixture (works from an installed wheel)."""
+    with FIXTURE.open("rb") as fh, np.load(fh) as z:
+        return {k: z[k] for k in z.files}
 
 
 @pytest.mark.slow
 def test_sw07_parity_short_chain():
     """estimate_sw07(seed=0, n_chains=1, n_draws=200, burn_in=500) against the
-    frozen reference: posterior-function parity deterministically, structural
+    SW07 fixture: posterior-function parity deterministically, structural
     parity exactly, sampler invariants on a fresh short chain.
 
-    The original bit-for-bit check (atol=1e-10 on every draw) only holds on
-    the software stack that generated the fixture: last-bit float
-    differences in the L-BFGS-B mode refinement (which does not even take
-    the same branch on every platform — it converges on some stacks and
-    aborts to the initial-params fallback on others), SVD, and Cholesky
-    are amplified chaotically by MH accept/reject, so identical seeds
-    produce entirely different draw trajectories elsewhere.
+    The fixture (``puremacro/replication/data/sw07_parity_seed0_200draws.npz``,
+    written by ``python tools/build_sw07_data.py fixture``) holds the optimised
+    posterior mode of the SW07 model on the bundled data, the inverse Hessian
+    there, and 200 random-walk Metropolis draws around the mode (every 50th of
+    10,000 after a 2,000-draw burn-in), with ``log_posterior_trace`` the log
+    posterior at each kept draw. It also records the SHA-256 of the
+    ``_sw07_data.csv`` it was built on. Through 4.3.0 the draws were a frozen
+    pre-0.53.0 chain on the old data; the 2026-09-30 SW07 fix (markup MA terms,
+    rebuilt data) replaced them.
 
-    What IS cross-platform stable is the log-posterior FUNCTION: the
-    fixture's ``log_posterior_trace`` entries are plain evaluations at the
-    fixture's own draws, so recomputing them today involves no optimizer
-    branch and no accept/reject amplification — only last-bit Kalman noise
-    (observed ~1e-3 log points across numpy/scipy/BLAS drift). Matching
-    them pins the entire wrapper wiring against the pre-0.53.0 reference:
-    bundled-data loading, observation equation, priors, and fixed
-    calibrated params. Any real regression in those moves the
-    log-posterior by orders of magnitude more than the 0.05 tolerance.
+    Comparing draw trajectories bit for bit only holds on the software stack
+    that generated them: last-bit float differences in the mode refinement,
+    SVD and Cholesky are amplified chaotically by MH accept/reject, so the
+    same seed gives different trajectories elsewhere. What IS cross-platform
+    stable is the log-posterior FUNCTION: the stored trace entries are plain
+    evaluations at the stored draws, so recomputing them involves no optimizer
+    branch and no accept/reject, only last-bit Kalman noise (about 1e-3 log
+    points across numpy/scipy/BLAS versions). Matching them pins the whole
+    wrapper wiring: bundled-data loading, observation equation, priors and
+    fixed calibrated params. A real regression in any of those moves the log
+    posterior by far more than the 0.05 tolerance.
 
-    ``log_posterior_trace`` was regenerated in 2.6.0 at the *same* frozen
-    draws. Two deliberate 2.5.0 fixes had moved the SW07 log-posterior at
-    every parameter vector and the fixture was never refreshed, so this
-    assertion had been failing since the 2.5.0 release with nothing running
-    it (slow-marked tests are excluded from both the default suite and
-    ``release_check`` gate 1). The gap decomposes exactly, with nothing
-    unexplained beyond 5e-4 log points:
-
-    * the Kalman recursion moving from the diffuse ``P0 = 1e6*I`` to the
-      unconditional Lyapunov covariance -- +108.5 to +111.8 depending on the
-      draw, against the +113.99 the CHANGELOG records at the shipped starting
-      values; and
-    * the inverse-gamma prior becoming Dynare's ``inverse_gamma_specification``
-      + ``lpdfig1`` -- -0.24 to +2.11, matching an independent reconstruction
-      of the pre-2.4.1 density to ~1e-4 at every probe draw.
-
-    The draws themselves are still the original frozen ones: they are probe
-    points, and freezing them keeps this check independent of today's sampler.
-
-    ``burn_in`` is 500, not the 50 the fixture was generated with, because
-    ``random_walk_metropolis`` adapts its scalar proposal scale only on
-    ``(it + 1) % 100 == 0``. At ``burn_in=50`` adaptation never fires once,
-    the proposal keeps the oversized ``diag(prior_stds**2)`` fallback scale,
-    and the chain rejects all 200 draws (measured: acceptance 0.000, one
-    distinct draw; at 200 it is 0.110). That is a real robustness gap in the
-    sampler -- adaptation is a silent no-op for any ``burn_in < 100`` -- but
-    fixing it changes every existing posterior, so it is tracked separately
-    rather than smuggled in here.
+    ``burn_in`` is 500 because ``random_walk_metropolis`` adapts its scalar
+    proposal scale only on ``(it + 1) % 100 == 0``. With ``burn_in < 100``
+    adaptation never fires, the proposal keeps the oversized
+    ``diag(prior_stds**2)`` fallback scale, and the chain can reject every
+    draw (measured at ``burn_in=50`` on the pre-fix model: acceptance 0.000).
+    That is a known sampler limitation, documented in docs/dsge_estimation.md.
     """
     from puremacro.dsge.estimate import _make_neg_log_posterior
     from puremacro.dsge.sw07_estimate import (
@@ -70,12 +60,12 @@ def test_sw07_parity_short_chain():
     from puremacro.dsge.sw07_observation import OBSERVED_VARS, make_state_space
     from puremacro.dsge.sw07_priors import PRIORS, param_names
 
-    ref = np.load(FIXTURE)
+    ref = _load_reference()
     names = param_names()
     lb = np.array([PRIORS[n]["lb"] for n in names])
     ub = np.array([PRIORS[n]["ub"] for n in names])
 
-    # --- Posterior-function parity vs the frozen reference --------------
+    # --- Posterior-function parity vs the fixture -------------------------
     # Recompute the log-posterior at a spread of the fixture's own draws
     # and match the fixture's recorded values (deterministic on every
     # platform, unlike the chain trajectory).
@@ -90,9 +80,10 @@ def test_sw07_parity_short_chain():
     np.testing.assert_allclose(
         lp_recomputed, ref["log_posterior_trace"][0, probe_idx],
         rtol=0, atol=0.05,
-        err_msg="log-posterior at frozen reference draws no longer matches "
-                "the pre-0.53.0 values: wrapper wiring (data / observation "
-                "equation / priors / fixed params) has changed",
+        err_msg="log-posterior at the fixture's draws no longer matches the "
+                "values stored by tools/build_sw07_data.py: wrapper wiring "
+                "(data / observation equation / priors / fixed params) has "
+                "changed, or the fixture needs rebuilding",
     )
 
     # --- Fresh short chain: structure + sampler invariants --------------

@@ -20,12 +20,12 @@ def _notebook(tmp_path: Path, *code: str) -> Path:
               "outputs": [], "source": [c]} for c in code]
     path = tmp_path / "10_lesson.ipynb"
     path.write_text(json.dumps({"cells": cells, "metadata": {},
-                                "nbformat": 4, "nbformat_minor": 5}))
+                                "nbformat": 4, "nbformat_minor": 5}), encoding="utf-8")
     return path
 
 
 def _first_source(path: Path) -> list[str]:
-    return json.loads(path.read_text())["cells"][0]["source"]
+    return json.loads(path.read_text(encoding="utf-8"))["cells"][0]["source"]
 
 
 def test_plain_notebook_gets_the_plain_install(tmp_path):
@@ -45,5 +45,5 @@ def test_injection_is_idempotent(tmp_path):
     nb = _notebook(tmp_path, "import puremacro\n")
     inject_pip_cell.inject(nb)
     inject_pip_cell.inject(nb)
-    cells = json.loads(nb.read_text())["cells"]
+    cells = json.loads(nb.read_text(encoding="utf-8"))["cells"]
     assert sum("%pip install puremacro" in "".join(c["source"]) for c in cells) == 1

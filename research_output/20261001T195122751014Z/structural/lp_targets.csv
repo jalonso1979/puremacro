@@ -1,0 +1,19 @@
+label,estimate,se,unit
+y:eps:h=0,-0.010731590783611402,3.414609233871342e-05,log output deviation per 0.01 quarterly nominal-rate fraction innovation
+y:eps:h=1,-0.0065968736767545565,0.0001762029844393326,log output deviation per 0.01 quarterly nominal-rate fraction innovation
+y:eps:h=2,-0.0038050086610230223,0.00020591936327619438,log output deviation per 0.01 quarterly nominal-rate fraction innovation
+y:eps:h=3,-0.0020542633435781488,0.00020319369703466507,log output deviation per 0.01 quarterly nominal-rate fraction innovation
+y:eps:h=4,-0.0009245324534214315,0.00020925322137265123,log output deviation per 0.01 quarterly nominal-rate fraction innovation
+y:eps:h=5,-0.00043864933823400953,0.0002153580140134781,log output deviation per 0.01 quarterly nominal-rate fraction innovation
+y:eps:h=6,-0.00042012251259075704,0.00022013370874719642,log output deviation per 0.01 quarterly nominal-rate fraction innovation
+y:eps:h=7,-0.00041393946360662216,0.000221569918571498,log output deviation per 0.01 quarterly nominal-rate fraction innovation
+y:eps:h=8,-5.262182749729309e-06,0.00021156709619730857,log output deviation per 0.01 quarterly nominal-rate fraction innovation
+pi:eps:h=0,-0.003971477750153748,1.6248769803254962e-05,quarterly inflation fraction per 0.01 quarterly nominal-rate fraction innovation
+pi:eps:h=1,-0.0024483867143202777,6.623676514652655e-05,quarterly inflation fraction per 0.01 quarterly nominal-rate fraction innovation
+pi:eps:h=2,-0.0014182846619593614,7.654227601068078e-05,quarterly inflation fraction per 0.01 quarterly nominal-rate fraction innovation
+pi:eps:h=3,-0.0007700938669254019,7.58484488509033e-05,quarterly inflation fraction per 0.01 quarterly nominal-rate fraction innovation
+pi:eps:h=4,-0.0003343934262029061,7.701054514324193e-05,quarterly inflation fraction per 0.01 quarterly nominal-rate fraction innovation
+pi:eps:h=5,-0.00018811372316067412,8.022817603067278e-05,quarterly inflation fraction per 0.01 quarterly nominal-rate fraction innovation
+pi:eps:h=6,-0.0001520810161629631,8.270189648084611e-05,quarterly inflation fraction per 0.01 quarterly nominal-rate fraction innovation
+pi:eps:h=7,-0.00016412671637994309,8.064064864379476e-05,quarterly inflation fraction per 0.01 quarterly nominal-rate fraction innovation
+pi:eps:h=8,-3.914942713447731e-05,7.891935491379946e-05,quarterly inflation fraction per 0.01 quarterly nominal-rate fraction innovation

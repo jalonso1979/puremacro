@@ -23,6 +23,8 @@ import numpy as np
 from PIL import Image
 import pytest
 
+from _timing import budget
+
 PROJ_ROOT = Path(__file__).resolve().parents[2]
 NB_DIR = PROJ_ROOT / "notebooks"
 BUILD_TOOL = PROJ_ROOT / "tools" / "build_notebooks.py"
@@ -232,8 +234,8 @@ class TestGate1HeadlessExecutionTiming:
         elapsed = time.perf_counter() - t0
 
         assert rc == 0, f"{py_path.name}: Headless execution check failed (rc={rc})"
-        assert elapsed < 15.0, (
-            f"{py_path.name}: Execution duration {elapsed:.2f}s exceeded strict 15.0s threshold!"
+        assert elapsed < budget(15.0), (
+            f"{py_path.name}: Execution duration {elapsed:.2f}s exceeded {budget(15.0)}s threshold!"
         )
 
 

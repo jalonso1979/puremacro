@@ -6,12 +6,14 @@ Covers:
    - Collatz-Wielandt bounding property: cw_lower <= rho <= cw_upper.
    - Rejection of prohibitive tariff schedules (tau >= 8.0) with ValueError.
 2. Keller's Bordered Pseudo-Arclength Continuation (PAC):
-   - Traversing analytical fold bifurcations / turning points (det J -> 0, kappa_2 > 10^4, tau_lambda <= 0).
+   - Traversing an analytical scalar fold / turning point (det J -> 0, kappa_2 > 10^4, tau_lambda <= 0).
+     No fold of the CGE trade model is claimed: at sigma=0.1238 PAC records no fold event.
    - High-precision CGE trade equilibrium convergence (||F(x)||_inf < 10^-10).
 3. Ill-Conditioned Network Stabilization:
    - SVD modal projection clamping to |c_k| <= 20.0 and factor displacement clamping.
    - Anderson acceleration depth m=4 KKT least-squares mixing weights sum to 1.0.
-   - Decoupled 1D conditional equilibrium manifold solver for micro-economies (Cyprus CYP).
+   - Decoupled 1D conditional equilibrium manifold solver for micro-economies (Cyprus CYP):
+     the reported residual is that of the returned (possibly clamped) step.
 4. Master Solver Interface:
    - Method dispatch for 'keller_pac' via solve_trade_equilibrium.
 
@@ -24,13 +26,14 @@ import numpy as np
 import scipy.linalg as la
 import pytest
 
+from _timing import budget
 from puremacro.trade import (
     TradeCalibrationResult,
     TradeEquilibriumResult,
     calibrate_trade_model,
     solve_trade_equilibrium,
 )
-from puremacro.trade.data import load_icio_data
+from puremacro.trade.data import CANONICAL_COUNTRY_CODES, load_icio_data
 from puremacro.trade.solver import (
     anderson_accelerate,
     check_hawkins_simon_viability,
@@ -49,7 +52,7 @@ from puremacro.trade.solver import (
 @pytest.fixture(scope="module")
 def empirical_calib() -> TradeCalibrationResult:
     """Calibrate full 77-country 11-sector empirical model from bundled OECD ICIO data."""
-    raw = load_icio_data()
+    raw = load_icio_data(source="legacy")
     return calibrate_trade_model(raw, ns=11, nc=77, nfd=3, validate=False)
 
 
@@ -120,7 +123,7 @@ class TestHawkinsSimonViability:
         t_elapsed = time.perf_counter() - t_start
 
         # Runtime specification: must complete in < 0.15s (typically ~0.003s)
-        assert t_elapsed < 0.15, f"Hawkins-Simon check exceeded time limit: {t_elapsed:.4f}s >= 0.15s"
+        assert t_elapsed < budget(0.15), f"Hawkins-Simon check exceeded time limit: {t_elapsed:.4f}s >= {budget(0.15)}s"
 
         # Collatz-Wielandt bounding condition: cw_lower <= rho <= cw_upper
         assert cw_lower <= rho <= cw_upper + 1e-10, (
@@ -169,21 +172,23 @@ class TestHawkinsSimonViability:
 # ---------------------------------------------------------------------------
 
 class TestKellerPAC:
-    """Tests for solve_keller_pac and fold bifurcation traversal."""
+    """Tests for solve_keller_pac and bordered continuation through an analytical fold."""
 
     def test_keller_pac_fold_bifurcation_traversal(
         self, synthetic_2c_2s_calib: TradeCalibrationResult
     ) -> None:
-        """Traverse fold bifurcations and verify solve_keller_pac directly.
+        """Run solve_keller_pac on a small CGE, then continue through an analytical fold.
 
-        Directly exercises solve_keller_pac on trade model with fold-bifurcation
-        substitution elasticity sigma=0.1238, traversing the continuation path and
-        converging with relative residual ||F(x)||_inf < 10^-6. Also asserts that
-        standard Newton fails on the singular turning point where det(J) -> 0,
-        while Keller PAC augmented bordered system traverses through tau_lambda <= 0
-        with residual < 10^-10.
+        Part 1 runs solve_keller_pac on the two-country fixture at sigma=0.1238
+        and a 25% tariff (notebook 64's setting) and checks convergence with
+        ||F(x)||_inf < 10^-6. That calibration has no fold: PAC records no
+        tau_lambda <= 0 event, and plain Newton converges there too.
+        Part 2 uses the scalar fold F(x, lam) = [x1^2 - lam, x2 - x1], where
+        det(J_x) -> 0 at the turning point, and checks that a bordered PAC
+        corrector passes tau_lambda <= 0 with residual < 10^-10. Nothing here
+        shows the CGE solver traversing an economic fold.
         """
-        # 1. Directly exercise solve_keller_pac with fold-bifurcation substitution elasticity sigma=0.1238
+        # 1. solve_keller_pac at sigma=0.1238 (notebook 64's elasticity; not a fold)
         calib = synthetic_2c_2s_calib
         res = solve_keller_pac(
             calib=calib,
@@ -198,6 +203,9 @@ class TestKellerPAC:
         assert res.metadata.get("method") == "keller_pac"
         assert res.metadata.get("final_lambda", 0.0) >= 1.0 - 1e-4
         assert float(np.max(np.abs(res.residuals))) < 1e-6
+        # No fold on this calibration: the monitor records no detection.
+        assert res.metadata.get("fold_detections") == 0
+        assert res.metadata.get("fold_points") == []
 
         # 2. Analytical fold benchmark: F(x1, x2, lam) = [x1^2 - lam, x2 - x1] = 0
         def F(x: np.ndarray, lam: float) -> np.ndarray:
@@ -397,13 +405,17 @@ class TestNetworkStabilization:
         assert err_anderson < 1e-6, f"Anderson error too high: {err_anderson:.4e}"
 
     def test_cyprus_manifold_step_stabilization(self) -> None:
-        """Verify 76-country conditional manifold 1D secant root-finder for Cyprus (CYP).
+        """Block-elimination step for Cyprus (CYP) with the displacement clamp.
 
-        Asserts that the decoupled solver resolves micro-economy stalling and enforces
-        factor displacement clamping |Delta omega_c| <= 0.30.
+        The exact step is explosive, so the returned step is that direction
+        scaled down to |Delta omega_c| <= 0.30. The reported residual and
+        converged flag describe the returned step (not converged: it leaves
+        about (1 - s) * rhs unexplained); the unclamped direction, available
+        with return_info=True, is the exact solve.
         """
         nc = 77
-        idx_cyp = 14  # Canonical index for CYP
+        idx_cyp = CANONICAL_COUNTRY_CODES.index("CYP")  # 17; index 14 is CMR
+        tol = 2.5e-3
         rng = np.random.default_rng(42)
 
         # Construct a symmetric positive-definite 77-country wage Hessian
@@ -422,21 +434,34 @@ class TestNetworkStabilization:
         assert np.max(np.abs(dw_unreg)) > 10.0, "Expected unregularized solve to be ill-conditioned"
 
         # Decoupled conditional manifold solver with max_disp=0.30
-        dw_full, best_res, conv = solve_cyprus_manifold_step(
+        dw_full, best_res, conv, info = solve_cyprus_manifold_step(
             S_ww=S_ww,
             rhs_w=rhs_w,
             eval_cyp_fn=None,
-            idx_cyp=idx_cyp,
-            tol=2.5e-3,
+            tol=tol,
             max_disp=0.30,
+            country_codes=CANONICAL_COUNTRY_CODES,
+            return_info=True,
         )
 
-        assert conv is True, "Cyprus manifold solver did not converge"
-        assert best_res < 2.5e-3, f"Cyprus manifold residual {best_res:.4e} >= 2.5e-3"
+        assert info["idx_cyp"] == idx_cyp and info["country"] == "CYP"
         assert np.all(np.isfinite(dw_full)), "Resulting wage step must be finite"
         assert np.max(np.abs(dw_full)) <= 0.30 + 1e-12, (
             f"Wage displacement exceeded max_disp bound: {np.max(np.abs(dw_full))}"
         )
+
+        # The unclamped direction is the exact solve; the clamp only shortens it.
+        np.testing.assert_allclose(info["unclamped_step"], dw_unreg, rtol=0,
+                                   atol=1e-9 * np.max(np.abs(dw_unreg)))
+        assert info["direction_converged"] is True and info["direction_residual"] < tol
+        assert info["clamped"] is True
+        np.testing.assert_allclose(dw_full, info["clamp_scale"] * info["unclamped_step"], rtol=1e-12, atol=0.0)
+
+        # The reported residual belongs to the returned step, which is not converged.
+        actual = float(np.max(np.abs(S_ww @ dw_full - rhs_w)))
+        assert best_res == pytest.approx(actual, rel=1e-12)
+        assert best_res == pytest.approx(float(np.max(np.abs(rhs_w))), rel=1e-5)
+        assert conv is False, "A clamped step that leaves the right-hand side unexplained is not converged"
 
     def test_solve_cyprus_manifold_alias(self) -> None:
         """Verify solve_cyprus_manifold is an alias for solve_cyprus_manifold_step."""

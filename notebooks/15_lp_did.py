@@ -13,6 +13,8 @@
 # %% [markdown]
 # # DiD meets local projections: LP-DiD
 #
+# **How can empirical researchers recover unbiased dynamic causal effects under staggered policy rollout when treatment effects are heterogeneous across time and cohorts?**
+#
 # A policy rolls out across states in waves, its effect *builds over time*, and
 # you want the whole dynamic response — not one contaminated number. Notebook 10
 # showed why the textbook two-way fixed-effects (TWFE) event study breaks under
@@ -56,8 +58,18 @@
 # observation to count equally ('equal', weight $n_t^{tr}/n_t^{co}$ on controls)
 # returns the **equally-weighted ATT** across treatment events. Both are exposed
 # in `lp_did`, plus the per-period weight diagnostics.
-
-# %% [markdown]
+#
+# ### Baseline Simulation Parameters
+#
+# | Symbol | Parameter Description | Baseline Value | Units / Accounting Convention |
+# | :--- | :--- | :--- | :--- |
+# | $N$ | Total number of cross-sectional units | $100$ | States or firms (30 early, 30 late, 40 control) |
+# | $T$ | Total time horizons in panel | $20$ | Time periods (quarters) |
+# | $G_E, G_L$ | Staggered adoption dates for early and late cohorts | $7, 13$ | Adoption periods |
+# | $\tau_E(e)$ | Dynamic treatment effect path for early cohort | $0.40 + 0.35e$ | Effect size per elapsed period $e \ge 0$ |
+# | $\tau_L(e)$ | Flat treatment effect for late cohort | $1.00$ | Constant effect size |
+# | $K_{\text{pre}}, K_{\text{post}}$ | Event-study pre-trend leads and dynamic post-lags | $4, 6$ | Horizon steps ($h \in [-4, +6]$) |
+#
 # **Intuition.** LP-DiD is "Callaway-Sant'Anna, but you never leave the LP
 # world". Every trick you know from Jordà local projections — horizon-by-horizon
 # regressions, cluster-robust bands, IV variants, state dependence — carries
@@ -67,8 +79,15 @@
 # OLS silently manufactures comparisons in which an *already-treated* unit —
 # whose outcome still carries its own treatment dynamics — serves as the
 # "control". Ban those comparisons and any sensible aggregation of what remains
-# is consistent; CS, Sun-Abraham and LP-DiD are just three aggregation rules on
-# the same clean building blocks.
+# is consistent; CS, Sun-Abraham and LP-DiD are three routes to the same clean
+# building blocks (and CS and Sun-Abraham even share their aggregation weights).
+#
+# ### Key References
+#
+# - **Dube, A., Girardi, D., Jordà, Ò., & Taylor, A. M. (2023).** *A Local Projections Approach to Difference-in-Differences.* NBER Working Paper No. 31184.
+# - **Callaway, B., & Sant'Anna, P. H. (2021).** *Difference-in-Differences with multiple time periods.* Journal of Econometrics, 225(2), 200–230.
+# - **Sun, L., & Abraham, S. (2021).** *Estimating dynamic treatment effects in event studies with heterogeneous treatment effects.* Journal of Econometrics, 225(2), 175–199.
+# - **Goodman-Bacon, A. (2021).** *Difference-in-differences with variation in treatment timing.* Journal of Econometrics, 225(2), 254–277.
 
 # %%
 import sys
@@ -151,7 +170,7 @@ cell_avg = float(np.mean([TRUE(g, t - g) for g, m in {7: 30, 13: 30}.items()
 naive = naive_event_study(demo)
 
 print(f"static TWFE 'the effect'   = {beta_twfe:+.3f}   "
-      f"(true avg over treated cells = {cell_avg:+.3f})")
+      f"(true avg over treated cells = {cell_avg:+.3f}; understated by {1 - beta_twfe / cell_avg:.0%})")
 print(f"naive event-study leads    = " +
       ", ".join(f"e={e}: {naive[e]:+.3f}" for e in (-4, -3, -2)) +
       "   (truth: all exactly 0)")
@@ -162,16 +181,16 @@ assert abs(naive[-2]) > 0.10                      # spurious pre-trend from noth
 assert abs(naive[0] - true_path[0]) > 0.20        # impact effect distorted too
 
 # %% [markdown]
-# **Read the output.** With *zero* noise, static TWFE reports +1.25 for a policy
-# whose true average effect on the treated is +2.07 — a 40% understatement
+# **Read the output.** With *zero* noise, static TWFE reports +1.247 for a policy
+# whose true average effect on the treated is +2.066 — a 40% understatement
 # manufactured entirely by forbidden comparisons (early-treated units, still on
 # their rising effect path, get used as "controls" for the late cohort, and
 # their growth is subtracted off). The dynamic event study is no rescue: it is
-# *fully saturated* in relative time, yet the leads come out at −0.10 to −0.17
+# *fully saturated* in relative time, yet the leads come out at −0.101 to −0.172
 # when the truth is exactly zero — heterogeneity across cohorts leaks treatment
 # effects into pre-treatment coefficients (Sun-Abraham's contamination result),
-# the impact effect is off by a third, and a referee reading these leads would
-# reject parallel trends *that hold by construction*.
+# the impact effect is +0.441 against a true +0.700, and a referee reading these
+# leads would reject parallel trends *that hold by construction*.
 
 # %% [markdown]
 # ## 2. LP-DiD: the fix that stays in the LP world
@@ -192,7 +211,10 @@ print(res.estimates.round(3).to_string(index=False))
 est = res.post.set_index("h")["beta"]
 err = np.abs(est.to_numpy() - true_path[:7])
 pre_t = res.pretrend["t"].abs().max()
+se_post = res.post.set_index("h")["se"].to_numpy()
+worst = int(np.argmax(err / se_post))
 print(f"\nmax |error| vs planted dynamic ATT = {err.max():.3f}")
+print(f"largest |error| / se               = {err[worst] / se_post[worst]:.2f} (at h = {worst})")
 print(f"max |t| across pre-trends          = {pre_t:.2f}")
 
 assert err.max() < 0.25                            # dynamic path recovered
@@ -203,10 +225,12 @@ assert res.estimates.set_index("h").loc[6, "n_clean"] < \
        res.estimates.set_index("h").loc[0, "n_clean"]
 
 # %% [markdown]
-# **Read the output.** The estimated path climbs from ≈ +0.6 at impact to ≈ +1.8
-# at $h=6$, tracking the planted cohort-average profile within two standard
-# errors everywhere, and the three genuine leads hover around zero (max |t| <
-# 2) — the same panel on which the saturated TWFE event study just failed. Watch
+# **Read the output.** The estimated path climbs from +0.620 at impact to +1.754
+# at $h=6$, tracking the planted cohort-average profile to within 0.181
+# everywhere. The largest miss, at $h = 5$, is 2.22 standard errors: pointwise
+# 90% bands are expected to miss a horizon now and then. The three genuine leads
+# hover around zero (max |t| = 1.87) — the same panel on which the saturated TWFE
+# event study just failed. Watch
 # the bookkeeping columns: `n_clean` drops from 110 to 80 at $h = 6$, because a
 # clean control must stay untreated through $t+h$, and the later-treated cohort
 # stops qualifying for the early cohort's long horizons. That visible attrition
@@ -250,10 +274,13 @@ ax.legend(loc="upper left", fontsize=8)
 # ## 3. Three machines, one principle
 #
 # Callaway-Sant'Anna builds group-time ATTs from clean 2×2 blocks and averages
-# them; Sun-Abraham reweights the same blocks by cohort shares; LP-DiD gets
-# there by regression, one horizon at a time. If the clean-comparison principle
-# is what matters — and not the machinery — the three event studies should lie
-# on top of each other. That is exactly the lesson.
+# them at each event time with cohort-size weights (their eq. 3.4). Sun-Abraham's
+# interaction-weighted estimator uses the same blocks and the same cohort
+# shares: without covariates and with never-treated controls it coincides with
+# CS (Sun and Abraham, p. 24 of arXiv:1804.05785). LP-DiD gets there by
+# regression, one horizon at a time. If the clean-comparison principle is what
+# matters — and not the machinery — the event studies should lie on top of each
+# other. That is exactly the lesson.
 
 # %%
 cs = callaway_santanna(panel, unit="unit", time="time", outcome="y",
@@ -265,34 +292,41 @@ es_cs = cs.att_event_study.set_index("event_time")
 es_sa = sa.att_event_study.set_index("event_time")
 gap_cs = max(abs(est.loc[h] - es_cs.loc[h, "att"]) for h in range(7))
 gap_sa = max(abs(est.loc[h] - es_sa.loc[h, "att"]) for h in range(7))
+gap_cs_sa = float(np.abs(es_cs["att"] - es_sa["att"]).max())
 print(f"max |LP-DiD - CS| over h=0..6 = {gap_cs:.3f}")
 print(f"max |LP-DiD - SA| over h=0..6 = {gap_sa:.3f}")
+print(f"max |CS - SA| over all e      = {gap_cs_sa:.1e}")
 assert gap_cs < 0.15 and gap_sa < 0.15             # three estimators, same answer
+assert gap_cs_sa < 1e-12                           # CS eq. 3.4 = SA interaction weights
 
 fig, ax = _nbstyle.figura(ancho=7.0, alto=4.2)
 ax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
 ax.plot(est.index, est.to_numpy(), color=cols[0], marker="o", markersize=4,
         label="LP-DiD (equal)")
-ax.plot(es_cs.index[es_cs.index >= 0], es_cs.loc[es_cs.index >= 0, "att"],
+win = (es_cs.index >= 0) & (es_cs.index <= 6)      # the horizons LP-DiD estimates
+ax.plot(es_cs.index[win], es_cs.loc[win, "att"],
         color=cols[1], marker="s", markersize=4, linestyle="--",
         label="Callaway-Sant'Anna")
-ax.plot(es_sa.index[es_sa.index >= 0], es_sa.loc[es_sa.index >= 0, "att"],
-        color=cols[2], marker="^", markersize=4, linestyle=":",
-        label="Sun-Abraham")
+ax.plot(es_sa.index[win], es_sa.loc[win, "att"],
+        color=cols[2], marker="^", markersize=8, markerfacecolor="none", linestyle="none",
+        label="Sun-Abraham (identical to CS)")
 ax.plot(hh, true_path[:7], color=_nbstyle.NOTA, linewidth=0.9, linestyle="-.",
         label="planted ATT")
 ax.set_xlabel("Event time $h$")
-ax.set_ylabel("ATT")
+ax.set_ylabel("ATT (effect on $y$)")
 ax.set_title("LP-DiD vs Callaway-Sant'Anna vs Sun-Abraham")
 ax.legend(loc="upper left", fontsize=8)
 
 # %% [markdown]
-# **Read the output.** The three paths differ by at most ≈ 0.03 — less than half
-# a standard error — despite entirely different code paths: no step of `lp_did`
-# calls the DiD module. Their small remaining daylight is exactly the announced
-# aggregation difference (CS averages cohorts equally, SA and LP-DiD weight by
-# cohort size, and LP-DiD pools not-yet-treated units into the controls while
-# this CS implementation uses only the never-treated). When someone asks "which
+# **Read the output.** LP-DiD and the two DiD estimators differ by at most 0.032
+# over $h = 0..6$ despite entirely different code paths: no step of `lp_did`
+# calls the DiD module. CS and SA coincide exactly (difference 0.0e+00), as Sun
+# and Abraham say they should. LP-DiD's small daylight comes from its control
+# group: it pools not-yet-treated units into the clean controls, while CS here
+# uses only the never-treated. The weights are not the source: LP-DiD's `equal`
+# option counts every adoption event once, which weights cohorts by size exactly
+# as CS and SA do (and with two cohorts of 30 units every rule gives them equal
+# weight). When someone asks "which
 # staggered-DiD estimator should I use?", this figure is the answer: any of
 # them, *as long as the comparisons are clean* — pick the one whose outputs you
 # need. LP-DiD's edge is everything that comes free in the LP world: horizon

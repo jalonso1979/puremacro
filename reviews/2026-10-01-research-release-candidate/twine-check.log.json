@@ -1,0 +1,14 @@
+{
+  "command": [
+    "/tmp/puremacro-research-candidate-venv/bin/python",
+    "-m",
+    "twine",
+    "check",
+    "/tmp/puremacro-research-candidate-20261001T214014Z/dist/puremacro-4.3.0-py3-none-any.whl",
+    "/tmp/puremacro-research-candidate-20261001T214014Z/dist/puremacro-4.3.0.tar.gz"
+  ],
+  "cwd": "/tmp/puremacro-research-candidate-20261001T214014Z",
+  "returncode": 0,
+  "started_at_utc": "2026-10-01T21:40:49.565990+00:00",
+  "completed_at_utc": "2026-10-01T21:40:50.277748+00:00"
+}

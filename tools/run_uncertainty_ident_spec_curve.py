@@ -70,7 +70,9 @@ Identification menu (all on the SAME reduced-form VAR per dataset)
   rigobon     Rigobon (2003) heteroskedasticity, regime split as above
   magmav      Magnusson-Mavroeidis (2014) endogenous variance breaks
   nongauss    Lanne-Meitz-Saikkonen (2017) FastICA non-Gaussian SVAR
-  la_lp       Plagborg-Moller-Wolf (2021) lag-augmented LP (non-VAR benchmark)
+  la_lp       Montiel Olea & Plagborg-Moller (2021) lag-augmented LP
+              (non-VAR benchmark): n_lags + 1 lags of every series, the same
+              at every horizon, with Eicker-Huber-White SEs
 
 GK identified-set overlay (baseline dataset only)
 -------------------------------------------------
@@ -112,6 +114,9 @@ Giacomini, R., Kitagawa, T. (2021). Robust Bayesian inference for
 Jurado, K., Ludvigson, S., Ng, S. (2015). Measuring uncertainty. AER 105(3).
 Ludvigson, S., Ma, S., Ng, S. (2021). Uncertainty and business cycles:
     exogenous impulse or endogenous response? AEJ: Macro 13(4).
+Montiel Olea, J. L., Plagborg-Møller, M. (2021). Local projection inference
+    is simpler and more robust than you think. Econometrica 89(4),
+    1789-1823.
 Simonsohn, U., Simmons, J., Nelson, L. (2020). Specification curve analysis.
     Nature Human Behaviour 4, 1208-1214.
 Plus the scheme-specific references in each puremacro.var.identify module.

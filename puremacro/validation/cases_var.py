@@ -109,31 +109,98 @@ def _narrative_sign_restrictions() -> dict:
     return {"signs_and_accepted": np.array([s0, s1, has_accepted])}
 
 
+# Minnesota BVAR against closed forms written out here, independently of the
+# library's dummy builders. Three keys, so that the case can see a wrong own-
+# vs cross-lag slot in either code path (the pre-fix NIW builder centred the
+# own first lag of every variable but the last on lambda2; at lambda2 = 1,
+# where this case used to be pinned, that bug is invisible):
+#   A_post        minnesota_posterior at lambda2 = 0.5 vs the per-equation
+#                 Theil-Goldberger mixed estimator from the Minnesota moments;
+#   niw_prior_A1  the NIW dummy block alone, B0 = (Xd'Xd)^-1 Xd'Yd, requested
+#                 at lambda2 = 0.5, vs I (BGR eq. 5: delta_i = 1, no theta);
+#   niw_post_A1   minnesota_gibbs's exact posterior mean vs OLS on the data
+#                 stacked with a hand-built BGR eq. (5) block.
+_MINN_L1, _MINN_L2, _MINN_L3, _MINN_IPS = 0.2, 0.5, 1.0, 1e3
+
+
 def _bvar_minnesota_analytical() -> dict:
-    from puremacro.var.bvar import minnesota_posterior, _build_minnesota_dummies, _univariate_sigma
+    import warnings
+
     import pandas as pd
+
+    from puremacro.var import bvar
 
     d = var_demo_data()
     Y = d["Y"]
+    p = 1
+    n = Y.shape[1]
     df_Y = pd.DataFrame(Y, columns=["y1", "y2"])
-    res = minnesota_posterior(df_Y, p=1, lambda1=0.2, lambda2=1.0)
-    return {"A_post": np.asarray(res["A_list"][0], dtype=float)}
+    res = bvar.minnesota_posterior(df_Y, p=p, lambda1=_MINN_L1, lambda2=_MINN_L2,
+                                   lambda3=_MINN_L3, intercept_prior_std=_MINN_IPS)
+    sigmas = np.array([bvar._univariate_sigma(Y[:, i], p) for i in range(n)])
+    _, _, Yd, Xd = bvar._build_minnesota_dummies(Y, p, sigmas, _MINN_L1, _MINN_L2,
+                                                 _MINN_L3, _MINN_IPS)
+    B0 = np.linalg.lstsq(Xd, Yd, rcond=None)[0]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        g = bvar.minnesota_gibbs(df_Y, p=p, n_draws=1, burn=0, lambda1=_MINN_L1,
+                                 lambda3=_MINN_L3, intercept_prior_std=_MINN_IPS,
+                                 rng=np.random.default_rng(0))
+    return {
+        "A_post": np.asarray(res["A_list"][0], dtype=float),
+        "niw_prior_A1": np.asarray(B0[1:1 + n].T, dtype=float),
+        "niw_post_A1": np.asarray(g["A_mean"][0], dtype=float),
+    }
 
 
 def _bvar_minnesota_analytical_ref() -> dict:
-    from puremacro.var.bvar import _build_minnesota_dummies, _univariate_sigma
+    # Only the scale estimate sigma_i (univariate AR(p) residual sd) is shared
+    # with the library; the prior moments and both posteriors are built here.
+    from puremacro.var.bvar import _univariate_sigma
 
     d = var_demo_data()
     Y = d["Y"]
     T, n = Y.shape
     p = 1
-    sigmas = np.array([_univariate_sigma(Y[:, i], p) for i in range(n)])
-    Y_dep, X, Yd, Xd = _build_minnesota_dummies(Y, p, sigmas, 0.2, 1.0, 1.0, 100.0)
-    Y_aug = np.vstack([Y_dep, Yd])
-    X_aug = np.vstack([X, Xd])
-    B_closed = np.linalg.solve(X_aug.T @ X_aug, X_aug.T @ Y_aug)
-    A_closed = B_closed[1:].T
-    return {"A_post": np.asarray(A_closed, dtype=float)}
+    s = np.array([_univariate_sigma(Y[:, i], p) for i in range(n)])
+    X = np.column_stack([np.ones(T - p)] + [Y[p - k:T - k] for k in range(1, p + 1)])
+    Ydep = Y[p:]
+
+    # Theil-Goldberger per equation (Litterman 1986 moments): prior mean 1 on
+    # the own first lag; sd lambda1/k^l3 own, lambda1*lambda2*s_i/(k^l3 s_j)
+    # cross; intercept sd s_i*ips. beta = (X'X/s_i^2 + V^-1)^-1 (X'y/s_i^2 + V^-1 b0).
+    A_theil = np.zeros((n, n))
+    for i in range(n):
+        v = np.empty(1 + n * p)
+        b0 = np.zeros(1 + n * p)
+        v[0] = (s[i] * _MINN_IPS) ** 2
+        for k in range(1, p + 1):
+            for j in range(n):
+                r = 1 + (k - 1) * n + j
+                f = 1.0 if j == i else _MINN_L2
+                v[r] = (_MINN_L1 * f * s[i] / (k ** _MINN_L3 * s[j])) ** 2
+                b0[r] = 1.0 if (k == 1 and j == i) else 0.0
+        P = X.T @ X / s[i] ** 2 + np.diag(1.0 / v)
+        beta = np.linalg.solve(P, X.T @ Ydep[:, i] / s[i] ** 2 + b0 / v)
+        A_theil[i] = beta[1:1 + n]
+
+    # BGR (2010) eq. (5): Yd = [diag(s)/l1; 0; diag(s); 0],
+    # Xd = [J_p (x) diag(s)/l1, 0; 0; 0 ... 1/ips] with J_p = diag(k^l3).
+    Jp = np.diag(np.arange(1, p + 1, dtype=float) ** _MINN_L3)
+    Xd = np.zeros((n * p + n + 1, 1 + n * p))
+    Yd = np.zeros((n * p + n + 1, n))
+    Xd[:n * p, 1:] = np.kron(Jp, np.diag(s)) / _MINN_L1
+    Yd[:n, :] = np.diag(s) / _MINN_L1
+    Yd[n * p:n * p + n, :] = np.diag(s)
+    Xd[-1, 0] = 1.0 / _MINN_IPS
+    Xs = np.vstack([X, Xd])
+    Ys = np.vstack([Ydep, Yd])
+    B_bgr = np.linalg.solve(Xs.T @ Xs, Xs.T @ Ys)
+    return {
+        "A_post": A_theil,
+        "niw_prior_A1": np.eye(n),
+        "niw_post_A1": B_bgr[1:1 + n].T,
+    }
 
 
 CASES: list[ValidationCase] = [
@@ -228,13 +295,15 @@ CASES: list[ValidationCase] = [
     ValidationCase(
         id="var.bvar_minnesota_analytical_posterior",
         subsystem="var",
-        title="Minnesota BVAR posterior mean matches analytical augmented dummy OLS",
-        title_es="Media posterior de BVAR Minnesota coincide con MCO analítico de datos aumentados",
+        title="Minnesota BVAR posterior means match hand-built Theil (λ₂ = 0.5) and BGR eq. (5) NIW forms",
+        title_es="Medias posteriores de BVAR Minnesota coinciden con Theil (λ₂ = 0,5) y NIW de BGR ec. (5) a mano",
         mechanism=Mechanism.INTERNAL,
         compute=_bvar_minnesota_analytical,
         reference=_bvar_minnesota_analytical_ref,
         tol=Tol.TIGHT,
-        citation="Banbura, Giannone and Reichlin (2010, JAE 25(1):71-92) conjugate Normal-Inverse-Wishart.",
+        citation=("Banbura, Giannone and Reichlin (2008, ECB WP 966; JAE 25(1):71-92, 2010): "
+                  "eq. (5) dummies and theta = 1 for the conjugate Normal-inverse-Wishart; "
+                  "Litterman (1986) Minnesota moments via the Theil-Goldberger mixed estimator."),
     ),
 ]
 

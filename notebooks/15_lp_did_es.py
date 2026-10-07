@@ -13,6 +13,8 @@
 # %% [markdown]
 # # DiD se encuentra con las proyecciones locales: LP-DiD
 #
+# **¿Cómo pueden los investigadores empíricos recuperar efectos causales dinámicos insesgados bajo adopción escalonada cuando los efectos del tratamiento son heterogéneos en el tiempo y entre cohortes?**
+#
 # Una política se despliega por los estados en oleadas, su efecto *se acumula
 # con el tiempo*, y usted quiere la respuesta dinámica completa — no un único
 # número contaminado. El notebook 10 mostró por qué el estudio de eventos de
@@ -28,7 +30,7 @@
 # principio. Todo se ejecuta en el navegador sobre datos sintéticos.
 
 # %% [markdown]
-# ## El método en ecuaciones
+# ## El método en matemáticas
 #
 # **Planteamiento.** La unidad $i$ adopta un tratamiento absorbente en el tiempo
 # $G_i$ (nunca, para los controles); $D_{it}=\mathbb{1}\{t \ge G_i\}$ y
@@ -62,8 +64,18 @@
 # igual ('equal', peso $n_t^{tr}/n_t^{co}$ en los controles) devuelve el **ATT
 # igualmente ponderado** entre eventos de tratamiento. Ambos están expuestos en
 # `lp_did`, junto con los diagnósticos de pesos por período.
-
-# %% [markdown]
+#
+# ### Parámetros de la simulación base
+#
+# | Símbolo | Descripción del parámetro | Valor base | Unidades / Convención contable |
+# | :--- | :--- | :--- | :--- |
+# | $N$ | Número total de unidades de corte transversal | $100$ | Estados o empresas (30 tempranas, 30 tardías, 40 control) |
+# | $T$ | Horizontes temporales totales en el panel | $20$ | Períodos de tiempo (trimestres) |
+# | $G_E, G_L$ | Fechas de adopción escalonada para cohortes temprana y tardía | $7, 13$ | Períodos de adopción |
+# | $\tau_E(e)$ | Trayectoria del efecto dinámico para la cohorte temprana | $0.40 + 0.35e$ | Magnitud del efecto por período transcurrido $e \ge 0$ |
+# | $\tau_L(e)$ | Efecto de tratamiento plano para la cohorte tardía | $1.00$ | Magnitud constante del efecto |
+# | $K_{\text{pre}}, K_{\text{post}}$ | Adelantos de tendencias previas y rezagos dinámicos | $4, 6$ | Pasos de horizonte ($h \in [-4, +6]$) |
+#
 # **Intuición.** LP-DiD es "Callaway-Sant'Anna, pero sin salir nunca del mundo
 # LP". Cada truco que usted conoce de las proyecciones locales de Jordà —
 # regresiones horizonte a horizonte, bandas robustas por conglomerados,
@@ -74,8 +86,16 @@
 # porque el MCO fabrica silenciosamente comparaciones en las que una unidad *ya
 # tratada* — cuyo resultado todavía arrastra su propia dinámica de tratamiento —
 # hace de "control". Prohíba esas comparaciones y cualquier agregación sensata
-# de lo que queda es consistente; CS, Sun-Abraham y LP-DiD son solo tres reglas
-# de agregación sobre los mismos bloques limpios.
+# de lo que queda es consistente; CS, Sun-Abraham y LP-DiD son tres caminos hacia
+# los mismos bloques limpios (y CS y Sun-Abraham incluso comparten sus pesos de
+# agregación).
+#
+# ### Referencias clave
+#
+# - **Dube, A., Girardi, D., Jordà, Ò., & Taylor, A. M. (2023).** *A Local Projections Approach to Difference-in-Differences.* NBER Working Paper No. 31184.
+# - **Callaway, B., & Sant'Anna, P. H. (2021).** *Difference-in-Differences with multiple time periods.* Journal of Econometrics, 225(2), 200–230.
+# - **Sun, L., & Abraham, S. (2021).** *Estimating dynamic treatment effects in event studies with heterogeneous treatment effects.* Journal of Econometrics, 225(2), 175–199.
+# - **Goodman-Bacon, A. (2021).** *Difference-in-differences with variation in treatment timing.* Journal of Econometrics, 225(2), 254–277.
 
 # %%
 import sys
@@ -159,7 +179,7 @@ cell_avg = float(np.mean([TRUE(g, t - g) for g, m in {7: 30, 13: 30}.items()
 naive = naive_event_study(demo)
 
 print(f"static TWFE 'the effect'   = {beta_twfe:+.3f}   "
-      f"(true avg over treated cells = {cell_avg:+.3f})")
+      f"(true avg over treated cells = {cell_avg:+.3f}; understated by {1 - beta_twfe / cell_avg:.0%})")
 print(f"naive event-study leads    = " +
       ", ".join(f"e={e}: {naive[e]:+.3f}" for e in (-4, -3, -2)) +
       "   (truth: all exactly 0)")
@@ -170,18 +190,18 @@ assert abs(naive[-2]) > 0.10                      # spurious pre-trend from noth
 assert abs(naive[0] - true_path[0]) > 0.20        # impact effect distorted too
 
 # %% [markdown]
-# **Lectura del resultado.** Con *cero* ruido, el TWFE estático reporta +1.25
-# para una política cuyo verdadero efecto promedio sobre los tratados es +2.07 —
+# **Lectura de los resultados.** Con *cero* ruido, el TWFE estático reporta +1.247
+# para una política cuyo verdadero efecto promedio sobre los tratados es +2.066 —
 # una subestimación del 40% fabricada íntegramente por comparaciones prohibidas
 # (las unidades tratadas temprano, aún en su senda creciente de efecto, se usan
 # como "controles" de la cohorte tardía, y su crecimiento se resta). El estudio
 # de eventos dinámico no rescata nada: está *totalmente saturado* en tiempo
-# relativo y aun así los adelantos salen entre −0.10 y −0.17 cuando la verdad es
-# exactamente cero — la heterogeneidad entre cohortes filtra efectos del
+# relativo y aun así los adelantos salen entre −0.101 y −0.172 cuando la verdad
+# es exactamente cero — la heterogeneidad entre cohortes filtra efectos del
 # tratamiento hacia los coeficientes pre-tratamiento (el resultado de
-# contaminación de Sun-Abraham), el efecto de impacto se desvía en un tercio, y
-# un dictaminador que leyera estos adelantos rechazaría tendencias paralelas
-# *que se cumplen por construcción*.
+# contaminación de Sun-Abraham), el efecto de impacto es +0.441 frente a un
+# verdadero +0.700, y un dictaminador que leyera estos adelantos rechazaría
+# tendencias paralelas *que se cumplen por construcción*.
 
 # %% [markdown]
 # ## 2. LP-DiD: la reparación que no sale del mundo LP
@@ -203,7 +223,10 @@ print(res.estimates.round(3).to_string(index=False))
 est = res.post.set_index("h")["beta"]
 err = np.abs(est.to_numpy() - true_path[:7])
 pre_t = res.pretrend["t"].abs().max()
+se_post = res.post.set_index("h")["se"].to_numpy()
+worst = int(np.argmax(err / se_post))
 print(f"\nmax |error| vs planted dynamic ATT = {err.max():.3f}")
+print(f"largest |error| / se               = {err[worst] / se_post[worst]:.2f} (at h = {worst})")
 print(f"max |t| across pre-trends          = {pre_t:.2f}")
 
 assert err.max() < 0.25                            # dynamic path recovered
@@ -214,11 +237,13 @@ assert res.estimates.set_index("h").loc[6, "n_clean"] < \
        res.estimates.set_index("h").loc[0, "n_clean"]
 
 # %% [markdown]
-# **Lectura del resultado.** La senda estimada sube desde ≈ +0.6 en el impacto
-# hasta ≈ +1.8 en $h=6$, siguiendo el perfil promedio por cohorte plantado
-# dentro de dos errores estándar en todo punto, y los tres adelantos genuinos
-# rondan el cero (|t| máx < 2) — el mismo panel en el que el estudio de eventos
-# TWFE saturado acaba de fallar. Observe las columnas de contabilidad:
+# **Lectura de los resultados.** La senda estimada sube desde +0.620 en el impacto
+# hasta +1.754 en $h=6$, siguiendo el perfil promedio por cohorte plantado con
+# un error de a lo sumo 0.181 en todo punto. El mayor error, en $h = 5$, es de
+# 2.22 errores estándar: se espera que bandas puntuales al 90% fallen de vez en
+# cuando en algún horizonte. Los tres adelantos genuinos rondan el cero
+# (|t| máx = 1.87) — el mismo panel en el que el estudio de eventos TWFE
+# saturado acaba de fallar. Observe las columnas de contabilidad:
 # `n_clean` cae de 110 a 80 en $h = 6$, porque un control limpio debe seguir
 # sin tratar hasta $t+h$, y la cohorte tratada más tarde deja de calificar para
 # los horizontes largos de la cohorte temprana. Esa deserción visible *es* la
@@ -263,11 +288,14 @@ ax.legend(loc="upper left", fontsize=8)
 # ## 3. Tres máquinas, un principio
 #
 # Callaway-Sant'Anna construye ATTs por grupo-tiempo a partir de bloques 2×2
-# limpios y los promedia; Sun-Abraham repondera los mismos bloques por las
-# participaciones de cohorte; LP-DiD llega por regresión, un horizonte a la
-# vez. Si lo que importa es el principio de comparación limpia — y no la
-# maquinaria — los tres estudios de eventos deberían quedar uno encima de otro.
-# Esa es exactamente la lección.
+# limpios y los promedia en cada tiempo de evento con pesos por tamaño de
+# cohorte (su ec. 3.4). El estimador ponderado por interacciones de Sun-Abraham
+# usa los mismos bloques y las mismas participaciones de cohorte: sin covariables
+# y con controles nunca tratados coincide con CS (Sun y Abraham, p. 24 de
+# arXiv:1804.05785). LP-DiD llega por regresión, un horizonte a la vez. Si lo que
+# importa es el principio de comparación limpia — y no la maquinaria — los
+# estudios de eventos deberían quedar uno encima de otro. Esa es exactamente la
+# lección.
 
 # %%
 cs = callaway_santanna(panel, unit="unit", time="time", outcome="y",
@@ -279,35 +307,42 @@ es_cs = cs.att_event_study.set_index("event_time")
 es_sa = sa.att_event_study.set_index("event_time")
 gap_cs = max(abs(est.loc[h] - es_cs.loc[h, "att"]) for h in range(7))
 gap_sa = max(abs(est.loc[h] - es_sa.loc[h, "att"]) for h in range(7))
+gap_cs_sa = float(np.abs(es_cs["att"] - es_sa["att"]).max())
 print(f"max |LP-DiD - CS| over h=0..6 = {gap_cs:.3f}")
 print(f"max |LP-DiD - SA| over h=0..6 = {gap_sa:.3f}")
+print(f"max |CS - SA| over all e      = {gap_cs_sa:.1e}")
 assert gap_cs < 0.15 and gap_sa < 0.15             # three estimators, same answer
+assert gap_cs_sa < 1e-12                           # CS eq. 3.4 = SA interaction weights
 
 fig, ax = _nbstyle.figura(ancho=7.0, alto=4.2)
 ax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
 ax.plot(est.index, est.to_numpy(), color=cols[0], marker="o", markersize=4,
         label="LP-DiD (equal)")
-ax.plot(es_cs.index[es_cs.index >= 0], es_cs.loc[es_cs.index >= 0, "att"],
+win = (es_cs.index >= 0) & (es_cs.index <= 6)      # the horizons LP-DiD estimates
+ax.plot(es_cs.index[win], es_cs.loc[win, "att"],
         color=cols[1], marker="s", markersize=4, linestyle="--",
         label="Callaway-Sant'Anna")
-ax.plot(es_sa.index[es_sa.index >= 0], es_sa.loc[es_sa.index >= 0, "att"],
-        color=cols[2], marker="^", markersize=4, linestyle=":",
-        label="Sun-Abraham")
+ax.plot(es_sa.index[win], es_sa.loc[win, "att"],
+        color=cols[2], marker="^", markersize=8, markerfacecolor="none", linestyle="none",
+        label="Sun-Abraham (identical to CS)")
 ax.plot(hh, true_path[:7], color=_nbstyle.NOTA, linewidth=0.9, linestyle="-.",
         label="planted ATT")
 ax.set_xlabel("Event time $h$")
-ax.set_ylabel("ATT")
+ax.set_ylabel("ATT (effect on $y$)")
 ax.set_title("LP-DiD vs Callaway-Sant'Anna vs Sun-Abraham")
 ax.legend(loc="upper left", fontsize=8)
 
 # %% [markdown]
-# **Lectura del resultado.** Las tres sendas difieren a lo sumo en ≈ 0.03 —
-# menos de medio error estándar — pese a recorridos de código completamente
-# distintos: ningún paso de `lp_did` invoca el módulo DiD. La pequeña luz que
-# queda entre ellas es exactamente la diferencia de agregación anunciada (CS
-# promedia cohortes por igual, SA y LP-DiD ponderan por tamaño de cohorte, y
-# LP-DiD agrupa las unidades aún-no-tratadas en los controles mientras esta
-# implementación de CS usa solo las nunca tratadas). Cuando alguien pregunte
+# **Lectura de los resultados.** LP-DiD y los dos estimadores DiD difieren a lo
+# sumo en 0.032 sobre $h = 0..6$ pese a recorridos de código completamente
+# distintos: ningún paso de `lp_did` invoca el módulo DiD. CS y SA coinciden
+# exactamente (diferencia 0.0e+00), como Sun y Abraham dicen que debe ocurrir.
+# La pequeña luz de LP-DiD viene de su grupo de control: agrupa las unidades
+# aún no tratadas en los controles limpios, mientras que CS aquí usa solo las
+# nunca tratadas. Los pesos no son la fuente: la opción `equal` de LP-DiD cuenta
+# cada evento de adopción una vez, lo que pondera las cohortes por tamaño
+# exactamente como CS y SA (y con dos cohortes de 30 unidades toda regla les da
+# el mismo peso). Cuando alguien pregunte
 # "¿qué estimador de DiD escalonado debo usar?", esta figura es la respuesta:
 # cualquiera de ellos, *siempre que las comparaciones sean limpias* — elija el
 # que produzca las salidas que necesita. La ventaja de LP-DiD es todo lo que
@@ -359,7 +394,7 @@ ax.set_title("The leads catch the violation before you believe the lags")
 ax.legend(loc="upper left", fontsize=8)
 
 # %% [markdown]
-# **Lectura del resultado.** En el panel violado los adelantos se abren en
+# **Lectura de los resultados.** En el panel violado los adelantos se abren en
 # abanico hacia abajo — $\beta_{-4} \approx -0.43$ con $t \approx -3.6$, cerca
 # de la predicción mecánica $-0.18 \times 3 = -0.54$ (cada adelanto adicional
 # acumula un período más de deriva diferencial; el signo es negativo porque el
@@ -390,7 +425,7 @@ ax.legend(loc="upper left", fontsize=8)
 # estimadores nuevos.
 
 # %% [markdown]
-# ## Su turno — vea a las dos ponderaciones discrepar
+# ## Tu turno — vea a las dos ponderaciones discrepar
 #
 # `weights='vw'` (MCO simple) pondera cada período de adopción por
 # $n_t p_t(1-p_t)$ — le encantan los períodos con una mezcla equilibrada de
@@ -438,7 +473,7 @@ else:
 # luego explique por qué el TWFE ingenuo de la sección 1 *nunca* le advierte de
 # esto.
 #
-# **¿Qué tan completo es esto?** `puremacro.lp.lp_did` devuelve un
+# **¿Qué tan exhaustivo es esto?** `puremacro.lp.lp_did` devuelve un
 # `LPDiDResult` congelado con las estimaciones, los conteos tratados/limpios
 # por horizonte y los diagnósticos de pesos por período de DGJT
 # (`group_weights`). Sus primos DiD viven en `puremacro.did` —

@@ -13,23 +13,23 @@
 # %% [markdown]
 # # Real-Time Data, Historical Vintages & The Mankiw-Shapiro Test
 #
-# **How do data revisions affect macroeconomic analysis, and how can we determine whether initial statistical releases reflect rational forecasts ("News") or measurement error ("Noise")?**
+# **How do data revisions affect macroeconomic analysis, and how can we tell whether a first statistical release is an efficient forecast of the final figure ("news") or the final figure plus measurement error ("noise")?**
 #
-# Macroeconomic aggregates like Gross Domestic Product (GDP), consumption, and investment are continuously revised as statistical agencies incorporate higher-quality administrative data, benchmark surveys, and methodological updates:
+# **The vintage panel in this notebook is simulated, and the process that generates it is known: pure noise.** The country and variable names are labels only. Nothing is downloaded, and no number below describes the United States, Germany, the United Kingdom or Mexico.
 #
-# 1. **Real-Time Information & Policy Errors**:
-#    Athanasios Orphanides (2001, *American Economic Review*) showed that the monetary policy mistakes of the 1970s arose from estimating the output gap on real-time data that subsequently underwent massive revisions. Croushore & Stark (2001, *Journal of Economic Literature*) formalized the real-time data architecture.
+# Macroeconomic aggregates like GDP, consumption and investment are revised for years as statistical agencies incorporate administrative data, benchmark surveys and methodological updates:
 #
-# 2. **The Mankiw & Shapiro (1986) News vs. Noise Econometric Test**:
-#    Let $y_{0,t}$ be the initial statistical release of GDP growth at quarter $t$, and $y_{T,t}$ be the final revised benchmark. The revision is:
+# 1. **Real-time information and policy errors.** Orphanides (2001, *American Economic Review*) showed that the policy mistakes of the 1970s partly reflected output-gap estimates made on real-time data that were later heavily revised. Croushore & Stark (2001, *Journal of Econometrics*) built the real-time data set that made such analysis routine.
+#
+# 2. **The Mankiw & Shapiro (1986) news-versus-noise test.** Let $y_{0,t}$ be the first release of growth in quarter $t$ and $y_{T,t}$ the final, revised figure. The revision is
 #    $$ r_t = y_{T,t} - y_{0,t} $$
-#    Mankiw & Shapiro (1986, *Journal of Business & Economic Statistics*) formulate the OLS regression:
-#    $$ r_t = \alpha + \beta \, y_{0,t} + \varepsilon_t $$
+#    Mankiw & Shapiro (1986, *Survey of Current Business*; NBER Working Paper 1939) regress the revision on each release:
+#    $$ r_t = \alpha_0 + \beta_0 \, y_{0,t} + \varepsilon_t, \qquad r_t = \alpha_T + \beta_T \, y_{T,t} + \eta_t $$
 #
-#    - **News Hypothesis ($\beta = 0$, $R^2 \approx 0$)**: The initial release is an optimal conditional forecast given information at time $t$ ($y_{0,t} = \mathbb{E}[y_{T,t} \mid \Omega_t]$). The revision $r_t$ represents genuinely new statistical information orthogonal to $y_{0,t}$.
-#    - **Noise Hypothesis ($\beta = -1$, $\alpha = 0$)**: The initial release is equal to the true value corrupted by classical measurement error ($y_{0,t} = y_{T,t} + v_t$, where $\text{Cov}(y_{T,t}, v_t) = 0$). Hence, $r_t = -v_t$ is negatively correlated with $y_{0,t}$.
+#    - **News** ($\beta_0 = 0$): the first release is an efficient forecast, $y_{0,t} = \mathbb{E}[y_{T,t} \mid \Omega_t]$, so the revision is new information, uncorrelated with what was published.
+#    - **Noise** ($\beta_T = 0$): the first release is the final figure plus classical measurement error, $y_{0,t} = y_{T,t} + v_t$ with $\text{Cov}(y_{T,t}, v_t) = 0$. The revision $r_t = -v_t$ is then uncorrelated with the final figure but negatively correlated with the first release, with slope $\beta_0 = -\text{Var}(v)/\text{Var}(y_0)$. That slope lies between $-1$ and $0$; it approaches $-1$ only when the noise dominates the variance of the first release.
 #
-# In this notebook, we explore multi-country Quarterly National Accounts (QNA) vintages, construct $(T \times V)$ revision triangles, slice point-in-time real-time panels, and execute the Mankiw-Shapiro test using `puremacro.fetch` and `puremacro.vintages`.
+# We inspect `puremacro`'s catalogue of real-time series, build a simulated panel of vintages, draw revision triangles, run both regressions with `QNAVintagePanel.revision_stats` (which delegates them to `puremacro.vintages.mankiw_shapiro`), and slice point-in-time data sets with `puremacro.fetch.QNAVintagePanel`.
 
 # %%
 import sys
@@ -48,119 +48,112 @@ from puremacro.fetch import (
     get_qna_vintage_catalog,
     QNAVintagePanel,
 )
+from puremacro.vintages import mankiw_shapiro
 
 # %% [markdown]
-# ## 1. Inspecting the 45+ Country QNA Vintage Catalog
+# ## 1. The QNA Vintage Catalogue
 #
-# Real-time macroeconomic research requires access to historical snapshots as they appeared to policymakers and market participants at the time decisions were made. In archival databases such as the Federal Reserve Bank of St. Louis ALFRED (ArchivaL Federal Reserve Economic Data), each macroeconomic indicator is recorded along with its publication date (vintage).
+# Real-time research needs each observation as it was published on a given date. Archives such as the Federal Reserve Bank of St. Louis ALFRED (ArchivaL Federal Reserve Economic Data) store every series together with its publication dates (vintages).
 #
-# `puremacro` provides a standardized cross-country catalog mapping 45+ economies (all 38 OECD members, G7, G20, and key emerging markets) to real-time historical publication vintages on ALFRED. Each entry captures the country code, geographic region, standardized variable definition (such as real GDP, real gross fixed capital formation, or household consumption), and the ALFRED native series identifier.
+# `get_qna_vintage_catalog()` lists the series identifiers that `puremacro`'s real-time fetchers would request: one row per country and national-accounts variable, with identifiers built from the naming pattern of the OECD Main Economic Indicators on FRED (the United States uses its own FRED series). The catalogue is a table in the library; calling it downloads nothing, and whether ALFRED holds vintages for a given identifier is only known when you fetch it.
 
 # %%
 catalog = get_qna_vintage_catalog()
-print(f"Total catalog series available: {len(catalog)}")
-print("\nSample of Catalog Entries:")
-print(catalog[["country", "country_name", "region", "variable", "series_id"]].head(10))
+print(f"Catalogue: {len(catalog)} series, {catalog['country'].nunique()} countries, {catalog['variable'].nunique()} variables")
+print("\nSample of catalogue entries:")
+print(catalog[["country", "country_name", "region", "variable", "series_id"]].head(10).to_string(index=False))
 
 # Summary by variable
 var_counts = catalog.groupby("variable")["country"].count().reset_index()
 var_counts.columns = ["Variable", "Country Count"]
-print("\nVariable Coverage across Countries:")
-print(var_counts)
+print("\nVariable coverage across countries:")
+print(var_counts.to_string(index=False))
 
 # %% [markdown]
-# ## 2. Constructing a Real-Time Vintage Panel
+# ## 2. A Simulated Real-Time Vintage Panel
 #
-# Let us simulate a realistic multi-country historical revision structure spanning 40 quarters ($T=40$) and 50 publication vintages ($V=50$) to demonstrate the real-time analytics pipeline.
-#
-# Let $y_t^*$ denote the true underlying economic activity in quarter $t$. The advance statistical release $y_{0, t}$ is published with a one-quarter lag ($t+1$) and contains both latent state information and initial survey measurement error $v_t \sim \mathcal{N}(0, \sigma_v^2)$:
+# We simulate 40 reference quarters ($T = 40$) and 50 quarterly publication vintages ($V = 50$) for four country labels and two variables. Let $y_t^*$ be the true growth rate in quarter $t$, drawn independently with mean $2.2$ and standard deviation $\sigma_* = 1.5$. The first release is published one quarter later and contains classical measurement error $v_t \sim \mathcal{N}(0, \sigma_v^2)$, $\sigma_v = 0.6$, independent of $y_t^*$:
 #
 # $$ y_{0, t} = y_t^* + v_t $$
 #
-# Over subsequent publication vintages $j \ge 1$, statistical agencies incorporate comprehensive administrative tax records, annual business censuses, and revised seasonal adjustment factors. The vintage estimate $y_{j, t}$ converges gradually toward the benchmark value with geometric decay:
+# Each later vintage $j \ge 1$ removes part of the error:
 #
-# $$ y_{j, t} = y_t^* + e^{-j / \kappa} \, v_t, \qquad \kappa > 0 $$
+# $$ y_{j, t} = y_t^* + e^{-j / \kappa} \, v_t, \qquad \kappa = 3 $$
+#
+# This is a **pure-noise** process: there is no news, because every revision only removes error. After the 49 vintages available for the first quarter, the remaining error is negligible; the most recent quarter has had 9 revisions and keeps $e^{-3} \approx 5\%$ of its error. Section 5 uses this known truth to grade the tests.
 
 # %%
-rng = np.random.default_rng(1986)
 n_quarters = 40
 obs_dates = pd.date_range("2010-01-01", periods=n_quarters, freq="QS")
 vintage_dates = pd.date_range("2010-04-01", periods=50, freq="QS")
-
-countries = ["USA", "DEU", "GBR", "MEX"]
+countries = ["USA", "DEU", "GBR", "MEX"]   # labels only: every series is simulated
 variables = ["gdp_real", "gfcf_real"]
+mean_growth, sd_true, sd_noise, kappa_decay = 2.2, 1.5, 0.6, 3.0
 
-records = []
-for c in countries:
-    for var in variables:
-        # True underlying latent growth rate
-        true_growth = rng.normal(loc=2.2, scale=1.5, size=n_quarters)
-        
-        # Initial release (advance estimate) with noise + news components
-        noise = rng.normal(loc=0.0, scale=0.6, size=n_quarters)
-        y_0 = true_growth + noise
-        
-        for i, obs in enumerate(obs_dates):
-            # First publication occurs 1 quarter after observation
-            first_pub_idx = i + 1
-            for j, vint in enumerate(vintage_dates):
-                if j >= first_pub_idx:
-                    # Gradual revision toward true final benchmark over 4 vintages
-                    lag = j - first_pub_idx
-                    decay = np.exp(-lag / 3.0)
-                    val = true_growth[i] + decay * noise[i]
-                    records.append({
-                        "country": c,
-                        "variable": var,
-                        "date": obs,
-                        "vintage": vint,
-                        "value": float(val),
-                    })
+def simulate_vintages(sd_v=sd_noise, dgp="noise", seed=1986):
+    """Simulated vintages for every country label and variable.
 
-df_raw = pd.DataFrame(records)
-panel = QNAVintagePanel(df=df_raw)
-print(f"Built QNAVintagePanel with {len(df_raw):,} records across {len(countries)} countries.")
+    dgp="noise": y_0 = y* + v and each vintage removes part of v (classical measurement error).
+    dgp="news" : y_0 = y* is the efficient first estimate and each vintage adds part of the news v.
+    """
+    rng = np.random.default_rng(seed)
+    records = []
+    for c in countries:
+        for var in variables:
+            y_star = rng.normal(loc=mean_growth, scale=sd_true, size=n_quarters)
+            v = rng.normal(loc=0.0, scale=sd_v, size=n_quarters)
+            for i, obs in enumerate(obs_dates):
+                for j, vint in enumerate(vintage_dates):
+                    if j >= i + 1:   # first published one quarter after the reference quarter
+                        decay = np.exp(-(j - i - 1) / kappa_decay)
+                        if dgp == "noise":
+                            val = y_star[i] + decay * v[i]
+                        else:
+                            val = y_star[i] + (1.0 - decay) * v[i]
+                        records.append({"country": c, "variable": var, "date": obs, "vintage": vint, "value": float(val)})
+    return QNAVintagePanel(df=pd.DataFrame(records))
+
+panel = simulate_vintages()
+print(f"Simulated QNAVintagePanel: {len(panel.df):,} records, {len(countries)} country labels x {len(variables)} variables")
 
 # %% [markdown]
 # ## 3. Visualizing the $(T \times V)$ Revision Triangle
 #
-# The canonical representation of vintage data is the lower-triangular revision matrix $\mathbf{R} \in \mathbb{R}^{T \times V}$:
+# Vintage data are usually stored as a triangular revision matrix $\mathbf{R} \in \mathbb{R}^{T \times V}$:
 #
 # $$ \mathbf{R} = \begin{bmatrix} y_{1, v_1} & y_{1, v_2} & y_{1, v_3} & \dots & y_{1, v_V} \\ \text{NaN} & y_{2, v_2} & y_{2, v_3} & \dots & y_{2, v_V} \\ \text{NaN} & \text{NaN} & y_{3, v_3} & \dots & y_{3, v_V} \\ \vdots & \vdots & \vdots & \ddots & \vdots \\ \text{NaN} & \text{NaN} & \text{NaN} & \dots & y_{T, v_V} \end{bmatrix} $$
 #
-# Each row index corresponds to an observation period $t$ (quarter of reference), while each column corresponds to a publication vintage date $v$. The leading diagonal contains the first release (advance estimate) for each quarter. Reading across any single row traces the historical lifecycle of revisions for that specific quarter as statistical agencies refine their estimates.
+# Each row is a reference quarter $t$ and each column a publication vintage $v$. The leading diagonal holds the first release of each quarter; reading along a row traces how the estimate of that quarter was revised.
 
 # %%
 tri_usa = panel.revision_matrix("USA", "gdp_real")
-print("USA Real GDP Growth Revision Matrix (first 6 quarters × 6 vintages):")
-print(tri_usa.iloc[:6, :6])
+print("Simulated 'USA gdp_real' revision matrix (first 6 quarters x 6 vintages):")
+print(tri_usa.iloc[:6, :6].round(3).to_string())
 
 # %%
 fig, ax = _nbstyle.figura(figsize=(9.2, 5.2))
 
-# Plot heatmap of available vintages
 im = ax.imshow(tri_usa.iloc[:24, :24].to_numpy(), cmap=_nbstyle.CMAP_SEQ, aspect="auto")
-ax.set_title("USA Real GDP Growth: Historical Revision Triangle (T × V)", fontsize=11, fontweight="bold")
-ax.set_xlabel("Publication Vintage Date Index", color=_nbstyle.TEXTO)
-ax.set_ylabel("Observation Quarter Index", color=_nbstyle.TEXTO)
+ax.set_title("Simulated 'USA gdp_real': Revision Triangle (T × V)", fontsize=11, fontweight="bold")
+ax.set_xlabel("Publication Vintage", color=_nbstyle.TEXTO)
+ax.set_ylabel("Reference Quarter", color=_nbstyle.TEXTO)
 
-# Formatting tick labels
 ax.set_xticks(range(0, 24, 4))
-ax.set_xticklabels([d.strftime("%YQ%q") for d in tri_usa.columns[:24:4]], rotation=45)
+ax.set_xticklabels([f"{d.year}Q{d.quarter}" for d in tri_usa.columns[:24:4]], rotation=45)
 ax.set_yticks(range(0, 24, 4))
-ax.set_yticklabels([d.strftime("%YQ%q") for d in tri_usa.index[:24:4]])
+ax.set_yticklabels([f"{d.year}Q{d.quarter}" for d in tri_usa.index[:24:4]])
 
 cbar = fig.colorbar(im, ax=ax)
-cbar.set_label("Annualized Real GDP Growth (%)", color=_nbstyle.TEXTO)
+cbar.set_label("Simulated growth rate (%)", color=_nbstyle.TEXTO)
 
 # %% [markdown]
-# ## 4. First Release vs. Latest Benchmark Revisions
+# ## 4. First Release vs. Latest Estimate
 #
-# Comparing the advance initial estimate against the latest available benchmark reveals the magnitude, direction, and cyclical persistence of macroeconomic revisions:
+# Comparing the first release with the latest estimate shows the size and sign of the revisions:
 #
 # $$ r_t = y_{T, t} - y_{0, t} $$
 #
-# If revisions are systematically non-zero on average ($\bar{r} \neq 0$), the initial release suffers from statistical bias. Furthermore, if revisions correlate with macroeconomic expansions or contractions, policy decisions based on unrevised indicators may inadvertently amplify the business cycle (Orphanides, 2001).
+# If revisions are non-zero on average ($\bar{r} \neq 0$), the first release is biased. If they are correlated with the business cycle, decisions based on unrevised data can be systematically wrong (Orphanides, 2001).
 
 # %%
 s_first = panel.first_release("USA", "gdp_real")
@@ -168,69 +161,74 @@ s_latest = panel.latest_release("USA", "gdp_real")
 
 fig, (ax1, ax2) = _nbstyle.figura(2, 1, figsize=(9.5, 6.0), sharex=True)
 
-# Panel 1: Series Levels
-ax1.plot(s_first.index, s_first.values, **_nbstyle.S1, label="First Release (Advance Estimate)")
-ax1.plot(s_latest.index, s_latest.values, **_nbstyle.S2, label="Latest Revised Benchmark")
-ax1.set_title("USA Real GDP Growth: Initial vs. Final Revised Series", fontsize=11, fontweight="bold")
-ax1.set_ylabel("Growth Rate (%)", color=_nbstyle.TEXTO)
+ax1.plot(s_first.index, s_first.values, **_nbstyle.S1, label="First release")
+ax1.plot(s_latest.index, s_latest.values, **_nbstyle.S2, label="Latest estimate")
+ax1.set_title("Simulated 'USA gdp_real': First Release vs. Latest Estimate", fontsize=11, fontweight="bold")
+ax1.set_ylabel("Growth rate (%)", color=_nbstyle.TEXTO)
 ax1.legend(frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 ax1.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
 
-# Panel 2: Total Revision (Final - First)
 revision = s_latest - s_first
 ax2.bar(revision.index, revision.values, color=_nbstyle.S3["color"], width=60, edgecolor=_nbstyle.SPINE, alpha=0.8, label="Revision ($y_T - y_0$)")
 ax2.axhline(0, color=_nbstyle.SPINE, lw=0.8, linestyle="-")
-ax2.set_title("Total Historical Revision Series", fontsize=11, fontweight="bold")
-ax2.set_xlabel("Observation Date", color=_nbstyle.TEXTO)
-ax2.set_ylabel("Revision (% pts)", color=_nbstyle.TEXTO)
+ax2.set_title("Total Revision", fontsize=11, fontweight="bold")
+ax2.set_xlabel("Reference quarter", color=_nbstyle.TEXTO)
+ax2.set_ylabel("Revision (pp)", color=_nbstyle.TEXTO)
 ax2.legend(frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 ax2.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
 
 # %% [markdown]
-# ## 5. Executing the Mankiw-Shapiro (1986) News vs. Noise Test
+# ## 5. The Mankiw-Shapiro (1986) Test on a Known Noise Process
 #
-# Gregory Mankiw and Matthew Shapiro (1986) developed the foundational econometric framework for evaluating the rationality of preliminary statistical data.
+# ### The two hypotheses
+# 1. **News ($H_{\text{news}}$).** The agency publishes its best forecast of the final figure given the information $\Omega_t$ it has:
+#    $$ y_{0, t} = \mathbb{E}[y_{T, t} \mid \Omega_t] \implies y_{T, t} = y_{0, t} + \nu_t, \quad \mathbb{E}[\nu_t \mid \Omega_t] = 0 $$
+#    The revision $r_t = \nu_t$ is unpredictable from the first release, so in $r_t = \alpha_0 + \beta_0 y_{0,t} + \varepsilon_t$ we have $\beta_0 = 0$. It is correlated with the final figure: $\beta_T = \text{Var}(\nu)/\text{Var}(y_T) > 0$.
 #
-# We estimate the OLS regression of the revision $r_t = y_{T, t} - y_{0, t}$ on the initial estimate $y_{0, t}$:
+# 2. **Noise ($H_{\text{noise}}$).** The agency observes the final figure with classical measurement error:
+#    $$ y_{0, t} = y_{T, t} + v_t, \quad \text{Cov}(y_{T, t}, v_t) = 0 $$
+#    The revision $r_t = -v_t$ is uncorrelated with the final figure, so $\beta_T = 0$. On the first release,
+#    $$ \beta_0 = \frac{\text{Cov}(-v_t, \, y_{T, t} + v_t)}{\text{Var}(y_{0, t})} = \frac{-\sigma_v^2}{\sigma_{y_T}^2 + \sigma_v^2}, $$
+#    which lies in $(-1, 0)$ and equals $-1$ only in the limit where the noise variance dominates. A slope of $-1$ is not the noise null.
 #
-# $$ r_t = \alpha + \beta \, y_{0, t} + \varepsilon_t $$
+# In our simulation $\sigma_{y_T} = \sigma_* = 1.5$ and $\sigma_v = 0.6$, so the population slope is $\beta_0 = -0.36/2.61 \approx -0.14$ (the cell prints it). The noise null is therefore tested on the **final** release, $\beta_T = 0$, and the news null on the first, $\beta_0 = 0$.
 #
-# ### Theoretical Hypotheses
-# 1. **News Hypothesis ($H_{\text{news}}$)**:
-#    Statistical agencies form rational forecasts of the final benchmark based on all currently available information set $\Omega_t$:
-#    $$ y_{0, t} = \mathbb{E}[y_{T, t} \mid \Omega_t] \implies y_{T, t} = y_{0, t} + \nu_t, \quad \text{with } \mathbb{E}[\nu_t \mid \Omega_t] = 0 $$
-#    Under rational expectations, the revision $r_t = \nu_t$ represents pure *news* that is entirely unpredictable from the initial release:
-#    $$ \alpha = 0, \qquad \beta = 0, \qquad R^2 \approx 0 $$
+# `QNAVintagePanel.revision_stats` runs both regressions through `puremacro.vintages.mankiw_shapiro`, with heteroskedasticity-robust standard errors (Newey-West with `hac_lags`) and Student-$t$ $p$-values, and combines the two tests at 5% into one label:
 #
-# 2. **Noise Hypothesis ($H_{\text{noise}}$)**:
-#    The statistical agency observes the true benchmark corrupted by classical measurement error $u_t$:
-#    $$ y_{0, t} = y_{T, t} + u_t, \quad \text{with } \text{Cov}(y_{T, t}, u_t) = 0, \quad u_t \sim \text{i.i.d.}(0, \sigma_u^2) $$
-#    In this case, the revision is simply the negative of the measurement noise ($r_t = -u_t$). Regressing $r_t$ on $y_{0, t}$ yields:
-#    $$ \beta = \frac{\text{Cov}(-u_t, y_{T, t} + u_t)}{\text{Var}(y_{0, t})} = \frac{-\sigma_u^2}{\sigma_y^2 + \sigma_u^2} < 0 $$
-#    In the limit where noise dominates, $\beta \to -1$.
+# | News leg ($\beta_0 = 0$) | Noise leg ($\beta_T = 0$) | Label |
+# |---|---|---|
+# | not rejected | rejected | "news" |
+# | rejected | not rejected | "noise" |
+# | rejected | rejected | "mixed" |
+# | not rejected | not rejected | "indeterminate" |
+#
+# "Indeterminate" is a failure to reject both nulls: the sample cannot tell news from noise. It is not evidence for either. The dictionary also reports the noise share $\max(0, -\hat\beta_0)$, a magnitude to read next to the two $p$-values.
 
 # %%
+beta_pop = -sd_noise**2 / (sd_true**2 + sd_noise**2)
 stats_usa = panel.revision_stats("USA", "gdp_real")
+
 print("==================================================================")
-print("  MANKIW & SHAPIRO (1986) NEWS VS NOISE ECONOMETRIC TEST")
+print("  MANKIW & SHAPIRO (1986) TEST, simulated 'USA gdp_real'")
 print("==================================================================")
-print(f"Country:               USA")
-print(f"Variable:              Real GDP (gdp_real)")
-print(f"Sample Size (N):       {stats_usa['n_obs']}")
-print(f"Mean Revision (alpha): {stats_usa['mean_revision']:.4f}")
-print(f"Abs Mean Revision:     {stats_usa['abs_mean_revision']:.4f}")
-print(f"Revision Std Dev:      {stats_usa['std_revision']:.4f}")
+print(f"Known process:            pure noise, population slope on y_0 = {beta_pop:.4f}")
+print(f"Sample size (N):          {stats_usa['n_obs']}")
+print(f"Mean revision:            {stats_usa['mean_revision']:.4f} (p = {stats_usa['p_mean_revision']:.4f})")
+print(f"Revision std. dev.:       {stats_usa['std_revision']:.4f}")
 print("------------------------------------------------------------------")
-print(f"Regression Alpha:        {stats_usa['mankiw_shapiro_alpha']:.4f}")
-print(f"Regression Slope (beta): {stats_usa['mankiw_shapiro_beta']:.4f}")
-print(f"Beta Std Error:          {stats_usa['mankiw_shapiro_se']:.4f}")
-print(f"t-Statistic (H0: beta=0):{stats_usa['mankiw_shapiro_tstat']:.4f}")
-print(f"p-Value:                 {stats_usa['mankiw_shapiro_pvalue']:.4f}")
-print(f"Conclusion:              {stats_usa['hypothesis']}")
+print(f"News leg,  r on y_0:      beta_0 = {stats_usa['mankiw_shapiro_beta']:.4f} (s.e. {stats_usa['mankiw_shapiro_se']:.4f}, p = {stats_usa['mankiw_shapiro_pvalue']:.4f})")
+print(f"Noise leg, r on y_T:      beta_T = {stats_usa['mankiw_shapiro_beta_final']:.4f} (s.e. {stats_usa['mankiw_shapiro_se_final']:.4f}, p = {stats_usa['mankiw_shapiro_pvalue_final']:.4f})")
+print(f"Noise share:              {stats_usa['noise_share']:.4f} (population {-beta_pop:.4f})")
+print(f"Label:                    {stats_usa['hypothesis']}")
 print("==================================================================")
 
+# Internal check: revision_stats runs the same regressions as mankiw_shapiro
+ms_usa = mankiw_shapiro(s_first, s_latest)
+assert abs(ms_usa.beta_on_preliminary - stats_usa["mankiw_shapiro_beta"]) < 1e-10
+assert abs(ms_usa.p_beta_on_final - stats_usa["mankiw_shapiro_pvalue_final"]) < 1e-10
+
 # %%
-# Cross-country test comparison
+# Cross-country comparison: both legs and the label, from revision_stats
 results_all = []
 for c in countries:
     for v in variables:
@@ -239,70 +237,129 @@ for c in countries:
             "Country": c,
             "Variable": v,
             "N": st["n_obs"],
-            "Mean Revision": st["mean_revision"],
-            "Std Revision": st["std_revision"],
-            "Beta": st["mankiw_shapiro_beta"],
-            "t-stat": st["mankiw_shapiro_tstat"],
-            "p-value": st["mankiw_shapiro_pvalue"],
-            "Hypothesis": st["hypothesis"],
+            "Mean rev.": round(st["mean_revision"], 4),
+            "beta_0": round(st["mankiw_shapiro_beta"], 4),
+            "p(beta_0=0)": round(st["mankiw_shapiro_pvalue"], 4),
+            "beta_T": round(st["mankiw_shapiro_beta_final"], 4),
+            "p(beta_T=0)": round(st["mankiw_shapiro_pvalue_final"], 4),
+            "Label": st["hypothesis"],
         })
 
 df_test_summary = pd.DataFrame(results_all)
-print("\nCross-Country Mankiw-Shapiro Test Summary Table:")
+print("Mankiw-Shapiro test on 8 simulated series (known process: pure noise)")
 print(df_test_summary.to_string(index=False))
+print(f"\nPopulation slopes: beta_0 = {beta_pop:.4f}, beta_T = 0")
+print(f"Mean of the 8 estimates: beta_0 = {df_test_summary['beta_0'].mean():.4f}, beta_T = {df_test_summary['beta_T'].mean():.4f}")
+print(f"Labels: {df_test_summary['Label'].value_counts().to_dict()}")
+
+assert (df_test_summary["beta_0"] < 0).all(), "under classical noise every slope on y_0 should be negative here"
+assert abs(df_test_summary["beta_0"].mean() - beta_pop) < 0.05, "the average slope should be near the population slope"
+assert abs(df_test_summary["beta_T"].mean()) < 0.05, "the average slope on y_T should be near zero"
+assert (df_test_summary["beta_0"] > -1).all(), "a slope of -1 is not what classical noise produces"
 
 # %% [markdown]
-# ## 6. Visualizing the Mankiw-Shapiro Regression Scatter
+# ## 6. The Mankiw-Shapiro Scatter
 #
-# Plotting the initial release $y_{0, t}$ on the horizontal axis against the revision $r_t = y_{T, t} - y_{0, t}$ on the vertical axis provides an intuitive geometric diagnostic:
+# Plotting the first release $y_{0, t}$ against the revision $r_t = y_{T, t} - y_{0, t}$ shows the news regression directly:
 #
-# - A horizontal line ($\beta = 0$) corresponds to the **Pure News benchmark**, indicating efficient forecasts.
-# - A downward-sloping line with slope $\beta = -1$ corresponds to the **Pure Noise benchmark**, indicating unadjusted survey error.
-# - The estimated OLS regression slope reveals whether statistical agencies under- or over-adjust preliminary indicators.
+# - A horizontal line ($\beta_0 = 0$) is what the **news** hypothesis predicts.
+# - Under classical **noise**, the line slopes down with the variance ratio $\beta_0 = -\sigma_v^2 / (\sigma_{y_T}^2 + \sigma_v^2)$, here about $-0.14$, not $-1$.
+# - The OLS line is the estimate from this sample of 40 quarters.
 
 # %%
 fig, ax = _nbstyle.figura(figsize=(8.5, 4.8))
 
-# Scatter plot: Initial release vs Total Revision
 x_vals = s_first.values
 y_vals = (s_latest - s_first).values
-ax.scatter(x_vals, y_vals, color=_nbstyle.S1["color"], edgecolors=_nbstyle.SPINE, s=50, alpha=0.85, label="Observations ($y_{0,t}, r_t$)")
+ax.scatter(x_vals, y_vals, color=_nbstyle.S1["color"], edgecolors=_nbstyle.SPINE, s=50, alpha=0.85, label="Quarters ($y_{0,t}, r_t$)")
 
-# Fitted OLS regression line
 x_grid = np.linspace(x_vals.min() - 0.5, x_vals.max() + 0.5, 100)
-y_fit = stats_usa["mean_revision"] + stats_usa["mankiw_shapiro_beta"] * x_grid
-ax.plot(x_grid, y_fit, **_nbstyle.S2, label=f"OLS Fit ($\\beta={stats_usa['mankiw_shapiro_beta']:.2f}$, p={stats_usa['mankiw_shapiro_pvalue']:.3f})")
+y_fit = stats_usa["mankiw_shapiro_alpha"] + stats_usa["mankiw_shapiro_beta"] * x_grid
+ax.plot(x_grid, y_fit, **_nbstyle.S2, label=f"OLS fit ($\\beta_0={stats_usa['mankiw_shapiro_beta']:.2f}$, p={stats_usa['mankiw_shapiro_pvalue']:.3f})")
 
-# Theoretical Noise line (slope = -1)
-y_noise = -1.0 * x_grid
-ax.plot(x_grid, y_noise, color=_nbstyle.NOTA, lw=1.5, linestyle=":", label="Pure Noise Benchmark ($\\beta=-1$)")
+# Population slope of the known noise process, drawn through the sample means
+y_noise = y_vals.mean() + beta_pop * (x_grid - x_vals.mean())
+ax.plot(x_grid, y_noise, color=_nbstyle.NOTA, lw=1.5, linestyle=":", label=f"Noise process, population slope ($\\beta_0={beta_pop:.2f}$)")
 
-# Theoretical News line (slope = 0)
-ax.axhline(0, color=_nbstyle.SPINE, lw=1.2, linestyle="--", label="Pure News Benchmark ($\\beta=0$)")
+ax.axhline(0, color=_nbstyle.SPINE, lw=1.2, linestyle="--", label="News hypothesis ($\\beta_0=0$)")
 
-ax.set_title("Mankiw & Shapiro (1986) News vs. Noise Diagnostic Plot", fontsize=11, fontweight="bold")
-ax.set_xlabel("Initial Release $y_{0,t}$ (%)", color=_nbstyle.TEXTO)
-ax.set_ylabel("Total Revision $y_{T,t} - y_{0,t}$ (% pts)", color=_nbstyle.TEXTO)
-ax.legend(loc="upper right", frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
+ax.set_title("Mankiw & Shapiro (1986): Revision against First Release", fontsize=11, fontweight="bold")
+ax.set_xlabel("First release $y_{0,t}$ (%)", color=_nbstyle.TEXTO)
+ax.set_ylabel("Revision $y_{T,t} - y_{0,t}$ (pp)", color=_nbstyle.TEXTO)
+ax.legend(loc="lower left", frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE, fontsize=8)
 ax.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
 
 # %% [markdown]
-# ## 7. Real-Time Point-in-Time Dataset Slicing (`.as_of()`)
+# ## 7. Point-in-Time Data Sets (`.as_of()`)
 #
-# When conducting pseudo-out-of-sample forecasting experiments or structural VAR historical decompositions, utilizing revised data introduces lookahead bias (endogeneity through future revisions).
+# Pseudo-out-of-sample forecasting and historical decompositions must use only what was published at the time; using revised data brings later information into the past (look-ahead bias).
 #
-# The method `panel.as_of(date)` reconstructs the exact cross-sectional and time-series information available to an econometrician as of a specified publication date. For any historical vintage $V^*$, it filters all series to satisfy:
+# `panel.as_of(date)` rebuilds the data set available on a publication date. For a vintage $V^*$ it keeps, for every series and reference quarter, the latest estimate published on or before $V^*$:
 #
 # $$ \mathcal{I}_{V^*} = \left\{ y_{v, t} \;\Big|\; v \le V^* \text{ and } v = \max_{u \le V^*} u \right\} $$
 
 # %%
-# Slicing the exact state of knowledge as of 2018-04-01
 df_2018 = panel.as_of("2018-04-01")
-print("Historical Snapshot Panel as of 2018-04-01:")
-print(df_2018.head(10))
+print("Point-in-time panel as of 2018-04-01 (first 10 rows):")
+print(df_2018.head(10).round(3).to_string())
 
-# Slicing as of 2022-01-01
 df_2022 = panel.as_of("2022-01-01")
-print(f"\nObservations available in 2018 snapshot: {len(df_2018)}")
-print(f"Observations available in 2022 snapshot: {len(df_2022)}")
+print(f"\nObservations available in the 2018 snapshot: {len(df_2018)}")
+print(f"Observations available in the 2022 snapshot: {len(df_2022)}")
 
+# %% [markdown]
+# ## Read the output
+#
+# **Read the output.** The panel is pure noise by construction, so every verdict can be graded against the truth.
+#
+# 1. **The population slope is small.** With $\sigma_* = 1.5$ and $\sigma_v = 0.6$ the slope of the revision on the first release is $-0.1379$, not $-1$. It is a closed form derived by hand for the known process, independent of puremacro. The eight estimated slopes are all negative and average $-0.1471$; the slopes on the latest estimate average $-0.0108$, close to their population value of zero.
+# 2. **One series, one sample.** For the simulated 'USA gdp_real' the slope on the first release is $-0.0477$ (s.e. $0.0583$, $p = 0.4187$), so this sample of 40 quarters cannot reject news although the truth is noise. The noise leg does not reject either ($p = 0.1487$), and `revision_stats` labels the series "indeterminate": the honest answer, since neither null is rejected. Its estimated noise share, $0.0477$, is a third of the population value $0.1379$. The same slopes come out of `mankiw_shapiro` directly (an internal check).
+# 3. **Eight series.** `revision_stats` finds the right answer ("noise") for 4 of the 8 series and cannot decide for 2 ('USA gdp_real' and 'DEU gdp_real'). It rejects the true noise null for both 'GBR' series ($p = 0.0068$ and $p = 0.0487$), which makes one "mixed" and one "news": at the 5% level such false rejections are expected in about one series in twenty, and two in eight is bad luck in this draw. With a noise share of only $0.1379$ and 40 quarters, the test has limited power, and a label for one series is weak evidence. The mean revision of 'USA gdp_real' ($0.1286$, $p = 0.1232$) is not significant, as it should not be: this process has no bias.
+# 4. **No slope near $-1$.** Every slope on the first release lies between $-0.2431$ and $-0.0477$. A rule that waited for a slope near $-1$ before calling a series noise would call none of these eight series noise; under classical noise such a slope needs the error to account for most of the variance of the first release (prompt 2).
+# 5. **Information sets.** The snapshot of 2018-04-01 holds 128 observations against 160 in 2022: an analysis dated April 2018 must use the smaller, unrevised panel.
+
+# %% [markdown]
+# ## Your turn
+#
+# Change how noisy the first release is, or switch the process from noise to news, and **predict both slopes before running**: the slope of the revision on the first release ($\beta_0$) and on the latest estimate ($\beta_T$). The cell rebuilds the panel with the same random draws, estimates both slopes for all eight series, and checks that their averages are within three standard errors of your predictions. The prediction written in the cell is the population formula; replace it with your own. Setting $\beta_0 = -1$ for the noise process fails the check.
+
+# %%
+# Your turn: predict both Mankiw-Shapiro slopes, then let the simulation grade you
+sd_v_turn = 0.6        # ← change this: s.d. of the first-release error (noise) or of the news, 0.3 to 3.0
+dgp_turn = "noise"     # ← change this: "noise" (y_0 = y* + v) or "news" (y_0 = y*, revisions add v)
+assert 0.3 <= sd_v_turn <= 3.0 and dgp_turn in ("noise", "news")
+
+share = sd_v_turn**2 / (sd_true**2 + sd_v_turn**2)
+my_beta_0 = -share if dgp_turn == "noise" else 0.0   # slope of r on y_0: replace with your prediction
+my_beta_T = 0.0 if dgp_turn == "noise" else share    # slope of r on y_T: replace with your prediction
+
+panel_turn = simulate_vintages(sd_v_turn, dgp_turn)
+b0, bT, labels = [], [], []
+for c in countries:
+    for v in variables:
+        st = panel_turn.revision_stats(c, v)
+        b0.append(st["mankiw_shapiro_beta"])
+        bT.append(st["mankiw_shapiro_beta_final"])
+        labels.append(st["hypothesis"])
+b0, bT = np.array(b0), np.array(bT)
+se0, seT = b0.std(ddof=1) / np.sqrt(len(b0)), bT.std(ddof=1) / np.sqrt(len(bT))
+
+print(f"Process: {dgp_turn}, sd_v = {sd_v_turn}, noise share of Var(y_0 or y_T) = {share:.4f}")
+print(f"  beta_0: mean {b0.mean():+.4f} (s.e. {se0:.4f}), your prediction {my_beta_0:+.4f}")
+print(f"  beta_T: mean {bT.mean():+.4f} (s.e. {seT:.4f}), your prediction {my_beta_T:+.4f}")
+print(f"  labels: {pd.Series(labels).value_counts().to_dict()}")
+
+assert abs(b0.mean() - my_beta_0) < 3 * se0 + 0.01, "slope on the first release is far from your prediction"
+assert abs(bT.mean() - my_beta_T) < 3 * seT + 0.01, "slope on the latest estimate is far from your prediction"
+
+# %% [markdown]
+# **Prompts.**
+# 1. *Basic.* With the default settings, derive $\beta_0 = \text{Cov}(-v, y^* + v)/\text{Var}(y^* + v)$ as a number before running. Why is it nowhere near $-1$ although the first release is pure noise? You can ignore the small error left in the latest vintages.
+# 2. *Intermediate.* Suppose a rule calls a series "noise" only when $|\hat\beta_0 + 1| < 0.3$. Invert the slope formula to find the noise s.d. that makes $\beta_0 = -0.8$, set `sd_v_turn` to it and rerun. How noisy must the first release be before that rule could say "noise", and how many of the eight series would it call noise at the default setting? What do the labels of `revision_stats` say at both settings, and why does the two-leg test not need to know the noise share?
+# 3. *Stretch.* Set `dgp_turn = "news"`. Predict both slopes, then explain why comparing the two regressions tells news from noise when the single regression on $y_0$ with a $-1$ threshold cannot. With 40 quarters per series, how many of the eight labels are wrong under each process, and what kind of error is each (a false rejection or a failure to reject)? Rerun with `panel_turn.revision_stats(c, v, hac_lags="auto")` inside the loop: do the Newey-West errors change any label?
+#
+# ## How comprehensive is this?
+#
+# - `puremacro.vintages`: `mankiw_shapiro` (both legs, with HAC standard errors through `hac_lags`), `revision_test` on long vintage panels, and revision triangles.
+# - `puremacro.fetch.QNAVintagePanel` and `get_qna_vintage_catalog`: point-in-time slicing, first and latest releases, `revision_stats` (both Mankiw-Shapiro legs and a news/noise/mixed/indeterminate label, through `mankiw_shapiro`), and the catalogue used by the real-time fetchers (which download data and are not called here).
+# - `puremacro.fetch.realtime.VintagePanel`: the same operations for Latin American central-bank panels, including `news_or_noise` (notebooks 58 and 59); notebook 58 runs the two-leg test on a panel with only a few revision pairs, and notebook 48 applies the corrected noise null in a nowcasting example.

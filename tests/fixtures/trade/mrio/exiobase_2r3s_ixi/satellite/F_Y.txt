@@ -1,0 +1,13 @@
+region	AT	AT	AT	AT	AT	AT	AT	WA	WA	WA	WA	WA	WA	WA
+category	Final consumption expenditure by households	Final consumption expenditure by non-profit organisations serving households (NPISH)	Final consumption expenditure by government	Gross fixed capital formation	Changes in inventories	Changes in valuables	Exports: Total (fob)	Final consumption expenditure by households	Final consumption expenditure by non-profit organisations serving households (NPISH)	Final consumption expenditure by government	Gross fixed capital formation	Changes in inventories	Changes in valuables	Exports: Total (fob)
+stressor														
+Taxes less subsidies on products purchased: Total	0.5	0.02	0.1	0.05	0.01	0.0	0.0	0.9	0.03	0.15	0.1	-0.01	0.005	0.0
+Other net taxes on production	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0
+Compensation of employees; wages, salaries, & employers' social contributions: Low-skilled	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0
+Compensation of employees; wages, salaries, & employers' social contributions: Medium-skilled	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0
+Compensation of employees; wages, salaries, & employers' social contributions: High-skilled	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0
+Operating surplus: Consumption of fixed capital	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0
+Operating surplus: Rents on land	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0
+Operating surplus: Royalties on resources	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0
+Operating surplus: Remaining net operating surplus	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0
+CO2 - combustion - air	10.0	0.0	0.0	0.0	0.0	0.0	0.0	20.0	0.0	0.0	0.0	0.0	0.0	0.0

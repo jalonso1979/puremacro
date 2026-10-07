@@ -20,7 +20,13 @@ def lp_ols_hac(
     """Run y_{t+h} = α_h + β_h x_t + Σ γ_l (controls_{t-l}) + u_{t+h} for each h.
 
     Returns DataFrame with columns h, beta, se, t, lo, hi.
-    SE use Newey-West with bandwidth = h+1 (Plagborg-Møller & Wolf 2021).
+    SE use Newey-West (1987) with truncation lag ``maxlags = h + 1`` (the
+    statsmodels default Bartlett weights ``1 - l/(h + 2)``). The lag
+    ``h + 1`` is a rule-of-thumb convention: the ``h``-step-ahead residual
+    is serially correlated up to order ``h``, so the kernel must reach at
+    least that far. No reference is claimed for it (earlier versions
+    credited it to Plagborg-Møller & Wolf 2021, which makes no HAC
+    recommendation).
     ``alpha`` is the two-sided significance level (0.32 → 68% bands).
     """
     horizons = list(horizons)

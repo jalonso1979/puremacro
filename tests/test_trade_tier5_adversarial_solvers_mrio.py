@@ -5,7 +5,7 @@ White-box adversarial audit covering:
   * check_hawkins_simon_viability: degenerate matrices, zero rows, extreme spectral radii,
     negative/infinite tariffs, diverse input shapes, ViabilityResult unpacking, tax boundaries,
     and silent NaN acceptance gap.
-  * solve_keller_pac: ds adaptations, turning points/bifurcations, predictor clipping, step limits,
+  * solve_keller_pac: ds adaptations, fold-monitor metadata, predictor clipping, step limits,
     2D tariff tensor shape mismatch gap, and premature termination uncaught ValueError gap.
   * svd_clamped_newton_step: rank-deficient/zero Jacobians, clamping thresholding, wage displacement.
   * anderson_accelerate: empty buffers, m=1, overflow, collinear/zero/NaN residual histories.
@@ -163,7 +163,7 @@ class TestAdversarialHawkinsSimon:
         res_1d = check_hawkins_simon_viability(calib_2c_2s, tau=np.full(nc, 0.10))
         assert res_1d.is_viable is True
 
-        # Rank 2 (M, M)
+        # Rank 2 (M, M): multiplier arrays are used as given (1.10 everywhere)
         res_2d = check_hawkins_simon_viability(calib_2c_2s, tau=np.ones((M, M)) * 1.10)
         assert res_2d.is_viable is True
 
@@ -175,27 +175,33 @@ class TestAdversarialHawkinsSimon:
         res_4d = check_hawkins_simon_viability(calib_2c_2s, tau=np.ones((ns, nc, ns, nc)) * 1.10)
         assert res_4d.is_viable is True
 
+        # The same schedule in every multiplier layout describes the same matrix,
+        # hence the same bounds (the old diagonal heuristic added one for ranks 3-4).
+        assert res_3d.rho == pytest.approx(res_2d.rho, rel=1e-12, abs=1e-15)
+        assert res_4d.rho == pytest.approx(res_2d.rho, rel=1e-12, abs=1e-15)
+        assert res_3d.cw_upper == pytest.approx(res_2d.cw_upper, rel=1e-12, abs=1e-15)
+
     def test_viability_result_unpacking_and_attribute_access(
         self, calib_2c_2s: TradeCalibrationResult
     ) -> None:
-        """Verify ViabilityResult supports 3-element, 4-element unpacking and attributes."""
+        """ViabilityResult is a plain 4-field named tuple with attribute access."""
         res = check_hawkins_simon_viability(calib_2c_2s)
 
-        # 3-element unpack
-        r3, l3, u3 = check_hawkins_simon_viability(calib_2c_2s)
-        assert isinstance(r3, float)
-        assert isinstance(l3, float)
-        assert isinstance(u3, float)
-
-        # 4-element unpack
+        # 4-element unpack (the only unpacking arity)
         r4, l4, u4, v4 = check_hawkins_simon_viability(calib_2c_2s)
-        assert r4 == r3
+        assert isinstance(r4, float)
+        assert isinstance(l4, float)
+        assert isinstance(u4, float)
         assert v4 is True
 
+        # A 3-element unpack is an ordinary tuple-arity error now.
+        with pytest.raises(ValueError):
+            r3, l3, u3 = check_hawkins_simon_viability(calib_2c_2s)
+
         # Attributes
-        assert res.rho == r3
-        assert res.cw_lower == l3
-        assert res.cw_upper == u3
+        assert res.rho == r4
+        assert res.cw_lower == l4
+        assert res.cw_upper == u4
         assert res.is_viable is True
 
     def test_tax_boundary_clipping(self, calib_2c_2s: TradeCalibrationResult) -> None:
@@ -372,14 +378,16 @@ class TestAdversarialCyprusManifold:
         assert np.max(np.abs(dw)) <= 0.30 + 1e-12
 
     def test_out_of_bounds_cyprus_index_handling(self) -> None:
-        """Out-of-bounds idx_cyp (e.g. 99 in 3-country system) is safely clamped to 0."""
+        """Out-of-bounds idx_cyp (e.g. 99 in 3-country system) falls back to 0 with a RuntimeWarning."""
         nc = 3
         S_ww = np.eye(nc)
         rhs_w = np.array([0.1, 0.2, 0.3])
 
-        dw_oob, res_oob, conv_oob = solve_cyprus_manifold(S_ww, rhs_w, idx_cyp=99)
+        with pytest.warns(RuntimeWarning, match="outside"):
+            dw_oob, res_oob, conv_oob = solve_cyprus_manifold(S_ww, rhs_w, idx_cyp=99)
         dw_0, res_0, conv_0 = solve_cyprus_manifold(S_ww, rhs_w, idx_cyp=0)
         np.testing.assert_allclose(dw_oob, dw_0, atol=1e-14)
+        assert res_oob == res_0 and conv_oob == conv_0
 
     def test_singular_schur_complement_least_squares(self) -> None:
         """Singular S_ww matrix falls back cleanly to least-squares solve."""
@@ -418,7 +426,10 @@ class TestAdversarialKellerPAC:
     def test_keller_pac_fold_bifurcation_turning_point(
         self, calib_2c_2s: TradeCalibrationResult
     ) -> None:
-        """Traverse turning point with sigma=0.1238 and verify metadata tracking."""
+        """Run PAC at sigma=0.1238 (notebook 64's elasticity) and verify metadata tracking.
+
+        No turning point is crossed here: the fold monitor records no event.
+        """
         res = solve_keller_pac(
             calib=calib_2c_2s,
             tau_target=0.20,
@@ -433,6 +444,8 @@ class TestAdversarialKellerPAC:
         assert res.converged is True
         assert res.metadata.get("method") == "keller_pac"
         assert res.metadata.get("final_lambda", 0.0) >= 1.0 - 1e-4
+        assert res.metadata.get("fold_detections") == 0
+        assert res.metadata.get("fold_points") == []
 
     def test_keller_pac_various_target_formats(
         self, calib_2c_2s: TradeCalibrationResult

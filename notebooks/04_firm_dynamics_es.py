@@ -13,13 +13,14 @@
 # %% [markdown]
 # # Las empresas también son heterogéneas: entrada, salida y selección
 #
+# **¿Cómo explican los choques persistentes de tecnología y la sustitución intertemporal de ocio las comovilidades del ciclo económico, y cómo la selección de productividad a nivel de firma disciplina la rotación macroeconómica?**
+#
 # Los métodos de agentes heterogéneos no se aplican únicamente a los hogares. En **Hopenhayn (1992)**,
 # las empresas extraen productividad persistente, pagan un costo fijo de operación y salen del mercado cuando
-# su valor esperado se vuelve negativo — un umbral endógeno. La libre entrada determina el precio del producto.
-# El resultado es selección: los incumbentes que sobreviven son más productivos que los entrantes.
-
-# %% [markdown]
-# ## El modelo en cuatro ecuaciones
+# su valor esperado se vuelve negativo — un umbral endógeno (Cooley & Prescott 1995; Kydland & Prescott 1982). La libre entrada determina el precio del producto.
+# El resultado es selección: los incumbentes que sobreviven son sistemáticamente más productivos que los entrantes.
+#
+# ## El método en matemáticas
 #
 # **Incumbentes.** El único estado de una empresa es su productividad $s$, un AR(1) discretizado
 # mediante Tauchen en una grilla con transición $P$. Cada período obtiene un beneficio de operación
@@ -41,6 +42,21 @@
 # $$ g = g\,S + \nu,\qquad S[s,s'] = \mathbb{1}\{s\ \text{sobrevive}\}\;P[s,s'], $$
 # un punto fijo que *no* conserva la masa ($S$ es subestocástica), normalizado a una densidad.
 #
+# ### Parámetros del modelo base
+#
+# | Parámetro | Símbolo | Interpretación Económica | Valor Base | Unidades |
+# |---|---|---|---|---|
+# | Factor de descuento de la empresa | $\beta$ | Factor de descuento subjetivo anual de la firma | 0.80 | Adimensional (anual) |
+# | Rendimientos a escala | $\alpha$ | Parámetro de rendimientos decrecientes a escala | 0.667 | Fracción adimensional (2/3) |
+# | Costo fijo de operación | $c_f$ | Costo fijo pagado por período para operar | 20.00 | Unidades de producto |
+# | Costo hundido de entrada | $c_e$ | Capital hundido requerido para crear una nueva firma | 40.00 | Unidades de producto |
+# | Persistencia de productividad | $\rho_s$ | Persistencia AR(1) de la productividad individual | 0.90 | Autocorrelación adimensional |
+# | Volatilidad de innovación | $\sigma_s$ | Desviación estándar de innovación idiosincrática | 0.20 | Desviación estándar |
+# | Puntos de grilla de productividad | $n_s$ | Nodos de discretización de Tauchen | 101 | Recuento entero |
+# | Distribución de entrantes | $\nu$ | Extracción invariante incondicional de nuevos entrantes | Invariante de Markov | Distribución de probabilidad |
+# | Precio de equilibrio | $p^*$ | Precio del producto que vacía la libre entrada | 0.974 | Precio relativo (endógeno) |
+# | Umbral de salida | $s^*$ | Umbral de productividad bajo el cual las firmas cierran | 4.055 | Unidades de productividad (endógeno) |
+#
 # **Intuición.** El beneficio crece con la productividad, por lo que solo las empresas por encima del umbral
 # $s^\*$ esperan un valor de continuación no negativo — el mercado *elimina* a las empresas de baja
 # productividad, dejando incumbentes sistemáticamente más productivos que la distribución de entrantes $\nu$.
@@ -50,6 +66,14 @@
 # **costo fijo** $c_f$ reduce el beneficio de cada empresa, de modo que el umbral $s^\*$ sube y la distribución
 # estacionaria se desplaza hacia sobrevivientes más productivos; aumentar el **costo de entrada** $c_e$, en
 # cambio, exige un precio $p^\*$ más alto para que la entrada siga siendo rentable.
+#
+# ### Referencias clave
+#
+# - Cooley & Prescott (1995). Economic growth and business cycles. *Frontiers of Business Cycle Research*, 1–38.
+# - Galí (1999). Technology, employment, and the business cycle: Do technology shocks explain aggregate fluctuations? *American Economic Review*, 89(1), 249–271.
+# - Hopenhayn (1992). Entry, exit, and firm dynamics in long run equilibrium. *Econometrica*, 60(5), 1127–1150.
+# - Kydland & Prescott (1982). Time to build and aggregate fluctuations. *Econometrica*, 50(6), 1345–1370.
+# - Long & Plosser (1983). Real business cycles. *Journal of Political Economy*, 91(1), 39–69.
 
 # %%
 import sys
@@ -98,7 +122,7 @@ assert 0.0 < exit_rate < 1.0
 assert mean_inc > mean_ent                                # selection
 
 # %% [markdown]
-# **Lectura del resultado.** El residuo de libre entrada $\mathbb{E}_\nu[W]-c_e$ es ~0, así que el
+# **Lectura de los resultados.** El residuo de libre entrada $\mathbb{E}_\nu[W]-c_e$ es ~0, así que el
 # precio impreso es el $p^\*$ que hace que entrar valga exactamente su costo — no queda entrada rentable
 # sobre la mesa. La tasa de salida (la masa estacionaria ubicada en productividades por debajo del umbral
 # $s^\*$) está estrictamente entre 0 y 1: algunas empresas extraen mal y cierran, pero el mercado no
@@ -156,7 +180,7 @@ ax.set_xlabel("Entry cost cₑ"); ax.set_ylabel("Equilibrium output price")
 ax.set_title("Comparative statics: entry cost → price")
 
 # %% [markdown]
-# **Lectura del resultado.** La línea tiene pendiente estrictamente positiva, y el `assert` lo confirma:
+# **Lectura de los resultados.** La línea tiene pendiente estrictamente positiva, y el `assert` lo confirma:
 # un costo de entrada $c_e$ más alto corresponde a un precio de equilibrio $p^\*$ más alto. La lógica es la
 # condición de libre entrada $\mathbb{E}_\nu[W(s;p)]=c_e$ — si encarece la entrada, la única forma de
 # mantener el *valor* de entrar igual a ese costo mayor es que el precio del producto (y por ende el beneficio
@@ -196,7 +220,7 @@ assert s.min() <= cutoff_you <= s.max()                   # cutoff stays on the 
 # `free_entry_price` y comprueba que el *precio de equilibrio* también sube con `cf` — el margen de entrada
 # y el margen de salida se mueven en conjunto.
 #
-# **¿Qué tan completo es esto?** `puremacro.vfi` es una caja de herramientas completa de agentes
+# **¿Qué tan exhaustivo es esto?** `puremacro.vfi` es una caja de herramientas completa de agentes
 # heterogéneos, y el bloque de empresas de aquí es una de sus esquinas: la misma cadena de resolución →
 # distribución estacionaria → vaciado de mercado impulsa a los hogares de mercados incompletos de
 # **Aiyagari** (NB01), el riesgo agregado y las trayectorias de transición de **Krusell-Smith** (NB02), el

@@ -13,8 +13,7 @@
 # %% [markdown]
 # # State-dependent transmission done right
 #
-# **Does the same shock hit harder when the economy is already in a bad
-# state?** Regime models — threshold VARs, Markov-switching VARs, threshold
+# **How does the macroeconomic transmission of structural shocks vary across regimes, such as calm and stressed financial conditions?** Regime models — threshold VARs, Markov-switching VARs, threshold
 # VECMs — exist to answer exactly that. But fitting one and then pushing its
 # per-regime coefficients through a *linear* IRF routine quietly answers a
 # different question: "what if the economy were locked in that regime
@@ -26,7 +25,7 @@
 # style of Kilian and Vigfusson (2011).
 
 # %% [markdown]
-# ## From linear IRF to generalized IRF in math
+# ## The method in math: from linear IRF to generalized IRF
 #
 # A two-regime threshold VAR switches its dynamics on a lagged threshold
 # variable $z_{t-d}$:
@@ -53,6 +52,17 @@
 # completes the toolkit: in a linear model $GI(2\delta) = 2\,GI(\delta)$ and
 # $GI(-\delta) = -GI(\delta)$, so plotting $GI(\delta)/\delta$ across sizes
 # and signs measures how nonlinear the transmission really is.
+#
+# ### Baseline Simulation Parameters
+#
+# | Symbol | Parameter Description | Baseline Value | Units / Accounting Convention |
+# | :--- | :--- | :--- | :--- |
+# | $c^*$ | True threshold parameter separating regimes | $0.00$ | Units of the simulated FCI (innovation sd = 1) |
+# | $d$ | Threshold delay parameter | $1$ | Lag period ($z_{t-1}$) |
+# | $T$ | Total simulation length | $600$ | Quarters ($150$ years) |
+# | $R$ | Monte Carlo paired paths per history (main GIRF) | $80$ | Paths per history; $40$ histories per starting regime |
+# | $A_{\text{calm}}$ | Autoregressive matrix in calm regime | $[[0.5, 0], [-0.1, 0.4]]$ | State transition parameters |
+# | $A_{\text{stress}}$ | Autoregressive matrix in stress regime | $[[0.8, 0], [-0.5, 0.4]]$ | Elevated persistence and drag |
 
 # %% [markdown]
 # **Intuition.** A linear IRF is a single number per horizon because a linear
@@ -67,6 +77,15 @@
 # rather than a mechanical recursion. The price is simulation noise; the
 # payoff is an object that can honestly differ across regimes, sizes, and
 # signs — and a difference band that tells you whether it does.
+#
+# ### Key References
+#
+# - **Koop, G., Pesaran, M. H., & Potter, S. M. (1996).** *Impulse response analysis in nonlinear multivariate models.* Journal of Econometrics, 74(1), 119–147.
+# - **Kilian, L., & Vigfusson, R. J. (2011).** *Are the responses of the U.S. economy asymmetric in energy price increases and decreases?* Quantitative Economics, 2(3), 419–453.
+# - **Tsay, R. S. (1998).** *Testing and modeling multivariate threshold models.* Journal of the American Statistical Association, 93(443), 1188–1202.
+# - **Hansen, B. E. (1999).** *Threshold effects in non-dynamic panels: Estimation, testing, and inference.* Journal of Econometrics, 93(2), 345–368.
+# - **Krolzig, H.-M. (1997).** *Markov-Switching Vector Autoregressions.* Lecture Notes in Economics and Mathematical Systems. Springer. doi:10.1007/978-3-642-51684-9
+# - **Caldara, D., Fuentes-Albero, C., Gilchrist, S., & Zakrajšek, E. (2016).** *The macroeconomic impact of financial and uncertainty shocks.* European Economic Review, 88, 185–207.
 
 # %% [markdown]
 # ## Setup — a simulated economy with calm and stress regimes
@@ -127,29 +146,50 @@ ax.set_title("Simulated FCI — shaded spans are stress quarters ($z_t > 0$)")
 # ## Fit the threshold VAR
 #
 # `tvar_fit` grid-searches the threshold $c$ and delay $d$ (Tsay 1998) and
-# runs OLS per regime. Nothing tells it the true split is at zero with
-# $d=1$ — it has to find that, and the planted coefficient gap, on its own.
+# runs OLS per regime. Nothing tells it the true split is at zero — it has
+# to find that, and the planted coefficient gap, on its own. One catch:
+# `tvar_fit` only tries delays $d \le p$ and skips larger ones without a
+# warning, so at the true lag order $p=1$ the delay is fixed at 1 and
+# cannot be "found". We keep the $p=1$ fit for the rest of the notebook and
+# run the delay search as a separate check at $p=2$, where $d=2$ is a real
+# candidate. A second check is independent of `puremacro`: plain OLS on the
+# *true* split ($z_{t-1} > 0$), which says how much of any estimation error
+# is sampling noise in this one sample rather than the estimated threshold.
 
 # %%
-fit = tvar_fit(Y, threshold_var_idx=0, p=1, delay_grid=(1, 2), n_threshold_grid=40)
-print(f"threshold c = {fit.threshold:+.3f} (true 0.0) | delay d = {fit.delay} (true 1)")
+fit = tvar_fit(Y, threshold_var_idx=0, p=1, delay_grid=(1,), n_threshold_grid=40)
+print(f"threshold c = {fit.threshold:+.3f} (true 0.0) | delay d = {fit.delay} (only d <= p = 1 is tried)")
 print(f"regime split: {fit.n_low} calm / {fit.n_high} stress quarters")
 print("A_low  (calm)  =", np.round(fit.A_low, 3).tolist())
 print("A_high (stress)=", np.round(fit.A_high, 3).tolist())
-assert fit.delay == 1
+
+# a delay search that can fail: at p = 2 both d = 1 and d = 2 are admissible
+fit_p2 = tvar_fit(Y, threshold_var_idx=0, p=2, delay_grid=(1, 2), n_threshold_grid=40)
+print(f"delay search at p = 2 over d in (1, 2): d = {fit_p2.delay} (true 1)")
+
+# independent check: OLS with intercept on the true stress quarters (z_{t-1} > 0)
+X_true = np.column_stack([np.ones(len(Y) - 1), Y[:-1]])
+in_stress = Y[:-1, 0] > 0.0
+B_true = np.linalg.lstsq(X_true[in_stress], Y[1:][in_stress], rcond=None)[0]
+print(f"OLS on the true split: stress FCI persistence = {B_true[1, 0]:.3f}, "
+      f"growth drag = {B_true[1, 1]:.3f} (true 0.8 and -0.5)")
+assert fit_p2.delay == 1                              # the true delay wins when d = 2 is allowed
 assert abs(fit.threshold) < 0.5                       # near the true zero
 assert fit.A_high[1, 0] < fit.A_low[1, 0] - 0.25      # planted cross-effect gap
 
 # %% [markdown]
-# **Read the output.** The grid lands close to the truth: threshold near
-# zero, delay 1, and the estimated stress regime carries both planted
-# fingerprints — higher FCI persistence ($\approx 0.7$ vs $0.5$) and the
-# much stronger growth drag ($\approx -0.47$ vs $-0.11$). The attenuation of
-# the persistence estimate (0.7, not 0.8) is the usual price of
-# misclassified observations near the threshold. So far this is just
-# estimation; the question is what these two coefficient blocks *mean* for
-# a shock — and that is not answerable by feeding either block to a linear
-# IRF.
+# **Read the output.** The threshold lands at $+0.236$ (true 0), and when a
+# second delay is admissible ($p=2$) the search picks $d=1$, the true delay.
+# The estimated stress regime carries both planted fingerprints: FCI
+# persistence 0.691 against 0.526 in calm (true 0.8 and 0.5), and a growth
+# drag of −0.472 against −0.11 (true −0.5 and −0.1). Why 0.691 and not
+# 0.8? About half of the gap is sampling noise in this one sample of 600
+# quarters: OLS on the true split gives 0.744. The rest comes from the
+# estimated threshold. With $c = +0.236$ the stress regime keeps only
+# quarters with $z_{t-1} > 0.236$, so it drops true stress quarters rather
+# than adding calm ones. So far this is just estimation; the question is
+# what these two coefficient blocks *mean* for a shock — and that is not
+# answerable by feeding either block to a linear IRF.
 
 # %% [markdown]
 # ## The GIRF: histories, endogenous switching, paired simulation
@@ -172,9 +212,13 @@ g_strs = res.girf_by_regime[1, 0]
 d_gr = res.difference[0, :, 1]
 d_lo = res.difference_lo[0, :, 1]
 d_hi = res.difference_hi[0, :, 1]
-print(f"growth response at h=2: calm {g_calm[2, 1]:+.3f} | stress {g_strs[2, 1]:+.3f}")
+print(f"growth response at h=2: calm {g_calm[2, 1]:+.3f} | stress {g_strs[2, 1]:+.3f} "
+      f"(ratio {g_strs[2, 1] / g_calm[2, 1]:.2f})")
 print(f"difference (stress-calm) at h=2: {d_gr[2]:+.3f}, 90% band "
       f"[{d_lo[2]:+.3f}, {d_hi[2]:+.3f}]")
+below = np.flatnonzero(d_hi < 0.0)
+print(f"band entirely below zero at {below.size} of {h.size} horizons: h = {below.tolist()}")
+print(f"FCI's own response at h=1: calm {g_calm[1, 0]:+.3f} | stress {g_strs[1, 0]:+.3f}")
 assert g_strs[2, 1] < g_calm[2, 1] - 0.10   # stress transmission is stronger...
 assert d_hi[2] < -0.10                      # ...and the band excludes zero
 
@@ -207,22 +251,29 @@ axes[1].set_xlabel("Horizon (quarters)")
 axes[1].set_ylabel("Difference in growth response")
 axes[1].set_title("Regime-dependent transmission test")
 axes[1].legend(fontsize=8)
+for a in axes:
+    a.set_xticks(h[::4])
 
 # %% [markdown]
 # **Read the output.** Left panel: the same +1 sd financial shock costs
-# about **−0.42** growth at $h=2$ when it lands in stress versus **−0.24**
-# in calm — nearly twice the damage, purely from where it lands. The naive
-# frozen-stress line overstates the stress response (cumulative loss −2.6 vs
-# −1.9): real paths *escape* to the calm regime as the FCI mean-reverts, and
-# the GIRF averages over those exits while the frozen recursion forbids
-# them. Right panel: the stress-minus-calm difference is negative and its
-# 90% band sits **strictly below zero** through the first two years — a
-# direct bootstrap test of regime-dependent transmission, which here
-# correctly rejects symmetry because we planted the asymmetry ourselves.
-# One subtlety worth savoring: the FCI's *own* response differs across
-# regimes far less than the coefficients (0.7 vs 0.5) suggest, because a
-# positive shock in calm pushes the FCI across the threshold and it then
-# propagates under stress dynamics anyway — endogenous switching at work.
+# **−0.418** growth at $h=2$ when it lands in stress against **−0.238** in
+# calm — 1.75 times the damage, purely from where it lands. The naive
+# frozen-stress line overstates the stress response (cumulative loss −2.56
+# against −1.93 for the GIRF): real paths *escape* to the calm regime as the
+# FCI mean-reverts, and the GIRF averages over those exits while the frozen
+# recursion forbids them. Right panel: the stress-minus-calm difference at
+# $h=2$ is −0.179 with a 90% band of [−0.199, −0.163], and the band lies
+# entirely below zero at horizons 0 to 14. That recovers the asymmetry we
+# planted. Read the band for what it is: it resamples histories and
+# simulation draws with the fitted coefficients held fixed, so it carries
+# no estimation uncertainty and is narrower than a full test of
+# regime-dependent transmission would be (the stretch prompt below shows a
+# case where it collapses to a line). One subtlety worth savoring: the FCI's
+# *own* response at $h=1$ is +0.680 starting in calm and +0.688 starting in
+# stress, much closer than the fitted persistence (0.526 against 0.691)
+# suggests. A positive shock in calm pushes the FCI across the threshold,
+# and it then propagates under stress dynamics anyway — endogenous
+# switching at work.
 
 # %% [markdown]
 # ## Size and sign asymmetry, Kilian-Vigfusson style
@@ -242,6 +293,8 @@ dev_size = np.abs(sc[1, :, 1] - sc[0, :, 1]).max()   # |GI(2d)/2 - GI(d)| gap
 dev_sign = np.abs(sc[2, :, 1] - sc[0, :, 1]).max()   # |GI(-d)/(-d) - GI(d)| gap
 print(f"max size deviation |GI(2)/2 - GI(1)|  (growth): {dev_size:.3f}")
 print(f"max sign deviation |GI(-1)/-1 - GI(1)| (growth): {dev_sign:.3f}")
+print("per-sd growth response at h=2: " + " | ".join(
+    f"{d:+.0f} sd {sc[s, 2, 1]:+.3f}" for s, d in enumerate(res.shock_sizes)))
 assert np.abs(sc[:, 0, :] - sc[0, 0, :]).max() < 1e-12  # impact IS proportional
 assert dev_size > 0.02 and dev_sign > 0.05              # dynamics are NOT
 
@@ -259,12 +312,15 @@ ax.legend(fontsize=8)
 # **Read the output.** At $h=0$ all four curves coincide *exactly* — the
 # impact response is $\mathrm{chol}(\Sigma_r)e_j\delta$, proportional by
 # construction — so any spread at $h \geq 1$ is pure transmission
-# nonlinearity. And it spreads: positive shocks (which recruit the stress
-# regime) transmit more damage per sd than negative ones (which flee it),
-# and $\pm 2$ sd shocks deviate more than $\pm 1$ sd, because larger
-# impulses relocate more paths across the threshold. If someone hands you
-# one IRF for a regime model with no $\delta$ on the label, this plot is
-# the question to ask.
+# nonlinearity. And it spreads. At $h=2$ the growth cost per sd is −0.375
+# for a +2 sd shock, −0.330 for +1 sd, −0.232 for −1 sd and −0.195 for
+# −2 sd. Positive shocks, which recruit the stress regime, transmit more
+# damage per sd than negative ones, which pull paths out of it (largest
+# sign gap 0.097). Doubling the shock widens the gap further in both
+# directions (largest size gap 0.045), because larger impulses relocate
+# more paths across the threshold. If someone hands you one IRF for a
+# regime model with no $\delta$ on the label, this plot is the question to
+# ask.
 
 # %% [markdown]
 # ## The linear-limit sanity check — validation you can rerun
@@ -301,7 +357,7 @@ for j, (name, sty) in enumerate([("FCI", "-"), ("growth", "--")]):
     ax.plot(h, closed_form[:, j], color=_nbstyle.TINTA, linestyle=sty, linewidth=1.6,
             label=f"linear IRF — {name}")
     ax.plot(h[::2], chk.girf_pooled[0, ::2, j], "o", color=_nbstyle.NOTA, markersize=4,
-            label=f"GIRF — {name}" if j == 0 else None)
+            label="GIRF (both series, every 2nd h)" if j == 0 else None)
 ax.set_xlabel("Horizon (quarters)")
 ax.set_ylabel("Response to a +1 sd FCI shock")
 ax.set_title("Linear limit: the GIRF collapses onto the closed form")
@@ -311,44 +367,76 @@ ax.legend(fontsize=8)
 # **The validation moment.** This is the discipline the notebook wants you
 # to steal: every simulation-based estimator should ship with a limit in
 # which its answer is known *exactly*. For the KPP GIRF that limit is
-# "regimes that do not differ", and the machine-precision agreement above
-# (about $10^{-16}$, not $10^{-2}$) is only possible because the impulse is
-# added to the identified shock under common random numbers — a design
-# choice made *for* testability. When the linear limit holds and the
-# planted asymmetry is recovered with the right sign, the interesting
-# output (the difference band) inherits that credibility.
+# "regimes that do not differ", and the agreement above is at machine
+# precision (order $10^{-16}$, not $10^{-2}$). That is only possible
+# because the impulse is added to the identified shock under common random
+# numbers — a design choice made *for* testability. Be clear about what
+# kind of oracle this is: both sides are `puremacro` code (`girf` against
+# `var.irf`), so it is an internal consistency check of the simulator, not
+# independent evidence. The independent anchors in this notebook are the
+# planted data-generating process and the plain OLS on the true split.
+# When the linear limit holds and the planted asymmetry is recovered with
+# the right sign, the difference band inherits that credibility — within
+# the limits of what the band measures.
 
 # %% [markdown]
 # ## Your turn — how big a shock breaks proportionality?
 #
 # The fill-in below recomputes the GIRF for a shock size of your choosing
-# and compares it, per sd, against the +1 sd benchmark. The impact
-# comparison must agree *exactly* for any $\delta$ (that is the Cholesky
-# proportionality you verified above); the interesting number is how far
-# the curves drift apart at business-cycle horizons.
+# and compares it, per sd, against the +1 sd benchmark. Impact is
+# proportional by construction, so the test is the *drift* at
+# business-cycle horizons: the per-sd growth response minus the +1 sd one,
+# averaged over $h = 1,\dots,8$. **Predict its sign before you run.** A
+# shock larger than +1 sd pushes more paths into stress, where the growth
+# drag is five times stronger, so per sd it should cost *more* growth
+# (drift < 0). A shock smaller than +1 sd, or a negative one, recruits
+# fewer stress paths or pulls paths out, so per sd it should cost *less*
+# (drift > 0). The assert grades that prediction; it holds for every
+# $\delta$ in the advertised range and fails when the model has no
+# threshold nonlinearity in its dynamics.
 
 # %%
-DELTA_TRY = 2.0   # ← change this: shock size in sd units (try 0.5, 3.0, -2.0, 5.0)
+DELTA_TRY = 2.0   # ← change this: shock size in sd, -5 <= delta <= 5 with |delta - 1| >= 0.5 and delta != 0 (try 0.5, 3.0, -2.0, 5.0)
+assert -5.0 <= DELTA_TRY <= 5.0 and abs(DELTA_TRY - 1.0) >= 0.5 and DELTA_TRY != 0.0, \
+    "outside the advertised range"
 res_try = girf(fit, Y, shock=0, horizon=16, n_hist=30, n_sim=60,
                shock_size=[1.0, DELTA_TRY], n_boot=100, rng=2)
 sc_try = res_try.scaled()
-drift = np.abs(sc_try[1, :, 1] - sc_try[0, :, 1])
-print(f"delta = {DELTA_TRY:+.1f} sd -> max per-sd growth drift vs +1 sd: "
-      f"{drift.max():.3f} at h = {int(drift.argmax())}")
-# Holds for the default and ANY delta you try: impact is exactly proportional.
-assert np.allclose(sc_try[1, 0], sc_try[0, 0], atol=1e-10)
+drift = sc_try[1, :, 1] - sc_try[0, :, 1]    # per-sd growth response minus the +1 sd benchmark
+mean_drift = drift[1:9].mean()              # the first two years after impact
+print(f"delta = {DELTA_TRY:+.1f} sd -> mean per-sd growth drift vs +1 sd over h = 1..8: "
+      f"{mean_drift:+.4f} (largest |drift| {np.abs(drift).max():.3f} at h = {int(np.abs(drift).argmax())})")
+# the prediction: drift has the sign of (1 - delta), and is not zero
+assert abs(mean_drift) > 1e-3 and np.sign(mean_drift) == np.sign(1.0 - DELTA_TRY), \
+    "prediction failed: explain why"
 
 # %% [markdown]
-# **Prompts.** (1) *Basic*: set `DELTA_TRY = -2.0` and explain the sign of
-# the drift using the threshold: which regime do negative FCI shocks
-# recruit, and why does that make them *weaker* per sd? (2) *Intermediate*:
-# refit the model with `delay_grid=(2,)` and rerun the GIRF — does forcing
-# the wrong delay shrink the stress-calm difference band toward zero, and
-# what does that teach about misspecifying $d$? (3) *Stretch*: replace
-# `tvar_fit` with `ms_var_fit(Y, K=2, p=1)` and call the *same* `girf`
-# function. The difference band now reflects only the impact Cholesky —
-# explain why the shared-$A$ Markov-switching spec cannot generate
-# transmission asymmetry, and what the model would need for it to do so.
+# **Prompts.** (1) *Basic*: before running, predict the sign of the drift
+# for `DELTA_TRY = -2.0` and for `0.5`, then run both. Which regime do
+# negative FCI shocks recruit, and why does that make them *weaker* per
+# sd? (2) *Intermediate*: force the wrong delay with
+# `fit_wrong = tvar_fit(Y, threshold_var_idx=0, p=2, delay_grid=(2,), n_threshold_grid=40)`
+# (a delay of 2 needs $p \ge 2$, because `tvar_fit` skips $d > p$). Pass
+# `fit_wrong` to the GIRF above with the main settings (`n_hist=40,
+# n_sim=80, n_boot=300, rng=16`) and to the fill-in cell. Does the
+# stress-calm difference at $h=2$ move toward zero? Does the sign
+# prediction survive, and what does that say about which conclusions
+# depend on getting $d$ right? (3) *Stretch*: fit
+# `fit_ms = ms_var_fit(Y, K=2, p=1)` (import it from `puremacro.var.regime`).
+# This is an MSIH(2)-VAR(1) in
+# Krolzig's (1997) notation: regime-specific intercepts $\mu_k$ and
+# covariances $\Sigma_k$, one shared $A$, estimated by EM with the
+# Hamilton filter. It is not Hamilton's (1989) model, which switches the
+# mean of an AR process with a constant variance. Pass `fit_ms` to the
+# *same* `girf` in the fill-in cell and predict, before running, why the
+# assert now fails for every $\delta$. Then check that
+# `girf(fit_ms, ...).difference[0]` (regime 1 minus regime 0) equals
+# $A^h\big(\mathrm{chol}(\Sigma_1) - \mathrm{chol}(\Sigma_0)\big)e_0$ at
+# every horizon, from `fit_ms.A` and `fit_ms.Sigma`, and that its band has
+# zero width. The data were simulated with identity covariance in both
+# regimes: what is this "regime difference" picking up? Does either fitted
+# regime persist (inspect `fit_ms.P`)? What would the model need in order
+# to generate transmission asymmetry?
 #
 # ## Why this matters for regime-uncertainty research
 #
@@ -369,8 +457,10 @@ assert np.allclose(sc_try[1, 0], sc_try[0, 0], atol=1e-10)
 #
 # **How comprehensive is this?** `girf` dispatches on all three regime fits
 # in `puremacro.var.regime` — `tvar_fit` (used here), `tvecm_fit`
-# (threshold cointegration, responses in levels), and `ms_var_fit` (regime
-# paths drawn from the fitted transition matrix). Single-equation
+# (threshold cointegration, responses in levels), and `ms_var_fit` (an
+# MSIH VAR with a shared $A$, fitted by EM; regime paths drawn from the
+# fitted transition matrix, so its GIRF differs across regimes only through
+# $\mathrm{chol}(\Sigma_k)$). Single-equation
 # alternatives live in `puremacro.lp` (`lp_state_dep` for
 # Auerbach-Gorodnichenko-style state-dependent local projections);
 # `puremacro.uncertainty.regimes` dates the regimes themselves

@@ -146,18 +146,34 @@ print(f"impacto (h=0) de la productividad al choque de horas = "
 # **Supuesto que la sostiene:** una restricción teórica de **largo plazo** (Blanchard–Quah,
 # 1989; Galí, 1999). No dice nada sobre el timing contemporáneo — solo sobre a dónde
 # converge el sistema. `permanent_var_idx=0` señala la productividad como la variable de
-# efecto permanente. `bq_svar` devuelve la IRF **acumulada** de **todas** las variables:
-# como $Y$ está en tasas de crecimiento ($100\cdot\Delta\log$), la IRF acumulada es la
-# respuesta del **nivel**, en por ciento.
+# efecto permanente.
+#
+# **Qué respuestas acumular (`cumulate=`).** La restricción se impone sobre el nivel de la
+# productividad, así que `bq_svar` acumula a lo largo del horizonte la respuesta de las
+# variables que le indiques con `cumulate=`: acumular la respuesta de una variable en
+# diferencias da la respuesta de su **nivel**. Aquí **las dos** columnas de $Y$ están en
+# tasas de crecimiento ($100\cdot\Delta\log$), así que pasamos `cumulate=[0, 1]` y ambas
+# IRF salen como respuestas del **nivel**, en por ciento. (Es también lo que hace el valor
+# por defecto, `cumulate=True`, pero conviene escribirlo: la elección depende de cómo entra
+# cada variable.) Una variable que entra en **niveles** no se acumula: en el sistema
+# original de Blanchard–Quah, $(\Delta\log\text{PNB},\ \text{desempleo})$, se usa
+# `cumulate=[0]`, y en el módulo 2 las horas en niveles de la especificación de CEV también
+# quedan fuera. Acumular una variable en niveles devuelve una suma corrida que no vuelve a
+# cero; no acumular una en diferencias devuelve su tasa de crecimiento, no su nivel.
 
 # %% slideshow={"slide_type": "fragment"}
-bqr = bq(Y, p=p, horizon=H, permanent_var_idx=0, n_boot=400, ci=0.9, seed=7)
+bqr = bq(Y, p=p, horizon=H, permanent_var_idx=0, n_boot=400, ci=0.9, seed=7,
+         cumulate=[0, 1])                  # ambas columnas en tasas -> ambas se acumulan
 print(bqr.summary())
 print(f"efecto acumulado a h={H} del choque NO tecnológico sobre la productividad = "
       f"{bqr.irf_point[H, 0, 1]:+.4f}  ->  ~0: la restricción es a horizonte infinito y a "
       f"h={H} ya está prácticamente saturada")
 print(f"respuesta de horas al choque de tecnología en el impacto (h=0) = "
       f"{bqr.irf_point[0, 1, 0]:+.2f} %  ->  las horas CAEN (resultado de Galí, 1999)")
+# el error opuesto: sin acumular las horas se lee su tasa de crecimiento, no su nivel
+bq_tasa = bq(Y, p=p, horizon=H, permanent_var_idx=0, n_boot=0, cumulate=[0])
+print(f"horas a h={H}: nivel (acumulada) = {bqr.irf_point[H, 1, 0]:+.3f} %  |  "
+      f"tasa de crecimiento (sin acumular) = {bq_tasa.irf_point[H, 1, 0]:+.3f} %")
 
 # %% [markdown] slideshow={"slide_type": "subslide"}
 # ### Cuidado con la muestra: el −0.84 % no es "el número de Galí"
@@ -171,7 +187,8 @@ d07 = df.loc[df["date"] <= "2007-12-31"]
 lp07 = np.log(d07["ophnfb"].to_numpy())
 lh07 = np.log((d07["hoanbs"] / d07["cnp16ov"]).to_numpy())
 Y07 = np.column_stack([100.0 * np.diff(lp07), 100.0 * np.diff(lh07)])
-bq07 = bq(Y07, p=p, horizon=H, permanent_var_idx=0, n_boot=200, ci=0.9, seed=7)
+bq07 = bq(Y07, p=p, horizon=H, permanent_var_idx=0, n_boot=200, ci=0.9, seed=7,
+          cumulate=[0, 1])
 
 print(f"muestra completa ({df['date'].iloc[1].date()}…{df['date'].iloc[-1].date()}, "
       f"T={Y.shape[0]:3d}): horas en impacto = {bqr.irf_point[0,1,0]:+.2f} % "
@@ -190,11 +207,11 @@ print("-> mismo signo y banda al 90% por debajo de cero en ambos casos; "
 # impacto y cero de largo plazo), lo cual sería una casualidad. Que difieran es justamente
 # el punto de la lección.
 #
-# **Antes de comparar hay que igualar las unidades.** `bq_svar` devuelve la IRF ya
-# **acumulada** (nivel); `cholesky_svar` la devuelve **sin acumular** (tasa de crecimiento
-# trimestral). Graficarlas juntas tal cual compararía peras con manzanas, y la mayor parte
-# de la "diferencia" sería la acumulación, no la identificación. Acumulamos por tanto la de
-# Cholesky.
+# **Antes de comparar hay que igualar las unidades.** Con `cumulate=[0, 1]`, `bq_svar`
+# devolvió la IRF ya **acumulada** (nivel) de las dos variables; `cholesky_svar` la devuelve
+# **sin acumular** (tasa de crecimiento trimestral). Graficarlas juntas tal cual compararía
+# peras con manzanas, y la mayor parte de la "diferencia" sería la acumulación, no la
+# identificación. Acumulamos por tanto la de Cholesky.
 #
 # Ojo con las bandas: acumular los **percentiles** punto a punto **no** da el percentil de
 # la trayectoria acumulada. Hay que acumular los **sorteos** del bootstrap y recalcular los
@@ -211,6 +228,12 @@ print(f"nivel a h={H}, horas <- choque 0:  Cholesky = {ch_cum[H,1,0]:+.2f} % "
       f"[{ch_cum_lo[H,1,0]:+.2f}, {ch_cum_hi[H,1,0]:+.2f}]   |   "
       f"BQ = {bqr.irf_point[H,1,0]:+.2f} % "
       f"[{bqr.irf_lower[H,1,0]:+.2f}, {bqr.irf_upper[H,1,0]:+.2f}]")
+print(f"impacto (h=0), horas <- choque 0:  Cholesky = {ch_cum[0,1,0]:+.2f} %  |  "
+      f"BQ = {bqr.irf_point[0,1,0]:+.2f} %  (BQ/Cholesky = {bqr.irf_point[0,1,0] / ch_cum[0,1,0]:.1f})")
+print(f"horizontes con la banda BQ de horas entera bajo cero:        "
+      f"{np.flatnonzero(bqr.irf_upper[:, 1, 0] < 0).tolist()}")
+print(f"horizontes con la banda Cholesky acumulada entera sobre cero: "
+      f"{np.flatnonzero(ch_cum_lo[:, 1, 0] > 0).tolist()}")
 
 # %% slideshow={"slide_type": "slide"}
 cols = _nbstyle.palette(2)
@@ -225,7 +248,7 @@ for k, ax in enumerate(axes):
     ax.plot(hh, bqr.irf_point[:, k, 0], color="0.50", lw=1.6, ls=(0, (4, 2)),
             label="Blanchard–Quah (largo plazo)")
     ax.fill_between(hh, bqr.irf_lower[:, k, 0], bqr.irf_upper[:, k, 0], color="0.50", alpha=0.15)
-    ax.set_title(f"respuesta de {labels[k]} al choque 0")
+    ax.set_title(f"respuesta de {labels[k]}")
     ax.set_xlabel("trimestres")
 axes[0].set_ylabel("nivel, % (respuesta acumulada)")
 axes[0].legend(loc="upper right", fontsize=8)
@@ -238,8 +261,9 @@ plt.show()
 # Bajo **BQ**, un choque de tecnología positivo hace caer las horas en el impacto y el punto
 # estimado las mantiene por debajo de su nivel inicial en todo el horizonte: es el hallazgo
 # de Galí (1999), en tensión con la predicción del RBC de que las horas suben.
-# Bajo **Cholesky**, el impacto también es negativo, pero unas cinco veces menor, y desde el
-# segundo trimestre (h≥1) la respuesta acumulada se vuelve **positiva** y ahí se queda.
+# Bajo **Cholesky**, el impacto también es negativo, pero 5.3 veces menor (−0.16 % frente a
+# −0.84 %), y desde el segundo trimestre (h≥1) la respuesta acumulada se vuelve **positiva**
+# y ahí se queda.
 # Es decir: la caída persistente de horas es un producto del supuesto de largo plazo, no
 # del dato.
 #
@@ -280,7 +304,8 @@ assert abs(ch.irf_point[0, 0, 1]) < 1e-9    # restricción de impacto de Cholesk
 assert abs(bqr.irf_point[H, 0, 1]) < 1e-2   # restricción de largo plazo de BQ
 assert bqr.irf_point[0, 1, 0] < 0.0         # las horas caen ante el choque de tecnología
 assert bq07.irf_point[0, 1, 0] < 0.0        # ... también en el corte pre-2008
-assert bqr.irf_point[H, 1, 0] < 0.0         # BQ: horas por debajo del nivel inicial a h=H
+assert bqr.irf_point[H, 1, 0] < 0.0         # BQ (horas acumuladas = nivel): bajo el nivel inicial a h=H
+assert abs(bq_tasa.irf_point[H, 1, 0]) < 0.05 < abs(bqr.irf_point[H, 1, 0])  # tasa -> 0, nivel no
 assert ch_cum[H, 1, 0] > 0.0                # Cholesky acumulada: horas ARRIBA a h=H
 assert ch_cum_lo[0, 1, 0] < 0.0 < ch_cum_hi[0, 1, 0]   # el impacto Cholesky abraza el cero
 
@@ -328,6 +353,8 @@ print(f"   BQ        acumulado productividad<-choque1 = {lr_bq:+.4f}")
 # - Advertencia: la huella es *necesaria*, no *suficiente*. Un cero de impacto también
 #   aparece bajo restricciones de signo-y-cero o en un proxy-SVAR que imponga exclusiones
 #   contemporáneas. La huella descarta esquemas; para saber cuál se usó hay que leer el
+#   código o la sección de identificación del trabajo.
+
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 8b. Triangulación con restricciones de signo y tablas de publicación
 #
@@ -355,16 +382,34 @@ comp_df = pd.DataFrame({
     "h": horizons_tab,
     "Cholesky (Acum.)": [ch_cum[h, 1, 0] for h in horizons_tab],
     "Blanchard-Quah": [bqr.irf_point[h, 1, 0] for h in horizons_tab],
-    "Sign (RRWZ 2010)": [sign_cum_hours[h] for h in horizons_tab],
+    "Signo: mediana acum.*": [sign_cum_hours[h] for h in horizons_tab],
 })
 
 print(f"Restricciones de signo aceptadas: {res_sign.n_accepted}/{res_sign.n_draws} sorteos Haar.")
+print(f"horas en el impacto bajo signo: mediana {res_sign.irf_median[0, 1, 0]:+.2f} %, "
+      f"banda {100 * res_sign.ci:.0f}% [{res_sign.irf_lower[0, 1, 0]:+.2f}, "
+      f"{res_sign.irf_upper[0, 1, 0]:+.2f}]")
 print("\n--- Tabla comparativa de la respuesta de horas al choque de tecnología (Markdown) ---")
 print(df_to_markdown(comp_df, digits=3))
+print("* suma acumulada de la mediana punto a punto: NO es la mediana de la respuesta acumulada")
 
 assert res_sign.n_accepted > 100
 assert res_sign.irf_median[0, 0, 0] > 0.0      # productividad sube por restricción
-assert res_sign.irf_median[0, 1, 0] < 0.0      # horas caen en el impacto aún bajo signo puro agnóstico
+# las horas quedan libres: el signo solo no determina su respuesta (la banda abraza el cero)
+assert res_sign.irf_lower[0, 1, 0] < 0.0 < res_sign.irf_upper[0, 1, 0]
+
+# %% [markdown] slideshow={"slide_type": "subslide"}
+# ### Lectura
+# La restricción de signo acepta 502 de 1000 rotaciones, y entre ellas la respuesta de las
+# horas en el impacto va de −1.24 % a +1.18 % (banda del 90 %). La mediana, −0.16 %, no es
+# una estimación puntual: es la mediana de una distribución que fija la *prior* uniforme
+# (Haar) sobre las rotaciones, no el dato. Con una sola restricción sobre la productividad,
+# el signo de las horas queda **sin determinar**: el esquema agnóstico ni confirma ni
+# refuta a Galí. La columna de signo de la tabla, además, acumula la mediana punto a punto,
+# que no es la mediana de la trayectoria acumulada (el mismo error que evitamos con las
+# bandas de Cholesky en la sección 6); léela solo como referencia. Para usar signos en
+# serio hacen falta más restricciones, por ejemplo sobre horizontes posteriores o sobre
+# otras variables.
 
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 9. Preguntas para pensar

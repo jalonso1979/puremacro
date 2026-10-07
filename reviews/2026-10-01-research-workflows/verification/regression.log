@@ -1,0 +1,12 @@
+...........................................................ss........... [ 28%]
+........................................................................ [ 56%]
+........................................................................ [ 84%]
+.......................................                                  [100%]
+=============================== warnings summary ===============================
+puremacro/replication/cases_dsge_estimation.py:161
+tests/replication/test_replication_cases.py::test_dsge_estimation_cases_present_and_pass
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/replication/cases_dsge_estimation.py:161: UserWarning: harmonic_mean_mdd: the estimate moves by 2.66 log points across truncation levels (from -908.34 to -905.69). It is supposed to be invariant to the truncation, so this one has not converged and should not be reported.
+    res = harmonic_mean_mdd(fix["draws"], fix["log_posterior_trace"])
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+253 passed, 2 skipped, 2 warnings in 136.94s (0:02:16)

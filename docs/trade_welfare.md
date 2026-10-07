@@ -1,24 +1,52 @@
+> 🇬🇧 English · 🇪🇸 [Español](es/trade_welfare.md)
+
 # Hicksian consumption welfare
 
-Use explicit baseline and counterfactual equilibria from consistent accounting:
+Use explicit baseline and counterfactual equilibria from consistent accounting.
+This example runs as written on a hand-balanced two-country table:
 
 ```python
-from puremacro.trade import solve_trade_equilibrium, compute_hicksian_welfare
+import numpy as np
+from puremacro.trade import (calibrate_trade_model, compute_hicksian_welfare,
+                             solve_trade_equilibrium)
 
-base = solve_trade_equilibrium(calibration, accounting="consistent")
+# Two countries (A, B), one good, final uses C and I, values in one currency unit.
+Z = np.array([[10., 12.], [8., 14.]])
+F = np.array([[30., 8., 20., 20.], [15., 15., 50., 18.]])  # to A-C, A-I, B-C, B-I
+production_tax = np.array([4., 6.])
+final_tax = np.array([2., 1., 3., 2.])
+value_added = Z.sum(1) + F.sum(1) - Z.sum(0) - production_tax
+data = np.vstack([np.hstack([Z, F]), np.r_[production_tax, final_tax],
+                  np.r_[2*value_added/3, np.zeros(4)], np.r_[value_added/3, np.zeros(4)]])
+calibration = calibrate_trade_model(data, ns=1, nc=2, nfd=2, country_codes=["A", "B"],
+                                    sector_codes=["GOOD"])
+
+import_rates = np.array([0.20, 0.10])  # A and B tariff RATES on all imports
+tol = 1e-10  # absolute, in the table's value units; see "Tolerances" below
+base = solve_trade_equilibrium(calibration, accounting="consistent", tol=tol)
 counter = solve_trade_equilibrium(
     calibration, tau=import_rates, tau_fd=import_rates,
-    accounting="consistent",
+    accounting="consistent", tol=tol,
 )
 welfare = compute_hicksian_welfare(
-    calibration, counter, base_result=base, target_country="USA",
+    calibration, counter, base_result=base, target_country="A",
     consumption_categories=(0,),
 )
 print(welfare.summary())
 print(welfare.to_dataframe())
 ```
 
-Both states must converge and use the same calibration. The welfare function
+Both states must converge and use the same calibration, and they must be
+solved with the same `sigma`, fiscal closure and `foreign_saving_units`
+(a mismatch raises `ValueError`).
+
+**Tolerances.** Pass the solver `tol` explicitly. It bounds absolute residuals
+in the calibration's value units, and the welfare identities inherit that
+residual: with the solver default (`2.5e-3`) a table measured in single
+currency units leaves fiscal-account errors near `1e-4`, which fails the
+fiscal identity at the welfare default `tol=1e-8`. Use `1e-10` for unit-scale
+tables like the one above and about `1e-5` to `1e-7` for the frozen OECD
+fixture in million USD (see [consistent accounting](trade_accounting.md)). The welfare function
 re-evaluates equilibrium equations, prices, quantities and fiscal accounts using
 the recorded tariff schedules. Legacy states, missing schedules, failed solves,
 stale fields and unsupported fiscal closures raise errors. Results created before
@@ -108,9 +136,13 @@ same weight. Those are subcomponents, not additional gains. Duties are included
 once in purchaser prices and once in the transfer account, as specified by the
 equilibrium model. A tax receipt is not itself a social welfare gain.
 
-This attribution is conditional on the fixed model numeraire. Mixed endpoint
-blocks need not be equilibria, so it is an accounting attribution, not a causal
-GE experiment or a terms-of-trade/allocative-efficiency theorem. Changing nominal
+This attribution is conditional on the fixed model numeraire. With nonzero
+foreign saving the default closure (`foreign_saving_units="numeraire"`) makes
+EV/CV themselves depend on which country/sector is listed first; solve both
+states with `foreign_saving_units="world_income"` for results that do not depend
+on the country order (see [consistent accounting](trade_accounting.md)). Mixed
+endpoint blocks need not be equilibria, so it is an accounting attribution, not
+a causal GE experiment or a terms-of-trade/allocative-efficiency theorem. Changing nominal
 units consistently scales all monetary effects; the percentage EV is unchanged.
 
 ## Evidence and boundaries

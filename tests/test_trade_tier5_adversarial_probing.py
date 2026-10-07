@@ -12,10 +12,12 @@ Coverage:
      and empirical boundary characterization.
 2. Notebook 64 (Singularities & Keller PAC Continuation):
    - Arclength continuation across step sizes ds in [0.001, 0.20]
-   - Elasticities across deep inelastic regimes sigma in [0.05, 0.20]
-   - Mathematical proof and empirical verification of standard Newton divergence at fold
-     (det J -> 0, cond J > 10^5) vs non-singular Keller augmented bordered Jacobian (cond J_aug < 10^4)
-   - SVD modal projection clamping and Cyprus (CYP) micro-economy stabilization under extreme wage displacement.
+   - Elasticities across deep inelastic regimes sigma in [0.05, 0.20] (the notebook-64
+     calibration has no fold there: PAC records no tau_lambda <= 0 event)
+   - Singular Jacobian of an analytical scalar fold (det J -> 0, cond J > 10^5) vs the
+     non-singular Keller augmented bordered Jacobian (cond J_aug < 10^4)
+   - SVD modal projection clamping and the Cyprus (CYP) block-elimination step under extreme
+     wage displacement: a clamped step reports its own residual and is not converged.
 3. Notebook 65 (GVC Cascades & Exact 3-Way EV Decomposition):
    - Exact 3-way additive Hicksian Equivalent Variation (EV) decomposition across multiple
      tariff levels (5%, 10%, 25%, 50%) and multiple sovereign economies (USA, CHN, DEU, JPN, GBR)
@@ -38,7 +40,7 @@ from puremacro.trade import (
     calibrate_trade_model,
     solve_trade_equilibrium,
 )
-from puremacro.trade.data import load_icio_data
+from puremacro.trade.data import CANONICAL_COUNTRY_CODES, load_icio_data
 from puremacro.trade.optimal_tariffs import (
     build_strategic_tariffs,
     compute_unilateral_optimal_tariff,
@@ -160,7 +162,7 @@ def multilateral_5c_model() -> TradeCalibrationResult:
 
 @pytest.fixture(scope="module")
 def singular_fold_cge_model() -> TradeCalibrationResult:
-    """Calibrated CGE model near singular turning point (Notebook 64)."""
+    """Notebook 64's two-country CGE calibration (no fold at the tested tariffs and elasticities)."""
     nc, ns, nfd = 2, 2, 3
     data = np.zeros((ns * nc + 3, ns * nc + nfd * nc), dtype=float)
     data[:4, :4] = np.array([
@@ -206,7 +208,7 @@ def singular_fold_cge_model() -> TradeCalibrationResult:
 @pytest.fixture(scope="module")
 def icio_77c_model() -> TradeCalibrationResult:
     """Aggregated 77-country, 11-sector OECD ICIO trade model."""
-    raw_data = load_icio_data(sectors=11)
+    raw_data = load_icio_data(source="legacy", sectors=11)
     return calibrate_trade_model(raw_data, ns=11, nc=77, nfd=3, validate=False)
 
 
@@ -363,7 +365,7 @@ class TestNotebook63AdversarialProbing:
 # =============================================================================
 
 class TestNotebook64AdversarialProbing:
-    """Stress tests for Notebook 64: Keller PAC step sizes, elasticities, fold divergence, Cyprus."""
+    """Stress tests for Notebook 64: Keller PAC step sizes, elasticities, a scalar fold, Cyprus."""
 
     @pytest.mark.parametrize("ds", [0.001, 0.005, 0.01, 0.02, 0.05, 0.10, 0.15, 0.20])
     def test_keller_pac_step_size_spectrum(
@@ -387,7 +389,11 @@ class TestNotebook64AdversarialProbing:
     def test_keller_pac_deep_inelastic_regimes(
         self, singular_fold_cge_model: TradeCalibrationResult, sigma: float
     ) -> None:
-        """Verify Keller PAC navigates singular turning points across sigma in [0.05, 0.20]."""
+        """Verify Keller PAC converges across sigma in [0.05, 0.20].
+
+        No fold is crossed: on this calibration PAC records no tau_lambda <= 0
+        event for any of these elasticities (sigma=0.1238 is not special).
+        """
         res = solve_keller_pac(
             singular_fold_cge_model,
             tau_target=0.25,
@@ -400,9 +406,11 @@ class TestNotebook64AdversarialProbing:
         assert float(np.max(np.abs(res.residuals))) < 1e-6
         assert np.all(res.p_sol > 0.0)
         assert np.all(res.w_sol > 0.0)
+        assert res.metadata["fold_detections"] == 0
+        assert res.metadata["fold_points"] == []
 
     def test_standard_newton_divergence_at_fold(self) -> None:
-        """Verify standard Newton diverges at fold (det J -> 0, cond J > 10^5) while bordered J is bounded."""
+        """Analytical scalar fold: J_x is singular (det J -> 0, cond J > 10^5) while bordered J is bounded."""
         def F_fold(x: np.ndarray, lam: float) -> np.ndarray:
             return np.array([x[0]**2 - lam, x[1] - x[0]], dtype=float)
 
@@ -440,10 +448,16 @@ class TestNotebook64AdversarialProbing:
 
     @pytest.mark.parametrize("rhs_scale", [1.0, 10.0, 100.0, 1e4, 1e6])
     def test_svd_clamping_and_cyprus_stabilization(self, rhs_scale: float) -> None:
-        """Verify SVD clamping and Cyprus manifold solver eliminate explosive displacement up to scale 10^6."""
+        """Verify SVD clamping and the Cyprus step bound explosive displacement up to scale 10^6.
+
+        The Cyprus block-elimination step is the exact solve scaled down to
+        max_disp: bounded, but not converged. Its reported residual is that of
+        the returned step (about max|rhs|); the unclamped direction is exact.
+        """
         rng = np.random.default_rng(42)
         nc = 77
-        idx_cyp = 14
+        idx_cyp = CANONICAL_COUNTRY_CODES.index("CYP")  # 17; index 14 is CMR
+        tol = 2.5e-3
 
         A_rnd = rng.standard_normal((nc, nc))
         S_ww = A_rnd.T @ A_rnd + np.eye(nc)
@@ -468,17 +482,25 @@ class TestNotebook64AdversarialProbing:
         dw_clamped = clamp_wage_displacement(dw_unreg, max_disp=0.30)
         assert np.max(np.abs(dw_clamped)) <= 0.3000 + 1e-8
 
-        # Decoupled 1D Cyprus manifold solver converges and is strictly bounded
-        dw_cyp, res_cyp, conv_cyp = solve_cyprus_manifold_step(
+        # Decoupled 1D Cyprus step: strictly bounded, honestly reported
+        dw_cyp, res_cyp, conv_cyp, info = solve_cyprus_manifold_step(
             S_ww=S_ww,
             rhs_w=rhs_w,
             eval_cyp_fn=None,
             idx_cyp=idx_cyp,
-            tol=2.5e-3,
+            tol=tol,
             max_disp=0.30,
+            return_info=True,
         )
-        assert conv_cyp is True
         assert np.max(np.abs(dw_cyp)) <= 0.3000 + 1e-8
+        np.testing.assert_allclose(info["unclamped_step"], dw_unreg, rtol=0,
+                                   atol=1e-9 * np.max(np.abs(dw_unreg)))
+        assert info["direction_converged"] is True
+        assert info["clamped"] is True
+        np.testing.assert_allclose(dw_cyp, info["clamp_scale"] * info["unclamped_step"], rtol=1e-12, atol=0.0)
+        assert res_cyp == pytest.approx(float(np.max(np.abs(S_ww @ dw_cyp - rhs_w))), rel=1e-12)
+        assert res_cyp == pytest.approx(float(np.max(np.abs(rhs_w))), rel=1e-5)
+        assert conv_cyp is False
 
 
 # =============================================================================

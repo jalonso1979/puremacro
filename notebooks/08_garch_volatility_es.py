@@ -13,6 +13,7 @@
 # %% [markdown]
 # # Agrupamiento de volatilidad: GARCH y DCC
 #
+# **¿Cómo pueden los econometristas financieros modelar el agrupamiento de volatilidad variable en el tiempo de los rendimientos de activos y capturar los aumentos repentinos en las correlaciones entre activos que ocurren durante crisis financieras?**
 # Los rendimientos financieros son tranquilos durante un tiempo y luego turbulentos
 # — la volatilidad se agrupa. `puremacro.garch` estima un GARCH(1,1) mediante
 # MLE gaussiana en numpy/scipy puro (sin el paquete `arch`) y el modelo DCC de
@@ -20,7 +21,7 @@
 # de parámetros conocidos y los recuperamos.
 
 # %% [markdown]
-# ## El método en ecuaciones
+# ## El método en matemáticas
 #
 # Escribimos un rendimiento de media cero como una innovación reescalada,
 # $u_t = \sigma_t\,\varepsilon_t$ con $\varepsilon_t \sim (0,1)$ i.i.d. El **GARCH(1,1)**
@@ -42,6 +43,19 @@
 # de modo que la matriz de correlación $R_t$ se mueve en el tiempo aunque $\bar Q$ permanezca
 # fija. La covarianza condicional completa es entonces $H_t = D_t R_t D_t$ con
 # $D_t = \operatorname{diag}(\sigma_{1,t},\dots)$.
+#
+# ### Parametrización base
+#
+# | Símbolo | Significado económico / estadístico | Valor base | Unidades |
+# |---|---|---|---|
+# | $\omega$ | Intercepto de varianza GARCH | $0.050$ | Unidades de varianza ($\%^2$) |
+# | $\alpha$ | Parámetro ARCH (reacción a noticias) | $0.100$ | Elasticidad adimensional |
+# | $\beta$ | Parámetro de persistencia GARCH | $0.850$ | Persistencia adimensional |
+# | $\alpha + \beta$ | Vida media / persistencia de volatilidad | $0.950$ | Suma de persistencia ($< 1.0$) |
+# | $a$ | Parámetro de reacción a noticias en DCC | $0.050$ | Ponderación adimensional |
+# | $b$ | Parámetro de persistencia de correlación en DCC | $0.900$ | Persistencia adimensional |
+# | $\bar{\rho}$ | Correlación incondicional entre activos | $0.450$ | Coeficiente de correlación $[-1, 1]$ |
+# | $T$ | Longitud muestral | $2000$ (GARCH) / $1800$ (DCC) | Períodos de negociación (días/meses) |
 
 # %% [markdown]
 # **Intuición.** El agrupamiento de la volatilidad — los movimientos grandes siguen a
@@ -55,6 +69,13 @@
 # correlaciones *se disparan en las crisis* (todo cae junto) y se relajan en tiempos de calma.
 # Los pesos $(a,b)$ desempeñan para el comovimiento el mismo papel de persistencia que
 # $(\alpha,\beta)$ desempeñan para la varianza de una sola serie.
+#
+# ### Referencias bibliográficas seminales
+#
+# - Bollerslev, T. (1986). Generalized autoregressive conditional heteroskedasticity. *Journal of Econometrics*, 31(3), 307–327.
+# - Engle, R. F. (1982). Autoregressive conditional heteroscedasticity with estimates of the variance of United Kingdom inflation. *Econometrica*, 50(4), 987–1007.
+# - Engle, R. (2002). Dynamic conditional correlation: A simple class of multivariate generalized autoregressive conditional heteroskedasticity models. *Journal of Business & Economic Statistics*, 20(3), 339–350.
+# - Francq, C., & Zakoïan, J. M. (2019). *GARCH Models: Structure, Statistical Inference and Financial Applications*. John Wiley & Sons.
 
 # %%
 import sys
@@ -104,7 +125,7 @@ print(f"corr(fitted sigma, true sigma) = {corr_sigma:.3f}")
 assert corr_sigma > 0.90                                  # tracks latent vol
 
 # %% [markdown]
-# **Interpretación de la salida.** La MLE recupera con precisión el $(\omega,\alpha,\beta)$
+# **Lectura de los resultados.** La MLE recupera con precisión el $(\omega,\alpha,\beta)$
 # generador de los datos: $\hat\alpha \approx 0.10$ (un choque nuevo transmite alrededor de una
 # décima parte de su tamaño al cuadrado a la varianza del período siguiente) y
 # $\hat\beta \approx 0.85$ (la mayor parte de la varianza de ayer se arrastra hacia adelante),
@@ -173,7 +194,7 @@ assert len(dcc.garch_params) == 2
 assert all(0.0 < gp["persistence"] < 1.0 for gp in dcc.garch_params)
 
 # %% [markdown]
-# **Interpretación de la salida.** El estimador de dos etapas ajusta primero un GARCH(1,1) a cada
+# **Lectura de los resultados.** El estimador de dos etapas ajusta primero un GARCH(1,1) a cada
 # activo (`dcc.garch_params` contiene sus $\omega,\alpha,\beta$ y persistencia) y luego estima la
 # dinámica de correlación $(\hat a,\hat b)$. Su suma $\hat a+\hat b \approx 0.95$ es de nuevo alta
 # pero inferior a $1$, de modo que la correlación condicional revierte a la media hacia $\bar Q$

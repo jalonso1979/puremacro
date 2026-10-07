@@ -1,0 +1,41 @@
+published_fixed: 1/2
+published_fixed: 2/2
+
+Fontconfig error: No writable cache directories
+	/opt/homebrew/var/cache/fontconfig
+	/Users/jalonso/.cache/fontconfig
+	/Users/jalonso/.fontconfig
+
+Fontconfig error: No writable cache directories
+	/opt/homebrew/var/cache/fontconfig
+	/Users/jalonso/.cache/fontconfig
+	/Users/jalonso/.fontconfig
+
+Fontconfig error: No writable cache directories
+	/opt/homebrew/var/cache/fontconfig
+	/Users/jalonso/.cache/fontconfig
+	/Users/jalonso/.fontconfig
+
+Fontconfig error: No writable cache directories
+	/opt/homebrew/var/cache/fontconfig
+	/Users/jalonso/.cache/fontconfig
+	/Users/jalonso/.fontconfig
+
+Fontconfig error: No writable cache directories
+	/opt/homebrew/var/cache/fontconfig
+	/Users/jalonso/.cache/fontconfig
+	/Users/jalonso/.fontconfig
+
+Fontconfig error: No writable cache directories
+	/opt/homebrew/var/cache/fontconfig
+	/Users/jalonso/.cache/fontconfig
+	/Users/jalonso/.fontconfig
+
+Fontconfig error: No writable cache directories
+	/opt/homebrew/var/cache/fontconfig
+	/Users/jalonso/.cache/fontconfig
+	/Users/jalonso/.fontconfig
+Matplotlib is building the font cache; this may take a moment.
+       scenario  is_plugin  replications  usable_fits  unresolved_draws  boundary_fits  numerically_regular_fits  observed_objective  tail_exceedances  tail_fraction_lower  tail_fraction_upper  tail_mc_95_lower  tail_mc_95_upper  naive_chi2_rejections  naive_chi2_rate_lower  naive_chi2_rate_upper  naive_chi2_mc_95_lower  naive_chi2_mc_95_upper  regular_j_rejections  regular_j_rate_conditional  regular_j_mc_95_lower_conditional  regular_j_mc_95_upper_conditional  criterion_median  criterion_q95  true_crr  bias_crr_usable  rmse_crr_usable  true_em  bias_em_usable  rmse_em_usable
+published_fixed      False             2            2                 0              0                         2            25.25541                 1                  0.5                  0.5          0.012579          0.987421                      1                    0.5                    0.5                0.012579                0.987421                     1                         0.5                           0.012579                           0.987421         58.156574     102.485099      0.81        -0.020585         0.039435     0.24       -0.062018        0.091613
+Evidence: /tmp/puremacro-sw07-sampling-wheel/installed-cli

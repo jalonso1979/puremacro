@@ -1,0 +1,1258 @@
+{
+  "original_results_unchanged": true,
+  "input_sha256": {
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/baseline_fixed/manifest.json": "6a7f8f64e3f739a238b590491134cc8cffafc28d8e8530a7c43afa5e34cae68b",
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/baseline_fixed/draws.csv": "ba6d73334993d3e71ab5fbba703421164b2f1ce6dec5b9853ffcf27f1d887f75",
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/baseline_fixed/draw_evidence.npz": "844dc6fbcd98c2d924222e4e432c0b94927a42f4b1e1ce6db5201882a2a5a54a",
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/baseline_fixed/summary.csv": "ab23ee23fe2e542b908de92545494fcb360d7423f9188774126a38550db27049",
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/baseline_fixed/_checkpoints/baseline_fixed.npz": "93346835aae8fa9b9bb7c8c07c048b8604b122be0f1c15443bb68dcc6ad3cb17",
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/published_fixed/manifest.json": "e9b4dcb7eb5266bb98d60c62b15d8df61e0a752d6ed85634160237042502b50c",
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/published_fixed/draws.csv": "541d753c167ab4df6c9461e04a21b16d7e5feca8cf28720de97c8637a3c06c42",
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/published_fixed/draw_evidence.npz": "2c6a799b2c8b62f9b66f7ef4cc66d5699c0ef12536893fa23e736b217a76ebdb",
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/published_fixed/summary.csv": "bfd3d60430d8d5382e150eb775161505396f45a0be79e0f55f7ea7f939abb9dd",
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/published_fixed/_checkpoints/published_fixed.npz": "d58ea869b1c8ebaec229b02c6aebe8ab7ef6893cf20bc59c9a1c497dff45c37c",
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/baseline_fitted/manifest.json": "8d83f027ff71e325e75e941345c90be15e6d351a1cd003fd7e0904758d06b5f1",
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/baseline_fitted/draws.csv": "005dd2eccce919c14fb19fc1a8930954e4ab218dc19dddd62200c95844fd525e",
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/baseline_fitted/draw_evidence.npz": "391a4b6261fc1756551dd9a6bd5e47d796ffec1471e5e0537d246a0e94c0cbc2",
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/baseline_fitted/summary.csv": "9fdc59c7d6d157982929ff3281ff31f584dc37725c969b3f9a0c913e1f95ba60",
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/baseline_fitted/_checkpoints/baseline_fitted.npz": "78dc27e079a06bbaa25cad90b7efb349e6da986c8f9ae3b6034d9838bb6967f5",
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/published_fitted/manifest.json": "aadecd0fa016e278a42fe5464322178c1e42399a4a1313f7d2366683173f416c",
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/published_fitted/draws.csv": "74eea4decdd1e64ade86b8d14e69f7e718516296bc672084b1b1d2eb45506b64",
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/published_fitted/draw_evidence.npz": "31e1b6d0fe3e1db98ecbd598c001b5a3126f99d5b7c5919e6a5ff4b2ec700439",
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/published_fitted/summary.csv": "4285a3a5ad442608c8d5e63de56e61b65e0ec83639662c03a29907515ec6e4d8",
+    "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-01-sw07-finite-sample/published_fitted/_checkpoints/published_fitted.npz": "e0298118fbe3ccc99a5920ffababfa1c3965a6375a97d0aa1318f2904c7b14ef"
+  },
+  "mathematical_source_matches": {
+    "baseline_fixed": {
+      "structural/sw07_finite_sample.py": true,
+      "structural/sw07_sampling.py": true,
+      "structural/empirical_sw07.py": true,
+      "structural/bridge.py": true,
+      "_linalg.py": true,
+      "dsge/smets_wouters.py": true,
+      "dsge/sw07_observation.py": true,
+      "dsge/klein.py": true,
+      "dsge/gensys.py": true
+    },
+    "published_fixed": {
+      "structural/sw07_finite_sample.py": true,
+      "structural/sw07_sampling.py": true,
+      "structural/empirical_sw07.py": true,
+      "structural/bridge.py": true,
+      "_linalg.py": true,
+      "dsge/smets_wouters.py": true,
+      "dsge/sw07_observation.py": true,
+      "dsge/klein.py": true,
+      "dsge/gensys.py": true
+    },
+    "baseline_fitted": {
+      "structural/sw07_finite_sample.py": true,
+      "structural/sw07_sampling.py": true,
+      "structural/empirical_sw07.py": true,
+      "structural/bridge.py": true,
+      "_linalg.py": true,
+      "dsge/smets_wouters.py": true,
+      "dsge/sw07_observation.py": true,
+      "dsge/klein.py": true,
+      "dsge/gensys.py": true
+    },
+    "published_fitted": {
+      "structural/sw07_finite_sample.py": true,
+      "structural/sw07_sampling.py": true,
+      "structural/empirical_sw07.py": true,
+      "structural/bridge.py": true,
+      "_linalg.py": true,
+      "dsge/smets_wouters.py": true,
+      "dsge/sw07_observation.py": true,
+      "dsge/klein.py": true,
+      "dsge/gensys.py": true
+    }
+  },
+  "scenario_counts": [
+    {
+      "scenario": "baseline_fixed",
+      "replications": 399,
+      "original_unresolved": 4,
+      "selected_stationarity_failures": 2,
+      "multistart_disagreements": 2,
+      "unsuccessful_starts": 0,
+      "other_unresolved": 0
+    },
+    {
+      "scenario": "published_fixed",
+      "replications": 399,
+      "original_unresolved": 9,
+      "selected_stationarity_failures": 7,
+      "multistart_disagreements": 0,
+      "unsuccessful_starts": 2,
+      "other_unresolved": 0
+    },
+    {
+      "scenario": "baseline_fitted",
+      "replications": 399,
+      "original_unresolved": 2,
+      "selected_stationarity_failures": 0,
+      "multistart_disagreements": 2,
+      "unsuccessful_starts": 0,
+      "other_unresolved": 0
+    },
+    {
+      "scenario": "published_fitted",
+      "replications": 399,
+      "original_unresolved": 7,
+      "selected_stationarity_failures": 7,
+      "multistart_disagreements": 0,
+      "unsuccessful_starts": 0,
+      "other_unresolved": 0
+    }
+  ],
+  "unresolved_total": 22,
+  "stored_start_records": 88,
+  "replay_selection": "earliest unresolved draw per cause per scenario, plus earliest usable baseline boundary draw",
+  "replays": [
+    {
+      "scenario": "baseline_fixed",
+      "replication": 90,
+      "selection_reasons": [
+        "multistart_disagreement"
+      ],
+      "original_status": "optimization_unresolved",
+      "replay_status": "optimization_unresolved",
+      "same_unresolved_decision": true,
+      "same_boundary_decision": true,
+      "original_objective": 11.422586877074927,
+      "replay_objective": 11.422586877074927,
+      "objective_difference": 0.0,
+      "objective_matches_at_1e-8_relative": true,
+      "original_start_diagnostics": [
+        {
+          "start": [
+            0.5,
+            0.1
+          ],
+          "theta": [
+            0.7881399502621734,
+            0.6130000908568874
+          ],
+          "objective": 17.974502544006207,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 13,
+          "inference_unavailable_reasons": []
+        },
+        {
+          "start": [
+            0.75,
+            0.4
+          ],
+          "theta": [
+            0.7881450459660938,
+            0.6129832912398465
+          ],
+          "objective": 17.974502543411077,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 15,
+          "inference_unavailable_reasons": []
+        },
+        {
+          "start": [
+            0.95,
+            0.7
+          ],
+          "theta": [
+            0.7881459172460605,
+            0.6129804188845019
+          ],
+          "objective": 17.974502545091802,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 17,
+          "inference_unavailable_reasons": []
+        },
+        {
+          "start": [
+            0.8762,
+            0.2397
+          ],
+          "theta": [
+            0.98,
+            0.04541761475460629
+          ],
+          "objective": 11.422586877074927,
+          "success": true,
+          "message": "`gtol` termination condition is satisfied.",
+          "evaluations": 10,
+          "inference_unavailable_reasons": [
+            "parameter_on_boundary"
+          ]
+        }
+      ],
+      "replayed_start_diagnostics": [
+        {
+          "start": [
+            0.5,
+            0.1
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 13,
+          "theta": [
+            0.7881399502621734,
+            0.6130000908568874
+          ],
+          "objective": 17.974502544006207,
+          "inference_unavailable_reasons": [],
+          "projected_residual_norm": 3.6480930540172596e-05,
+          "stationarity_tolerance": 0.0001340690215672741
+        },
+        {
+          "start": [
+            0.75,
+            0.4
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 15,
+          "theta": [
+            0.7881450459660938,
+            0.6129832912398465
+          ],
+          "objective": 17.974502543411077,
+          "inference_unavailable_reasons": [],
+          "projected_residual_norm": 3.191786482353718e-05,
+          "stationarity_tolerance": 0.00013406902156505463
+        },
+        {
+          "start": [
+            0.95,
+            0.7
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 17,
+          "theta": [
+            0.7881459172460605,
+            0.6129804188845019
+          ],
+          "objective": 17.974502545091802,
+          "inference_unavailable_reasons": [],
+          "projected_residual_norm": 4.362858049089866e-05,
+          "stationarity_tolerance": 0.00013406902157132275
+        },
+        {
+          "start": [
+            0.8762,
+            0.2397
+          ],
+          "success": true,
+          "message": "`gtol` termination condition is satisfied.",
+          "evaluations": 10,
+          "theta": [
+            0.98,
+            0.04541761475460629
+          ],
+          "objective": 11.422586877074927,
+          "inference_unavailable_reasons": [
+            "parameter_on_boundary"
+          ],
+          "projected_residual_norm": 1.3066500775563508,
+          "stationarity_tolerance": 0.0001068765029231165
+        }
+      ],
+      "original_decision_preserved": true,
+      "note": "Replay is a diagnostic only; neither counts nor original draw records are replaced."
+    },
+    {
+      "scenario": "baseline_fixed",
+      "replication": 251,
+      "selection_reasons": [
+        "selected_stationarity_failure"
+      ],
+      "original_status": "optimization_unresolved",
+      "replay_status": "optimization_unresolved",
+      "same_unresolved_decision": true,
+      "same_boundary_decision": true,
+      "original_objective": 6.127363994564662,
+      "replay_objective": 6.127363994564662,
+      "objective_difference": 0.0,
+      "objective_matches_at_1e-8_relative": true,
+      "original_start_diagnostics": [
+        {
+          "start": [
+            0.5,
+            0.1
+          ],
+          "theta": [
+            0.8556291104475394,
+            0.32685082364233975
+          ],
+          "objective": 6.127363994564662,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 26,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ]
+        },
+        {
+          "start": [
+            0.75,
+            0.4
+          ],
+          "theta": [
+            0.8556357421018287,
+            0.32683416372010377
+          ],
+          "objective": 6.127363994572347,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 24,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ]
+        },
+        {
+          "start": [
+            0.95,
+            0.7
+          ],
+          "theta": [
+            0.8556361308535964,
+            0.32683318728394595
+          ],
+          "objective": 6.127363995767231,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 28,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ]
+        },
+        {
+          "start": [
+            0.8762,
+            0.2397
+          ],
+          "theta": [
+            0.8556290177947128,
+            0.32685105622831717
+          ],
+          "objective": 6.127363994836443,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 25,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ]
+        }
+      ],
+      "replayed_start_diagnostics": [
+        {
+          "start": [
+            0.5,
+            0.1
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 26,
+          "theta": [
+            0.8556291104475394,
+            0.32685082364233975
+          ],
+          "objective": 6.127363994564662,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 9.15153877491892e-05,
+          "stationarity_tolerance": 7.827748076276256e-05
+        },
+        {
+          "start": [
+            0.75,
+            0.4
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 24,
+          "theta": [
+            0.8556357421018287,
+            0.32683416372010377
+          ],
+          "objective": 6.127363994572347,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 9.158922372078855e-05,
+          "stationarity_tolerance": 7.827748076281165e-05
+        },
+        {
+          "start": [
+            0.95,
+            0.7
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 28,
+          "theta": [
+            0.8556361308535964,
+            0.32683318728394595
+          ],
+          "objective": 6.127363995767231,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 0.00010232125514904875,
+          "stationarity_tolerance": 7.827748077044401e-05
+        },
+        {
+          "start": [
+            0.8762,
+            0.2397
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 25,
+          "theta": [
+            0.8556290177947128,
+            0.32685105622831717
+          ],
+          "objective": 6.127363994836443,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 9.405985111928974e-05,
+          "stationarity_tolerance": 7.827748076449857e-05
+        }
+      ],
+      "original_decision_preserved": true,
+      "note": "Replay is a diagnostic only; neither counts nor original draw records are replaced."
+    },
+    {
+      "scenario": "baseline_fixed",
+      "replication": 2,
+      "selection_reasons": [
+        "valid_boundary_control"
+      ],
+      "original_status": "boundary",
+      "replay_status": "boundary",
+      "same_unresolved_decision": true,
+      "same_boundary_decision": true,
+      "original_objective": 109.44237083760964,
+      "replay_objective": 109.44237083760964,
+      "objective_difference": 0.0,
+      "objective_matches_at_1e-8_relative": true,
+      "original_start_diagnostics": [
+        {
+          "start": [
+            0.5,
+            0.1
+          ],
+          "theta": [
+            0.9799999999999982,
+            0.010000000000000009
+          ],
+          "objective": 109.44237083776848,
+          "success": true,
+          "message": "`gtol` termination condition is satisfied.",
+          "evaluations": 9,
+          "inference_unavailable_reasons": [
+            "parameter_on_boundary"
+          ]
+        },
+        {
+          "start": [
+            0.75,
+            0.4
+          ],
+          "theta": [
+            0.9799999999991974,
+            0.010000000000002063
+          ],
+          "objective": 109.44237083849755,
+          "success": true,
+          "message": "`gtol` termination condition is satisfied.",
+          "evaluations": 8,
+          "inference_unavailable_reasons": [
+            "parameter_on_boundary"
+          ]
+        },
+        {
+          "start": [
+            0.95,
+            0.7
+          ],
+          "theta": [
+            0.98,
+            0.01000000000000012
+          ],
+          "objective": 109.44237083760964,
+          "success": true,
+          "message": "`gtol` termination condition is satisfied.",
+          "evaluations": 14,
+          "inference_unavailable_reasons": [
+            "parameter_on_boundary"
+          ]
+        },
+        {
+          "start": [
+            0.8762,
+            0.2397
+          ],
+          "theta": [
+            0.9799999999999991,
+            0.010000000000000037
+          ],
+          "objective": 109.44237083773623,
+          "success": true,
+          "message": "`gtol` termination condition is satisfied.",
+          "evaluations": 8,
+          "inference_unavailable_reasons": [
+            "parameter_on_boundary"
+          ]
+        }
+      ],
+      "replayed_start_diagnostics": [
+        {
+          "start": [
+            0.5,
+            0.1
+          ],
+          "success": true,
+          "message": "`gtol` termination condition is satisfied.",
+          "evaluations": 9,
+          "theta": [
+            0.9799999999999982,
+            0.010000000000000009
+          ],
+          "objective": 109.44237083776848,
+          "inference_unavailable_reasons": [
+            "parameter_on_boundary"
+          ],
+          "projected_residual_norm": 7.0300691517820875,
+          "stationarity_tolerance": 0.0003308207533359546
+        },
+        {
+          "start": [
+            0.75,
+            0.4
+          ],
+          "success": true,
+          "message": "`gtol` termination condition is satisfied.",
+          "evaluations": 8,
+          "theta": [
+            0.9799999999991974,
+            0.010000000000002063
+          ],
+          "objective": 109.44237083849755,
+          "inference_unavailable_reasons": [
+            "parameter_on_boundary"
+          ],
+          "projected_residual_norm": 7.0300691252090886,
+          "stationarity_tolerance": 0.00033082075333705653
+        },
+        {
+          "start": [
+            0.95,
+            0.7
+          ],
+          "success": true,
+          "message": "`gtol` termination condition is satisfied.",
+          "evaluations": 14,
+          "theta": [
+            0.98,
+            0.01000000000000012
+          ],
+          "objective": 109.44237083760964,
+          "inference_unavailable_reasons": [
+            "parameter_on_boundary"
+          ],
+          "projected_residual_norm": 7.030069144166664,
+          "stationarity_tolerance": 0.0003308207533357145
+        },
+        {
+          "start": [
+            0.8762,
+            0.2397
+          ],
+          "success": true,
+          "message": "`gtol` termination condition is satisfied.",
+          "evaluations": 8,
+          "theta": [
+            0.9799999999999991,
+            0.010000000000000037
+          ],
+          "objective": 109.44237083773623,
+          "inference_unavailable_reasons": [
+            "parameter_on_boundary"
+          ],
+          "projected_residual_norm": 7.0300691437365215,
+          "stationarity_tolerance": 0.0003308207533359058
+        }
+      ],
+      "original_decision_preserved": true,
+      "note": "Replay is a diagnostic only; neither counts nor original draw records are replaced."
+    },
+    {
+      "scenario": "published_fixed",
+      "replication": 2,
+      "selection_reasons": [
+        "selected_stationarity_failure"
+      ],
+      "original_status": "optimization_unresolved",
+      "replay_status": "optimization_unresolved",
+      "same_unresolved_decision": true,
+      "same_boundary_decision": true,
+      "original_objective": 37.20672289411761,
+      "replay_objective": 37.20672289411761,
+      "objective_difference": 0.0,
+      "objective_matches_at_1e-8_relative": true,
+      "original_start_diagnostics": [
+        {
+          "start": [
+            0.5,
+            0.1
+          ],
+          "theta": [
+            0.8010373224726781,
+            0.1694901494818494
+          ],
+          "objective": 37.20672289411761,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 22,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ]
+        },
+        {
+          "start": [
+            0.75,
+            0.4
+          ],
+          "theta": [
+            0.8010369200714756,
+            0.16949071929637388
+          ],
+          "objective": 37.20672289824225,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 16,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ]
+        },
+        {
+          "start": [
+            0.95,
+            0.7
+          ],
+          "theta": [
+            0.8010480317298554,
+            0.1694749839648786
+          ],
+          "objective": 37.20672290409178,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 22,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ]
+        },
+        {
+          "start": [
+            0.8762,
+            0.2397
+          ],
+          "theta": [
+            0.8010485093572404,
+            0.16947430784902612
+          ],
+          "objective": 37.20672290990287,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 23,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ]
+        }
+      ],
+      "replayed_start_diagnostics": [
+        {
+          "start": [
+            0.5,
+            0.1
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 22,
+          "theta": [
+            0.8010373224726781,
+            0.1694901494818494
+          ],
+          "objective": 37.20672289411761,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 0.00020382907261337982,
+          "stationarity_tolerance": 0.00019289044272362903
+        },
+        {
+          "start": [
+            0.75,
+            0.4
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 16,
+          "theta": [
+            0.8010369200714756,
+            0.16949071929637388
+          ],
+          "objective": 37.20672289824225,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 0.00022059820894145357,
+          "stationarity_tolerance": 0.0001928904427343207
+        },
+        {
+          "start": [
+            0.95,
+            0.7
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 22,
+          "theta": [
+            0.8010480317298554,
+            0.1694749839648786
+          ],
+          "objective": 37.20672290409178,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 0.00024242695093671385,
+          "stationarity_tolerance": 0.0001928904427494835
+        },
+        {
+          "start": [
+            0.8762,
+            0.2397
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 23,
+          "theta": [
+            0.8010485093572404,
+            0.16947430784902612
+          ],
+          "objective": 37.20672290990287,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 0.0002623246367309745,
+          "stationarity_tolerance": 0.00019289044276454674
+        }
+      ],
+      "original_decision_preserved": true,
+      "note": "Replay is a diagnostic only; neither counts nor original draw records are replaced."
+    },
+    {
+      "scenario": "published_fixed",
+      "replication": 42,
+      "selection_reasons": [
+        "unsuccessful_start"
+      ],
+      "original_status": "optimization_unresolved",
+      "replay_status": "optimization_unresolved",
+      "same_unresolved_decision": true,
+      "same_boundary_decision": true,
+      "original_objective": 422.9641585878904,
+      "replay_objective": 422.9641585878904,
+      "objective_difference": 0.0,
+      "objective_matches_at_1e-8_relative": true,
+      "original_start_diagnostics": [
+        {
+          "start": [
+            0.5,
+            0.1
+          ],
+          "theta": [
+            0.8407796755765974,
+            0.010000182652943335
+          ],
+          "objective": 422.9641600185895,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 241,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ]
+        },
+        {
+          "start": [
+            0.75,
+            0.4
+          ],
+          "theta": [
+            0.8407746252012365,
+            0.010237450416690996
+          ],
+          "objective": 422.9664686437778,
+          "success": false,
+          "message": "The maximum number of function evaluations is exceeded.",
+          "evaluations": 500,
+          "inference_unavailable_reasons": [
+            "optimizer_failed",
+            "nonstationary_solution"
+          ]
+        },
+        {
+          "start": [
+            0.95,
+            0.7
+          ],
+          "theta": [
+            0.8407789780730708,
+            0.01000074958788666
+          ],
+          "objective": 422.9641655018972,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 114,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ]
+        },
+        {
+          "start": [
+            0.8762,
+            0.2397
+          ],
+          "theta": [
+            0.8407763355468543,
+            0.010000002080157805
+          ],
+          "objective": 422.9641585878904,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 141,
+          "inference_unavailable_reasons": [
+            "parameter_on_boundary"
+          ]
+        }
+      ],
+      "replayed_start_diagnostics": [
+        {
+          "start": [
+            0.5,
+            0.1
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 241,
+          "theta": [
+            0.8407796755765974,
+            0.010000182652943335
+          ],
+          "objective": 422.9641600185895,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 3.279429969534621,
+          "stationarity_tolerance": 0.0006503569481589241
+        },
+        {
+          "start": [
+            0.75,
+            0.4
+          ],
+          "success": false,
+          "message": "The maximum number of function evaluations is exceeded.",
+          "evaluations": 500,
+          "theta": [
+            0.8407746252012365,
+            0.010237450416690996
+          ],
+          "objective": 422.9664686437778,
+          "inference_unavailable_reasons": [
+            "optimizer_failed",
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 3.2795153094921874,
+          "stationarity_tolerance": 0.0006503587230473485
+        },
+        {
+          "start": [
+            0.95,
+            0.7
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 114,
+          "theta": [
+            0.8407789780730708,
+            0.01000074958788666
+          ],
+          "objective": 422.9641655018972,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 3.279477674401939,
+          "stationarity_tolerance": 0.0006503569523745381
+        },
+        {
+          "start": [
+            0.8762,
+            0.2397
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 141,
+          "theta": [
+            0.8407763355468543,
+            0.010000002080157805
+          ],
+          "objective": 422.9641585878904,
+          "inference_unavailable_reasons": [
+            "parameter_on_boundary"
+          ],
+          "projected_residual_norm": 3.2796631092056177,
+          "stationarity_tolerance": 0.0006503569470589903
+        }
+      ],
+      "original_decision_preserved": true,
+      "note": "Replay is a diagnostic only; neither counts nor original draw records are replaced."
+    },
+    {
+      "scenario": "baseline_fitted",
+      "replication": 77,
+      "selection_reasons": [
+        "multistart_disagreement"
+      ],
+      "original_status": "optimization_unresolved",
+      "replay_status": "optimization_unresolved",
+      "same_unresolved_decision": true,
+      "same_boundary_decision": true,
+      "original_objective": 63.51367253286023,
+      "replay_objective": 63.51367253286023,
+      "objective_difference": 0.0,
+      "objective_matches_at_1e-8_relative": true,
+      "original_start_diagnostics": [
+        {
+          "start": [
+            0.5,
+            0.1
+          ],
+          "theta": [
+            0.36492144947847394,
+            0.641409951248771
+          ],
+          "objective": 119.00448514329975,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 10,
+          "inference_unavailable_reasons": []
+        },
+        {
+          "start": [
+            0.75,
+            0.4
+          ],
+          "theta": [
+            0.9772131310599751,
+            0.010000000027153955
+          ],
+          "objective": 63.51367255194148,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 28,
+          "inference_unavailable_reasons": [
+            "parameter_on_boundary"
+          ]
+        },
+        {
+          "start": [
+            0.95,
+            0.7
+          ],
+          "theta": [
+            0.97721348989963,
+            0.01000000000000878
+          ],
+          "objective": 63.51367253286023,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 34,
+          "inference_unavailable_reasons": [
+            "parameter_on_boundary"
+          ]
+        },
+        {
+          "start": [
+            0.8762,
+            0.2397
+          ],
+          "theta": [
+            0.9772122060016155,
+            0.010000000030439299
+          ],
+          "objective": 63.51367257886355,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 22,
+          "inference_unavailable_reasons": [
+            "parameter_on_boundary"
+          ]
+        }
+      ],
+      "replayed_start_diagnostics": [
+        {
+          "start": [
+            0.5,
+            0.1
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 10,
+          "theta": [
+            0.36492144947847394,
+            0.641409951248771
+          ],
+          "objective": 119.00448514329975,
+          "inference_unavailable_reasons": [],
+          "projected_residual_norm": 4.195856676068801e-05,
+          "stationarity_tolerance": 0.00034497026704239275
+        },
+        {
+          "start": [
+            0.75,
+            0.4
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 28,
+          "theta": [
+            0.9772131310599751,
+            0.010000000027153955
+          ],
+          "objective": 63.51367255194148,
+          "inference_unavailable_reasons": [
+            "parameter_on_boundary"
+          ],
+          "projected_residual_norm": 7.298111881105968,
+          "stationarity_tolerance": 0.0002520191908405816
+        },
+        {
+          "start": [
+            0.95,
+            0.7
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 34,
+          "theta": [
+            0.97721348989963,
+            0.01000000000000878
+          ],
+          "objective": 63.51367253286023,
+          "inference_unavailable_reasons": [
+            "parameter_on_boundary"
+          ],
+          "projected_residual_norm": 7.2981119539867985,
+          "stationarity_tolerance": 0.00025201919080272483
+        },
+        {
+          "start": [
+            0.8762,
+            0.2397
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 22,
+          "theta": [
+            0.9772122060016155,
+            0.010000000030439299
+          ],
+          "objective": 63.51367257886355,
+          "inference_unavailable_reasons": [
+            "parameter_on_boundary"
+          ],
+          "projected_residual_norm": 7.298111691901642,
+          "stationarity_tolerance": 0.0002520191908939943
+        }
+      ],
+      "original_decision_preserved": true,
+      "note": "Replay is a diagnostic only; neither counts nor original draw records are replaced."
+    },
+    {
+      "scenario": "published_fitted",
+      "replication": 97,
+      "selection_reasons": [
+        "selected_stationarity_failure"
+      ],
+      "original_status": "optimization_unresolved",
+      "replay_status": "optimization_unresolved",
+      "same_unresolved_decision": true,
+      "same_boundary_decision": true,
+      "original_objective": 54.82449991408651,
+      "replay_objective": 54.82449991408651,
+      "objective_difference": 0.0,
+      "objective_matches_at_1e-8_relative": true,
+      "original_start_diagnostics": [
+        {
+          "start": [
+            0.5,
+            0.1
+          ],
+          "theta": [
+            0.8474544510295879,
+            0.20628584229448538
+          ],
+          "objective": 54.82449991438228,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 28,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ]
+        },
+        {
+          "start": [
+            0.75,
+            0.4
+          ],
+          "theta": [
+            0.8474551121968473,
+            0.20628539647863048
+          ],
+          "objective": 54.82449993803296,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 25,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ]
+        },
+        {
+          "start": [
+            0.95,
+            0.7
+          ],
+          "theta": [
+            0.8474487205857496,
+            0.20628970975415634
+          ],
+          "objective": 54.82449991420894,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 31,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ]
+        },
+        {
+          "start": [
+            0.8762,
+            0.2397
+          ],
+          "theta": [
+            0.8474487250159909,
+            0.20628970675359426
+          ],
+          "objective": 54.82449991408651,
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 26,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ]
+        }
+      ],
+      "replayed_start_diagnostics": [
+        {
+          "start": [
+            0.5,
+            0.1
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 28,
+          "theta": [
+            0.8474544510295879,
+            0.20628584229448538
+          ],
+          "objective": 54.82449991438228,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 0.00028357389713931994,
+          "stationarity_tolerance": 0.00023414632159054365
+        },
+        {
+          "start": [
+            0.75,
+            0.4
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 25,
+          "theta": [
+            0.8474551121968473,
+            0.20628539647863048
+          ],
+          "objective": 54.82449993803296,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 0.0003489677203429799,
+          "stationarity_tolerance": 0.00023414632164104774
+        },
+        {
+          "start": [
+            0.95,
+            0.7
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 31,
+          "theta": [
+            0.8474487205857496,
+            0.20628970975415634
+          ],
+          "objective": 54.82449991420894,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 0.0002830792959922813,
+          "stationarity_tolerance": 0.00023414632159017354
+        },
+        {
+          "start": [
+            0.8762,
+            0.2397
+          ],
+          "success": true,
+          "message": "`ftol` termination condition is satisfied.",
+          "evaluations": 26,
+          "theta": [
+            0.8474487250159909,
+            0.20628970675359426
+          ],
+          "objective": 54.82449991408651,
+          "inference_unavailable_reasons": [
+            "nonstationary_solution"
+          ],
+          "projected_residual_norm": 0.0002826527323251063,
+          "stationarity_tolerance": 0.00023414632158991208
+        }
+      ],
+      "original_decision_preserved": true,
+      "note": "Replay is a diagnostic only; neither counts nor original draw records are replaced."
+    }
+  ],
+  "summary_only": false,
+  "scope": "post-run computational audit; no replacement of failures, inferential decisions or Monte Carlo counts",
+  "stationarity_failure_definition": "nonstationary_solution is the optimizer's interior first-order check: weighted-residual projection onto the local Jacobian column space. It does not mean nonstationary DSGE dynamics; all generating DGPs passed the dynamic stationarity check."
+}

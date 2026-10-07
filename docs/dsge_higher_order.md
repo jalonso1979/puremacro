@@ -24,7 +24,7 @@ Tier 2 provides a unified suite of methods to overcome these limitations:
 | `puremacro.dsge.perfect_foresight` | Deterministic Transitions & MCP | Semismooth Newton with Fischer-Burmeister complementarity | Boucekkine (1995); Juillard (1996) |
 | `puremacro.dsge.occbin` | Multi-Constraint Piecewise Linear | Dual-regime relaxation & Piecewise Kalman Filter | Guerrieri & Iacoviello (2015); Giovannini et al. (2021) |
 | `puremacro.dsge.smc` | Sequential Monte Carlo & Particle Filtering | Adaptive tempering SMC & Nonlinear bootstrap particle filter | Herbst & Schorfheide (2014, 2015) |
-| `puremacro.dsge.ramsey` | Nonlinear Ramsey Optimal Policy & BGP | Symbolic Lagrangian FOC derivation & Klein commitment solve | Dennis (2007); Clarida, Galí & Gertler (1999) |
+| `puremacro.dsge.ramsey` | Ramsey Optimal Policy (linear-quadratic) & BGP | LQ commitment from linearized constraints and the objective Hessian, Klein QZ; symbolic FOCs for display | Dennis (2007); Clarida, Galí & Gertler (1999) |
 
 ---
 
@@ -90,17 +90,66 @@ $$x_t^{(1)} = h_x x_{t-1}^{(1)} + h_u u_t$$
 
 $$x_t^{(2)} = h_x x_{t-1}^{(2)} + \frac{1}{2} h_{xx} (x_{t-1}^{(1)} \otimes x_{t-1}^{(1)}) + h_{xu} (x_{t-1}^{(1)} \otimes u_t) + \frac{1}{2} h_{uu} (u_t \otimes u_t) + \frac{1}{2} h_{\sigma\sigma} \sigma^2$$
 
-$$x_t^{(3)} = h_x x_{t-1}^{(3)} + h_{xx} (x_{t-1}^{(1)} \otimes x_{t-1}^{(2)}) + h_{xu} (x_{t-1}^{(2)} \otimes u_t) + \frac{1}{6} h_{xxx} (x_{t-1}^{(1)} \otimes x_{t-1}^{(1)} \otimes x_{t-1}^{(1)}) + \frac{1}{2} h_{x\sigma\sigma} x_{t-1}^{(1)} \sigma^2 + \frac{1}{2} h_{u\sigma\sigma} u_t \sigma^2$$
+$$\begin{aligned}x_t^{(3)} = {} & h_x x_{t-1}^{(3)} + h_{xx} (x_{t-1}^{(1)} \otimes x_{t-1}^{(2)}) + h_{xu} (x_{t-1}^{(2)} \otimes u_t) + \frac{1}{6} h_{xxx} (x_{t-1}^{(1)} \otimes x_{t-1}^{(1)} \otimes x_{t-1}^{(1)}) \\ & + \frac{1}{2} h_{xxu} (x_{t-1}^{(1)} \otimes x_{t-1}^{(1)} \otimes u_t) + \frac{1}{2} h_{xuu} (x_{t-1}^{(1)} \otimes u_t \otimes u_t) + \frac{1}{6} h_{uuu} (u_t \otimes u_t \otimes u_t) \\ & + \frac{1}{2} h_{x\sigma\sigma} x_{t-1}^{(1)} \sigma^2 + \frac{1}{2} h_{u\sigma\sigma} u_t \sigma^2\end{aligned}$$
 
 Control variables $y_t$ are evaluated analogously:
 
-$$\hat{y}_t = g_x x_t^{(1)} + g_u u_t + g_x x_t^{(2)} + \frac{1}{2} g_{xx} (x_{t-1}^{(1)} \otimes x_{t-1}^{(1)}) + \dots + g_x x_t^{(3)} + g_{xx} (x_{t-1}^{(1)} \otimes x_{t-1}^{(2)}) + \frac{1}{6} g_{xxx} (x_{t-1}^{(1)} \otimes x_{t-1}^{(1)} \otimes x_{t-1}^{(1)}) + \dots$$
+$$\hat{y}_t = y_t^{(1)} + y_t^{(2)} + y_t^{(3)}, \qquad y_t^{(1)} = g_x x_{t-1}^{(1)} + g_u u_t,$$
 
-This guarantees:
-- **Ergodic Stationarity**: Unconditional simulations remain stable across 10,000+ periods.
-- **Analytical Moments**: Exact closed-form expectations for mean bias $\mathbb{E}[\hat{y}_t]$, unconditional covariance, skewness, and excess kurtosis.
+where $y_t^{(2)}$ and $y_t^{(3)}$ are the right-hand sides of the $x_t^{(2)}$ and $x_t^{(3)}$ recursions with every $h$ replaced by the matching $g$. Both depend on the lagged state components and the current shock.
 
-### 2.4 Generalized Impulse Response Functions (GIRF) & API
+Two properties follow:
+- **Stability**: the pruned system is stable whenever the first-order transition $h_x$ is, so simulations do not explode.
+- **Exact moments**: the augmented state $z_t = [x_t^{(1)};\, x_t^{(2)};\, x_t^{(1)} \otimes x_t^{(1)};\, x_t^{(3)};\, x_t^{(1)} \otimes x_t^{(2)};\, x_t^{(1)} \otimes x_t^{(1)} \otimes x_t^{(1)}]$ follows a linear law of motion driven by innovations that are uncorrelated over time. `theoretical_moments()` therefore returns the exact mean, covariance and autocorrelations of every variable under Gaussian shocks. On the five models in `tests/fixtures/dynare_live`, its mean and covariance equal Dynare 8's "theoretical moments based on pruned state space" to machine precision.
+
+  The autocorrelations differ from Dynare's. Dynare's order-3 recursion drops the correlation between the innovation $x_{t-1}^{(1)} \otimes u_t \otimes u_t$ and past shocks. Long simulations, Dynare's own included, agree with puremacro. For `y` in `correlated_cubic.mod` the lag-1 autocorrelation is 0.475, against 0.330 in Dynare's table. The augmented state has $3n + 2n^2 + n^3$ entries for $n$ predetermined states. The default `max_state_dim=3000` admits up to 13 states, and `stoch_simul(order=3)` skips the table with a warning above that.
+- **Shape moments**: skewness and kurtosis have no closed form here. `theoretical_moments()` reports them as NaN. `ergodic_moments()` keeps the exact mean and variance and estimates both from a pruned simulation (`periods=100_000` by default). Its Monte Carlo error is large for very persistent variables.
+- **Second order**: `PrunedDSGESolution.theoretical_moments(pruning=True)` (and `stoch_simul(order=2, pruning=True)`) gives the exact moments of the pruned second-order solution, which reproduce Dynare 8's `stoch_simul(order=2, pruning)` to 7e-14, autocorrelations included. The default follows Dynare's `stoch_simul(order=2)` without `pruning`: the risk-corrected mean with first-order second moments.
+
+### 2.4 Ergodic Mean, Risky Steady State and the Risk Term
+
+A higher-order solution gives two different answers to "where does the economy sit under risk?", and they need not have the same sign. Both solution classes (`PrunedDSGESolution` at order 2, `Order3PrunedSolution` at order 3) return them as deviations from the deterministic steady state, in the units of the model's variables.
+
+- **Ergodic mean**, `sol.ergodic_mean()`: the unconditional mean of the pruned process, i.e. the long-run average of a simulation. `sol.stochastic_steady_state()` is an alias kept for backward compatibility; despite its name it returns this mean. With $\Omega = h_x \Omega h_x' + h_u \sigma^2 \Sigma_u h_u'$ the first-order state covariance, and $\mathbb{E}[x_{t-1} \otimes u_t] = 0$ in Dynare's timing,
+
+$$\mathbb{E}[\hat{x}] = (I - h_x)^{-1} \Big[ \tfrac{1}{2} h_{\sigma\sigma} \sigma^2 + \tfrac{1}{2} h_{xx} \operatorname{vec}(\Omega) + \tfrac{1}{2} h_{uu} \operatorname{vec}(\sigma^2 \Sigma_u) \Big], \qquad \mathbb{E}[\hat{y}] = g_x \mathbb{E}[\hat{x}] + \tfrac{1}{2} g_{\sigma\sigma} \sigma^2 + \tfrac{1}{2} g_{xx} \operatorname{vec}(\Omega) + \tfrac{1}{2} g_{uu} \operatorname{vec}(\sigma^2 \Sigma_u).$$
+
+  With Gaussian shocks every third-order forcing term has mean zero, so this is also the exact order-3 mean. It equals the `Mean` column of `theoretical_moments()` and Dynare 8's `oo_.mean` with `pruning`.
+
+- **Risky steady state**, `sol.risky_steady_state()`: the point where the economy settles when agents expect shocks but none is realized (Coeurdacier, Rey and Winant 2011). In the pruned system the first-order state stays at zero without shocks, so
+
+$$\hat{x}_{rss} = (I - h_x)^{-1} \tfrac{1}{2} h_{\sigma\sigma} \sigma^2, \qquad \hat{y}_{rss} = g_x \hat{x}_{rss} + \tfrac{1}{2} g_{\sigma\sigma} \sigma^2,$$
+
+  the limit of `sol.simulate(shocks=np.zeros(...), burn=0)`. `risky_steady_state(pruned=False)` solves instead for the fixed point of the unpruned approximated policy by Newton's method; the two differ by terms of order $\sigma^4$.
+
+Only $g_{\sigma\sigma}$ (Dynare's `ghs2`) moves the risky steady state. It is the precautionary effect of anticipated risk. The other two terms of the mean are the curvature of the policy times the realized dispersion of states and shocks, a Jensen effect that is there even when $g_{\sigma\sigma} = 0$. `sol.risk_decomposition()` returns the three terms (`risk`, `state_curvature`, `shock_curvature`) and their sum (`ergodic_mean`).
+
+In the RBC model of `tests/fixtures/dynare_live/rbc.mod` (in levels, shock s.d. 0.01), the terms for capital are, in percent of its deterministic steady state:
+
+| Term | Capital $k$ (% of $k_{ss}$) |
+| :--- | ---: |
+| Risk term $\tfrac{1}{2} h_{\sigma\sigma}$ (= risky steady state) | −0.0045 |
+| State curvature $\tfrac{1}{2} h_{xx} \operatorname{vec}(\Omega)$ | +0.0705 |
+| Shock curvature $\tfrac{1}{2} h_{uu} \operatorname{vec}(\Sigma_u)$ | +0.0125 |
+| Ergodic mean | +0.0785 |
+
+Dynare's own `ghs2` for $k$ in this model is negative (−9.76e-5 in `tests/fixtures/dynare_live/rbc_order3.npz`), so anticipated risk lowers capital. The positive mean comes from curvature and should not be read as precautionary capital. Two closed forms make the distinction exact, and `tests/test_fix_pruning_risky_steady_state.py` checks both:
+
+- **A claim to $x^2$.** With $x_t = \rho x_{t-1} + e_t$ and $\operatorname{Var}(e) = s^2$, the price $y_t = \beta \mathbb{E}_t y_{t+1} + x_t^2$ is exactly $y = A x^2 + B$ with $A = 1/(1 - \beta\rho^2)$ and $B = \beta A s^2 / (1 - \beta)$. The ergodic mean is $A \operatorname{Var}(x) + B$ and the risky steady state is $B$.
+- **Brock and Mirman (1972), in levels.** The policy $k_t = \alpha\beta e^{a_t} k_{t-1}^\alpha$ does not depend on risk, so $g_{\sigma\sigma} = 0$ and the risky steady state is the deterministic one. Still, $\mathbb{E}[k] - k_{ss} = k_{ss} \operatorname{Var}(\log k)/2 > 0$ at second order.
+
+```python
+from pathlib import Path
+from puremacro.dsge import load_mod
+
+sol3 = load_mod(Path("tests/fixtures/dynare_live/rbc.mod").read_text(), order=3)
+dec = sol3.risk_decomposition()                   # deviations from the deterministic steady state
+print((100 * dec.div(sol3.steady_state[dec.index], axis=0)).loc[["k", "c", "y"]].round(4))
+print(sol3.risky_steady_state()["states"]["k"])   # -0.00129: below k_ss
+print(sol3.ergodic_mean()["states"]["k"])         # +0.02224: above k_ss
+```
+
+### 2.5 Generalized Impulse Response Functions (GIRF) & API
 
 Because higher-order models violate linear superposition, impulse responses depend on the initial state $x_0$ and the shock sign/magnitude. Puremacro evaluates **Generalized Impulse Responses (GIRF)** (Koop, Pesaran & Potter 1996):
 
@@ -137,18 +186,22 @@ model = load_mod(mod_text)
 # Solve order-3 perturbation with Andreasen pruning
 sol3 = model.solve(order=3, pruning=True)
 
-# 1. Unconditional Ergodic Moments (mean, variance, skewness, kurtosis)
+# 1. Exact moments of the pruned state space (mean, std. dev., autocorrelations)
 moments = sol3.theoretical_moments()
-print("Ergodic Skewness:", moments.skewness.round(4))
-print("Ergodic Kurtosis:", moments.kurtosis.round(4))
+print(moments.moments[["Mean", "Std.Dev."]].round(4))
+print("Risk adjustment of mean capital:", moments.moments.loc["k", "Mean"] - sol3.steady_state["k"])
 
-# 2. Generalized Impulse Response Functions (GIRF)
+# 2. Skewness and kurtosis have no closed form: estimated from a long pruned simulation
+shape = sol3.ergodic_moments(periods=50_000, seed=0)
+print(shape[["Skewness", "Kurtosis"]].round(3))
+
+# 3. Generalized Impulse Response Functions (GIRF)
 girf = sol3.girf(shock="e_a", size=2.0, horizon=40)
 girf.plot(title="Order-3 GIRF to a 2-std Dev Productivity Innovation")
 
-# 3. Pruned Stochastic Simulation
-sim = sol3.simulate(periods=1000, seed=42)
-print("Stationary capital mean under risk:", sim["k"].mean())
+# 4. Pruned stochastic simulation: one finite sample of deviations from the steady state
+sim = sol3.simulate(periods=20_000, seed=42)
+print("Simulated s.d. of output:", sim["y"].std(), "exact:", moments.moments.loc["y", "Std.Dev."])
 ```
 
 ---
@@ -491,22 +544,27 @@ Under commitment, a benevolent policymaker maximizes intertemporal household wel
 
 $$\max_{\{y_t\}_{t=0}^\infty} \mathbb{E}_0 \sum_{t=0}^\infty \beta^t U(y_t) \quad \text{s.t.} \quad \mathbb{E}_t f(y_{t+1}, y_t, y_{t-1}, u_t) = 0$$
 
-Puremacro's `ramsey_model` (`puremacro.dsge.ramsey`) automates this process:
-1. Automatically forms the planner's Lagrangian:
+Puremacro's `ramsey_model` (`puremacro.dsge.ramsey`) sets this problem up from an objective string and solves its linear-quadratic approximation:
+1. Forms the planner's Lagrangian:
 
 $$\mathcal{L} = \mathbb{E}_0 \sum_{t=0}^\infty \beta^t \left[ U(y_t) + \lambda_t^\top f(y_{t+1}, y_t, y_{t-1}, u_t) \right]$$
 
-2. Evaluates exact analytical First-Order Conditions (FOCs) over the expression AST DAG w.r.t every endogenous variable $y_{i,t}$ and Lagrange multiplier $\lambda_{j,t}$:
+2. Derives the First-Order Conditions (FOCs) symbolically over the expression DAG, with respect to every endogenous variable $y_{i,t}$ and Lagrange multiplier $\lambda_{j,t}$. They are **for display only**: `focs` holds them as readable equations in Dynare syntax and `foc_nodes` as expression trees.
 
-$$\frac{\partial U(y_t)}{\partial y_{i,t}} + \left[ \frac{\partial f(y_{t+1}, y_t, y_{t-1}, u_t)}{\partial y_{i,t}} \right]^\top \lambda_t + \beta^{-1} \left[ \frac{\partial f(y_t, y_{t-1}, y_{t-2}, u_{t-1})}{\partial y_{i,t+1}} \right]^\top \lambda_{t-1} + \beta \mathbb{E}_t \left[ \frac{\partial f(y_{t+2}, y_{t+1}, y_t, u_{t+1})}{\partial y_{i,t-1}} \right]^\top \lambda_{t+1} = 0$$
+$$\frac{\partial U(y_t)}{\partial y_{i,t}} + \left[ \frac{\partial f(y_{t+1}, y_t, y_{t-1}, u_t)}{\partial y_{i,t}} \right]^\top \lambda_t + \beta^{-1} \left[ \frac{\partial f(y_t, y_{t-1}, y_{t-2}, u_{t-1})}{\partial y_{i,t}} \right]^\top \lambda_{t-1} + \beta \mathbb{E}_t \left[ \frac{\partial f(y_{t+2}, y_{t+1}, y_t, u_{t+1})}{\partial y_{i,t}} \right]^\top \lambda_{t+1} = 0$$
 
-3. Constructs the augmented state space appending policy multipliers $\lambda_t$.
-4. Solves the saddle-path equilibrium using Klein QZ, naturally recovering the **timeless perspective** (Woodford 2003; Clarida, Galí & Gertler 1999).
+3. Assembles the system it actually solves numerically, a linear-quadratic one: the constraints linearized at the steady state (the model's linear matrices, or the `.mod` equations differentiated at the steady state) and the Hessian of the objective at the steady state, with the steady-state multipliers set to zero. The state vector is augmented with the multipliers $\lambda_t$.
+4. Solves the saddle-path equilibrium with Klein QZ. The law of motion is the same for the Ramsey plan chosen at $t_0$ and for the timeless-perspective rule (Woodford 2003); impulse responses start from the steady state with $\lambda_{-1} = 0$, where the two coincide (see [DSGE Frontier, §1.3](dsge_phase_c.md)).
+
+The solution is exact when the objective is a quadratic loss centred on the steady state, as in the example below. For a nonlinear welfare objective whose steady-state multipliers are not zero, it is only a linear-quadratic approximation, without the second-order terms of a full Ramsey linearization. On a linear model, `ramsey_model` shares the matrices and the QZ solver with `lq_commitment`.
+
+The model below has two equations for three variables: the interest rate `i` is the instrument and has no rule. `load_mod` needs as many equations as variables, so the `.mod` text goes to `ramsey_model` directly, with the instrument named.
 
 ```python
-from puremacro.dsge import load_mod, ramsey_model
+from puremacro.dsge import ramsey_model
 
-# Canonical 3-equation New Keynesian model
+# Canonical 3-equation New Keynesian model without a policy rule: the planner's
+# constraints are the IS curve and the Phillips curve, and i is the instrument.
 NK_MOD = """
 var x pi i;
 varexo eps_u;
@@ -519,21 +577,24 @@ model;
 end;
 """
 
-model = load_mod(NK_MOD)
-
-# Compute optimal Ramsey policy minimizing quadratic loss L = pi^2 + 0.1 * x^2
+# Optimal commitment policy minimizing the quadratic loss L = pi^2 + 0.1 * x^2
 ramsey_res = ramsey_model(
-    model,
-    objective="-(pi^2 + 0.1 * x^2)",
+    NK_MOD,
+    objective="pi^2 + 0.1 * x^2",
     planner_discount=0.99,
+    instruments=["i"],
 )
 
-print("Derived Ramsey FOCs:")
+print("Ramsey FOCs (for display):")
 for eq in ramsey_res.focs:
     print(" ", eq)
 
-# Plot impulse responses of endogenous variables and shadow multipliers
-ramsey_res.plot(title="Optimal Commitment Policy Responses to Cost-Push Shock")
+# Responses to a cost-push shock satisfy the commitment target criterion
+# pi_t = -(0.1 / kappa) * (x_t - x_{t-1}): pi_0 = 0.6274, x_0 = -0.9411
+print(ramsey_res.irf("eps_u", horizon=4).round(4))
+
+# Impulse responses of the endogenous variables and the multipliers
+fig = ramsey_res.plot(shock="eps_u", horizon=20)
 ```
 
 ### 6.2 Balanced Growth Path (BGP) Detrending
@@ -558,7 +619,7 @@ Puremacro provides automated Balanced Growth Path (BGP) stationarization:
 | **Piecewise Kalman Filter** | `puremacro.dsge.estimate` | `LinearModel` + Dict | `PiecewiseKalmanResult` | Giovannini-Pfeiffer-Ratto likelihood |
 | **Sequential Monte Carlo** | `puremacro.dsge.smc` | `LinearModel` + Data | `SMCResult` | Herbst-Schorfheide adaptive tempering |
 | **Particle Filter** | `puremacro.dsge.smc` | `Order3PrunedSolution` | `tuple[float, np.ndarray]` | Bootstrap sequential importance resampling |
-| **Ramsey Optimal Policy** | `puremacro.dsge.ramsey` | `LinearModel` + Obj | `RamseyResult` | Symbolic Lagrangian AST FOCs + Klein QZ |
+| **Ramsey Optimal Policy** | `puremacro.dsge.ramsey` | `LinearModel` / `.mod` + Obj | `RamseyResult` | LQ commitment (linearized constraints + objective Hessian) + Klein QZ; symbolic FOCs for display |
 | **BGP Detrending** | `puremacro.dsge._parser` | `.mod` with `deflator` | `ParsedModelDAG` | Automated algebraic stationarization |
 
 ---
@@ -568,7 +629,9 @@ Puremacro provides automated Balanced Growth Path (BGP) stationarization:
 - **Andreasen, M. M., Fernández-Villaverde, J., & Rubio-Ramírez, J. F. (2018)**. *The Pruned State-Space System for Non-Linear DSGE Models: Theory and Empirical Applications*. Review of Economic Studies, 85(1), 1–49.
 - **Auclert, A., Bardóczy, B., Rognlie, M., & Straub, L. (2021)**. *Using the Sequence-Space Jacobian to Solve and Estimate Heterogeneous-Agent Models*. Econometrica, 89(6), 2787–2815.
 - **Boucekkine, R. (1995)**. *An Alternative Methodology for Solving Nonlinear Forward-Looking Models*. Journal of Economic Dynamics and Control, 19(4), 711–734.
+- **Brock, W. A., & Mirman, L. J. (1972)**. *Optimal Economic Growth and Uncertainty: The Discounted Case*. Journal of Economic Theory, 4(3), 479–513.
 - **Clarida, R., Galí, J., & Gertler, M. (1999)**. *The Science of Monetary Policy: A New Keynesian Perspective*. Journal of Economic Literature, 37(4), 1661–1707.
+- **Coeurdacier, N., Rey, H., & Winant, P. (2011)**. *The Risky Steady State*. American Economic Review, 101(3), 398–401.
 - **Dennis, R. (2007)**. *Optimal Policy in Rational Expectations Models: New and Alternative Solutions*. Journal of Economic Dynamics and Control, 31(12), 3959–3983.
 - **Giovannini, M., Pfeiffer, P., & Ratto, M. (2021)**. *The Piecewise Kalman Filter for Occasionally Binding Constraints*. Journal of Economic Dynamics and Control, 128, 104128.
 - **Guerrieri, L., & Iacoviello, M. (2015)**. *OccBin: A Toolkit for Solving Dynamic Models with Occasionally Binding Constraints Easily*. Journal of Monetary Economics, 75, 38–54.
