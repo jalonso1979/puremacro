@@ -294,6 +294,20 @@ def kalman_filter(
         K      : (T, m, n)  — Kalman gains
         loglik : float       — sum of period-by-period log-likelihoods
     """
+    out, _ = _kalman_filter(y, model, a0, P0, diffuse_scale, diffuse_states)
+    return out
+
+
+def _kalman_filter(
+    y: np.ndarray,
+    model: StateSpaceModel,
+    a0: Optional[np.ndarray],
+    P0: Optional[np.ndarray],
+    diffuse_scale: float,
+    diffuse_states: Optional[list],
+) -> tuple[dict, np.ndarray]:
+    """:func:`kalman_filter`, plus a ``(T,)`` mask of the periods updated by
+    the exact-diffuse recursion (they store no ``F`` / ``K``)."""
     y = np.asarray(y, dtype=float)
     if y.ndim == 1:
         y = y[:, None]
@@ -341,6 +355,8 @@ def kalman_filter(
     innov = np.full((T_obs, n), np.nan)
     F_arr = np.zeros((T_obs, n, n))
     K_arr = np.zeros((T_obs, m, n))
+
+    diffuse = np.zeros(T_obs, dtype=bool)
 
     a_pred[0] = a0
     P_pred[0] = P0
@@ -405,6 +421,7 @@ def kalman_filter(
                 # F and K bookkeeping (skip during diffuse since the matrices
                 # are not the standard ones; downstream smoother will read
                 # P_filt / a_filt instead).
+                diffuse[t] = True
                 continue
 
             # ---- Standard non-diffuse update ----
@@ -431,11 +448,11 @@ def kalman_filter(
         "F": F_arr,
         "K": K_arr,
         "loglik": float(loglik),
-    }
+    }, diffuse
 
 
 # ---------------------------------------------------------------------------
-# RTS smoother (state means + covariances)
+# Fixed-interval state smoother (state means + covariances)
 # ---------------------------------------------------------------------------
 def kalman_smoother(
     y: np.ndarray,
@@ -445,24 +462,80 @@ def kalman_smoother(
     diffuse_scale: float = 1e6,
     diffuse_states: Optional[list] = None,
 ) -> dict:
-    """Filter then RTS smooth. Returns filter dict augmented with
-    ``a_smooth`` (T, m) and ``P_smooth`` (T, m, m)."""
-    out = kalman_filter(y, model, a0=a0, P0=P0,
-                         diffuse_scale=diffuse_scale,
-                         diffuse_states=diffuse_states)
+    """Filter then smooth. Returns filter dict augmented with
+    ``a_smooth`` (T, m) and ``P_smooth`` (T, m, m).
+
+    The smoother is the Durbin-Koopman backward recursion (Durbin and Koopman,
+    *Time Series Analysis by State Space Methods*, 2nd ed., section 4.4):
+
+        r_{t-1} = Z_t' F_t^{-1} v_t + L_t' r_t,          L_t = T - K_t Z_t
+        N_{t-1} = Z_t' F_t^{-1} Z_t + L_t' N_t L_t
+        a_smooth_t = a_t + P_t r_{t-1},   P_smooth_t = P_t - P_t N_{t-1} P_t
+
+    with ``r_T = 0``, ``N_T = 0``, ``(a_t, P_t)`` the one-step predictions and
+    ``Z_t``, ``F_t``, ``K_t`` restricted to the entries observed at ``t``; a
+    period with nothing observed reduces to ``r_{t-1} = T' r_t``,
+    ``N_{t-1} = T' N_t T``. It inverts only ``F_t``, which the filter has
+    already factored, never ``P_t``.
+
+    It replaces the Rauch-Tung-Striebel form, whose gain
+    ``P_filt_t T' P_{t+1}^{-1}`` was built from ``pinv(P_{t+1})``. The two are
+    algebraically identical, but whenever the state carries the structural
+    innovation (DSGE models filtered on ``[x_t; u_t]``) ``P_{t+1}`` is
+    rank-deficient by construction, and on a small RBC its smallest singular
+    value sat at pinv's default cutoff: whether that direction was kept was
+    decided by last-bit differences in the SVD, so the first smoothed period
+    differed by ~1e-6 between LAPACK builds and the interior by ~1e-8.
+
+    Periods handled by the exact-diffuse initialisation (``diffuse_states``)
+    carry no standard ``F_t`` / ``K_t``; the smoother keeps the RTS step over
+    that initial stretch, from the Durbin-Koopman estimate at its end.
+    """
+    out, diffuse = _kalman_filter(y, model, a0, P0, diffuse_scale, diffuse_states)
     a_pred = out["a_pred"]
     P_pred = out["P_pred"]
     a_filt = out["a_filt"]
     P_filt = out["P_filt"]
-    Tm = model.T
+    innov = out["innov"]
+    F_arr = out["F"]
+    K_arr = out["K"]
+    Tm, Z = model.T, model.Z
 
     T_obs, m = a_filt.shape
     a_sm = np.zeros_like(a_filt)
     P_sm = np.zeros_like(P_filt)
-    a_sm[-1] = a_filt[-1]
-    P_sm[-1] = P_filt[-1]
 
-    for t in range(T_obs - 2, -1, -1):
+    # The exact-diffuse periods are an initial stretch: once P_inf has
+    # collapsed it stays zero.
+    n_diffuse = int(np.flatnonzero(diffuse)[-1]) + 1 if diffuse.any() else 0
+
+    r = np.zeros(m)
+    N = np.zeros((m, m))
+    for t in range(T_obs - 1, n_diffuse - 1, -1):
+        obs = ~np.isnan(innov[t])
+        if obs.any():
+            Z_t = Z[obs]
+            v_t = innov[t][obs]
+            K_t = K_arr[t][:, obs]
+            # The same factor the filter used: it stores F after any ridge it
+            # had to add, and Cholesky is deterministic in its input.
+            F_chol = np.linalg.cholesky(F_arr[t][np.ix_(obs, obs)])
+            F_inv_v = np.linalg.solve(F_chol.T, np.linalg.solve(F_chol, v_t))
+            F_inv_Z = np.linalg.solve(F_chol.T, np.linalg.solve(F_chol, Z_t))
+            L_t = Tm - K_t @ Z_t
+            r = Z_t.T @ F_inv_v + L_t.T @ r
+            N = Z_t.T @ F_inv_Z + L_t.T @ N @ L_t
+        else:
+            r = Tm.T @ r
+            N = Tm.T @ N @ Tm
+        a_sm[t] = a_pred[t] + P_pred[t] @ r
+        P_sm[t] = P_pred[t] - P_pred[t] @ N @ P_pred[t]
+
+    if n_diffuse == T_obs:
+        a_sm[-1] = a_filt[-1]
+        P_sm[-1] = P_filt[-1]
+        n_diffuse -= 1
+    for t in range(n_diffuse - 1, -1, -1):
         P_pred_next = P_pred[t + 1]
         try:
             J = P_filt[t] @ Tm.T @ np.linalg.pinv(P_pred_next)

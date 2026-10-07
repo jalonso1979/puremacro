@@ -686,7 +686,7 @@ class TestKalmanFilterOutputStructure:
 # ---------------------------------------------------------------------------
 
 class TestKalmanSmoother:
-    """RTS smoother properties."""
+    """Fixed-interval smoother properties."""
 
     def test_smoother_keys(self):
         model = _local_level()
@@ -757,6 +757,48 @@ class TestKalmanSmoother:
         out = kalman_smoother(y, model)
         assert np.isfinite(out["loglik"])
         assert np.isfinite(out["a_smooth"]).all()
+
+    def test_smoother_matches_the_batch_posterior_with_missing_data(self):
+        """E[alpha_t | y] and Var[alpha_t | y] from one GLS projection of the
+        stacked states on the observed entries, against the backward recursion
+        through partially observed and fully missing periods with intercepts."""
+        rng = _rng(89)
+        T_obs, m = 12, 2
+        model = StateSpaceModel(
+            T=np.array([[0.8, 0.2], [-0.1, 0.5]]), Z=np.array([[1.0, 0.4], [0.2, 1.0]]),
+            R=np.array([[1.0], [0.6]]), Q=np.array([[0.4]]), H=np.diag([0.3, 0.6]),
+            c=np.array([0.1, -0.2]), d=np.array([1.0, -0.5]))
+        a0, P0 = np.array([0.3, -0.1]), np.array([[1.0, 0.2], [0.2, 0.7]])
+        y = rng.normal(0, 1, (T_obs, 2))
+        y[2, 0] = y[5, 1] = np.nan
+        y[8] = np.nan
+
+        mu, V = [a0], [P0]
+        for _ in range(1, T_obs):
+            mu.append(model.T @ mu[-1] + model.c)
+            V.append(model.T @ V[-1] @ model.T.T + model.R @ model.Q @ model.R.T)
+        Sig = np.zeros((T_obs * m, T_obs * m))
+        for t in range(T_obs):
+            for s in range(t + 1):
+                C = np.linalg.matrix_power(model.T, t - s) @ V[s]
+                Sig[t*m:(t+1)*m, s*m:(s+1)*m] = C
+                Sig[s*m:(s+1)*m, t*m:(t+1)*m] = C.T
+        rows = [(t, i) for t in range(T_obs) for i in range(2) if not np.isnan(y[t, i])]
+        G = np.zeros((len(rows), T_obs * m))
+        Hs = np.zeros((len(rows), len(rows)))
+        for q, (t, i) in enumerate(rows):
+            G[q, t*m:(t+1)*m] = model.Z[i]
+            Hs[q, q] = model.H[i, i]
+        resid = np.array([y[t, i] - model.Z[i] @ mu[t] - model.d[i] for t, i in rows])
+        gain = np.linalg.solve(G @ Sig @ G.T + Hs, G @ Sig).T
+        mean = (np.concatenate(mu) + gain @ resid).reshape(T_obs, m)
+        cov = Sig - gain @ G @ Sig
+
+        out = kalman_smoother(y, model, a0=a0, P0=P0)
+        np.testing.assert_allclose(out["a_smooth"], mean, rtol=0, atol=1e-12)
+        for t in range(T_obs):
+            np.testing.assert_allclose(out["P_smooth"][t], cov[t*m:(t+1)*m, t*m:(t+1)*m],
+                                       rtol=0, atol=1e-12)
 
     def test_smoother_with_diffuse_states(self):
         """Smoother accepts diffuse_states and returns finite outputs."""
