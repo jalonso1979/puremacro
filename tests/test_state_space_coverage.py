@@ -483,6 +483,47 @@ class TestExactDiffuseEdgeCases:
                                        rtol=1e-12, atol=1e-14)
         assert out["loglik"] == pytest.approx(univ[0]["loglik"] + univ[1]["loglik"], abs=1e-9)
 
+    @pytest.mark.parametrize("t22, n_missing", [(1e-16, 1), (1e-4, 4)])
+    def test_shrunk_diffuse_direction_is_not_dropped(self, t22, n_missing):
+        """T shrinks the second diffuse direction (to t22**n_missing, below
+        eps of the first) without annihilating it. P_inf = T^k T^k' then has
+        full rank, so the finite part no longer matters and the filter from
+        period k on must be the fully diffuse filter started there; the
+        likelihoods differ by -log|det T^k|."""
+        Tm = np.diag([1.0, t22])
+        model = StateSpaceModel(T=Tm, Z=np.array([[1.0, 0.3], [0.2, 1.0]]),
+                                Q=np.diag([0.4, 0.3]), H=np.diag([0.6, 0.5]),
+                                c=np.array([0.1, -0.2]))
+        y = _rng(7).normal(0, 1, (8 + n_missing, 2))
+        y[:n_missing] = np.nan
+        a0 = np.array([0.5, -0.3])
+        out = kalman_filter(y, model, a0=a0, P0=np.eye(2), diffuse_states=[0, 1])
+        a_k = a0
+        for _ in range(n_missing):
+            a_k = Tm @ a_k + model.c
+        ref = kalman_filter(y[n_missing:], model, a0=a_k, P0=np.eye(2),
+                            diffuse_states=[0, 1])
+        np.testing.assert_allclose(out["a_filt"][n_missing:], ref["a_filt"], rtol=1e-9, atol=1e-12)
+        np.testing.assert_allclose(out["P_filt"][n_missing:], ref["P_filt"], rtol=1e-9, atol=1e-12)
+        assert out["loglik"] == pytest.approx(
+            ref["loglik"] - n_missing * np.log(t22), abs=1e-8)
+
+    def test_annihilated_diffuse_direction_is_dropped(self):
+        """T = diag(1, 0) annihilates the diffuse part of the unobserved state
+        1, so the diffuse phase ends after t = 0 (the standard recursion
+        stores F from t = 1) and from then on the filter is the one with only
+        state 0 diffuse."""
+        model = StateSpaceModel(T=np.diag([1.0, 0.0]), Z=np.array([[1.0, 0.0]]),
+                                Q=np.diag([0.4, 0.3]), H=np.array([[0.6]]))
+        y = _rng(8).normal(0, 1, 10)
+        out = kalman_filter(y, model, a0=np.zeros(2), P0=np.eye(2), diffuse_states=[0, 1])
+        ref = kalman_filter(y, model, a0=np.zeros(2), P0=np.eye(2), diffuse_states=[0])
+        assert out["F"][1, 0, 0] > 0.0
+        for key in ("a_filt", "P_filt", "F"):
+            np.testing.assert_allclose(out[key][1:], ref[key][1:], rtol=1e-12, atol=1e-14,
+                                       err_msg=key)
+        assert out["loglik"] == pytest.approx(ref["loglik"], abs=1e-12)
+
 
 # ---------------------------------------------------------------------------
 # kalman_smoother: exact initial smoothing over the diffuse phase, checked

@@ -124,16 +124,28 @@ _DIFFUSE_TOL = float(np.finfo(float).eps)
 
 
 def _propagate_A_inf(Tm: np.ndarray, A_inf: np.ndarray) -> np.ndarray:
-    """T P_inf T' in factored form, dropping directions T annihilates
-    (numerical rank, as in ``np.linalg.matrix_rank``)."""
+    """T P_inf T' in factored form, dropping the directions T annihilates.
+
+    Rounding in ``T A`` is bounded entrywise by a multiple of eps ``|T| |A|``.
+    Each state (row) is scaled by its bound before the numerical-rank test
+    of ``np.linalg.matrix_rank``. A direction that T only shrinks, however
+    far below the others, then keeps unit size and stays diffuse, while one
+    that T annihilates (exactly or by cancellation) is left at rounding
+    level and dropped. The test does not depend on the states' units."""
     A_next = Tm @ A_inf
-    if A_next.shape[1] == 0:
+    q = A_next.shape[1]
+    if q == 0:
         return A_next
-    U, sv, _ = np.linalg.svd(A_next, full_matrices=False)
-    keep = sv > sv[0] * max(A_next.shape) * np.finfo(float).eps
-    if keep.all():
+    row_bound = (np.abs(Tm) @ np.abs(A_inf)).max(axis=1)
+    live = row_bound > 0.0           # a zero bound means an exactly zero row
+    scaled = A_next[live] / row_bound[live, None]
+    if scaled.shape[0] == 0:
+        return A_next[:, :0]
+    _, sv, Vt = np.linalg.svd(scaled, full_matrices=False)
+    keep = sv > sv[0] * max(scaled.shape) * np.finfo(float).eps
+    if keep.sum() == q:
         return A_next
-    return U[:, keep] * sv[keep]
+    return A_next @ Vt[keep].T
 
 
 class _UnivariateStep(NamedTuple):
