@@ -2,7 +2,9 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
-## Unreleased
+## 4.7.0 (2026-10-07)
+
+**Cross-country macro panels: ten one-call panel builders for the World Bank (WDI), the OECD (annual and quarterly national accounts, the monthly short-term indicators, labour force and vacancies), Eurostat, the IMF data portal, the BIS, ECB/FRED rates and yields, ILOSTAT, the Penn World Table and the Maddison Project, all through urllib with an on-disk cache and the same `(code, date)` contract; `splice_sources` to stack several sources by precedence with recorded seams; and repairs to the BIS, Eurostat, ILOSTAT and OECD-LFS readers that had been returning empty or partial data.**
 
 ### Added
 
