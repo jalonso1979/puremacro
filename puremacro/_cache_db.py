@@ -187,12 +187,13 @@ def get_conn(db_path: Path | None = None) -> sqlite3.Connection:
         conn = _connect_readonly(target)
     else:
         conn = sqlite3.connect(
-            target, timeout=30.0, isolation_level=None, check_same_thread=False,
+            target, timeout=60.0, isolation_level=None, check_same_thread=False,
         )
         try:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.execute("PRAGMA synchronous=NORMAL")
             conn.execute("PRAGMA foreign_keys=ON")
+            conn.execute("PRAGMA busy_timeout=60000")
             bootstrap_schema(conn)
         except sqlite3.OperationalError as exc:
             conn.close()
@@ -329,6 +330,7 @@ def store_realtime_vintages(
         ))
     if not records:
         return 0
+    c.execute("BEGIN IMMEDIATE")
     c.executemany(
         "INSERT OR REPLACE INTO realtime_vintages "
         "(provider, country, series_id, observation_date, vintage_date, value) "

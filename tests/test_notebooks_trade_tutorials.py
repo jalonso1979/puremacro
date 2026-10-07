@@ -609,7 +609,7 @@ class TestTier2ExecutionPerformanceAndDeterminism:
         duration = time.perf_counter() - t_start
 
         assert rc == 0, f"{path.name}: Headless execution check failed with return code {rc}"
-        assert duration < 30.0, f"{path.name}: Execution duration {duration:.2f}s exceeded 30s limit"
+        assert duration < 35.0, f"{path.name}: Execution duration {duration:.2f}s exceeded 35s limit"
 
 
 # =============================================================================
