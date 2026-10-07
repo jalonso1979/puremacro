@@ -12,7 +12,7 @@ def _irf_from_var(Y, p, identify_fn, horizon, **id_kwargs):
 
     `identify_fn` is callable as identify_fn(A_list, Sigma, **id_kwargs).
     """
-    A_list, _, Sigma, residuals, _ = estimate_var(Y, p)
+    A_list, _, Sigma, _residuals, _ = estimate_var(Y, p)
     B0 = identify_fn(A_list, Sigma, **id_kwargs)
     return irf(A_list, B0, horizon)
 
@@ -28,7 +28,7 @@ def _kilian_bias_correct(Y, p, n_pilot=100, rng=None):
     """
     if rng is None:
         rng = np.random.default_rng(0)
-    A_list, intercept, Sigma, residuals, _ = estimate_var(Y, p)
+    A_list, intercept, _Sigma, residuals, _ = estimate_var(Y, p)
     Y_arr = np.asarray(Y)
     T, n = Y_arr.shape
     bias_int = np.zeros_like(intercept)
@@ -39,7 +39,7 @@ def _kilian_bias_correct(Y, p, n_pilot=100, rng=None):
     Y_pilot = np.empty((n_pilot, T, n))
     Y_pilot[:, :p, :] = Y_arr[:p]
     for t in range(p, T):
-        lags = np.concatenate([Y_pilot[:, t - 1 - l, :] for l in range(p)], axis=1)
+        lags = Y_pilot[:, t - p : t, :][:, ::-1, :].reshape(n_pilot, p * n)
         Y_pilot[:, t, :] = lags @ A_stack.T + intercept + U[:, t - p, :]
     for b in range(n_pilot):
         try:
@@ -117,9 +117,8 @@ def bootstrap_bands(Y, p, identify_fn, horizon, n_boot=500, alpha=0.10,
             for l in range(p):
                 yt += A_list[l] @ Y_arr[t - l - 1]
             residuals[t - p] = Y_arr[t] - yt
-        Sigma = (residuals.T @ residuals) / max(1, residuals.shape[0] - 1 - n_arr * p)
     else:
-        A_list, intercept, Sigma, residuals, _ = estimate_var(Y, p)
+        A_list, intercept, _Sigma, residuals, _ = estimate_var(Y, p)
     Y_arr = np.asarray(Y)
     T, n = Y_arr.shape
     irfs = np.zeros((n_boot, horizon + 1, n, n))
@@ -134,7 +133,7 @@ def bootstrap_bands(Y, p, identify_fn, horizon, n_boot=500, alpha=0.10,
         all_xi = rng.choice(np.array([-1.0, 1.0]), size=(n_boot, n_res))
         U = residuals[None, :, :] * all_xi[:, :, None]
     elif method == "block":
-        block = max(1, int(round(T ** (1 / 3))))
+        block = max(1, round(T ** (1 / 3)))
         n_blocks = int(np.ceil(n_res / block))
         U = np.empty((n_boot, n_res, n))
         for b in range(n_boot):
@@ -147,7 +146,7 @@ def bootstrap_bands(Y, p, identify_fn, horizon, n_boot=500, alpha=0.10,
     Y_all = np.empty((n_boot, T, n))
     Y_all[:, :p, :] = Y_arr[:p]
     for t in range(p, T):
-        lags = np.concatenate([Y_all[:, t - 1 - l, :] for l in range(p)], axis=1)
+        lags = Y_all[:, t - p : t, :][:, ::-1, :].reshape(n_boot, p * n)
         Y_all[:, t, :] = lags @ A_stack.T + intercept + U[:, t - p, :]
 
     def _eval_draw(b: int) -> np.ndarray:
@@ -155,7 +154,7 @@ def bootstrap_bands(Y, p, identify_fn, horizon, n_boot=500, alpha=0.10,
             A_b, _, Sigma_b, _, _ = estimate_var(Y_all[b], p)
             B_b = identify_fn(A_b, Sigma_b, **id_kwargs)
             return irf(A_b, B_b, horizon)
-        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError):
             return np.full((horizon + 1, n, n), np.nan)
 
     from puremacro.inference._parallel import _map_draws  # lazy: avoid import cycle
