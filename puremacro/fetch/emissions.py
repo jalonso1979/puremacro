@@ -20,6 +20,7 @@ Architectural invariant:
 Zero module-scope ``requests`` import. HTTP access is deferred to call time
 via ``puremacro.fetch._http.cached_get`` and ``puremacro.fetch._oecd_sdmx.get_sdmx_csv``.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -83,6 +84,7 @@ def _cached_get(url: str, *, refresh: bool = False, timeout: int = 60) -> bytes:
     """Issue cached GET without module-scope requests dependency."""
     try:
         from ._http import cached_get
+
         return cached_get(url, refresh=refresh, timeout=timeout)
     except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         return b""
@@ -94,6 +96,7 @@ def _get_oecd_csv(
     """Issue cached OECD SDMX CSV query without module-scope requests dependency."""
     try:
         from ._oecd_sdmx import get_sdmx_csv
+
         return get_sdmx_csv(agency_flow, key, start_period, refresh=refresh)
     except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         return pd.DataFrame()
@@ -138,7 +141,9 @@ def fetch_wdi_emissions(
     if codes is not None and len(codes) == 0:
         return _EMPTY.copy()
 
-    requested_codes = set(c.strip().upper() for c in codes) if codes is not None else None
+    requested_codes = (
+        set(c.strip().upper() for c in codes) if codes is not None else None
+    )
 
     # Determine indicators to query
     if indicators is None:
@@ -173,7 +178,11 @@ def fetch_wdi_emissions(
             continue
 
         # World Bank API returns [metadata_dict, record_list]
-        if not isinstance(payload, list) or len(payload) < 2 or not isinstance(payload[1], list):
+        if (
+            not isinstance(payload, list)
+            or len(payload) < 2
+            or not isinstance(payload[1], list)
+        ):
             continue
 
         for item in payload[1]:
@@ -217,7 +226,11 @@ def fetch_wdi_emissions(
 
             # Indicator metadata & scaling
             item_ind = item.get("indicator", {})
-            ind_id = item_ind.get("id", query_ind) if isinstance(item_ind, dict) else query_ind
+            ind_id = (
+                item_ind.get("id", query_ind)
+                if isinstance(item_ind, dict)
+                else query_ind
+            )
             cfg = _INDICATOR_CONFIG.get(ind_id)
             if cfg is None:
                 # Check legacy mapping
@@ -232,19 +245,23 @@ def fetch_wdi_emissions(
                 var_name = ind_id.lower().replace(".", "_") + "_a"
                 scaled_val = val
 
-            records.append({
-                "code": iso3,
-                "date": date_ts,
-                "variable": var_name,
-                "value": scaled_val,
-                "sa_source": "none",
-                "source": f"WorldBank:WDI:{ind_id}",
-            })
+            records.append(
+                {
+                    "code": iso3,
+                    "date": date_ts,
+                    "variable": var_name,
+                    "value": scaled_val,
+                    "sa_source": "none",
+                    "source": f"WorldBank:WDI:{ind_id}",
+                }
+            )
 
     if not records:
         return _EMPTY.copy()
 
-    df = pd.DataFrame(records, columns=["code", "date", "variable", "value", "sa_source", "source"])
+    df = pd.DataFrame(
+        records, columns=["code", "date", "variable", "value", "sa_source", "source"]
+    )
     df = df.drop_duplicates(subset=["code", "date", "variable"], keep="first")
     df = df.sort_values(["code", "variable", "date"]).reset_index(drop=True)
     return df
@@ -288,15 +305,15 @@ def fetch_oecd_ghg(
     if codes is not None and len(codes) == 0:
         return _EMPTY.copy()
 
-    requested_codes = set(c.strip().upper() for c in codes) if codes is not None else None
+    requested_codes = (
+        set(c.strip().upper() for c in codes) if codes is not None else None
+    )
 
     # Resolve sector codes
     if sectors is None:
         target_sector_codes = list(_OECD_SECTOR_MAP.keys())
     else:
-        target_sector_codes = [
-            _VAR_TO_OECD_SECTOR.get(s, s) for s in sectors
-        ]
+        target_sector_codes = [_VAR_TO_OECD_SECTOR.get(s, s) for s in sectors]
 
     code_key = "+".join(sorted(requested_codes)) if requested_codes else ""
     measure_key = "+".join(target_sector_codes)
@@ -364,19 +381,23 @@ def fetch_oecd_ghg(
         measure = str(row.get("MEASURE", "")).strip()
         var_name = _OECD_SECTOR_MAP.get(measure, f"ghg_{measure.lower()}_kt_a")
 
-        records.append({
-            "code": code,
-            "date": date_ts,
-            "variable": var_name,
-            "value": val,
-            "sa_source": "none",
-            "source": f"OECD:DSD_AIR_GHG@DF_AIR_GHG:{measure}",
-        })
+        records.append(
+            {
+                "code": code,
+                "date": date_ts,
+                "variable": var_name,
+                "value": val,
+                "sa_source": "none",
+                "source": f"OECD:DSD_AIR_GHG@DF_AIR_GHG:{measure}",
+            }
+        )
 
     if not records:
         return _EMPTY.copy()
 
-    df = pd.DataFrame(records, columns=["code", "date", "variable", "value", "sa_source", "source"])
+    df = pd.DataFrame(
+        records, columns=["code", "date", "variable", "value", "sa_source", "source"]
+    )
     df = df.drop_duplicates(subset=["code", "date", "variable"], keep="first")
     df = df.sort_values(["code", "variable", "date"]).reset_index(drop=True)
     return df
@@ -424,9 +445,12 @@ def fetch_emissions_panel(
     if freq_norm not in ("A", "Q"):
         raise ValueError(f"Unsupported frequency: '{frequency}'. Must be 'A' or 'Q'.")
 
-    df_oecd = fetch_oecd_ghg(codes=codes, start_year=start_year, end_year=end_year, refresh=refresh)
-    df_wdi = fetch_wdi_emissions(codes=codes, start_year=start_year, end_year=end_year, refresh=refresh)
-
+    df_oecd = fetch_oecd_ghg(
+        codes=codes, start_year=start_year, end_year=end_year, refresh=refresh
+    )
+    df_wdi = fetch_wdi_emissions(
+        codes=codes, start_year=start_year, end_year=end_year, refresh=refresh
+    )
 
     parts = [df for df in (df_oecd, df_wdi) if not df.empty]
     if not parts:
@@ -440,29 +464,28 @@ def fetch_emissions_panel(
         return merged.sort_values(["code", "variable", "date"]).reset_index(drop=True)
 
     # Quarterly expansion: expand each annual observation into 4 quarterly periods
-    q_records: list[dict[str, object]] = []
-    for _, row in merged.iterrows():
-        base_year = row["date"].year
-        var_name = str(row["variable"])
-        q_var = var_name[:-2] + "_q" if var_name.endswith("_a") else var_name + "_q"
-        q_source = f"resampled_from_A:{row['source']}"
-
-        for m in (1, 4, 7, 10):
-            q_records.append({
-                "code": row["code"],
-                "date": pd.Timestamp(f"{base_year}-{m:02d}-01"),
-                "variable": q_var,
-                "value": row["value"],
-                "sa_source": row["sa_source"],
-                "source": q_source,
-            })
-
-    if not q_records:
+    if merged.empty:
         return _EMPTY.copy()
 
-    q_df = pd.DataFrame(q_records, columns=["code", "date", "variable", "value", "sa_source", "source"])
-    q_df = q_df.sort_values(["code", "variable", "date"]).reset_index(drop=True)
-    return q_df
+    base = merged.copy()
+    base["variable"] = (
+        base["variable"].astype(str).str.replace(r"_a$", "", regex=True) + "_q"
+    )
+    base["source"] = "resampled_from_A:" + base["source"].astype(str)
+
+    # Shift using DateOffsets for Q1, Q2, Q3, Q4.
+    # Annual data dates are mapped to YYYY-01-01, so adding months produces Q1-Q4.
+    out = pd.concat(
+        [
+            base.assign(date=base["date"] + pd.DateOffset(months=k))
+            for k in (0, 3, 6, 9)
+        ],
+        ignore_index=True,
+    )
+
+    out = out[["code", "date", "variable", "value", "sa_source", "source"]]
+    out = out.sort_values(["code", "variable", "date"]).reset_index(drop=True)
+    return out
 
 
 __all__ = ["fetch_wdi_emissions", "fetch_oecd_ghg", "fetch_emissions_panel"]
