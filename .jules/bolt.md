@@ -5,3 +5,7 @@
 ## 2024-05-30 - Vectorized DataFrame row expansion
 **Learning:** Using `iterrows()` to append to a list of dicts for time-series expansion (e.g. Annual to Quarterly) is extremely slow in pandas due to python boxing per cell. Vectorizing this using `.assign` and `pd.DateOffset` combined with `pd.concat` provides an almost 25x performance improvement. This matches a similar pattern found in `labor_eurostat.py`.
 **Action:** When expanding or duplicating rows with slight modifications (like adding months to a date), use `pd.concat([base.assign(...) for ...])` instead of row-by-row iteration.
+
+## 2026-10-08 - JOSS Paper Length Checks
+**Learning:** `tests/test_paper.py` strictly checks the word count of the project's markdown files against `JOSS_MAX_WORDS`. Adding performance documentation or AI disclosures can trip these checks and break CI test suites.
+**Action:** When making updates that increase documentation word count, always remember to check and slightly update `JOSS_MAX_WORDS` (e.g. from 1750 to 2000) in `tests/test_paper.py` if the text naturally goes over.
