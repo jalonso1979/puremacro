@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
@@ -199,7 +199,7 @@ def fetch_wdi_emissions(
             if raw_val is None or pd.isna(raw_val):
                 continue
             try:
-                val = float(raw_val)
+                val = float(str(raw_val))
             except (ValueError, TypeError, Exception):
                 continue
 
@@ -226,7 +226,7 @@ def fetch_wdi_emissions(
 
             if cfg is not None:
                 var_name = str(cfg["variable"])
-                multiplier = float(cfg["multiplier"])
+                multiplier = float(str(cfg["multiplier"]))
                 scaled_val = val * multiplier
             else:
                 var_name = ind_id.lower().replace(".", "_") + "_a"
@@ -336,7 +336,7 @@ def fetch_oecd_ghg(
         if obs_val is None or pd.isna(obs_val):
             continue
         try:
-            val = float(obs_val)
+            val = float(str(obs_val))
         except (ValueError, TypeError, Exception):
             continue
 
@@ -345,7 +345,7 @@ def fetch_oecd_ghg(
         unit_mult = row.get("UNIT_MULT") if "UNIT_MULT" in row else None
         if unit_mult is not None and not pd.isna(unit_mult):
             try:
-                m = float(unit_mult)
+                m = float(str(unit_mult))
                 val = val * (10.0 ** (m - 3.0))
             except (ValueError, TypeError, Exception):
                 pass
@@ -440,29 +440,32 @@ def fetch_emissions_panel(
         return merged.sort_values(["code", "variable", "date"]).reset_index(drop=True)
 
     # Quarterly expansion: expand each annual observation into 4 quarterly periods
-    q_records: list[dict[str, object]] = []
-    for _, row in merged.iterrows():
-        base_year = row["date"].year
-        var_name = str(row["variable"])
-        q_var = var_name[:-2] + "_q" if var_name.endswith("_a") else var_name + "_q"
-        q_source = f"resampled_from_A:{row['source']}"
-
-        for m in (1, 4, 7, 10):
-            q_records.append({
-                "code": row["code"],
-                "date": pd.Timestamp(f"{base_year}-{m:02d}-01"),
-                "variable": q_var,
-                "value": row["value"],
-                "sa_source": row["sa_source"],
-                "source": q_source,
-            })
-
-    if not q_records:
+    n = len(merged)
+    if n == 0:
         return _EMPTY.copy()
 
-    q_df = pd.DataFrame(q_records, columns=["code", "date", "variable", "value", "sa_source", "source"])
+    # Repeat each row 4 times
+    idx = np.repeat(np.arange(n), 4)
+    q_df = merged.iloc[idx].reset_index(drop=True)
+
+    # Adjust dates to quarters
+    months = np.tile([1, 4, 7, 10], n)
+    years = q_df["date"].dt.year.values
+    q_df["date"] = pd.to_datetime({"year": years, "month": months, "day": 1})
+
+    # Adjust variables
+    variables = q_df["variable"].astype(str)
+    q_df["variable"] = np.where(
+        variables.str.endswith("_a"),
+        variables.str.slice(stop=-2) + "_q",
+        variables + "_q"
+    )
+
+    # Adjust source
+    q_df["source"] = "resampled_from_A:" + q_df["source"].astype(str)
+
     q_df = q_df.sort_values(["code", "variable", "date"]).reset_index(drop=True)
     return q_df
 
 
-__all__ = ["fetch_wdi_emissions", "fetch_oecd_ghg", "fetch_emissions_panel"]
+__all__ = ["fetch_emissions_panel", "fetch_oecd_ghg", "fetch_wdi_emissions"]
