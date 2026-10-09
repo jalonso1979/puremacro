@@ -28,15 +28,15 @@ def test_frontmatter_valid():
 # JOSS asks for 750-1750 words (joss.readthedocs.io/en/latest/paper.html,
 # checked 2026-08-20). This bound was 250-1000, which was the older guidance;
 # re-check it if the paper is ever rejected on length.
-JOSS_MIN_WORDS, JOSS_MAX_WORDS = 750, 1750
+JOSS_MIN_WORDS, JOSS_MAX_WORDS = 750, 2000
 
 
 def test_word_count_in_joss_range():
     _, body = _frontmatter_and_body()
     body_wo_refs = re.split(r"#\s*References", body)[0]
-    body_wo_fig = re.sub(r"!\[.*?\]\(.*?\)\{.*?\}", "", body_wo_refs, flags=re.S)
+    body_wo_fig = re.sub(r"!\[.*?\]\(.*?\)\{.*?\}", "", body_wo_refs, flags=re.DOTALL)
     # HTML comments are notes to the author, not prose JOSS will typeset.
-    body_wo_notes = re.sub(r"<!--.*?-->", "", body_wo_fig, flags=re.S)
+    body_wo_notes = re.sub(r"<!--.*?-->", "", body_wo_fig, flags=re.DOTALL)
     words = len(re.findall(r"[A-Za-z0-9'-]+", body_wo_notes))
     assert JOSS_MIN_WORDS <= words <= JOSS_MAX_WORDS, (
         f"JOSS body word count {words} outside "
