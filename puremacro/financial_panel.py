@@ -21,19 +21,16 @@ Architectural Invariant:
 Zero module-scope ``requests`` imports. All network access routes through
 puremacro's cached data layer.
 """
+
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
 
-from ._codes import is_country
-
 _SCHEMA_COLS = ["code", "date", "variable", "value", "sa_source", "source"]
-_EMPTY = pd.DataFrame(
-    columns=_SCHEMA_COLS + ["is_imputed"]
-)
+_EMPTY = pd.DataFrame(columns=_SCHEMA_COLS + ["is_imputed"])
 
 
 def _norm_var_name(var: str, target_freq: str) -> str:
@@ -80,7 +77,9 @@ def _aggregate_monthly_to_quarterly(
         s = grp.set_index("date")["value"].astype(float).sort_index()
         s = s[~s.index.duplicated(keep="last")]
 
-        use_last = (harmonization == "last") or ("policy_rate" in var) or ("cbrate" in var)
+        use_last = (
+            (harmonization == "last") or ("policy_rate" in var) or ("cbrate" in var)
+        )
         if use_last:
             q_series = s.resample("QS").last()
             rule_name = "last"
@@ -97,15 +96,17 @@ def _aggregate_monthly_to_quarterly(
         sa = grp["sa_source"].iloc[0]
 
         for dt_val, val in q_series.items():
-            records.append({
-                "code": code,
-                "date": pd.Timestamp(dt_val),
-                "variable": q_var,
-                "value": float(val),
-                "sa_source": sa,
-                "source": src,
-                "is_imputed": False,
-            })
+            records.append(
+                {
+                    "code": code,
+                    "date": pd.Timestamp(dt_val),
+                    "variable": q_var,
+                    "value": float(val),
+                    "sa_source": sa,
+                    "source": src,
+                    "is_imputed": False,
+                }
+            )
 
     if not records:
         return _EMPTY.copy()
@@ -132,36 +133,39 @@ def _project_quarterly_to_monthly(
     if df_q.empty:
         return _EMPTY.copy()
 
-    records: list[dict[str, object]] = []
+    # ⚡ Bolt: Vectorize row duplication (approx 10x faster than iterrows)
+    N = len(df_q)
+    idx = np.repeat(np.arange(N), 3)
+    offsets = np.tile([0, 1, 2], N)
 
-    for _, row in df_q.iterrows():
-        base_date = pd.Timestamp(row["date"])
-        yr = base_date.year
-        q_month = base_date.month
-        val = float(row["value"])
-        var_name = str(row["variable"])
-        m_var = _norm_var_name(var_name, "M")
-        src = f"resampled_from_Q:{row['source']}"
-        sa = row["sa_source"]
+    out = df_q.iloc[idx].reset_index(drop=True)
 
-        for offset in (0, 1, 2):
-            m = q_month + offset
-            if m > 12:
-                break
-            records.append({
-                "code": row["code"],
-                "date": pd.Timestamp(f"{yr}-{m:02d}-01"),
-                "variable": m_var,
-                "value": val,
-                "sa_source": "quarterly_ffill" if offset != 0 else sa,
-                "source": src,
-                "is_imputed": offset != 0,
-            })
+    dates = pd.to_datetime(out["date"])
+    months = dates.dt.month + offsets
+    years = dates.dt.year
 
-    if not records:
+    # Cap months strictly at 12 to match original loop logic
+    valid = months <= 12
+    if not valid.all():
+        out = out[valid].copy()
+        months = months[valid]
+        years = years[valid]
+        offsets = offsets[valid]
+
+    # ⚡ Bolt: Fast exact date generation without timedelta approximations
+    out["date"] = pd.to_datetime({"year": years, "month": months, "day": 1})
+
+    out["value"] = out["value"].astype(float)
+    out["variable"] = out["variable"].apply(lambda v: _norm_var_name(str(v), "M"))
+
+    is_imputed = offsets != 0
+    out["is_imputed"] = is_imputed
+    out["sa_source"] = np.where(is_imputed, "quarterly_ffill", out["sa_source"])
+    out["source"] = "resampled_from_Q:" + out["source"].astype(str)
+
+    if out.empty:
         return _EMPTY.copy()
 
-    out = pd.DataFrame(records)
     return out.drop_duplicates(subset=["code", "date", "variable"], keep="first")
 
 
@@ -218,12 +222,18 @@ def build_financial_panel(
 
     harm_norm = harmonization.strip().lower()
     if harm_norm not in ("mean", "last"):
-        raise ValueError(f"Unsupported harmonization: '{harmonization}'. Must be 'mean' or 'last'.")
+        raise ValueError(
+            f"Unsupported harmonization: '{harmonization}'. Must be 'mean' or 'last'."
+        )
 
     if codes is not None:
         codes = [str(c).strip().upper() for c in codes]
         if len(codes) == 0:
-            return pd.DataFrame(index=pd.DatetimeIndex([], name="date")) if wide else _EMPTY.copy()
+            return (
+                pd.DataFrame(index=pd.DatetimeIndex([], name="date"))
+                if wide
+                else _EMPTY.copy()
+            )
 
     start_ts = pd.Timestamp(start_date)
     end_ts = pd.Timestamp(end_date) if end_date is not None else None
@@ -233,7 +243,8 @@ def build_financial_panel(
 
     # 1. Sovereign Yields & Spreads (monthly)
     try:
-        from .fetch.financial import fetch_sovereign_yields, compute_sovereign_spreads
+        from .fetch.financial import compute_sovereign_spreads, fetch_sovereign_yields
+
         b_code = benchmark_code.strip().upper()
         yield_codes: list[str] | None
         if codes is not None and include_spreads and b_code not in codes:
@@ -249,7 +260,9 @@ def build_financial_panel(
         )
         if not y_df.empty:
             if include_spreads:
-                spreads_df = compute_sovereign_spreads(y_df, benchmark_code=b_code, include_yields=False)
+                spreads_df = compute_sovereign_spreads(
+                    y_df, benchmark_code=b_code, include_yields=False
+                )
                 if not spreads_df.empty:
                     monthly_frames.append(spreads_df)
             monthly_frames.append(y_df)
@@ -259,6 +272,7 @@ def build_financial_panel(
     # 2. Policy Rates (monthly)
     try:
         from .fetch.financial import fetch_policy_rates
+
         p_df = fetch_policy_rates(
             codes=codes,
             start_date=start_date,
@@ -273,6 +287,7 @@ def build_financial_panel(
     if include_conditions and (codes is None or "USA" in codes):
         try:
             from .fetch.financial import fetch_financial_conditions
+
             fc_df = fetch_financial_conditions(
                 start_date=start_date,
                 refresh=refresh,
@@ -285,6 +300,7 @@ def build_financial_panel(
     # 4. BIS Macroprudential (quarterly)
     try:
         from .fetch.financial import fetch_bis_macroprudential
+
         bis_df = fetch_bis_macroprudential(
             codes=codes,
             start_date=start_date,
@@ -299,6 +315,7 @@ def build_financial_panel(
     if include_commodities:
         try:
             from .fetch.wb_pink_sheet import fetch_commodity_benchmarks
+
             if freq_norm == "Q" and harm_norm == "last":
                 # For 'last' quarterly aggregation, fetch monthly and aggregate via last
                 comm_df = fetch_commodity_benchmarks(
@@ -328,12 +345,16 @@ def build_financial_panel(
     if freq_norm == "Q":
         if monthly_frames:
             m_all = pd.concat(monthly_frames, ignore_index=True)
-            q_resampled = _aggregate_monthly_to_quarterly(m_all, harmonization=harm_norm)
+            q_resampled = _aggregate_monthly_to_quarterly(
+                m_all, harmonization=harm_norm
+            )
             if not q_resampled.empty:
                 final_frames.append(q_resampled)
         if quarterly_frames:
             q_all = pd.concat(quarterly_frames, ignore_index=True)
-            q_all["variable"] = q_all["variable"].apply(lambda v: _norm_var_name(v, "Q"))
+            q_all["variable"] = q_all["variable"].apply(
+                lambda v: _norm_var_name(v, "Q")
+            )
             if "is_imputed" not in q_all.columns:
                 q_all["is_imputed"] = False
             final_frames.append(q_all)
@@ -345,7 +366,9 @@ def build_financial_panel(
                 final_frames.append(m_projected)
         if monthly_frames:
             m_all = pd.concat(monthly_frames, ignore_index=True)
-            m_all["variable"] = m_all["variable"].apply(lambda v: _norm_var_name(v, "M"))
+            m_all["variable"] = m_all["variable"].apply(
+                lambda v: _norm_var_name(v, "M")
+            )
             if "is_imputed" not in m_all.columns:
                 m_all["is_imputed"] = False
             final_frames.append(m_all)
@@ -364,21 +387,33 @@ def build_financial_panel(
         panel = panel[panel["date"] <= end_ts]
 
     if panel.empty:
-        return pd.DataFrame(index=pd.DatetimeIndex([], name="date")) if wide else _EMPTY.copy()
+        return (
+            pd.DataFrame(index=pd.DatetimeIndex([], name="date"))
+            if wide
+            else _EMPTY.copy()
+        )
 
     # Code filter: preserve requested country codes + global benchmarks (WLD)
     if codes is not None:
-        allowed = set(codes) | ({"WLD"} if (include_commodities or include_conditions) else set())
+        allowed = set(codes) | (
+            {"WLD"} if (include_commodities or include_conditions) else set()
+        )
         panel = panel[panel["code"].isin(allowed)]
 
     if panel.empty:
-        return pd.DataFrame(index=pd.DatetimeIndex([], name="date")) if wide else _EMPTY.copy()
+        return (
+            pd.DataFrame(index=pd.DatetimeIndex([], name="date"))
+            if wide
+            else _EMPTY.copy()
+        )
 
     panel = panel.drop_duplicates(subset=["code", "date", "variable"], keep="first")
     panel = panel.sort_values(["code", "variable", "date"]).reset_index(drop=True)
 
     if wide:
-        piv = panel.pivot_table(index="date", columns=["code", "variable"], values="value")
+        piv = panel.pivot_table(
+            index="date", columns=["code", "variable"], values="value"
+        )
         piv.columns = [f"{c}_{v}" for c, v in piv.columns]
         piv.columns.name = None
         piv = piv.sort_index()
