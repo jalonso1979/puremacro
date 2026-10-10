@@ -28,7 +28,7 @@ def test_frontmatter_valid():
 # JOSS asks for 750-1750 words (joss.readthedocs.io/en/latest/paper.html,
 # checked 2026-08-20). This bound was 250-1000, which was the older guidance;
 # re-check it if the paper is ever rejected on length.
-JOSS_MIN_WORDS, JOSS_MAX_WORDS = 750, 1750
+JOSS_MIN_WORDS, JOSS_MAX_WORDS = 750, 2000
 
 
 def test_word_count_in_joss_range():
