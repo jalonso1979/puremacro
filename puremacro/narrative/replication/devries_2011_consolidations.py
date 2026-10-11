@@ -39,7 +39,6 @@ def _devries_extract_rows(df: pd.DataFrame) -> list[dict]:
     cols = {c.lower(): c for c in df.columns}
     country_col = cols.get("country") or cols.get("iso3")
     year_col    = cols.get("year") or cols.get("date")
-    cols.get("quarter")
     val_col     = (cols.get("action_pct_gdp") or cols.get("action")
                    or cols.get("magnitude") or cols.get("size_pct_gdp"))
     type_col    = cols.get("type") or cols.get("category") or cols.get("kind")
