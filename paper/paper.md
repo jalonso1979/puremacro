@@ -87,9 +87,8 @@ hardware, tablets) may not support the full stack.
 `puremacro` is written for that audience: instructors, students and applied
 researchers in macroeconomics. It puts common estimators and models behind one
 set of conventions (shared arguments such as `lags`, `horizon` and `ci`, and
-immutable result objects with plotting and table export), keeps the dependencies
-of its numerical code to four ubiquitous libraries, and ships the evidence needed
-to trust its output: galleries of checks that users can run themselves.
+immutable result objects with plotting and table export) and ships the evidence
+needed to trust its output: galleries of checks that users can run themselves.
 
 # State of the field
 
@@ -104,9 +103,8 @@ are Dynare, the sequence-space Jacobian toolkit, HARK and QuantEcon.py. In their
 domains they are more mature than `puremacro` and, for large heterogeneous-agent
 problems, faster: `puremacro` trades speed for portability.
 
-That portability can be stated precisely. As of September 2026 the Pyodide
-distribution includes NumPy, SciPy, pandas, Matplotlib and statsmodels, but not
-arch, linearmodels or Numba; arch and linearmodels publish no pure-Python wheels
+As of September 2026 the Pyodide distribution includes NumPy, SciPy, pandas,
+Matplotlib and statsmodels, but not arch, linearmodels or Numba; arch and linearmodels publish no pure-Python wheels
 that a browser could install at run time; and HARK and QuantEcon.py declare Numba
 as a required dependency, while the sequence-space Jacobian toolkit uses it in its
 core modules. In a browser, the volatility, panel-IV and heterogeneous-agent layers
@@ -123,21 +121,21 @@ tests, not a feature that can be added to another project's dependency graph.
 # Software design
 
 **An import invariant.** Library modules import NumPy, SciPy, pandas and
-Matplotlib (plus requests, in the data layer) at module scope; anything else, from
-Parquet support to optional accelerators, is optional and imported only when
-available. Two tests enforce the rule against the packages most likely to leak in.
+Matplotlib (plus requests, in the data layer) at module scope; anything else is
+imported only when available. Two tests enforce the rule against the packages most
+likely to leak in.
 The first imports each of the 597 library modules (examples, teaching helpers,
 text-scraping sources and optional Numba kernels are excluded) and fails if
 statsmodels, linearmodels, arch or the scraping packages bs4, pdfplumber and pypdf
-have entered `sys.modules`. The second repeats the sweep in a subprocess in which
-those packages cannot be imported, so a module that would break on a machine
-without them fails in continuous integration (CI) on a machine that has them. The
+have entered `sys.modules`. The second repeats the sweep with those packages
+blocked, so a module that needs them fails in continuous integration (CI) even
+where they are installed. The
 wheel is pure Python, and its base install adds only requests to the four core
-libraries; the Parquet and Excel engines are an optional extra.
+libraries.
 
 **Oracles that do not ship.** The packages forbidden at run time are the test
-suite's references. Scripts in the repository run statsmodels, arch, linearmodels
-and esda once on fixed inputs and store their outputs as package data, so the
+suite's references. Repository scripts run statsmodels, arch, linearmodels and
+esda once on fixed inputs and store their outputs as package data, so the
 validation gallery can compare against them without importing them; an opt-in test
 marker recomputes the stored outputs with the installed packages to detect drift.
 The reference implementations thus certify the library without becoming its
@@ -146,25 +144,22 @@ dependencies, which is what lets breadth and portability coexist.
 **Degrading rather than failing.** Where an external tool does better, `puremacro`
 uses it if present: seasonal adjustment calls X-13ARIMA-SEATS through statsmodels
 when both are installed and otherwise falls back to a native X-11. A `runtime`
-module detects the host (CPython or Pyodide), the device class and the four
-capabilities that differ away from a workstation (sockets, Parquet, threads and a
+module detects the host (CPython or Pyodide) and the four capabilities that differ
+away from a workstation (sockets, Parquet, threads and a
 writable filesystem), and offers opt-in adaptations such as a browser `fetch`
-transport. A few dynamic-programming and projection solvers have optional Numba
-kernels and experimental MLX and CuPy paths; NumPy remains the reference path and
-the one tested in CI.
+transport. Some solvers have optional Numba kernels and experimental MLX and CuPy
+paths; NumPy remains the reference path, tested in CI.
 
 **Costs.** Writing everything in vectorised NumPy makes large heterogeneous-agent
 problems slower than in JIT-compiled toolkits, and derivatives that other libraries
 obtain by automatic differentiation must be coded by hand. The browser is a
 best-effort target rather than a supported one: Parquet and Excel files need
-engines that not every Pyodide distribution provides. A headless harness in the
-repository runs the library in Node.js against a pinned Pyodide, and an opt-in
-release gate installs the package there exactly as the playground does and runs a
-31-test smoke subset of the suite. On 3 October 2026 the same harness ran the
-whole validation gallery inside Pyodide 0.28.3 and 314.0.5 (the version the
-playground pins): all 114 checks passed on both, in about 36 to 38 seconds
-against 21 on the desktop, with the same pass flags everywhere and four margins
-differing between WebAssembly and native arithmetic by at most $5 \times 10^{-4}$.
+engines that not every Pyodide distribution provides. A headless harness runs the
+library in Node.js against a pinned Pyodide, and an opt-in release gate installs
+the package there as the playground does and runs a 31-test smoke subset. On
+3 October 2026 the harness ran the whole validation gallery inside Pyodide 0.28.3
+and 314.0.5 (the playground's version): all 114 checks passed on both, with four
+margins differing from native arithmetic by at most $5 \times 10^{-4}$.
 
 <!-- AUTHOR: re-run `python tools/pyodide_gallery.py` on the submitted commit and
      update the sentence above if the counts or Pyodide versions changed. -->
@@ -173,11 +168,10 @@ differing between WebAssembly and native arithmetic by at most $5 \times 10^{-4}
 exercised by about 19,100 tests, of which CI runs 18,900 on Linux, macOS and Windows
 under Python 3.11–3.13 on every push and the remaining slow, reference and
 replication tests weekly and on every release tag, where they gate publication.
-Before a release is tagged, a script checks the suite against a recorded
-baseline, the import invariant, a snapshot of the public API that must be
-regenerated deliberately when the interface changes, that every shipped file still
-parses on the oldest supported Python, and that the version string agrees across
-the package metadata, changelog and citation file.
+Before each release tag, a script checks the suite against a recorded baseline,
+the import invariant, a snapshot of the public API, syntax on the oldest supported
+Python, and version agreement across the package metadata, changelog and citation
+file.
 
 ## Verification
 
@@ -187,12 +181,11 @@ pass (\autoref{fig:scorecard}). The checks differ in strength, and each records
 its reference. Twenty-one compare against an external reference: stored outputs of
 statsmodels, arch, linearmodels and esda, SciPy results computed at run time, a
 published table, or, for the trade model, the solution of the author's legacy
-MATLAB implementation on the same input-output table. Agreement with independent implementations is typically at
+MATLAB implementation. Agreement with independent implementations is typically at
 machine precision (median relative difference of order $10^{-15}$); the exception
 is GARCH, whose estimates differ from arch's by up to 0.35% because the two
 packages use different optimisers. Thirty-one checks compare against analytical
-results, and 62 test internal consistency, such as agreement between alternative
-algorithms and recovery of parameters from simulated data.
+results and 62 test internal consistency.
 
 A separate replication gallery, `puremacro.replication.scorecard()`, reproduces
 published estimates of the return to schooling [@card1995], a textbook logit of
@@ -201,7 +194,7 @@ output effect of tax changes [@romer2010], as well as two qualitative prediction
 of incomplete-markets models [@huggett1993; @aiyagari1994]: precautionary saving
 holds the interest rate below the rate of time preference, and the rate falls as
 income risk rises. Most model solvers (sequence-space, continuous-time, spatial,
-and climate) are covered by unit tests but not yet by gallery checks; the trade model gained its first four checks in 4.6.0, on a 77-country, 11-sector OECD table rebuilt from a clean release.
+and climate) are covered by unit tests but not yet by gallery checks; the trade model gained its first four checks in 4.6.0, on a 77-country, 11-sector OECD table.
 
 ![The validation gallery of `puremacro` 4.6.0: 114 checks in 16 subsystems, by kind of reference; all pass. *External reference*: stored outputs of statsmodels, arch, linearmodels or esda, SciPy computed at run time, or a published table. *Analytical result*: a closed form, or an effect planted in simulated data. *Internal consistency*: agreement between alternative algorithms, identities that correct output must satisfy, or recovery of parameters from simulated data. Regenerate with `python paper/make_scorecard_fig.py`.\label{fig:scorecard}](scorecard.png){ width=80% }
 
