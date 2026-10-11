@@ -1,0 +1,181 @@
+{
+  "aggregation": "Equal country weight: pooled RMSE is sqrt(mean(country MSE)); other losses are mean country losses.",
+  "artifacts": {
+    "accuracy.csv": {
+      "bytes": 716,
+      "sha256": "ce11c975e6a28d160623e6c844cd0efb56caa93d2215bfb959fe2b38ef226841"
+    },
+    "coverage.csv": {
+      "bytes": 379,
+      "sha256": "2ae21bc42653fb30dad3f2615e68f6bacffd62127dc1afa7b5a1ed202ffdeeae"
+    },
+    "cross_country_forecasting.pmz": {
+      "bytes": 29579,
+      "sha256": "fe224c21fe349ccf35a480ea58dd72e95d64f4d7b8dd493a492d201d4ab2fb8c"
+    },
+    "exclusions.csv": {
+      "bytes": 4823,
+      "sha256": "ebc3b4c039733c8644e9c6f8fb42bf95cbb98c3275cef98998012ea4c26554a9"
+    },
+    "forecast_accuracy.png": {
+      "bytes": 44178,
+      "sha256": "fefc03886b7ef7572b931cbeceffcbb6cdbb88aea5bbe625277738dd393b5662"
+    },
+    "forecasts.csv": {
+      "bytes": 20819,
+      "sha256": "fadd6e542150e07c4c871f1823baa0ea6f86b74ca308812c8c0684bac1b0ddc8"
+    },
+    "growth.csv": {
+      "bytes": 5407,
+      "sha256": "9299f0334e40640a2564b4b913343d5257ce105302eec1c4fff2af46dda00ee2"
+    },
+    "input_metadata.json": {
+      "bytes": 3085,
+      "sha256": "cb020c1e1b7f3c3a3834d01db11ee3b132c98f0356bfaf10fdd23d4959284d90"
+    },
+    "levels.csv": {
+      "bytes": 6349,
+      "sha256": "dd05c0de2a423a916bc8912d9a154b1f7042eada3ad45b50e60747bd8a16c8a4"
+    },
+    "pooled_accuracy.csv": {
+      "bytes": 269,
+      "sha256": "03df8b90150cc2891c70a30410fe059d6cfaeb1301f531f7dd2136e72ba6c5c4"
+    },
+    "report.md": {
+      "bytes": 4770,
+      "sha256": "0ecaff6f07ed421a7eb1319a19b35c4d70a199649d247b012f3af9f8c7be42fe"
+    }
+  },
+  "design": {
+    "ar_intercept": true,
+    "ar_lags": 1,
+    "countries": [
+      "USA",
+      "MEX",
+      "BRA"
+    ],
+    "data_vintage": "frozen latest-vintage snapshot; not historical real-time vintages",
+    "error_convention": "actual minus forecast",
+    "evaluation_end_year": 2024,
+    "evaluation_start_year": 2000,
+    "horizon_years": 1,
+    "information_set": "growth observations through the preceding calendar year",
+    "level_end_year": 2024,
+    "level_start_year": 1960,
+    "minimum_training_growth_observations": 20,
+    "model_selection": "none; fixed design before outcomes were inspected",
+    "models": [
+      "zero_growth",
+      "historical_mean",
+      "ar1"
+    ],
+    "preprocessing": "no imputation, scaling, seasonal adjustment or tuning",
+    "transformation": "100 * diff(log(gdp_real))",
+    "window": "expanding"
+  },
+  "environment": {
+    "numpy": "2.5.4",
+    "pandas": "3.0.6",
+    "python": "3.12.13"
+  },
+  "evidence_kind": "latest_vintage_expanding_window_forecast_evaluation",
+  "is_causal": false,
+  "is_real_time": false,
+  "limitations": [
+    "Historical data are revised latest-vintage observations, not observations available at each origin.",
+    "Calendar-year origins assume the preceding year's GDP is observed; publication lags are not modeled.",
+    "Three selected countries and 25 target years do not establish general forecasting superiority.",
+    "RMSE, MAE and mean error are descriptive; no significance test, predictive intervals or causal claims are made.",
+    "The 2020 contraction and recovery remain in the predeclared evaluation sample.",
+    "Constant-LCU GDP levels are not compared across countries; only within-country log growth is forecast."
+  ],
+  "numerical_reproducibility": "Numerical tables are deterministic; cartridge packing records a new creation timestamp.",
+  "observed_data": {
+    "countries": [
+      "USA",
+      "MEX",
+      "BRA"
+    ],
+    "csv_sha256": "dd05c0de2a423a916bc8912d9a154b1f7042eada3ad45b50e60747bd8a16c8a4",
+    "end_year": 2024,
+    "evaluation_design": {
+      "first_target_year": 2000,
+      "horizon_years": 1,
+      "interpretation": "Latest-vintage historical forecast exercise, not real-time or causal evidence",
+      "last_target_year": 2024,
+      "minimum_training_growth_observations": 20,
+      "model_selection": "none; AR lag order fixed at one before evaluation",
+      "models": [
+        "zero_growth",
+        "historical_mean",
+        "ar1"
+      ],
+      "target": "annual percent log GDP growth",
+      "training": "expanding window, observations through target year minus one only"
+    },
+    "fetched_at": "2026-10-11T02:25:05+00:00",
+    "independent_data_check": "Every scaled level compared with a direct extraction of the authenticated raw JSON",
+    "panel_attrs": {
+      "complete": true,
+      "fetched_at": "2026-10-11T02:25:05+00:00",
+      "lastupdated": "2026-10-08",
+      "meta": [
+        {
+          "description": "Gross domestic product at market prices (constant prices)",
+          "first": 1960,
+          "indicator": "NY.GDP.MKTP.KN",
+          "label": "GDP (constant LCU)",
+          "last": 2024,
+          "lastupdated": "2026-10-08",
+          "n": 195,
+          "n_codes": 3,
+          "sa": "NSA, annual (calendar or fiscal year, see wdi_meta)",
+          "unit_mult": 6,
+          "units": "millions of constant LCU, country base year",
+          "variable": "gdp_real"
+        }
+      ],
+      "missing": [],
+      "source": "World Bank WDI (source 2), api.worldbank.org/v2",
+      "splice_policy": "One WDI indicator; no provider splicing or gap filling",
+      "splice_seams": [],
+      "vintage_semantics": "Latest revised WDI edition captured at fetched_at; not historical information sets"
+    },
+    "raw_sources": [
+      {
+        "file": "wdi_countries.json",
+        "sha256": "c9acf3932785191a649cbc04c3056af4cf64a236e5c3b49d49be25ddb0440bce",
+        "url": "https://api.worldbank.org/v2/country?format=json&per_page=400&page=1"
+      },
+      {
+        "file": "wdi_gdp.json",
+        "sha256": "13aae503fd11572c2c886fe43613c23c6a7ef78882032233c1609e90cda616c7",
+        "url": "https://api.worldbank.org/v2/country/BRA;MEX;USA/indicator/NY.GDP.MKTP.KN?format=json&date=1960:2024&per_page=32767&page=1"
+      }
+    ],
+    "schema_version": 1,
+    "source": {
+      "indicator": "NY.GDP.MKTP.KN",
+      "license": "CC BY 4.0",
+      "license_url": "https://datacatalog.worldbank.org/public-licenses#cc-by",
+      "name": "World Bank World Development Indicators (source 2)",
+      "units": "millions of constant LCU, country-specific base/reference year",
+      "url": "https://api.worldbank.org/v2/country/BRA;MEX;USA/indicator/NY.GDP.MKTP.KN?format=json&date=1960:2024&per_page=32767&page=1"
+    },
+    "source_lastupdated": "2026-10-08",
+    "start_year": 1960,
+    "transformations": [
+      "Raw constant-LCU levels divided by 1,000,000 by wdi_panel",
+      "Annual GDP growth = 100 * (log GDP_t - log GDP_(t-1))",
+      "No interpolation, seasonal adjustment, cross-country level comparison, or source splicing"
+    ]
+  },
+  "package_version": "4.8.0",
+  "source_sha256": {
+    "examples/cross_country_forecasting.py": "4d765e719648b852a314d622341444d1d8066301b96c3ef6e8dc0ac62ffd1750",
+    "pocket/_cartridge.py": "5cc4c4f4dd4731d753863ab0a2de308d51420ff47610cc0c425c4d94ca8ad8e6",
+    "runtime/store.py": "7d9c5799f7a664dc09d2581e612c2ea82d14b382913dd050a25a90a586cff670",
+    "var/estimate.py": "ecafb6102b1b0b1ec6de835a3ce9380bcae8767c1029e299767d9d2f2ac2db7a"
+  },
+  "study": "cross_country_gdp_forecasting"
+}

@@ -4,11 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "puremacro"
-# Release version. It must be bumped in the SAME commit in all four places
+# Release version. It must be bumped in the SAME commit in all five places
 # defined by the project release contract: `version = "X.Y.Z"` in pyproject.toml,
 # puremacro/__init__.py (`__version__`), the top `## X.Y.Z` heading in
-# CHANGELOG.md, and `version:` in CITATION.cff.
-version = "4.7.0"
+# CHANGELOG.md, `version:` in CITATION.cff, and the wheel pin in
+# playground/jupyter_lite_config.json.
+version = "4.8.0"
 description = "Pyodide-compatible empirical macro toolbox: SVAR + LP + GARCH + inference"
 readme = "README.md"
 requires-python = ">=3.11"

@@ -2,6 +2,35 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 4.8.0 (2026-10-10)
+
+**Portable panel provenance and reproducible cross-country forecasting: DataFrame attributes survive storage and cartridge verification, and a frozen World Bank GDP study runs offline with complete forecast tables and checksummed evidence.**
+
+### Added
+
+- An offline cross-country GDP-growth forecasting application,
+  `python -m puremacro.examples.cross_country_forecasting --output DIR`:
+  authenticated WDI levels for USA, Mexico and Brazil (1960–2024), fixed
+  expanding-window zero-growth, historical-mean and AR(1) forecasts for
+  2000–2024, complete losses/coverage tables, figure and checksummed evidence
+  manifest. Raw provider responses and a deterministic public-fetcher replay
+  are retained in the repository. This is latest-vintage historical evaluation;
+  no real-time, causal or general model-superiority claim is made.
+
+### Fixed
+
+- Portable DataFrame storage now preserves supported nested `DataFrame.attrs`,
+  including panel sources, units, missing-data reports and splice decisions.
+  The v2 npz schema uses safe tagged metadata without pickle and rejects
+  unsupported values or cycles explicitly. Existing v1 archives load and old
+  cartridges retain their original verification semantics; new cartridge
+  verification also detects changed metadata. Readers must use puremacro 4.8.0
+  or later to read newly written v2 files; v1 files need no conversion.
+- English/Spanish entry points now describe the supported local installation,
+  best-effort browser workflows and current stability evidence consistently.
+  The paper explicitly retains its measured 4.6.0 evidence snapshot and stays
+  within the existing word-count check.
+
 ## 4.7.0 (2026-10-07)
 
 **Cross-country macro panels: ten one-call panel builders for the World Bank (WDI), the OECD (annual and quarterly national accounts, the monthly short-term indicators, labour force and vacancies), Eurostat, the IMF data portal, the BIS, ECB/FRED rates and yields, ILOSTAT, the Penn World Table and the Maddison Project, all through urllib with an on-disk cache and the same `(code, date)` contract; `splice_sources` to stack several sources by precedence with recorded seams; and repairs to the BIS, Eurostat, ILOSTAT and OECD-LFS readers that had been returning empty or partial data.**

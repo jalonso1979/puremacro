@@ -175,10 +175,16 @@ class Cartridge:
         Note this re-encodes rather than re-reading the file, so it also
         catches a frame mutated in memory since load — which is the
         common case when a notebook has been running for a while.
+        Version-2 frame checksums also cover metadata (``DataFrame.attrs``).
+        Old version-1 frames did not store attrs, so those checksums cannot
+        verify metadata added after loading an old cartridge.
         """
         bad = []
         for rec in self.records:
-            payload = store.dumps_frame(self.frames[rec.name])
+            version = getattr(self, "_frame_schema_versions", {}).get(
+                rec.name, store.SCHEMA_VERSION,
+            )
+            payload = store._dumps_frame(self.frames[rec.name], schema_version=version)
             if _digest(payload) != rec.sha256:
                 bad.append(rec.name)
         if bad:
@@ -387,10 +393,15 @@ def _from_zip(zf: zipfile.ZipFile, *, verify: bool) -> Cartridge:
             f"corrupt cartridge: stored checksum does not match the payload "
             f"for {mismatched}"
         )
+    versions = {}
     for name, payload in payloads.items():
         frames[name] = store.loads_frame(payload)
+        versions[name] = store.describe(io.BytesIO(payload))["version"]
     prov = Provenance(**manifest["provenance"])
-    return Cartridge(frames=frames, provenance=prov, records=records)
+    cart = Cartridge(frames=frames, provenance=prov, records=records)
+    # Implementation detail, outside the public frozen-dataclass signature.
+    object.__setattr__(cart, "_frame_schema_versions", versions)
+    return cart
 
 
 def loads(payload: bytes, *, verify: bool = True) -> Cartridge:

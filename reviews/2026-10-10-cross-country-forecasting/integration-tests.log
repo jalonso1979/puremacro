@@ -1,0 +1,14 @@
+........................................................................ [ 41%]
+........................................................................ [ 83%]
+............................                                             [100%]
+=============================== warnings summary ===============================
+tests/test_vintages_qna/test_qna_vintages.py::test_fetch_qna_vintages_with_mock
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_vintages_qna/test_qna_vintages.py:147: UserWarning: fetch_qna_vintages resolves non-US countries through FRED's OECD-MEI series (NAEXKP01<ISO2>Q652S and siblings), which were discontinued in January 2024 -- their data and ALFRED archives end around 2023Q3. Use puremacro.fetch.vintage_panel(...) instead: 42 economies, monthly editions from 1999. See puremacro.fetch.realtime.
+    panel = fetch_qna_vintages(
+
+tests/test_vintages_qna/test_qna_vintages.py::test_fetch_qna_vintages_with_mock
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_vintages_qna/test_qna_vintages.py:166: UserWarning: fetch_qna_vintages resolves non-US countries through FRED's OECD-MEI series (NAEXKP01<ISO2>Q652S and siblings), which were discontinued in January 2024 -- their data and ALFRED archives end around 2023Q3. Use puremacro.fetch.vintage_panel(...) instead: 42 economies, monthly editions from 1999. See puremacro.fetch.realtime.
+    panel_cached = fetch_qna_vintages(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+172 passed, 39 deselected, 2 warnings in 3.10s

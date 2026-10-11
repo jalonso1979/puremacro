@@ -2,8 +2,14 @@
 
 # Independent evidence, structural estimation and distributional trade
 
-These unreleased additions connect three research tasks. Each can run offline
-from an installed package with the standard numerical dependencies.
+The [cross-country forecasting workflow](cross_country_forecasting.md) adds a
+frozen three-country GDP panel, an expanding-window comparison, and portable
+data provenance. It is latest-vintage forecast evidence, with no real-time or
+causal claim; it is included in puremacro 4.8.0.
+
+These research workflows connect independent validation, structural estimation
+and distributional analysis. Each can run offline from an installed package with
+the standard numerical dependencies.
 
 The [real-data studies](empirical_research.md) add observed-moment SW07
 estimation with explicit conditional-calibration diagnostics and an original-data

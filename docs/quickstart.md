@@ -2,7 +2,17 @@
 
 # Quickstart Guide
 
-Get up and running with `puremacro 2.0` in less than 2 minutes. All core estimators run on pure Python, NumPy, SciPy, Pandas, and Matplotlib — no C compilers, no Fortran runtimes, and 100% Pyodide/browser compatible.
+Start with the local-projection example below, then choose a model or estimator.
+The numerical core uses NumPy, SciPy, pandas and Matplotlib, with no compiled
+extension of its own. A local workstation installation is the supported target:
+
+```bash
+python -m pip install puremacro
+```
+
+Browser execution under Pyodide is best effort. The [runtime guide](tablet.md)
+explains file-format, network and compute limits; the
+[notebook learning paths](notebooks.md) provide longer worked examples.
 
 ---
 

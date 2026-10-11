@@ -4,7 +4,12 @@
 
 Una **caja de herramientas de macroeconomía empírica compatible con Pyodide**: el código de los estimadores corre sobre numpy + scipy + pandas + matplotlib puros, de modo que el núcleo numérico sigue siendo importable bajo Pyodide (iPad / juno.sh, en la medida de lo posible — véase «juno.sh / iPad» más abajo). El destino soportado es una **instalación local** en una estación de trabajo convencional.
 
-## Flujos de investigación (aún no publicados)
+## Flujos de investigación
+
+[Pronósticos del PIB entre países](docs/es/cross_country_forecasting.md)
+conecta un panel congelado del Banco Mundial con tres métodos de pronóstico,
+procedencia portátil y un informe reproducible sin conexión. La aplicación
+completa y los datos congelados están incluidos en puremacro 4.8.0.
 
 [Benchmarks independientes, estimación empírica-estructural e incidencia comercial](docs/es/research_workflows.md)
 conectan momentos LP con covarianza completa a modelos estructurales, y canastas
@@ -17,9 +22,9 @@ añaden ajuste condicional de covarianzas SW07 con datos observados de EE. UU.
 y la especificación original de retardos distribuidos de Romer–Romer (2010),
 con comprobaciones separadas de ajuste y referencia independiente.
 
-## Inicio rápido en 5 minutos (API unificada 2.0)
+## Inicio rápido y ejemplos desarrollados
 
-`puremacro 2.0` estandariza la API econométrica con convenciones de parámetros comunes (`lags`, `horizon`, `ci`), objetos de resultado dataclass congelados, visualización interactiva (`.plot()`) y exportación directa para publicación (`.to_latex()`, `.to_typst()`, `.to_markdown()`):
+`puremacro` utiliza convenciones de parámetros comunes (`lags`, `horizon`, `ci`), objetos de resultado dataclass congelados, visualización (`.plot()`) y exportación directa para publicación (`.to_latex()`, `.to_typst()`, `.to_markdown()`). Comience con el ejemplo de proyecciones locales; los siguientes introducen modelos estructurales y flujos más amplios.
 
 ### 1. Proyecciones Locales (LP) y Exportación para Publicación
 ```python
@@ -512,7 +517,7 @@ La promesa central del paquete es que el núcleo de estimadores corre en un iPad
 
 **Cuaderno de bocetos DSGE, paridad con Dynare y motores de frontera** (`dsge.build`, `dsge.dynare`, `dsge.cli`, `dsge.occbin`, `dsge.bayesian`, `dsge.perfect_foresight`)
 
-Escriba las condiciones de equilibrio como una función de Python o cargue archivos `.mod` estándar de Dynare (`load_mod`, `parse_mod`). Resuelve aproximaciones de 1er y 2do orden con diferenciación de paso complejo, poda (*pruning*) de Kim, Kim, Schaumburg y Sims (2008), derivadas cruzadas ($g_{xu}, g_{uu}$), correcciones por riesgo ($g_{\sigma\sigma}$), reglas de decisión de Dynare `oo_.dr` y momentos teóricos analíticos (`stoch_simul`). Incluye la herramienta de línea de comandos `puremacro-dynare`, el algoritmo lineal por tramos OccBin de Guerrieri e Iacoviello (2015) para cotas de tasa cero (ZLB), relajación no lineal de Newton-Raphson de Boucekkine-Juillard para previsión perfecta y estimación bayesiana completa por MCMC (Laplace + Metropolis-Hastings adaptativo). Sin matrices derivadas a mano, sin compiladores Fortran/C++, 100% compatible con Pyodide.
+Escriba las condiciones de equilibrio como una función de Python o cargue archivos `.mod` estándar de Dynare (`load_mod`, `parse_mod`). Resuelve aproximaciones de 1er y 2do orden con diferenciación de paso complejo, poda (*pruning*) de Kim, Kim, Schaumburg y Sims (2008), derivadas cruzadas ($g_{xu}, g_{uu}$), correcciones por riesgo ($g_{\sigma\sigma}$), reglas de decisión de Dynare `oo_.dr` y momentos teóricos analíticos (`stoch_simul`). Incluye la herramienta de línea de comandos `puremacro-dynare`, el algoritmo lineal por tramos OccBin de Guerrieri e Iacoviello (2015) para cotas de tasa cero (ZLB), relajación no lineal de Newton-Raphson de Boucekkine-Juillard para previsión perfecta y estimación bayesiana completa por MCMC (Laplace + Metropolis-Hastings adaptativo). Sin matrices derivadas a mano ni compiladores Fortran/C++, y con un núcleo numérico importable bajo Pyodide. La ejecución en el navegador tiene soporte limitado; consulte la [guía de ejecución](docs/es/tablet.md) para los límites de formatos de archivo, red y cómputo.
 
 **Artefactos docentes**
 
@@ -739,7 +744,7 @@ credentials.status()                  # see what's configured (no values leaked)
 
 Si proviene de Stata, MATLAB/Dynare o statsmodels:
 
-| Tarea / Estimador | Stata | MATLAB / Dynare | statsmodels / linearmodels | **`puremacro 2.0`** |
+| Tarea / Estimador | Stata | MATLAB / Dynare | statsmodels / linearmodels | **`puremacro`** |
 |---|---|---|---|---|
 | **SVAR de Cholesky** | `var y1 y2, lags(1/4)` + `irf create` | `varm` / VAR Toolbox | `VAR(Y).fit(4).irf(20)` | `var.identify.cholesky_svar(Y, p=4, horizon=20)` |
 | **SVAR de Blanchard–Quah** | `svar y1 y2, lreq(...)` | VAR Toolbox `bq_svar` | `SVAR(..., svar_type='B')` | `var.identify.bq_svar(Y, p=4, horizon=20)` |
@@ -851,8 +856,19 @@ como `puremacro/trade/_datafiles/SOURCES.md`.
 
 ## Estado
 
-Versión de producción, distribuyendo **4.5.0**. `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de la promesa del gate de publicación y cuáles son experimentales.
+Versión actual: **4.8.0**. Los [niveles de estabilidad](ARCHITECTURE.md#stability-tiers)
+identifican las superficies estables, experimentales y de soporte limitado.
+Los cálculos estructurales tienen [límites de validación](docs/es/STRUCTURAL_VALIDATION_STATUS.md)
+adicionales.
 
-La CI está activa y corre en cada push: la suite sobre tres sistemas operativos y tres versiones de Python (3.11, 3.12 y 3.13), el contrato con Pyodide, mypy, la guardia de deriva contra referencias, `mkdocs build --strict`, el despliegue del playground y una publicación en PyPI disparada por etiqueta mediante trusted publishing. Véase `.github/workflows/`. Aun así ejecute `python tools/release_check.py` localmente antes de etiquetar: los gates 5 y 6 son opcionales y la CI no los corre.
+La CI ejecuta la suite predeterminada en tres sistemas operativos y Python 3.11–3.13,
+el contrato estático de Pyodide, las comprobaciones de API pública y versión, la
+sintaxis de la versión mínima de Python y `mkdocs build --strict`. Pages se
+despliega con los cambios en `main`. La publicación en PyPI por etiqueta espera
+a la CI y a las pruebas lentas, de referencia y de replicación; la ejecución
+completa de cuadernos corre semanalmente y bajo demanda. Véase el
+[procedimiento de publicación](RELEASING.md). Ejecute `python tools/release_check.py`
+localmente antes de etiquetar; las comprobaciones de la galería de ejemplos y de
+Pyodide real siguen siendo opcionales.
 
 Cuando una versión publicada devolvió un número equivocado, queda registrado en **[`docs/es/ADVISORY.md`](docs/es/ADVISORY.md)**, junto con la condición bajo la cual el error se anula, para que pueda descartar su propia estimación.

@@ -2,7 +2,7 @@
 
 # puremacro
 
-**Modelado macroeconométrico y estructural con agentes heterogéneos en Python puro, listo para producción y sin extensiones en C.**
+**Macroeconometría y modelos estructurales sobre el núcleo científico de Python.**
 
 [![Versión en PyPI](https://img.shields.io/pypi/v/puremacro.svg)](https://pypi.org/project/puremacro/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
@@ -13,9 +13,16 @@
 
 ## ¿Qué es puremacro?
 
-Nuevos flujos de investigación: [evidencia independiente, estimación estructural e incidencia comercial por hogar](research_workflows.md).
+Flujos de investigación: [evidencia independiente, estimación estructural e incidencia comercial por hogar](research_workflows.md).
 
-`puremacro` es una biblioteca unificada de computación macroeconómica desarrollada íntegramente en Python puro y NumPy. Elimina cadenas de compilación complejas en Fortran, C++ o MEX, permitiendo que los modelos econométricos se ejecuten en cualquier entorno: computadoras portátiles, clústeres de alto rendimiento, Google Colab y **directamente dentro del navegador web mediante Pyodide / WebAssembly**.
+`puremacro` reúne estimadores econométricos y modelos macroeconómicos cuantitativos
+sobre NumPy, SciPy, pandas y Matplotlib, sin extensiones compiladas propias.
+El destino soportado es una instalación local en una estación de trabajo.
+El núcleo numérico también funciona bajo Pyodide / WebAssembly; los flujos en
+navegadores y tabletas tienen soporte limitado por los formatos de archivo,
+el acceso a la red y la capacidad de cómputo. Consulte la
+[guía de ejecución](tablet.md) y el [estado de validación estructural](STRUCTURAL_VALIDATION_STATUS.md)
+para conocer el alcance de la evidencia.
 
 ### Subsistemas Clave
 
@@ -66,7 +73,7 @@ Nuevos flujos de investigación: [evidencia independiente, estimación estructur
    - Exportación de tablas con calidad de imprenta directamente a **LaTeX** (`.to_latex()`), **Typst** (`.to_typst()`) y **Markdown** (`.to_markdown()`), con errores estándar y estrellas de significancia ([Guía](reporting.md)).
 
 8. **Ejecución en Cualquier Dispositivo**:
-   - Compatibilidad completa con Pyodide/WebAssembly para tabletas y navegadores ([Guía](tablet.md)), descarga de cómputo a Google Colab (`runtime.colab`), ejecución segmentada (`longrun`) y cartuchos portátiles `.pmz` (`pocket`).
+   - Núcleo numérico compatible con Pyodide para cuadernos en el navegador, con soporte limitado en tabletas y navegadores ([Guía](tablet.md)), herramientas para descargar cómputo a Google Colab (`runtime.colab`), ejecución segmentada (`longrun`) y cartuchos portátiles `.pmz` (`pocket`).
 
 ---
 

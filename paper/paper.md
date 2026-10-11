@@ -27,14 +27,16 @@ bibliography: paper.bib
      public ORCID registry (checked 2026-09-13); confirm it is yours. Set `date` to
      the day you submit. -->
 
-<!-- This draft is NOT pinned to an old release: it tracks the current one, 4.6.0.
+<!-- Evidence snapshot: this draft reports measurements from 4.6.0.
      Every count in the text (modules, lines, tests, swept library modules,
      validation checks, notebook pairs, commits) was recomputed from the 4.6.0 tree
      (commit d2634362) on 2026-10-04, and `scorecard.png` was regenerated from
      `validation.scorecard()` on the same tree: 114 checks, 16 subsystems,
      21 external (14 package + 5 SciPy + 2 published) / 31 analytical / 62 internal,
-     all passing (4.4.0 had 110: 20 / 31 / 59; 3.4.0 had 107: 19 / 29 / 59). Re-run
-     the commands in RELEASING.md §6.5 before submitting. -->
+     all passing (4.4.0 had 110: 20 / 31 / 59; 3.4.0 had 107: 19 / 29 / 59).
+     Package development has reached 4.7.0; these counts and measurements have
+     not been refreshed for it. Re-run the commands in RELEASING.md §6.5 on the
+     chosen submission commit before submitting. -->
 
 # Summary
 
@@ -78,18 +80,15 @@ identification from MATLAB toolboxes or R packages such as vars and lpirfs
 [@pfaff2008; @adammer2019]; DSGE analysis in Dynare [@dynare2024], which runs
 under MATLAB or GNU Octave; and heterogeneous-agent models in Python codes
 accelerated with Numba [@auclert2021; @carroll2018hark; @quantecon2024]. Each tool
-is good at what it does, but combining them means several installations, often
-several languages, sometimes a commercial licence, and conventions that change
-from package to package. The cost is highest in teaching, where installation
-problems consume class time and students' machines (managed laptops, low-end
-hardware, tablets) may not support the full stack.
+has its strengths, but combining them requires several installations, languages
+and conventions, sometimes with a commercial licence. Installation problems
+consume class time, and students' managed laptops or tablets may not support
+the full stack.
 
-`puremacro` is written for that audience: instructors, students and applied
-researchers in macroeconomics. It puts common estimators and models behind one
-set of conventions (shared arguments such as `lags`, `horizon` and `ci`, and
-immutable result objects with plotting and table export), keeps the dependencies
-of its numerical code to four ubiquitous libraries, and ships the evidence needed
-to trust its output: galleries of checks that users can run themselves.
+`puremacro` serves instructors, students and applied macroeconomists with shared
+arguments (`lags`, `horizon`, `ci`), immutable results with plotting and table
+export, four numerical dependencies, and validation galleries users can run
+themselves.
 
 # State of the field
 
@@ -113,12 +112,11 @@ core modules. In a browser, the volatility, panel-IV and heterogeneous-agent lay
 of the usual stack are therefore unavailable, and Dynare needs a different language
 runtime altogether.
 
-This also answers the build-versus-contribute question. Individual estimators
-could be contributed to existing packages, and some would be welcome there. What
-cannot be contributed is the property that makes the collection usable on a
-constrained machine: one import surface whose numerical code depends on nothing
-beyond four core libraries. That is an invariant of the whole library, enforced by
-tests, not a feature that can be added to another project's dependency graph.
+Individual estimators could be contributed to existing packages. The collection's
+portability, however, depends on a library-wide invariant: one import surface
+whose numerical code uses only four core libraries. Tests enforce that constraint
+across the package; contributing an estimator elsewhere would not change its
+host's dependency graph.
 
 # Software design
 
@@ -135,13 +133,11 @@ without them fails in continuous integration (CI) on a machine that has them. Th
 wheel is pure Python, and its base install adds only requests to the four core
 libraries; the Parquet and Excel engines are an optional extra.
 
-**Oracles that do not ship.** The packages forbidden at run time are the test
-suite's references. Scripts in the repository run statsmodels, arch, linearmodels
-and esda once on fixed inputs and store their outputs as package data, so the
-validation gallery can compare against them without importing them; an opt-in test
-marker recomputes the stored outputs with the installed packages to detect drift.
-The reference implementations thus certify the library without becoming its
-dependencies, which is what lets breadth and portability coexist.
+**Oracles that do not ship.** Scripts run statsmodels, arch, linearmodels and esda
+on fixed inputs and store their outputs as package data. The validation gallery
+compares against these outputs without importing the reference packages; an
+opt-in test marker recomputes them to detect drift. Reference implementations
+check the library without becoming runtime dependencies.
 
 **Degrading rather than failing.** Where an external tool does better, `puremacro`
 uses it if present: seasonal adjustment calls X-13ARIMA-SEATS through statsmodels
@@ -173,13 +169,14 @@ differing between WebAssembly and native arithmetic by at most $5 \times 10^{-4}
 exercised by about 19,100 tests, of which CI runs 18,900 on Linux, macOS and Windows
 under Python 3.11–3.13 on every push and the remaining slow, reference and
 replication tests weekly and on every release tag, where they gate publication.
-Before a release is tagged, a script checks the suite against a recorded
-baseline, the import invariant, a snapshot of the public API that must be
-regenerated deliberately when the interface changes, that every shipped file still
-parses on the oldest supported Python, and that the version string agrees across
-the package metadata, changelog and citation file.
+The pre-release script checks the test baseline, import invariant, deliberately
+maintained public-API snapshot, syntax on the oldest supported Python, and version
+agreement across package metadata, changelog and citation file.
 
 ## Verification
+
+The measurements below describe version 4.6.0 (commit `d2634362`); they have not
+been refreshed for 4.7.0.
 
 The validation gallery, `puremacro.validation.scorecard()`, runs 114 checks across
 16 subsystems in under a minute, with none of the oracle packages installed; all

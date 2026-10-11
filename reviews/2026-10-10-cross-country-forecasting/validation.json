@@ -1,0 +1,114 @@
+{
+  "checked_at_utc": "2026-10-11T02:45:39.492048+00:00",
+  "counts": {
+    "countries": 3,
+    "country_model_accuracy_rows": 9,
+    "country_target_pairs": 75,
+    "forecasts": 225,
+    "growth_observations": 192,
+    "level_observations": 195
+  },
+  "environment": {
+    "numpy": "2.5.4",
+    "pandas": "3.0.6",
+    "python": "3.12.13",
+    "scipy": "1.18.1"
+  },
+  "evidence_sha256": {
+    "DESIGN.md": "f76214319a6a9c7c94f9a9c0eedf05628a2551c2e7eb519b8c185f3fd7fdae8f",
+    "builder": "a28e459ff5dd6abe958544d8bde84cefc3b30a0fa40681d9483d5d051a5b75b6",
+    "manifest.json": "5f8f36f9647b587b14059c8c08c0a0b7fe5ff803a808a395960ea4b598ca5f35",
+    "validator": "55ca0e58c0948783cc2b21c348ef44e61ad0ed37eac264c25e1cddaa0c65ddff"
+  },
+  "implementation": "No puremacro imports; direct raw JSON extraction, log ratios, scipy.linalg.lstsq(lapack_driver='gelss'), math.fsum losses",
+  "independence_scope": "Separate numerical implementation within development; not independent external adoption or peer review",
+  "no_look_ahead": {
+    "first_training_growth_year": 1961,
+    "initial_training_growth_observations": 39,
+    "latest_training_growth_year": "target year minus one",
+    "scope": "Numerical equality on frozen data plus source review; package tests separately exercise future-data perturbation and prefix invariance",
+    "status": "all 225 exported forecasts match independently fitted origin-specific prefixes"
+  },
+  "review_limits": [
+    "Source hashes authenticate the archived bytes, not their truth or historical availability.",
+    "Source inspection found prefix-only fitting with fixed model specifications and no full-sample preprocessing.",
+    "The design document states it preceded fitting; this numerical check cannot independently establish that timing.",
+    "This script authenticates the cartridge bytes but leaves cartridge deserialization and installed-wheel replay to separate checks."
+  ],
+  "source_sha256": {
+    "wdi_countries.json": "c9acf3932785191a649cbc04c3056af4cf64a236e5c3b49d49be25ddb0440bce",
+    "wdi_gdp.json": "13aae503fd11572c2c886fe43613c23c6a7ef78882032233c1609e90cda616c7"
+  },
+  "statistical_labels": {
+    "all_predeclared_target_years_and_models_reported": true,
+    "causal": false,
+    "equal_country_weighting_verified": true,
+    "latest_vintage": true,
+    "loss_units": "annual log-growth percentage points",
+    "publication_lags_modeled": false,
+    "real_time": false,
+    "significance_tests_claimed": false
+  },
+  "status": "passed",
+  "study_directory": "/Users/jalonso/Documents/RESEARCH/puremacro/reviews/2026-10-10-cross-country-forecasting/study",
+  "table_comparisons": {
+    "accuracy": {
+      "maximum_absolute_differences": {
+        "mae": 3.597122599785507e-14,
+        "mean_error": 2.531308496145357e-14,
+        "rmse": 5.639932965095795e-14
+      },
+      "passed": true,
+      "rows": 9
+    },
+    "coverage": {
+      "maximum_absolute_differences": {},
+      "passed": true,
+      "rows": 3
+    },
+    "exclusions": {
+      "maximum_absolute_differences": {},
+      "passed": true,
+      "rows": 120
+    },
+    "forecasts": {
+      "maximum_absolute_differences": {
+        "actual": 3.0331293032759277e-13,
+        "error": 3.703704010149522e-13,
+        "forecast": 1.8474111129762605e-13
+      },
+      "passed": true,
+      "rows": 225
+    },
+    "growth": {
+      "maximum_absolute_differences": {
+        "growth": 3.3928415632544784e-13
+      },
+      "passed": true,
+      "rows": 192
+    },
+    "levels": {
+      "maximum_absolute_differences": {
+        "gdp_real": 0.0
+      },
+      "passed": true,
+      "rows": 195
+    },
+    "packaged_levels": {
+      "maximum_absolute_differences": {
+        "gdp_real": 0.0
+      },
+      "passed": true,
+      "rows": 195
+    },
+    "pooled_accuracy": {
+      "maximum_absolute_differences": {
+        "mae": 1.2434497875801753e-14,
+        "mean_error": 1.9206858326015208e-14,
+        "rmse": 3.9968028886505635e-15
+      },
+      "passed": true,
+      "rows": 3
+    }
+  }
+}

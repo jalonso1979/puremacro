@@ -2,7 +2,7 @@
 
 # puremacro
 
-**Production-grade, zero-C-extension Macroeconometric and Heterogeneous-Agent Structural Modeling in Pure Python.**
+**Macroeconometrics and structural modeling on the core scientific-Python stack.**
 
 [![PyPI Version](https://img.shields.io/pypi/v/puremacro.svg)](https://pypi.org/project/puremacro/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
@@ -13,9 +13,15 @@
 
 ## What is puremacro?
 
-New research workflows: [independent evidence, structural estimation and household trade incidence](research_workflows.md).
+Research workflows: [independent evidence, structural estimation and household trade incidence](research_workflows.md).
 
-`puremacro` is a unified macroeconomic computing library built entirely in pure Python and NumPy. It eliminates complex Fortran, C++, and MEX toolchains, allowing econometric models to run anywhere: local laptops, high-performance clusters, Google Colab, and **directly inside web browsers via Pyodide / WebAssembly**.
+`puremacro` brings econometric estimators and quantitative macroeconomic models
+together using NumPy, SciPy, pandas and Matplotlib, with no compiled extension of
+its own. A local workstation installation is the supported target. The numerical
+core also runs under Pyodide / WebAssembly; browser and tablet workflows remain
+best effort, with limits on file formats, network access and computation. See the
+[runtime guide](tablet.md) and the [structural validation status](STRUCTURAL_VALIDATION_STATUS.md)
+for the scope of the evidence.
 
 ### Key Subsystems
 
@@ -66,7 +72,7 @@ New research workflows: [independent evidence, structural estimation and househo
    - Zero-dependency, camera-ready table export directly to **LaTeX** (`.to_latex()`), **Typst** (`.to_typst()`), and **Markdown** (`.to_markdown()`), complete with standard errors and significance stars ([Guide](reporting.md)).
 
 8. **Running Anywhere**:
-   - Full Pyodide/WebAssembly compatibility for tablets and browser notebooks ([Guide](tablet.md)), with automatic Google Colab offloading (`runtime.colab`), chunked long-run execution (`longrun`), and portable `.pmz` data cartridges (`pocket`).
+   - A Pyodide-compatible numerical core for browser notebooks, with best-effort tablet and browser support ([Guide](tablet.md)), Google Colab offloading helpers (`runtime.colab`), chunked long-run execution (`longrun`), and portable `.pmz` data cartridges (`pocket`).
 
 ---
 

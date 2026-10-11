@@ -1,0 +1,19 @@
+{
+  "package_file": "/private/var/folders/lx/tfh_l1r90j3cp31s1bhtz7ph0000gn/T/puremacro-paths-build-80zznli7/installed/puremacro/__init__.py",
+  "version": "4.7.0",
+  "forecasts": 225,
+  "cartridge_verified": true,
+  "passed": true,
+  "wheel_sha256": "9089c186085ff8a1d2151da44fc041ad5db45ae52f8d28b99e77ec9f4738c51f",
+  "wheel_bytes": 21150629,
+  "table_sha256": {
+    "levels": "dd05c0de2a423a916bc8912d9a154b1f7042eada3ad45b50e60747bd8a16c8a4",
+    "growth": "9299f0334e40640a2564b4b913343d5257ce105302eec1c4fff2af46dda00ee2",
+    "forecasts": "fadd6e542150e07c4c871f1823baa0ea6f86b74ca308812c8c0684bac1b0ddc8",
+    "accuracy": "ce11c975e6a28d160623e6c844cd0efb56caa93d2215bfb959fe2b38ef226841",
+    "pooled_accuracy": "03df8b90150cc2891c70a30410fe059d6cfaeb1301f531f7dd2136e72ba6c5c4",
+    "coverage": "2ae21bc42653fb30dad3f2615e68f6bacffd62127dc1afa7b5a1ed202ffdeeae",
+    "exclusions": "ebc3b4c039733c8644e9c6f8fb42bf95cbb98c3275cef98998012ea4c26554a9"
+  },
+  "validation_scope": "Installed wheel in separate working directory, existing base dependencies; HTTP network blocked"
+}

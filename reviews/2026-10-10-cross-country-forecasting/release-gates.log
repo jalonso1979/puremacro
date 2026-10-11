@@ -1,0 +1,10 @@
+/Users/jalonso/.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/importlib/__init__.py:88: FutureWarning: puremacro.lp.garch_utils is private and deprecated, will be removed in a future major release (5.0.0); use puremacro.lp._garch_utils or high-level LP functions instead.
+  return _bootstrap._gcd_import(name[level:], package, level)
+release_check — puremacro pre-tag gate
+  repo root: /Users/jalonso/Documents/RESEARCH/puremacro
+  Gate 2 (Pyodide contract): PASS
+  Gate 3 (public API snapshot): PASS
+  Gate 4 (version sync): PASS — all read 4.7.0
+  Gate 7 (min-Python 3.11 syntax): PASS — 1699 files parse (ast.parse(feature_version=3.11); PEP 701 f-string scan)
+
+all 4 gates PASS

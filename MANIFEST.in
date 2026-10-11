@@ -1,0 +1,5 @@
+# Frozen provider replay and legacy-format fixture used by the shipped tests.
+include tools/build_cross_country_forecasting_data.py
+include tests/fixtures/runtime_store_v1.pmz
+include reviews/2026-10-10-cross-country-forecasting/source/wdi_countries.json
+include reviews/2026-10-10-cross-country-forecasting/source/wdi_gdp.json

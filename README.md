@@ -8,7 +8,13 @@ core stays importable under Pyodide (iPad / juno.sh, best-effort — see
 "juno.sh / iPad" below). The supported target is a local install on a
 regular workstation.
 
-## Research workflows (unreleased)
+## Research workflows
+
+[Cross-country GDP forecasting](docs/cross_country_forecasting.md)
+connects a frozen World Bank panel to an offline comparison of three simple
+forecasting methods, with portable provenance, full forecast tables and a
+reproducible report. The complete offline application and frozen data are
+included in puremacro 4.8.0.
 
 [Independent benchmarks, empirical-to-structural estimation, and distributional trade](docs/research_workflows.md)
 now connect full-covariance LP moments to structural models and observed ENIGH 2024
@@ -21,9 +27,9 @@ conditional SW07 covariance matching on observed U.S. data and the original
 Romer–Romer (2010) distributed-lag baseline, with separate model-fit and
 independent-reference checks.
 
-## 5-Minute Quickstart (2.0 Unified API)
+## Quickstart and worked examples
 
-`puremacro 2.0` standardizes the macro API around common parameter conventions (`lags`, `horizon`, `ci`), frozen-dataclass result objects, rich visualization (`.plot()`), and direct publication export (`.to_latex()`, `.to_typst()`, `.to_markdown()`):
+`puremacro` uses common parameter conventions (`lags`, `horizon`, `ci`), frozen-dataclass result objects, visualization (`.plot()`), and direct publication export (`.to_latex()`, `.to_typst()`, `.to_markdown()`). Start with the local-projection example below; the later examples introduce structural models and larger workflows.
 
 ### 1. Local Projections (LP) & Publication-Grade Export
 ```python
@@ -644,7 +650,9 @@ OccBin piecewise-linear algorithm for occasionally binding constraints (ZLB),
 Boucekkine-Juillard stacked Newton-Raphson relaxation for non-linear perfect
 foresight, and full Bayesian MCMC estimation (Laplace Hessian covariance +
 adaptive Random-Walk Metropolis-Hastings). No hand-derived matrices, no
-Fortran/C++ compiler, 100% Pyodide-ready.
+Fortran/C++ compiler, and a numerical core importable under Pyodide. Browser
+execution remains best effort; see the [runtime guide](docs/tablet.md) for
+file-format, network and compute limits.
 
 **Teaching artefacts**
 
@@ -990,7 +998,7 @@ credentials.status()                  # see what's configured (no values leaked)
 
 If you are transitioning from Stata, MATLAB/Dynare, or statsmodels:
 
-| Task / Estimator | Stata | MATLAB / Dynare | statsmodels / linearmodels | **`puremacro 2.0`** |
+| Task / Estimator | Stata | MATLAB / Dynare | statsmodels / linearmodels | **`puremacro`** |
 |---|---|---|---|---|
 | **Cholesky SVAR** | `var y1 y2, lags(1/4)` + `irf create` | `varm` / VAR Toolbox | `VAR(Y).fit(4).irf(20)` | `var.identify.cholesky_svar(Y, p=4, horizon=20)` |
 | **Blanchard–Quah SVAR** | `svar y1 y2, lreq(...)` | VAR Toolbox `bq_svar` | `SVAR(..., svar_type='B')` | `var.identify.bq_svar(Y, p=4, horizon=20)` |
@@ -1107,17 +1115,17 @@ The full notice, with each file's provenance and SHA-256, ships as
 
 ## Status
 
-Production release, shipping **4.7.0**. `docs/1.0_path.md` § 5 lists which
-subpackages are inside the release-gate promise and which are
-research-experimental.
+Current release: **4.8.0**. The [stability tiers](ARCHITECTURE.md#stability-tiers)
+identify stable, experimental and best-effort surfaces. Structural calculations
+have additional [validation limits](docs/STRUCTURAL_VALIDATION_STATUS.md).
 
-CI is live and runs on every push: the suite across three operating
-systems and three Python versions (3.11, 3.12 and 3.13), the Pyodide
-contract, mypy, the reference drift-guard, `mkdocs build --strict`, the
-playground deploy, and a tag-triggered PyPI publish via trusted
-publishing. See `.github/workflows/`. Run
-`python tools/release_check.py` locally before tagging anyway — gates 5
-and 6 are opt-in and CI does not run them.
+CI runs the default suite across three operating systems and Python 3.11–3.13,
+the static Pyodide contract, public-API and version checks, minimum-Python syntax
+checks, and `mkdocs build --strict`. Pages deployment runs on pushes to `main`.
+Tag-triggered PyPI publication waits for CI and the slow, reference and replication
+tests; complete notebook execution runs weekly and on demand. See
+[the release procedure](RELEASING.md). Run `python tools/release_check.py` locally
+before tagging; the examples-gallery and real-Pyodide gates remain opt-in.
 
 When a released version has returned a wrong number, it is recorded in
 **[`docs/ADVISORY.md`](docs/ADVISORY.md)**, with the condition under

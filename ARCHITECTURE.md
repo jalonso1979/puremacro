@@ -10,7 +10,7 @@ The package was significantly extended in **Phase 5** (April–early-May 2026, c
 
 ## Module map
 
-### Empirical-to-structural and distributional research (unreleased)
+### Empirical-to-structural and distributional research
 
 - `structural/bridge.py`: `MomentTargets` owns labeled full estimator covariance,
   unit transformations and metadata; `fit_structural` solves bounded minimum
@@ -75,6 +75,23 @@ under explicit illustrative policy assumptions. See `docs/research_workflows.md`
 study and the original-data published replication, respectively. Their source
 vintages, inference limits and distinct evidence claims are documented in
 `docs/empirical_research.md`.
+
+The application `examples/cross_country_forecasting.py`, added in 4.8.0,
+uses frozen WDI GDP levels for USA/MEX/BRA, validates the complete annual
+grid, and evaluates fixed zero-growth, historical-mean and AR(1) forecasts on
+2000–2024. It depends on the public `var.fit_var`, `reports` and `pocket` APIs.
+Inputs and outputs run offline from the wheel; source replay and independent
+data checks live in `tools/build_cross_country_forecasting_data.py`. Its evidence
+is descriptive latest-vintage forecast accuracy, not historical real-time
+performance or causal identification. See `docs/cross_country_forecasting.md`.
+
+Portable frames written by `runtime.store` use schema v2, which retains a
+tagged allowlist of metadata types in `DataFrame.attrs` without pickle. V1
+frames remain readable. `pocket` retains the source frame schema when verifying
+older cartridges, so their original checksums still work; metadata in new
+frames is covered by the checksum. Unsupported values and cycles raise rather
+than losing provenance silently. Readers need puremacro 4.8.0 or later for v2
+files; existing v1 files need no conversion. This adds no runtime dependency.
 
 The tree below is grouped by **intent**, not by alphabet. Estimators and inference machinery come first; data pipelines, presentation, and side-channels are at the bottom.
 
@@ -475,7 +492,7 @@ requests >= 2.31
 
 The first four are the **Pyodide import core**: the only third-party modules a shippable estimator module may import at top level. The fifth widens the *install* contract, not the import contract:
 
-- `requests` — the whole `puremacro.fetch` layer (OECD/SDMX, EPU, FRED-CSV, IMF, BEA) and the narrative sources `import requests` at module level by design. Without it a clean `pip install puremacro` dies with `ModuleNotFoundError` on the first fetch call. It is pure Python and part of the Pyodide distribution (there are no sockets there, but the offline CSV paths never touch it).
+- `requests` — retained for existing fetchers and narrative sources that import it at module level. The cross-country panel builders added in 4.7.0 use the shared urllib transport and do not require it. It is pure Python and part of the Pyodide distribution; browser network availability remains provider- and runtime-dependent.
 
 Every base dependency must also **ship with the Pyodide distribution itself**. The JupyterLite playground installs with `%pip install puremacro` and PyPI fallback disabled, so a base dependency that Pyodide lacks breaks the first cell of every notebook. `tests/test_pyodide_compat.py::test_runtime_deps_ship_with_pyodide` enforces it.
 
@@ -937,6 +954,6 @@ The 0.43.0 + 0.44.0 releases retired the `svar/*`, `lp/lp_*.py`, and
 
 ## Out of scope (deliberately)
 
-- **Build pipeline / CI.** CI has existed since v0.92.0 and this line did not keep up. `.github/workflows/ci.yml` runs the suite across {ubuntu, macos, windows} x Python {3.11, 3.12, 3.13}, then the release gate and a strict `mkdocs build` on one leg; `release.yml` publishes to PyPI on a `v*` tag via Trusted Publishing; `pages.yml` deploys the JupyterLite playground. Still run `pytest` locally before tagging — CI runs the same default marker set, so the `slow`, `network`, `reference` and `replication` suites run nowhere but on your machine.
+- **Build pipeline / CI.** `.github/workflows/ci.yml` runs the default suite across {ubuntu, macos, windows} x Python {3.11, 3.12, 3.13}, the release checks and a strict docs build. `opt-in-tests.yml` runs slow, reference and replication tests weekly, on demand and as a release gate; full notebook execution runs weekly and on demand. Network tests remain opt-in. `release.yml` publishes tagged releases through Trusted Publishing, and `pages.yml` deploys the playground. Run the local release procedure before tagging.
 - **Sphinx docs.** README + per-module / per-function docstrings are the doc surface. Add a section here instead of bolting on a docs site.
 - **Backwards-compatibility shims.** The package is past 1.0 — 1.8.0 as of this writing — so this is no longer "rename freely". Every name in `tests/fixtures/public_api_snapshot.json` is covered by release gate 3, and `docs/1.0_path.md` promises a `DeprecationWarning` naming the replacement one minor release before removal. Private helpers remain free to move. The "promote a private helper" pattern applies even to API tightening. 0.43.0 demonstrated that the shim-and-deprecate pattern works cleanly: `svar/` shims shipped at 0.42.0 were deleted on schedule at 0.43.0 with no behaviour change for callers. Future releases can use the same pattern when the migration surface is large enough to warrant a one-release notice window.

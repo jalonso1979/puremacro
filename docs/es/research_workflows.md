@@ -2,8 +2,14 @@
 
 # Evidencia independiente, estimación estructural e incidencia comercial
 
-Estas incorporaciones aún no publicadas conectan tres tareas de investigación.
-Funcionan sin conexión desde el paquete instalado y conservan los supuestos,
+El [flujo de pronósticos entre países](cross_country_forecasting.md) añade un
+panel fijo de tres países, una evaluación con ventana creciente y procedencia
+portátil. Usa una edición reciente de datos revisados; no es evidencia causal
+ni de tiempo real. Está incluido en puremacro 4.8.0.
+
+Estos flujos de investigación conectan validación independiente, estimación
+estructural y análisis distributivo. Funcionan sin conexión desde el paquete
+instalado con las dependencias numéricas estándar y conservan los supuestos,
 las unidades y el alcance de la evidencia.
 
 Los [estudios con datos reales](empirical_research.md) añaden estimación SW07

@@ -1,0 +1,5 @@
+          model  n_countries  n_forecasts     rmse      mae  mean_error
+            ar1            3           75 3.039823 2.082453   -0.966665
+historical_mean            3           75 3.191707 2.153897   -1.735893
+    zero_growth            3           75 3.327973 2.873519    2.035649
+Latest-vintage forecast evidence written to reviews/2026-10-10-cross-country-forecasting/study

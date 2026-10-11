@@ -1,0 +1,4 @@
+code,first_level_year,last_level_year,level_observations,growth_observations,first_training_growth_year,initial_training_growth_observations,evaluation_start_year,evaluation_end_year,evaluation_observations_per_model,excluded_evaluation_observations
+BRA,1960,2024,65,64,1961,39,2000,2024,25,0
+MEX,1960,2024,65,64,1961,39,2000,2024,25,0
+USA,1960,2024,65,64,1961,39,2000,2024,25,0

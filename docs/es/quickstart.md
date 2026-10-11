@@ -2,7 +2,18 @@
 
 # Guía de inicio rápido
 
-Comience a utilizar `puremacro 2.0` en menos de 2 minutos. Todos los estimadores centrales operan sobre Python puro, NumPy, SciPy, Pandas y Matplotlib — sin compiladores de C, sin entornos de ejecución de Fortran y 100% compatibles con Pyodide y el navegador web.
+Comience con el ejemplo de proyecciones locales y luego elija un modelo o estimador.
+El núcleo numérico utiliza NumPy, SciPy, pandas y Matplotlib, sin extensiones
+compiladas propias. El destino soportado es una instalación local en una estación
+de trabajo:
+
+```bash
+python -m pip install puremacro
+```
+
+La ejecución en el navegador bajo Pyodide tiene soporte limitado. La
+[guía de ejecución](tablet.md) explica los límites de formatos de archivo, red y
+cómputo; los [itinerarios de cuadernos](notebooks.md) ofrecen ejemplos más amplios.
 
 ---
 
