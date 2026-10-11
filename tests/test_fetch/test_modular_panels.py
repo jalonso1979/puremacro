@@ -22,12 +22,15 @@ Verifies:
 from __future__ import annotations
 
 import io
+import importlib
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+import urllib.request
 
 import numpy as np
 import pandas as pd
 import pytest
+import requests
 
 from puremacro.build_panel import (
     build_all,
@@ -48,7 +51,19 @@ EMISS_DIR = FIXTURE_DIR / "emissions"
 @pytest.fixture(autouse=True)
 def mock_all_network(monkeypatch):
     """Intercept all network calls and serve local frozen fixtures."""
-    from puremacro.fetch import _http
+    # Import the current module objects even after an import-isolation test has
+    # removed/reloaded a fetcher but left an older parent-package attribute.
+    _http = importlib.import_module("puremacro.fetch._http")
+    wb_pink_sheet = importlib.import_module("puremacro.fetch.wb_pink_sheet")
+
+    network_attempts = []
+
+    def blocked_transport(*args, **kwargs):
+        network_attempts.append((args, kwargs))
+        raise AssertionError("modular panel tests must use frozen HTTP fixtures")
+
+    monkeypatch.setattr(urllib.request, "urlopen", blocked_transport)
+    monkeypatch.setattr(requests.sessions.Session, "request", blocked_transport)
 
     def offline_cached_get(url: str, *, refresh: bool = False, timeout: float | None = None, **kwargs) -> bytes:
         # 1. World Bank WDI (emissions / energy)
@@ -100,6 +115,23 @@ def mock_all_network(monkeypatch):
         return b"date,value\n2020-01-01,1.0\n"
 
     monkeypatch.setattr(_http, "cached_get", offline_cached_get)
+    # Pink Sheet now has its own urllib-backed seam. Patching only the older
+    # requests helper left this nominally offline suite reading live/cache data.
+    monkeypatch.setattr(wb_pink_sheet, "cached_get", offline_cached_get)
+    yield network_attempts
+    # Fetchers intentionally handle provider failures; catch a swallowed
+    # transport assertion as well as one that propagates to the test itself.
+    assert not network_attempts, f"Unmocked HTTP calls: {network_attempts}"
+
+
+@pytest.mark.mechanism_control
+def test_frozen_fixture_network_blockers_are_active(mock_all_network):
+    with pytest.raises(AssertionError, match="frozen HTTP fixtures"):
+        urllib.request.urlopen("https://example.invalid")
+    with pytest.raises(AssertionError, match="frozen HTTP fixtures"):
+        requests.get("https://example.invalid")
+    assert len(mock_all_network) == 2
+    mock_all_network.clear()  # Both attempts above were deliberate controls.
 
 
 # ============================================================================
@@ -361,10 +393,14 @@ class TestFinancialPanel:
 
     def test_temporal_boundary_filters(self):
         """Respects start_date and end_date temporal boundaries."""
-        panel = build_financial_panel(codes=["USA"], start_date="2016-01-01", end_date="2018-12-31", frequency="Q")
+        # All frozen financial and commodity observations begin in 2020.
+        panel = build_financial_panel(codes=["USA"], start_date="2020-04-01", end_date="2020-09-30", frequency="Q")
         assert not panel.empty
-        assert panel["date"].min() >= pd.Timestamp("2016-01-01")
-        assert panel["date"].max() <= pd.Timestamp("2018-12-31")
+        assert set(panel["date"]) == {pd.Timestamp("2020-04-01"), pd.Timestamp("2020-07-01")}
+        outside_fixture = build_financial_panel(
+            codes=["USA"], start_date="2016-01-01", end_date="2018-12-31", frequency="Q",
+        )
+        assert outside_fixture.empty
 
     def test_financial_long_to_wide_interop(self):
         """Financial long-form panel interoperates with puremacro.data.long_to_wide."""
