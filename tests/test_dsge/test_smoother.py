@@ -50,31 +50,23 @@ def _simulate(model, u, obs):
 
 
 # ---------------------------------------------------------------------------
-# Why the FIRST smoothed period gets a looser tolerance than the rest.
+# One tolerance for every period, the first included.
 #
 # The augmented filter state is [x_t; u_t] — here 3 dimensions driven by a
-# single shock — so `P_pred` is structurally rank-deficient by construction.
-# Measured: cond(P_pred) is 1e15 to 8e15, and its smallest singular value
-# (2.4e-18 at t=1) sits right at the default cutoff `np.linalg.pinv` uses,
-# s0 * max(M,N) * eps = 1.8e-18. The RTS gain in `kalman_smoother` is built
-# from that pinv, so whether the near-null direction is kept or discarded is
-# decided by last-bit differences in the SVD and flips between LAPACK builds.
+# single shock — so `P_pred` is structurally rank-deficient (cond 1e15 to
+# 8e15). `kalman_smoother` used the RTS gain P_filt T' pinv(P_pred), and the
+# smallest singular value (2.4e-18 at t=1) sat at pinv's default cutoff
+# (1.8e-18): whether that direction was kept flipped between LAPACK builds, so
+# t=0 differed by up to ~3e-06 across platforms and the interior by ~1e-8. These
+# tests used to carry 1e-4 for t=0 and 1e-7 elsewhere to absorb it.
 #
-# It is a DISCONTINUITY, not a sensitivity: on this machine a 1e-8 relative
-# perturbation of P0 moves t=0 by 2.3e-08 while 1e-6, 1e-4, 1e-2 and 1e-1 move
-# it by exactly zero. So a test asserting "the boundary moves" is not a stable
-# property, and an earlier version of one failed on 3 of 9 CI targets with
-# dev[0] == 0.0. What IS stable is that the interior is exact everywhere and
-# the boundary can differ by ~3e-06 on an observable of magnitude ~2. The
-# split below asserts exactly that, and no more.
-#
-# Tracked as deferred finding F3: a rank-aware or Cholesky-based smoother gain
-# would remove the platform dependence, but it changes `kalman_smoother` for
-# every caller and belongs in its own change.
+# The Durbin-Koopman recursion that replaced it inverts only F_t, never P_pred.
+# Measured on numpy 2.4/2.5 the smoothed path is bit-identical across builds,
+# the fitted observables equal the data exactly, and the decomposition route
+# agrees to 6e-12 (that residual is its H = 1e-15 ridge, not rounding).
 # ---------------------------------------------------------------------------
-# 1e-8 was exceeded by 1.4e-8 in one of 79 entries on Windows CI (BLAS rounding).
-_INTERIOR = dict(rtol=0, atol=1e-7)
-_FIRST_PERIOD = dict(rtol=0, atol=1e-4)
+_TOL = dict(rtol=0, atol=1e-10)
+
 
 def test_smoother_recovers_the_simulated_shocks(rbc):
     """One observable, one shock, no measurement error, known x_0."""
@@ -94,8 +86,7 @@ def test_smoothed_observables_reproduce_the_data(rbc):
     data = _simulate(rbc, rng.standard_normal((120, 1)) * 0.01, ["c"])
     res = rbc.smoother(data)
     got, want = res.smoothed_obs["c"].to_numpy(), data["c"].to_numpy()
-    np.testing.assert_allclose(got[1:], want[1:], **_INTERIOR)
-    np.testing.assert_allclose(got[:1], want[:1], **_FIRST_PERIOD)
+    np.testing.assert_allclose(got, want, **_TOL)
 
 
 def test_smoother_output_shapes_and_labels(rbc):
@@ -140,8 +131,7 @@ def test_observation_trends_round_trip(rbc):
     trended["c"] = trended["c"] + 0.002 * np.arange(len(trended))
     res = rbc.smoother(trended, observation_trends={"c": 0.002})
     got, want = res.smoothed_obs["c"].to_numpy(), trended["c"].to_numpy()
-    np.testing.assert_allclose(got[1:], want[1:], **_INTERIOR)
-    np.testing.assert_allclose(got[:1], want[:1], **_FIRST_PERIOD)
+    np.testing.assert_allclose(got, want, **_TOL)
 
 
 def test_forecast_mean_converges_to_the_steady_state(rbc):
@@ -192,8 +182,30 @@ def test_smoothed_shocks_agree_with_the_shock_decomposition_path(rbc):
     res = rbc.smoother(data)
     dec = res.shock_decomposition()
     got, want = dec.smoothed_shocks["eps"].to_numpy(), res.shocks["eps"].to_numpy()
-    np.testing.assert_allclose(got[1:], want[1:], **_INTERIOR)
-    np.testing.assert_allclose(got[:1], want[:1], **_FIRST_PERIOD)
+    np.testing.assert_allclose(got, want, **_TOL)
+
+
+def test_first_smoothed_period_is_continuous_in_the_initial_covariance(rbc):
+    """The smoothed state at t=0 is a smooth function of P0.
+
+    Under the pinv-based RTS gain it was not: scaling P0 by (1 + 1e-12) moved
+    the first smoothed state by 8.8e-05 on one LAPACK build and 7.0e-06 on
+    another, because the perturbation flipped pinv's rank decision. The
+    derivative here is about 0.024, so a relative change e can move it by
+    roughly 0.024 * e; the bound allows 0.1 * e plus rounding.
+    """
+    from puremacro.dsge.observation import make_state_space_from_varobs
+    from puremacro.dsge.smoother import _initial_condition
+
+    rng = np.random.default_rng(5)
+    data = _simulate(rbc, rng.standard_normal((120, 1)) * 0.01, ["c"])
+    a0, P0 = _initial_condition(make_state_space_from_varobs(rbc, ["c"]), None, None)
+    base = rbc.smoother(data, a0=a0, P0=P0)
+    for e in (1e-12, 1e-8):
+        moved = rbc.smoother(data, a0=a0, P0=P0 * (1.0 + e))
+        shift = np.max(np.abs(np.r_[moved.states.to_numpy()[0] - base.states.to_numpy()[0],
+                                    moved.shocks.to_numpy()[0] - base.shocks.to_numpy()[0]]))
+        assert shift <= 0.1 * e + 1e-13, (e, shift)
 
 
 def test_forecast_observation_trends_applied_to_subset_and_reordered_variables(rbc):

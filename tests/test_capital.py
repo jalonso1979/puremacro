@@ -47,6 +47,18 @@ def _panel(codes=("AAA",), *, inv=100.0, defl=100.0, growth=0.0,
     return pd.concat(frames).sort_index()
 
 
+def test_quarterly_delta_bounds():
+    """0 and 1 are the edges of geometric depreciation; outside them the
+    quarterly root is complex, and NaN would poison every stock silently."""
+    assert mod._quarterly_delta(0.0) == 0.0
+    assert mod._quarterly_delta(1.0) == 1.0
+    for bad in (-0.01, 1.01, float("nan")):
+        with pytest.raises(ValueError, match="between 0 and 1"):
+            mod._quarterly_delta(bad)
+    with pytest.raises(ValueError, match="between 0 and 1"):
+        qna_capital(_panel(), deltas={**PIM_DELTAS, PIM_ASSETS[0]: 1.5})
+
+
 def test_depreciation_is_converted_geometrically_not_linearly():
     """delta_a/4 is the tempting wrong answer and it understates depreciation,
     so it biases the steady-state stock up — by ~5% for equipment."""

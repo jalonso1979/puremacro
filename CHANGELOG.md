@@ -19,6 +19,11 @@ This file records user-visible changes per release. Internal refactors that don'
 
 ### Fixed
 
+- `kalman_smoother` uses the Durbin–Koopman backward recursion (Durbin & Koopman 2012, §4.4), which inverts only `F_t`, instead of the Rauch–Tung–Striebel gain `P_filt T' pinv(P_pred)`. The two agree algebraically, but when the state carries the structural innovation (`LinearModel.smoother`, `compute_shock_decomposition`) `P_pred` is rank-deficient and pinv's rank decision flipped between LAPACK builds: the first smoothed DSGE period differed by up to ~3e-06 across platforms, scaling `P0` by `1 + 1e-12` moved it by up to 8.8e-05, and the interior differed by ~1e-8. It is now bit-identical across the numpy 2.4 and 2.5 builds tested and continuous in `P0`, and `tests/test_dsge/test_smoother.py` uses one 1e-10 tolerance for every period (it had 1e-4 for the first and 1e-7 elsewhere). Well-conditioned models move by rounding only (about 1e-11 relative on random models with missing data). Periods under the exact-diffuse initialisation keep the RTS step.
+- `qna_capital` rejects an annual depreciation rate outside [0, 1] or NaN with a `ValueError`. Above 1 the geometric quarterly conversion returned a complex number; NaN propagated silently into every stock.
+- The PBoC scraper requests `https://www.pbc.gov.cn` directly; the `http://` pages only redirect there.
+- The Colab offload card escapes the title, notebook path and Drive folder (a `&` or `<` in a path broke the HTML), marks its decorative glyphs `aria-hidden`, and gives its new-tab links `rel="noopener noreferrer"` and an accessible name that says they open a new tab.
+
 - Portable DataFrame storage now preserves supported nested `DataFrame.attrs`,
   including panel sources, units, missing-data reports and splice decisions.
   The v2 npz schema uses safe tagged metadata without pickle and rejects
@@ -30,6 +35,12 @@ This file records user-visible changes per release. Internal refactors that don'
   best-effort browser workflows and current stability evidence consistently.
   The paper explicitly retains its measured 4.6.0 evidence snapshot and stays
   within the existing word-count check.
+
+### Internal
+
+- Salvaged from the automated (Jules "Bolt"/"Palette") branches before they were deleted; each proposal was checked against `main`, and the rejected ones are recorded in the pull request.
+- `store_realtime_vintages` parses each distinct date once instead of each row: about 15× faster on connector snapshots (datetime64 columns) and 55× on ISO date strings, with identical stored rows. The automated patches that vectorised it with one `pd.to_datetime` over the column were rejected: they drop rows in a second date format and can misdate `01/02/2020` after a `13/02/2020` row. The new tests pin both cases.
+- Adopted bot-written tests that exercise real code: `sa_audit`, `build_coverage_report`, `attach_structural_covariates`, `compute_garch_sigma`, `disk_cache_path` and the local-projection `_within_demean`.
 
 ## 4.7.0 (2026-10-07)
 

@@ -128,7 +128,7 @@ print(fc.mean.head(3).round(4))
 
 The band reflects shock uncertainty only — the parameters are held fixed at the values the model was solved with.
 
-One caveat on the smoother: **the first smoothed period is not reproducible to machine precision across platforms**. Carrying the innovation in the state makes the predicted covariance structurally rank-deficient (the augmented state has `n_states + n_shocks` dimensions driven by `n_shocks` innovations), and the RTS gain is built from `numpy.linalg.pinv` of it. On a small RBC that matrix has condition number ~1e15 with its smallest singular value sitting at pinv's default cutoff, so the rank decision differs between LAPACK builds. The effect is confined to `t = 0`: from `t = 1` onward the fit reproduces the data to machine precision everywhere, while the first period can differ by ~3e-06 on an observable of magnitude 2. Read `shocks.iloc[0]` with that in mind.
+Carrying the innovation in the state makes the predicted covariance structurally rank-deficient (the augmented state has `n_states + n_shocks` dimensions driven by `n_shocks` innovations), so `kalman_smoother` uses the Durbin–Koopman backward recursion, which inverts only the innovation covariance `F_t` and never the predicted state covariance. Up to 4.6.0 it used the Rauch–Tung–Striebel gain built from `numpy.linalg.pinv` of that matrix; on a small RBC its smallest singular value sat at pinv's default cutoff, so the first smoothed period differed by up to ~3e-06 between LAPACK builds. With no measurement error the fitted observables now reproduce the data at every period, the first included.
 
 ## Checking the mode
 
