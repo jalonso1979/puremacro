@@ -38,7 +38,6 @@ import pandas as pd
 from ..sources._http import safe_get_bytes
 from ..types import NarrativeEvent, NarrativeInstrument
 
-
 _MIRROR = (
     "https://raw.githubusercontent.com/qmd-co/macro-data/main/"
     "eu_nms_2023_fiscal_actions.csv"
@@ -160,7 +159,8 @@ def eu_nms_csv_to_events(
 
     out: list[NarrativeEvent] = []
 
-    for _, row in df.iterrows():
+    # ⚡ Bolt: Replace iterrows() with to_dict('records') for ~10x faster iteration
+    for row in df.to_dict('records'):
         if endog_col is not None:
             endog_label = str(row[endog_col]).strip().lower()
         else:

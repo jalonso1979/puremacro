@@ -33,7 +33,6 @@ from ...replication._data import load_csv as _load_snapshot_csv
 from ..sources._http import safe_get_bytes
 from ..types import NarrativeEvent, NarrativeInstrument
 
-
 _SNAPSHOT = "tax14_narrative_tax_shocks"
 
 
@@ -79,7 +78,8 @@ def mertens_ravn_csv_to_events(df: pd.DataFrame, *, kind: str) -> list[Narrative
                 return None
 
     out: list[NarrativeEvent] = []
-    for _, row in df.iterrows():
+    # ⚡ Bolt: Replace iterrows() with to_dict('records') for ~10x faster iteration
+    for row in df.to_dict('records'):
         try:
             date = pd.Period(str(row[date_col]), freq="Q").to_timestamp()
         except Exception:
@@ -102,7 +102,7 @@ def mertens_ravn_csv_to_events(df: pd.DataFrame, *, kind: str) -> list[Narrative
             magnitude_unit="pct_gdp",
             target="consumption",
             subtarget="tax",
-            sign=int(1 if v > 0 else -1),
+            sign=1 if v > 0 else -1,
             confidence=1.0,
             source_text=f"Mertens-Ravn (2013) {kind} tax change.",
             source_url="https://karelmertens.com/research/",

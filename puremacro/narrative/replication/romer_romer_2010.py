@@ -31,7 +31,6 @@ from ...replication._data import load_csv as _load_snapshot_csv
 from ..sources._http import safe_get_bytes
 from ..types import NarrativeEvent, NarrativeInstrument
 
-
 _SNAPSHOT = "tax14_narrative_tax_shocks"
 
 
@@ -64,7 +63,8 @@ def romer_romer_2010_csv_to_events(df: pd.DataFrame) -> list[NarrativeEvent]:
                 return None
 
     out: list[NarrativeEvent] = []
-    for _, row in df.iterrows():
+    # ⚡ Bolt: Replace iterrows() with to_dict('records') for ~10x faster iteration
+    for row in df.to_dict('records'):
         date = _to_quarter(row[date_col])
         if date is None:
             continue
@@ -88,7 +88,7 @@ def romer_romer_2010_csv_to_events(df: pd.DataFrame) -> list[NarrativeEvent]:
             magnitude_unit="pct_gdp",
             target="consumption",
             subtarget="tax",
-            sign=int(1 if v > 0 else -1),
+            sign=1 if v > 0 else -1,
             confidence=1.0,
             source_text="Romer-Romer (2010) exogenous tax change.",
             source_url="https://eml.berkeley.edu/~dromer/papers/",

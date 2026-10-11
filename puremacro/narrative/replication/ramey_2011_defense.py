@@ -30,7 +30,6 @@ import pandas as pd
 from ..sources._http import safe_get_bytes
 from ..types import NarrativeEvent, NarrativeInstrument
 
-
 # Mirror used by several replication packages — keeps things working
 # even if Ramey's UCSD page changes layout.
 _MIRROR = (
@@ -54,7 +53,8 @@ def ramey_csv_to_events(df: pd.DataFrame) -> list[NarrativeEvent]:
             "'news_q' (or 'defense_news_q', 'ramey_news')."
         )
     out: list[NarrativeEvent] = []
-    for _, row in df.iterrows():
+    # ⚡ Bolt: Replace iterrows() with to_dict('records') for ~10x faster iteration
+    for row in df.to_dict('records'):
         try:
             date = pd.Period(str(row[date_col]), freq="Q").to_timestamp()
         except (ValueError, ArithmeticError, Exception):
@@ -72,7 +72,7 @@ def ramey_csv_to_events(df: pd.DataFrame) -> list[NarrativeEvent]:
             magnitude_unit="pct_gdp",
             target="both",
             subtarget="defense",
-            sign=int(1 if v > 0 else -1),
+            sign=1 if v > 0 else -1,
             confidence=1.0,
             source_text="Ramey (2011) defense-news quarterly value.",
             source_url="https://econweb.ucsd.edu/~vramey/research/",

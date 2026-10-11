@@ -20,7 +20,6 @@ import pandas as pd
 from ..sources._http import safe_get_bytes
 from ..types import NarrativeEvent, NarrativeInstrument
 
-
 _MIRROR = (
     "https://raw.githubusercontent.com/qmd-co/macro-data/main/"
     "cloyne_2013_uk_tax.csv"
@@ -54,7 +53,8 @@ def cloyne_csv_to_events(df: pd.DataFrame) -> list[NarrativeEvent]:
                 return None
 
     out: list[NarrativeEvent] = []
-    for _, row in df.iterrows():
+    # ⚡ Bolt: Replace iterrows() with to_dict('records') for ~10x faster iteration
+    for row in df.to_dict('records'):
         date = _to_quarter(row[date_col])
         if date is None:
             continue
@@ -73,7 +73,7 @@ def cloyne_csv_to_events(df: pd.DataFrame) -> list[NarrativeEvent]:
             magnitude_unit="pct_gdp",
             target="consumption",
             subtarget="tax",
-            sign=int(1 if v > 0 else -1),
+            sign=1 if v > 0 else -1,
             confidence=1.0,
             source_text="Cloyne (2013) UK exogenous tax change.",
             source_url="https://www.aeaweb.org/articles?id=10.1257/aer.103.4.1507",

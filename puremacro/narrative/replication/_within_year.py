@@ -91,4 +91,4 @@ def annualize_to_quarters(
     )
 
 
-__all__ = ["annualize_to_quarters", "FY_START_MONTH"]
+__all__ = ["FY_START_MONTH", "annualize_to_quarters"]

@@ -67,7 +67,8 @@ def _guajardo_extract_rows(df: pd.DataFrame) -> list[dict]:
         )
 
     out: list[dict] = []
-    for _, row in df.iterrows():
+    # ⚡ Bolt: Replace iterrows() with to_dict('records') for ~10x faster iteration
+    for row in df.to_dict('records'):
         v = float(row[val_col])
         if v == 0.0 or pd.isna(v):
             continue
@@ -240,4 +241,4 @@ def load(
     }
 
 
-__all__ = ["load", "guajardo_csv_to_events"]
+__all__ = ["guajardo_csv_to_events", "load"]

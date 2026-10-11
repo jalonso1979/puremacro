@@ -52,7 +52,8 @@ def mitchell_csv_to_events(df: pd.DataFrame) -> list[NarrativeEvent]:
         )
 
     out: list[NarrativeEvent] = []
-    for _, row in df.iterrows():
+    # ⚡ Bolt: Replace iterrows() with to_dict('records') for ~10x faster iteration
+    for row in df.to_dict('records'):
         v = float(row[val_col])
         if pd.isna(v) or v <= 0:
             continue

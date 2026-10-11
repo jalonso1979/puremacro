@@ -33,19 +33,14 @@ import pandas as pd
 from ..sources._http import safe_get_bytes
 from ..types import NarrativeEvent, NarrativeInstrument
 
-
 _MIRROR = (
     "https://raw.githubusercontent.com/qmd-co/macro-data/main/"
     "adler_2024_fiscal_consolidations.csv"
 )
 
 # 17 OECD economies (same set as DGLP 2011) + 14 LATAM/Caribbean.
-_ADLER_OECD = (
-    "AUS AUT BEL CAN DNK FIN FRA DEU IRL ITA JPN NLD PRT ESP SWE GBR USA"
-).split()
-_ADLER_LAC = (
-    "ARG BRA CHL COL CRI DOM ECU GTM HND MEX PER PRY URY VEN"
-).split()
+_ADLER_OECD = ["AUS", "AUT", "BEL", "CAN", "DNK", "FIN", "FRA", "DEU", "IRL", "ITA", "JPN", "NLD", "PRT", "ESP", "SWE", "GBR", "USA"]
+_ADLER_LAC = ["ARG", "BRA", "CHL", "COL", "CRI", "DOM", "ECU", "GTM", "HND", "MEX", "PER", "PRY", "URY", "VEN"]
 _ADLER_COUNTRIES = frozenset(_ADLER_OECD + _ADLER_LAC)
 
 
@@ -93,7 +88,8 @@ def _adler_extract_rows(df: pd.DataFrame) -> list[dict]:
             "subtarget": subtarget,
         })
 
-    for _, row in df.iterrows():
+    # ⚡ Bolt: Replace iterrows() with to_dict('records') for ~10x faster iteration
+    for row in df.to_dict('records'):
         country = str(row[country_col]).upper()
         year = _year(row[date_col])
         if tax_col is not None and exp_col is not None:

@@ -33,16 +33,13 @@ import pandas as pd
 from ..sources._http import safe_get_bytes
 from ..types import NarrativeEvent, NarrativeInstrument
 
-
 _MIRROR = (
     "https://raw.githubusercontent.com/qmd-co/macro-data/main/"
     "dglp_2011_fiscal_consolidations.csv"
 )
 
 # DGLP cover the EU15 + USA + CAN + JPN + AUS.
-_DGLP_COUNTRIES = (
-    "AUS AUT BEL CAN DNK FIN FRA DEU IRL ITA JPN NLD PRT ESP SWE GBR USA"
-).split()
+_DGLP_COUNTRIES = ["AUS", "AUT", "BEL", "CAN", "DNK", "FIN", "FRA", "DEU", "IRL", "ITA", "JPN", "NLD", "PRT", "ESP", "SWE", "GBR", "USA"]
 
 
 def _dglp_extract_rows(df: pd.DataFrame) -> list[dict]:
@@ -88,7 +85,8 @@ def _dglp_extract_rows(df: pd.DataFrame) -> list[dict]:
             "subtarget": subtarget,
         })
 
-    for _, row in df.iterrows():
+    # ⚡ Bolt: Replace iterrows() with to_dict('records') for ~10x faster iteration
+    for row in df.to_dict('records'):
         country = str(row[country_col]).upper()
         year = _year(row[date_col])
         if tax_col is not None and exp_col is not None:

@@ -43,7 +43,6 @@ import pandas as pd
 from ..sources._http import safe_get_bytes
 from ..types import NarrativeEvent, NarrativeInstrument
 
-
 _MIRROR = (
     "https://raw.githubusercontent.com/qmd-co/macro-data/main/"
     "imf_covid_2022_announcements.csv"
@@ -183,7 +182,8 @@ def imf_covid_2022_csv_to_events(
         "target": None,
     })
 
-    for _, row in df.iterrows():
+    # ⚡ Bolt: Replace iterrows() with to_dict('records') for ~10x faster iteration
+    for row in df.to_dict('records'):
         if class_col is not None:
             policy_class = str(row[class_col]).strip().lower()
         else:
