@@ -139,6 +139,8 @@ Scalar-`r` calls are unchanged.
 
 - `fetch.registry` listed the 67 narrative text connectors as `redistributable=True`, although their terms are marked `unaudited`. They are now `redistributable=False` until someone reviews them.
 
+- `test_t2_f22_sw07_order2_repeated_solve_stability` compared its wall time with a fixed 0.20 s instead of going through `tests/_timing.budget`. CI's `PUREMACRO_TIMING_SCALE` therefore did not apply, and the test failed on Ubuntu with Python 3.11 in two PR runs on 2026-10-12 (0.48 s and 0.52 s; the other samples took 0.11 s).
+
 - `fetch._http.cached_get` gains `params=` and `secret_params=`; an API key passed as a secret parameter is no longer written into the cache file name, the manifest, or HTTP error text.
 
 - `harvest_narrative_corpus` fixes that changed what the narrative corpus contains:

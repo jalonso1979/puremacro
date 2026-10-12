@@ -2268,7 +2268,7 @@ class TestTier2BoundaryAndCornerCases:
             t0 = time.perf_counter()
             m = load_mod(SW07_MOD_PATH, order=2)
             times.append(time.perf_counter() - t0)
-        assert max(times) <= 0.20, f"Max solve time {max(times):.4f}s exceeded 0.20s"
+        assert max(times) <= budget(0.20), f"Max solve time {max(times):.4f}s exceeded {budget(0.20)}s"
 
     def test_t2_f22_sw07_steady_state_residuals_near_zero(self):
         """T2.22.2: Equation residuals at analytical steady state are <= 1e-10."""
