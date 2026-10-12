@@ -2,7 +2,11 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
-## Unreleased
+## 4.9.0 (2026-10-13)
+
+**Dynamic programs declared as equations (`puremacro.dp`), survey microdata with design-based standard errors, and text as sparse document-term matrices.**
+
+### Added
 
 **Declarative dynamic programming front end (`puremacro.dp`).** Declare states,
 shocks, choices, a reward, constraints and an optional market-clearing condition
@@ -91,8 +95,6 @@ degenerate regression above, which would otherwise pass `tol` and look converged
 `vfi.solve_egm` and dp's EGM accept a return on assets that varies with the
 exogenous state (`r` of shape (n_z,); Euler u'(c) = beta E[(1 + r') u'(c')]).
 Scalar-`r` calls are unchanged.
-
-### Added
 
 - `puremacro.fetch.registry` lists every data source (series, panels, vintage providers, microdata and the narrative text connectors) with its auth level, credential, terms and whether results may be redistributed; `registry.load(id)` returns the fetcher. `puremacro.fetch.micro` adds `fetch_acs_pums` (Census ACS PUMS, 80 replicate weights, chunked past the API's 50-variable cap), `fetch_cps_basic` (weights only) and `fetch_scf` (Fed SCF summary extract, five implicates, 999 replicate weights) and `fetch_enigh` (INEGI ENIGH, Mexico, 2016+; strata and PSUs, so standard errors come from Taylor linearisation, `SurveyDesign(method="taylor")`). Each returns a `MicroFrame` whose `mean`/`total`/`quantile`/`share` give replicate standard errors, combined across implicates by Rubin's rules. The Census fetchers set the codebook's not-applicable codes (N/A, Not in Universe, Blank, Don't Know, Refused, CPS "Met No Conditions To Assign", including CPS earnings codes served with implied decimals as `-0.01`; e.g. `WAGP == -1` for persons under 15) to `NaN` by default, read from the endpoint's `variables.json`, so they no longer enter means and totals as values; `na_to_nan=False` keeps the raw codes and `MicroFrame.codebook` lists every labelled code.
 

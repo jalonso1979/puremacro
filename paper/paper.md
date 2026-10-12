@@ -34,8 +34,12 @@ bibliography: paper.bib
      `validation.scorecard()` on the same tree: 114 checks, 16 subsystems,
      21 external (14 package + 5 SciPy + 2 published) / 31 analytical / 62 internal,
      all passing (4.4.0 had 110: 20 / 31 / 59; 3.4.0 had 107: 19 / 29 / 59).
-     Package development has reached 4.8.1; these counts and measurements have
-     not been refreshed since. The text was extended on 2026-10-12 to cover
+     For 4.9.0 (2026-10-13, at 0b6a8de7) the Scale paragraph, the swept-module
+     count and the commit counts were refreshed: 843 modules, 300,155 lines,
+     632 swept modules, 454 commits (291 with a Claude trailer); tests from CI's
+     main run (19,784 run on Linux, 231 deselected slow ones). The scorecard is
+     unchanged (114 checks, same split, all pass). The Pyodide gallery and the
+     Verification section were not re-run and still describe 4.6.0. The text was extended on 2026-10-12 to cover
      `dp`, the survey microdata and `puremacro.text` (unreleased at the time).
      The krusellsmith1998 and dolo entries in paper.bib were not checked
      against Crossref (no access from the drafting session). Re-run the commands in RELEASING.md §6.5 on the
@@ -140,7 +144,7 @@ would not change its host's dependency graph.
 Matplotlib (plus requests, in the data layer) at module scope; anything else is
 imported only when available. Two tests enforce the rule against the packages most
 likely to leak in.
-The first imports each of the 597 library modules (examples, teaching helpers,
+The first imports each of the 632 library modules (examples, teaching helpers,
 text-scraping sources and optional Numba kernels are excluded) and fails if
 statsmodels, linearmodels, arch or the scraping packages bs4, pdfplumber and pypdf
 have entered `sys.modules`. The second repeats the sweep with those packages
@@ -176,8 +180,8 @@ margins differing from native arithmetic by at most $5 \times 10^{-4}$.
 <!-- AUTHOR: re-run `python tools/pyodide_gallery.py` on the submitted commit and
      update the sentence above if the counts or Pyodide versions changed. -->
 
-**Scale.** Version 4.6.0 comprises about 810 modules and 282,000 lines of Python,
-exercised by about 19,100 tests, of which CI runs 18,900 on Linux, macOS and Windows
+**Scale.** Version 4.9.0 comprises about 840 modules and 300,000 lines of Python,
+exercised by about 20,000 tests, of which CI runs 19,800 on Linux, macOS and Windows
 under Python 3.11–3.13 on every push and the remaining slow, reference and
 replication tests weekly and on every release tag, where they gate publication.
 Before each release tag, a script checks the suite against a recorded baseline,
@@ -243,7 +247,7 @@ guidelines, and CI on three operating systems.
 Generative AI was used extensively in writing `puremacro`, its documentation and
 this paper. Anthropic's Claude models, used through the Claude Code agent (Claude
 Opus 5, Claude Opus 5.5, Claude Fable 5 and Claude Fable 5.1), generated or
-co-wrote much of the code, tests, documentation and notebooks: 205 of the 344
+co-wrote much of the code, tests, documentation and notebooks: 291 of the 454
 commits in the public repository carry a Claude co-author trailer. Google's Jules coding agent
 contributed 20 pull requests (refactoring, performance and test improvements),
 each reviewed and merged by the author. Claude also drafted and revised this
@@ -278,8 +282,8 @@ and CI.
      (4) REVIEW ASSERTION: confirm that "reviewed, edited and validated all
          AI-assisted output before it was merged" is literally true, including
          for multi-agent workflow commits; if not, soften it to what is true.
-     (5) COUNTS ("205 of the 344 commits"): recomputed on 2026-10-04 at
-         d2634362 with RELEASING.md §6.5, i.e.
+     (5) COUNTS ("291 of the 454 commits"): recomputed on 2026-10-13 at
+         0b6a8de7 with RELEASING.md §6.5, i.e.
          `git rev-list --count origin/main` and
          `git log origin/main -i --grep='co-authored-by: claude' --oneline | wc -l`.
          Re-run on the submitted commit; commits after 4.6.0 will move both. -->
