@@ -1,0 +1,2436 @@
+{
+ "meta": [
+  {
+   "code": "AUS",
+   "variable": "emp_lfs",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1967-02-01",
+   "last": "2026-08-01",
+   "n": 627
+  },
+  {
+   "code": "AUS",
+   "variable": "epop_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP_WAP Y15T64 PT_WAP_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1978-02-01",
+   "last": "2026-08-01",
+   "n": 583
+  },
+  {
+   "code": "AUS",
+   "variable": "lf",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1978-02-01",
+   "last": "2026-08-01",
+   "n": 583
+  },
+  {
+   "code": "AUS",
+   "variable": "prate_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF_WAP Y15T64 PT_WAP_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1978-02-01",
+   "last": "2026-08-01",
+   "n": 583
+  },
+  {
+   "code": "AUS",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1978-02-01",
+   "last": "2026-08-01",
+   "n": 583
+  },
+  {
+   "code": "AUS",
+   "variable": "urate_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF Y15T64 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1978-02-01",
+   "last": "2026-08-01",
+   "n": 583
+  },
+  {
+   "code": "AUS",
+   "variable": "wap",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "WAP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1978-02-01",
+   "last": "2026-08-01",
+   "n": 583
+  },
+  {
+   "code": "AUS",
+   "variable": "wap_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "WAP Y15T64 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1978-02-01",
+   "last": "2026-08-01",
+   "n": 583
+  },
+  {
+   "code": "AUT",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1993-01-01",
+   "last": "2026-08-01",
+   "n": 404
+  },
+  {
+   "code": "BEL",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1983-01-01",
+   "last": "2026-08-01",
+   "n": 524
+  },
+  {
+   "code": "BGR",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2000-01-01",
+   "last": "2026-08-01",
+   "n": 320
+  },
+  {
+   "code": "BRA",
+   "variable": "emp_lfs",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "2002-03-01",
+   "last": "2015-11-01",
+   "n": 165
+  },
+  {
+   "code": "BRA",
+   "variable": "lf",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "2002-03-01",
+   "last": "2015-11-01",
+   "n": 165
+  },
+  {
+   "code": "BRA",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1981-01-01",
+   "last": "2015-11-01",
+   "n": 419
+  },
+  {
+   "code": "BRA",
+   "variable": "wap",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "WAP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "2002-03-01",
+   "last": "2015-11-01",
+   "n": 165
+  },
+  {
+   "code": "CAN",
+   "variable": "emp_lfs",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-08-01",
+   "n": 860
+  },
+  {
+   "code": "CAN",
+   "variable": "epop_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP_WAP Y15T64 PT_WAP_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1976-01-01",
+   "last": "2026-08-01",
+   "n": 608
+  },
+  {
+   "code": "CAN",
+   "variable": "lf",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1956-01-01",
+   "last": "2026-08-01",
+   "n": 848
+  },
+  {
+   "code": "CAN",
+   "variable": "prate_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF_WAP Y15T64 PT_WAP_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1976-01-01",
+   "last": "2026-08-01",
+   "n": 608
+  },
+  {
+   "code": "CAN",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-08-01",
+   "n": 860
+  },
+  {
+   "code": "CAN",
+   "variable": "urate_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF Y15T64 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1976-01-01",
+   "last": "2026-08-01",
+   "n": 608
+  },
+  {
+   "code": "CAN",
+   "variable": "wap",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "WAP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1976-01-01",
+   "last": "2026-08-01",
+   "n": 608
+  },
+  {
+   "code": "CAN",
+   "variable": "wap_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "WAP Y15T64 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1976-01-01",
+   "last": "2026-08-01",
+   "n": 608
+  },
+  {
+   "code": "CHL",
+   "variable": "emp_lfs",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1986-01-01",
+   "last": "2026-07-01",
+   "n": 487
+  },
+  {
+   "code": "CHL",
+   "variable": "epop_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP_WAP Y15T64 PT_WAP_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2005-01-01",
+   "last": "2026-07-01",
+   "n": 259
+  },
+  {
+   "code": "CHL",
+   "variable": "lf",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1986-01-01",
+   "last": "2026-07-01",
+   "n": 487
+  },
+  {
+   "code": "CHL",
+   "variable": "prate_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF_WAP Y15T64 PT_WAP_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2005-01-01",
+   "last": "2026-07-01",
+   "n": 259
+  },
+  {
+   "code": "CHL",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1986-01-01",
+   "last": "2026-07-01",
+   "n": 487
+  },
+  {
+   "code": "CHL",
+   "variable": "urate_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF Y15T64 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2005-01-01",
+   "last": "2026-07-01",
+   "n": 259
+  },
+  {
+   "code": "CHL",
+   "variable": "wap",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "WAP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1986-01-01",
+   "last": "2026-07-01",
+   "n": 487
+  },
+  {
+   "code": "CHL",
+   "variable": "wap_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "WAP Y15T64 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "2005-01-01",
+   "last": "2026-07-01",
+   "n": 259
+  },
+  {
+   "code": "COL",
+   "variable": "emp_lfs",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "2007-01-01",
+   "last": "2026-08-01",
+   "n": 236
+  },
+  {
+   "code": "COL",
+   "variable": "epop_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP_WAP Y15T64 PT_WAP_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2007-01-01",
+   "last": "2026-08-01",
+   "n": 236
+  },
+  {
+   "code": "COL",
+   "variable": "lf",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "2007-01-01",
+   "last": "2026-08-01",
+   "n": 236
+  },
+  {
+   "code": "COL",
+   "variable": "prate_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF_WAP Y15T64 PT_WAP_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2007-01-01",
+   "last": "2026-08-01",
+   "n": 236
+  },
+  {
+   "code": "COL",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2007-01-01",
+   "last": "2026-08-01",
+   "n": 236
+  },
+  {
+   "code": "COL",
+   "variable": "urate_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF Y15T64 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2007-01-01",
+   "last": "2026-08-01",
+   "n": 236
+  },
+  {
+   "code": "COL",
+   "variable": "wap",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "WAP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "2007-01-01",
+   "last": "2026-08-01",
+   "n": 236
+  },
+  {
+   "code": "COL",
+   "variable": "wap_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "WAP Y15T64 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "2007-01-01",
+   "last": "2026-08-01",
+   "n": 236
+  },
+  {
+   "code": "CRI",
+   "variable": "emp_lfs",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "2010-08-01",
+   "last": "2026-07-01",
+   "n": 192
+  },
+  {
+   "code": "CRI",
+   "variable": "lf",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "none",
+   "first": "2010-08-01",
+   "last": "2026-07-01",
+   "n": 192
+  },
+  {
+   "code": "CRI",
+   "variable": "prate_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF_WAP Y15T64 PT_WAP_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "none",
+   "first": "2010-08-01",
+   "last": "2026-07-01",
+   "n": 192
+  },
+  {
+   "code": "CRI",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2010-08-01",
+   "last": "2026-07-01",
+   "n": 192
+  },
+  {
+   "code": "CZE",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1993-01-01",
+   "last": "2026-08-01",
+   "n": 404
+  },
+  {
+   "code": "DEU",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1991-01-01",
+   "last": "2026-08-01",
+   "n": 428
+  },
+  {
+   "code": "DNK",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1983-01-01",
+   "last": "2026-08-01",
+   "n": 524
+  },
+  {
+   "code": "ESP",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1986-04-01",
+   "last": "2026-08-01",
+   "n": 485
+  },
+  {
+   "code": "EST",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1997-01-01",
+   "last": "2026-08-01",
+   "n": 356
+  },
+  {
+   "code": "FIN",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1988-01-01",
+   "last": "2026-08-01",
+   "n": 464
+  },
+  {
+   "code": "FRA",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1983-01-01",
+   "last": "2026-08-01",
+   "n": 524
+  },
+  {
+   "code": "GBR",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1983-01-01",
+   "last": "2026-06-01",
+   "n": 522
+  },
+  {
+   "code": "GRC",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1998-04-01",
+   "last": "2026-08-01",
+   "n": 341
+  },
+  {
+   "code": "HRV",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2000-01-01",
+   "last": "2026-08-01",
+   "n": 320
+  },
+  {
+   "code": "HUN",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1996-01-01",
+   "last": "2026-08-01",
+   "n": 368
+  },
+  {
+   "code": "IRL",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1983-01-01",
+   "last": "2026-08-01",
+   "n": 524
+  },
+  {
+   "code": "ISL",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2003-01-01",
+   "last": "2026-08-01",
+   "n": 284
+  },
+  {
+   "code": "ISR",
+   "variable": "emp_lfs",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "2012-01-01",
+   "last": "2026-08-01",
+   "n": 176
+  },
+  {
+   "code": "ISR",
+   "variable": "epop_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP_WAP Y15T64 PT_WAP_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "none",
+   "first": "2012-01-01",
+   "last": "2026-08-01",
+   "n": 176
+  },
+  {
+   "code": "ISR",
+   "variable": "lf",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "2012-01-01",
+   "last": "2026-08-01",
+   "n": 176
+  },
+  {
+   "code": "ISR",
+   "variable": "prate_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF_WAP Y15T64 PT_WAP_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "none",
+   "first": "2012-01-01",
+   "last": "2026-08-01",
+   "n": 176
+  },
+  {
+   "code": "ISR",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2012-01-01",
+   "last": "2026-08-01",
+   "n": 176
+  },
+  {
+   "code": "ISR",
+   "variable": "urate_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF Y15T64 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "none",
+   "first": "2012-01-01",
+   "last": "2026-08-01",
+   "n": 176
+  },
+  {
+   "code": "ISR",
+   "variable": "wap",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "WAP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "2012-01-01",
+   "last": "2026-08-01",
+   "n": 176
+  },
+  {
+   "code": "ISR",
+   "variable": "wap_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "WAP Y15T64 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "none",
+   "first": "2012-01-01",
+   "last": "2026-08-01",
+   "n": 176
+  },
+  {
+   "code": "ITA",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1983-01-01",
+   "last": "2026-08-01",
+   "n": 524
+  },
+  {
+   "code": "JPN",
+   "variable": "emp_lfs",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-08-01",
+   "n": 860
+  },
+  {
+   "code": "JPN",
+   "variable": "epop_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP_WAP Y15T64 PT_WAP_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1970-01-01",
+   "last": "2026-08-01",
+   "n": 680
+  },
+  {
+   "code": "JPN",
+   "variable": "lf",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-08-01",
+   "n": 860
+  },
+  {
+   "code": "JPN",
+   "variable": "prate_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF_WAP Y15T64 PT_WAP_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1970-01-01",
+   "last": "2026-08-01",
+   "n": 680
+  },
+  {
+   "code": "JPN",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-08-01",
+   "n": 860
+  },
+  {
+   "code": "JPN",
+   "variable": "urate_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF Y15T64 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1970-01-01",
+   "last": "2026-08-01",
+   "n": 680
+  },
+  {
+   "code": "JPN",
+   "variable": "wap",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "WAP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-08-01",
+   "n": 860
+  },
+  {
+   "code": "JPN",
+   "variable": "wap_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "WAP Y15T64 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1970-01-01",
+   "last": "2026-08-01",
+   "n": 680
+  },
+  {
+   "code": "KOR",
+   "variable": "emp_lfs",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1983-01-01",
+   "last": "2026-08-01",
+   "n": 524
+  },
+  {
+   "code": "KOR",
+   "variable": "epop_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP_WAP Y15T64 PT_WAP_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1999-06-01",
+   "last": "2026-08-01",
+   "n": 327
+  },
+  {
+   "code": "KOR",
+   "variable": "lf",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1989-01-01",
+   "last": "2026-08-01",
+   "n": 452
+  },
+  {
+   "code": "KOR",
+   "variable": "prate_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF_WAP Y15T64 PT_WAP_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1999-06-01",
+   "last": "2026-08-01",
+   "n": 327
+  },
+  {
+   "code": "KOR",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1990-01-01",
+   "last": "2026-08-01",
+   "n": 440
+  },
+  {
+   "code": "KOR",
+   "variable": "urate_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF Y15T64 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1999-06-01",
+   "last": "2026-08-01",
+   "n": 327
+  },
+  {
+   "code": "KOR",
+   "variable": "wap",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "WAP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1999-06-01",
+   "last": "2026-08-01",
+   "n": 327
+  },
+  {
+   "code": "KOR",
+   "variable": "wap_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "WAP Y15T64 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1999-06-01",
+   "last": "2026-08-01",
+   "n": 327
+  },
+  {
+   "code": "LTU",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1998-01-01",
+   "last": "2026-08-01",
+   "n": 344
+  },
+  {
+   "code": "LUX",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1983-01-01",
+   "last": "2026-08-01",
+   "n": 524
+  },
+  {
+   "code": "LVA",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1998-04-01",
+   "last": "2026-08-01",
+   "n": 341
+  },
+  {
+   "code": "MEX",
+   "variable": "lf",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "none",
+   "first": "2005-01-01",
+   "last": "2026-08-01",
+   "n": 257
+  },
+  {
+   "code": "MEX",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1987-01-01",
+   "last": "2026-08-01",
+   "n": 476
+  },
+  {
+   "code": "NLD",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1983-01-01",
+   "last": "2026-08-01",
+   "n": 524
+  },
+  {
+   "code": "NOR",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1989-01-01",
+   "last": "2026-08-01",
+   "n": 452
+  },
+  {
+   "code": "POL",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1997-01-01",
+   "last": "2026-08-01",
+   "n": 356
+  },
+  {
+   "code": "PRT",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1983-01-01",
+   "last": "2026-08-01",
+   "n": 524
+  },
+  {
+   "code": "ROU",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1997-01-01",
+   "last": "2026-08-01",
+   "n": 356
+  },
+  {
+   "code": "RUS",
+   "variable": "emp_lfs",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "2009-08-01",
+   "last": "2021-12-01",
+   "n": 149
+  },
+  {
+   "code": "RUS",
+   "variable": "epop_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP_WAP Y15T64 PT_WAP_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2009-08-01",
+   "last": "2021-12-01",
+   "n": 149
+  },
+  {
+   "code": "RUS",
+   "variable": "lf",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "2009-08-01",
+   "last": "2011-06-01",
+   "n": 23
+  },
+  {
+   "code": "RUS",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2009-08-01",
+   "last": "2021-12-01",
+   "n": 149
+  },
+  {
+   "code": "SVK",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1998-01-01",
+   "last": "2026-08-01",
+   "n": 344
+  },
+  {
+   "code": "SVN",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1996-01-01",
+   "last": "2026-08-01",
+   "n": 368
+  },
+  {
+   "code": "SWE",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1983-01-01",
+   "last": "2026-08-01",
+   "n": 524
+  },
+  {
+   "code": "TUR",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2005-01-01",
+   "last": "2026-08-01",
+   "n": 260
+  },
+  {
+   "code": "USA",
+   "variable": "emp_lfs",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-09-01",
+   "n": 860
+  },
+  {
+   "code": "USA",
+   "variable": "epop_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "EMP_WAP Y15T64 PT_WAP_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1977-01-01",
+   "last": "2026-09-01",
+   "n": 596
+  },
+  {
+   "code": "USA",
+   "variable": "lf",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-09-01",
+   "n": 860
+  },
+  {
+   "code": "USA",
+   "variable": "prate_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "LF_WAP Y15T64 PT_WAP_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1977-01-01",
+   "last": "2026-09-01",
+   "n": 596
+  },
+  {
+   "code": "USA",
+   "variable": "urate",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF_M Y_GE15 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-09-01",
+   "n": 860
+  },
+  {
+   "code": "USA",
+   "variable": "urate_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "UNE_LF Y15T64 PT_LF_SUB M",
+   "units": "percent",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1970-01-01",
+   "last": "2026-09-01",
+   "n": 680
+  },
+  {
+   "code": "USA",
+   "variable": "wap",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "WAP Y_GE15 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-09-01",
+   "n": 860
+  },
+  {
+   "code": "USA",
+   "variable": "wap_1564",
+   "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "series": "WAP Y15T64 PS M",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "oecd",
+   "first": "1977-01-01",
+   "last": "2026-09-01",
+   "n": 596
+  }
+ ],
+ "source": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+ "fetched_at": "2026-10-07T23:48:05+00:00",
+ "missing": [
+  {
+   "code": "AUT",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "AUT",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "AUT",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "AUT",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "AUT",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "AUT",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "AUT",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "BEL",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "BEL",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "BEL",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "BEL",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "BEL",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "BEL",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "BEL",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "BGR",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "BGR",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "BGR",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "BGR",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "BGR",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "BGR",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "BGR",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "BRA",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "BRA",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "BRA",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "BRA",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "CRI",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "CRI",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "CRI",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "CRI",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "CZE",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "CZE",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "CZE",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "CZE",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "CZE",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "CZE",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "CZE",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "DEU",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "DEU",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "DEU",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "DEU",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "DEU",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "DEU",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "DEU",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "DNK",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "DNK",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "DNK",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "DNK",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "DNK",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "DNK",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "DNK",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "ESP",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "ESP",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "ESP",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "ESP",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "ESP",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "ESP",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "ESP",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "EST",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "EST",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "EST",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "EST",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "EST",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "EST",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "EST",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "FIN",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "FIN",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "FIN",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "FIN",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "FIN",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "FIN",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "FIN",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "FRA",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "FRA",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "FRA",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "FRA",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "FRA",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "FRA",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "FRA",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "GBR",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "GBR",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "GBR",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "GBR",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "GBR",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "GBR",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "GBR",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "GRC",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "GRC",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "GRC",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "GRC",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "GRC",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "GRC",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "GRC",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "HRV",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "HRV",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "HRV",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "HRV",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "HRV",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "HRV",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "HRV",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "HUN",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "HUN",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "HUN",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "HUN",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "HUN",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "HUN",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "HUN",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "IRL",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "IRL",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "IRL",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "IRL",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "IRL",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "IRL",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "IRL",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "ISL",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "ISL",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "ISL",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "ISL",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "ISL",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "ISL",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "ISL",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "ITA",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "ITA",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "ITA",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "ITA",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "ITA",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "ITA",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "ITA",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "LTU",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "LTU",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "LTU",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "LTU",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "LTU",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "LTU",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "LTU",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "LUX",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "LUX",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "LUX",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "LUX",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "LUX",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "LUX",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "LUX",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "LVA",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "LVA",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "LVA",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "LVA",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "LVA",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "LVA",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "LVA",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "MEX",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "MEX",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "MEX",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "MEX",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "MEX",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "MEX",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "NLD",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "NLD",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "NLD",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "NLD",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "NLD",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "NLD",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "NLD",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "NOR",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "NOR",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "NOR",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "NOR",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "NOR",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "NOR",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "NOR",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "POL",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "POL",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "POL",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "POL",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "POL",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "POL",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "POL",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "PRT",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "PRT",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "PRT",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "PRT",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "PRT",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "PRT",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "PRT",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "ROU",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "ROU",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "ROU",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "ROU",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "ROU",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "ROU",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "ROU",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "RUS",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "RUS",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "RUS",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "RUS",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "SVK",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "SVK",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "SVK",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "SVK",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "SVK",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "SVK",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "SVK",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "SVN",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "SVN",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "SVN",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "SVN",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "SVN",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "SVN",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "SVN",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "SWE",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "SWE",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "SWE",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "SWE",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "SWE",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "SWE",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "SWE",
+   "variable": "epop_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "TUR",
+   "variable": "urate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "TUR",
+   "variable": "emp_lfs",
+   "reason": "not published"
+  },
+  {
+   "code": "TUR",
+   "variable": "lf",
+   "reason": "not published"
+  },
+  {
+   "code": "TUR",
+   "variable": "wap",
+   "reason": "not published"
+  },
+  {
+   "code": "TUR",
+   "variable": "wap_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "TUR",
+   "variable": "prate_1564",
+   "reason": "not published"
+  },
+  {
+   "code": "TUR",
+   "variable": "epop_1564",
+   "reason": "not published"
+  }
+ ],
+ "requests": [
+  {
+   "flow": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0 (availability)",
+   "key": ".UNE_LF_M+UNE_LF+EMP+LF+WAP+LF_WAP+EMP_WAP.PT_LF_SUB+PS+PT_WAP_SUB._Z.._T.Y_GE15+Y15T64._Z.M",
+   "status": "ok",
+   "rows": 41
+  },
+  {
+   "flow": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "key": "AUS+AUT+BEL+BGR+BRA+CAN+CHL+COL+CRI+CZE.UNE_LF_M+UNE_LF+EMP+LF+WAP+LF_WAP+EMP_WAP.PT_LF_SUB+PS+PT_WAP_SUB._Z.._T.Y_GE15+Y15T64._Z.M",
+   "status": "ok",
+   "rows": 57024
+  },
+  {
+   "flow": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "key": "DEU+DNK+ESP+EST+FIN+FRA+GBR+GRC+HRV+HUN.UNE_LF_M+UNE_LF+EMP+LF+WAP+LF_WAP+EMP_WAP.PT_LF_SUB+PS+PT_WAP_SUB._Z.._T.Y_GE15+Y15T64._Z.M",
+   "status": "ok",
+   "rows": 8664
+  },
+  {
+   "flow": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "key": "IRL+ISL+ISR+ITA+JPN+KOR+LTU+LUX+LVA+MEX.UNE_LF_M+UNE_LF+EMP+LF+WAP+LF_WAP+EMP_WAP.PT_LF_SUB+PS+PT_WAP_SUB._Z.._T.Y_GE15+Y15T64._Z.M",
+   "status": "ok",
+   "rows": 40359
+  },
+  {
+   "flow": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "key": "NLD+NOR+POL+PRT+ROU+RUS+SVK+SVN+SWE+TUR.UNE_LF_M+UNE_LF+EMP+LF+WAP+LF_WAP+EMP_WAP.PT_LF_SUB+PS+PT_WAP_SUB._Z.._T.Y_GE15+Y15T64._Z.M",
+   "status": "ok",
+   "rows": 9251
+  },
+  {
+   "flow": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+   "key": "USA.UNE_LF_M+UNE_LF+EMP+LF+WAP+LF_WAP+EMP_WAP.PT_LF_SUB+PS+PT_WAP_SUB._Z.._T.Y_GE15+Y15T64._Z.M",
+   "status": "ok",
+   "rows": 21028
+  }
+ ],
+ "freq": "M"
+}

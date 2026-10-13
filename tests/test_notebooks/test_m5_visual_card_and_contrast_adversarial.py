@@ -84,7 +84,7 @@ def test_notebook_inventory_and_counts():
         p.stem for p in NB_DIR.glob("*.py") if not p.name.startswith("_")
     }
     assert len(course_sub) == 22, f"Expected 22 course subfolder notebooks, found {len(course_sub)}"
-    assert len(curso) == 62, f"Expected 62 curso notebooks, found {len(curso)}"
+    assert len(curso) == 68, f"Expected 68 curso notebooks, found {len(curso)}"
     assert len(showcase) + len(course_sub) + len(curso) >= 214
 
 

@@ -1,0 +1,825 @@
+{
+ "meta": [
+  {
+   "code": "AUS",
+   "variable": "vacancies",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_U PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1979-05-01",
+   "last": "2026-02-01",
+   "n": 183
+  },
+  {
+   "code": "AUT",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-07-01",
+   "n": 859
+  },
+  {
+   "code": "AUT",
+   "variable": "vacancies",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_U PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-07-01",
+   "n": 859
+  },
+  {
+   "code": "BEL",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1982-01-01",
+   "last": "2025-12-01",
+   "n": 528
+  },
+  {
+   "code": "BEL",
+   "variable": "vacancies",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_U PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2004-05-01",
+   "n": 593
+  },
+  {
+   "code": "BGR",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1995-01-01",
+   "last": "2025-09-01",
+   "n": 369
+  },
+  {
+   "code": "BGR",
+   "variable": "vacancies",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_U PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1999-01-01",
+   "last": "2025-09-01",
+   "n": 321
+  },
+  {
+   "code": "BGR",
+   "variable": "vacancies_new",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_N PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1999-01-01",
+   "last": "2025-09-01",
+   "n": 321
+  },
+  {
+   "code": "CHE",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-07-01",
+   "n": 859
+  },
+  {
+   "code": "CHE",
+   "variable": "vacancies",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_U PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1960-01-01",
+   "last": "2025-12-01",
+   "n": 792
+  },
+  {
+   "code": "CZE",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1991-01-01",
+   "last": "2026-05-01",
+   "n": 425
+  },
+  {
+   "code": "CZE",
+   "variable": "vacancies",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_U PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1990-09-01",
+   "last": "2026-05-01",
+   "n": 429
+  },
+  {
+   "code": "DEU",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1956-01-01",
+   "last": "2026-06-01",
+   "n": 846
+  },
+  {
+   "code": "DEU",
+   "variable": "vacancies",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_U PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-06-01",
+   "n": 858
+  },
+  {
+   "code": "DNK",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1963-06-01",
+   "last": "2026-06-01",
+   "n": 757
+  },
+  {
+   "code": "ESP",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-06-01",
+   "n": 858
+  },
+  {
+   "code": "ESP",
+   "variable": "vacancies",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_U PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1977-01-01",
+   "last": "2005-04-01",
+   "n": 340
+  },
+  {
+   "code": "EST",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2004-01-01",
+   "last": "2026-03-01",
+   "n": 267
+  },
+  {
+   "code": "FIN",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1981-01-01",
+   "last": "2026-07-01",
+   "n": 547
+  },
+  {
+   "code": "FIN",
+   "variable": "vacancies",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_U PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1961-01-01",
+   "last": "2026-07-01",
+   "n": 787
+  },
+  {
+   "code": "FRA",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-06-01",
+   "n": 857
+  },
+  {
+   "code": "FRA",
+   "variable": "vacancies_new",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_N PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1989-01-01",
+   "last": "2026-06-01",
+   "n": 450
+  },
+  {
+   "code": "GBR",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-08-01",
+   "n": 860
+  },
+  {
+   "code": "GBR",
+   "variable": "vacancies",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_U PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1958-07-01",
+   "last": "2023-06-01",
+   "n": 778
+  },
+  {
+   "code": "GRC",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2010-01-01",
+   "last": "2013-03-01",
+   "n": 39
+  },
+  {
+   "code": "HUN",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1990-01-01",
+   "last": "2026-06-01",
+   "n": 438
+  },
+  {
+   "code": "HUN",
+   "variable": "vacancies",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_U PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1992-01-01",
+   "last": "2026-06-01",
+   "n": 414
+  },
+  {
+   "code": "IRL",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1967-01-01",
+   "last": "2026-07-01",
+   "n": 715
+  },
+  {
+   "code": "JPN",
+   "variable": "vacancies_new",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_N PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1957-01-01",
+   "last": "2012-06-01",
+   "n": 666
+  },
+  {
+   "code": "LTU",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2015-01-01",
+   "last": "2026-07-01",
+   "n": 139
+  },
+  {
+   "code": "LUX",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1960-01-01",
+   "last": "2026-06-01",
+   "n": 798
+  },
+  {
+   "code": "LUX",
+   "variable": "vacancies",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_U PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1960-01-01",
+   "last": "2026-05-01",
+   "n": 797
+  },
+  {
+   "code": "NLD",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "none",
+   "first": "1988-02-01",
+   "last": "2010-05-01",
+   "n": 268
+  },
+  {
+   "code": "NOR",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-07-01",
+   "n": 859
+  },
+  {
+   "code": "NOR",
+   "variable": "vacancies",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_U PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-07-01",
+   "n": 859
+  },
+  {
+   "code": "NZL",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1970-01-01",
+   "last": "2015-12-01",
+   "n": 552
+  },
+  {
+   "code": "POL",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1990-01-01",
+   "last": "2026-06-01",
+   "n": 438
+  },
+  {
+   "code": "POL",
+   "variable": "vacancies",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_U PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1990-01-01",
+   "last": "2026-06-01",
+   "n": 438
+  },
+  {
+   "code": "PRT",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1974-01-01",
+   "last": "2026-06-01",
+   "n": 630
+  },
+  {
+   "code": "PRT",
+   "variable": "vacancies",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_U PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1974-01-01",
+   "last": "2026-06-01",
+   "n": 630
+  },
+  {
+   "code": "ROU",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1992-01-01",
+   "last": "2025-09-01",
+   "n": 405
+  },
+  {
+   "code": "RUS",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1991-07-01",
+   "last": "2022-01-01",
+   "n": 367
+  },
+  {
+   "code": "SVK",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1990-02-01",
+   "last": "2026-06-01",
+   "n": 437
+  },
+  {
+   "code": "SVN",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2005-01-01",
+   "last": "2016-12-01",
+   "n": 144
+  },
+  {
+   "code": "SWE",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1982-01-01",
+   "last": "2026-07-01",
+   "n": 535
+  },
+  {
+   "code": "SWE",
+   "variable": "vacancies",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_U PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1961-06-01",
+   "last": "2026-07-01",
+   "n": 782
+  },
+  {
+   "code": "TUR",
+   "variable": "reg_unemp",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "REG_UNE PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1962-01-01",
+   "last": "2026-06-01",
+   "n": 774
+  },
+  {
+   "code": "TUR",
+   "variable": "vacancies_new",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_N PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "1955-01-01",
+   "last": "2026-06-01",
+   "n": 858
+  },
+  {
+   "code": "USA",
+   "variable": "vacancies",
+   "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "series": "VAC_U PS S1 M",
+   "units": "thousands of persons",
+   "unit_mult": 0,
+   "sa": "oecd",
+   "first": "2000-12-01",
+   "last": "2026-08-01",
+   "n": 309
+  }
+ ],
+ "source": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+ "fetched_at": "2026-10-07T23:48:05+00:00",
+ "missing": [
+  {
+   "code": "AUS",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "AUS",
+   "variable": "reg_unemp",
+   "reason": "not published"
+  },
+  {
+   "code": "AUT",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "BEL",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "CHE",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "CZE",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "DEU",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "DNK",
+   "variable": "vacancies",
+   "reason": "not published"
+  },
+  {
+   "code": "DNK",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "ESP",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "EST",
+   "variable": "vacancies",
+   "reason": "not published"
+  },
+  {
+   "code": "EST",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "FIN",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "FRA",
+   "variable": "vacancies",
+   "reason": "not published"
+  },
+  {
+   "code": "GBR",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "GRC",
+   "variable": "vacancies",
+   "reason": "not published"
+  },
+  {
+   "code": "GRC",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "HUN",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "IRL",
+   "variable": "vacancies",
+   "reason": "not published"
+  },
+  {
+   "code": "IRL",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "JPN",
+   "variable": "vacancies",
+   "reason": "not published"
+  },
+  {
+   "code": "JPN",
+   "variable": "reg_unemp",
+   "reason": "not published"
+  },
+  {
+   "code": "LTU",
+   "variable": "vacancies",
+   "reason": "not published"
+  },
+  {
+   "code": "LTU",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "LUX",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "NLD",
+   "variable": "vacancies",
+   "reason": "not published"
+  },
+  {
+   "code": "NLD",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "NOR",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "NZL",
+   "variable": "vacancies",
+   "reason": "not published"
+  },
+  {
+   "code": "NZL",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "POL",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "PRT",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "ROU",
+   "variable": "vacancies",
+   "reason": "not published"
+  },
+  {
+   "code": "ROU",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "RUS",
+   "variable": "vacancies",
+   "reason": "not published"
+  },
+  {
+   "code": "RUS",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "SVK",
+   "variable": "vacancies",
+   "reason": "not published"
+  },
+  {
+   "code": "SVK",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "SVN",
+   "variable": "vacancies",
+   "reason": "not published"
+  },
+  {
+   "code": "SVN",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "SWE",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "TUR",
+   "variable": "vacancies",
+   "reason": "not published"
+  },
+  {
+   "code": "USA",
+   "variable": "vacancies_new",
+   "reason": "not published"
+  },
+  {
+   "code": "USA",
+   "variable": "reg_unemp",
+   "reason": "not published"
+  }
+ ],
+ "requests": [
+  {
+   "flow": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+   "key": ".VAC_U+VAC_N+REG_UNE.PS._Z..S1.M",
+   "status": "ok",
+   "rows": 56217
+  }
+ ],
+ "freq": "M"
+}

@@ -1,0 +1,66 @@
+{
+ "source": "Maddison Project Database 2023, maddison2023_web.dta (DataverseNL doi:10.34894/INZBF2)",
+ "doi": "10.34894/INZBF2",
+ "url": "https://dataverse.nl/api/access/datafile/421303",
+ "datafile_id": 421303,
+ "file": "maddison2023_web.dta",
+ "sha256": "2bc62ccbd795d4d330ef9ead6dc29c39e956922b43264640eba52d2c244841cb",
+ "release": "2024-04-26",
+ "license": "CC BY 4.0",
+ "citation": "Bolt, Jutta and Jan Luiten van Zanden (2024), \"Maddison style estimates of the evolution of the world economy: A new 2023 update\", Journal of Economic Surveys, 1-41, doi:10.1111/joes.12618",
+ "citation_policy": "Cite Bolt and van Zanden (2024). In addition, cite the original sources (the 'Sources' sheet of mpd2023_web.xlsx) whenever the data are shown in any graphical form or a subset of fewer than 12 countries is used.",
+ "price_base": 2011,
+ "units": {
+  "country": "text",
+  "region": "text",
+  "gdppc": "2011 international dollars (PPP) per person",
+  "pop": "thousands of persons"
+ },
+ "labels": {
+  "country": "country",
+  "region": "region",
+  "year": "year",
+  "gdppc": "Real GDP per capita in 2011$ (workbook header: GDP pc 2011 prices)",
+  "pop": "Population, mid-year (thousands)"
+ },
+ "value_labels": {},
+ "historical_entities": [
+  "CSK",
+  "SUN",
+  "YUG"
+ ],
+ "nonstandard_codes": {},
+ "nbytes": 10892389,
+ "meta": [
+  {
+   "variable": "gdppc",
+   "source": "Maddison Project Database 2023, maddison2023_web.dta (DataverseNL doi:10.34894/INZBF2)",
+   "file": "maddison2023_web.dta",
+   "url": "https://dataverse.nl/api/access/datafile/421303",
+   "label": "Real GDP per capita in 2011$ (workbook header: GDP pc 2011 prices)",
+   "units": "2011 international dollars (PPP) per person",
+   "unit_mult": 0,
+   "sa": "annual",
+   "first": 1820,
+   "last": 2022,
+   "n": 16979,
+   "n_codes": 169
+  },
+  {
+   "variable": "pop",
+   "source": "Maddison Project Database 2023, maddison2023_web.dta (DataverseNL doi:10.34894/INZBF2)",
+   "file": "maddison2023_web.dta",
+   "url": "https://dataverse.nl/api/access/datafile/421303",
+   "label": "Population, mid-year (thousands)",
+   "units": "thousands of persons",
+   "unit_mult": 3,
+   "sa": "annual",
+   "first": 1820,
+   "last": 2022,
+   "n": 17641,
+   "n_codes": 169
+  }
+ ],
+ "missing": [],
+ "fetched_at": "2026-10-07T23:47:31+00:00"
+}

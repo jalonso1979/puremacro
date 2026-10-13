@@ -194,7 +194,7 @@ def test_build_tooling_multi_suite_discovery():
 
     curso_srcs = bn.discover_sources("curso")
     assert all(p.suffix == ".ipynb" for p in curso_srcs)
-    assert len(curso_srcs) == 62
+    assert len(curso_srcs) == 68
 
     all_srcs = bn.discover_sources("all")
     assert len(all_srcs) == len(showcase_srcs) + len(curso_srcs)

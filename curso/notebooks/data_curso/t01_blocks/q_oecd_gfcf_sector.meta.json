@@ -1,0 +1,1344 @@
+{
+ "meta": [
+  {
+   "code": "AUS",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1959-07-01",
+   "last": "2026-04-01",
+   "n": 268
+  },
+  {
+   "code": "AUS",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1959-07-01",
+   "last": "2026-04-01",
+   "n": 268
+  },
+  {
+   "code": "AUT",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "AUT",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "BEL",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1995-01-01",
+   "last": "2026-04-01",
+   "n": 126
+  },
+  {
+   "code": "BEL",
+   "variable": "inv_gov_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G L",
+   "units": "millions of national currency, chain-linked volume (2020 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1995-01-01",
+   "last": "2026-04-01",
+   "n": 126
+  },
+  {
+   "code": "BEL",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1995-01-01",
+   "last": "2026-04-01",
+   "n": 126
+  },
+  {
+   "code": "BEL",
+   "variable": "inv_priv_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G L",
+   "units": "millions of national currency, chain-linked volume (2020 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1996-01-01",
+   "last": "2026-04-01",
+   "n": 122
+  },
+  {
+   "code": "BGR",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1999-01-01",
+   "last": "2024-01-01",
+   "n": 101
+  },
+  {
+   "code": "BGR",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "CAN",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1981-01-01",
+   "last": "2026-04-01",
+   "n": 182
+  },
+  {
+   "code": "CAN",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1981-01-01",
+   "last": "2026-04-01",
+   "n": 182
+  },
+  {
+   "code": "COL",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "2016-01-01",
+   "last": "2026-01-01",
+   "n": 41
+  },
+  {
+   "code": "COL",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "2016-01-01",
+   "last": "2026-01-01",
+   "n": 41
+  },
+  {
+   "code": "CZE",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "CZE",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "DEU",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1991-01-01",
+   "last": "2026-04-01",
+   "n": 142
+  },
+  {
+   "code": "DEU",
+   "variable": "inv_gov_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G L",
+   "units": "millions of national currency, chain-linked volume (2020 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1991-01-01",
+   "last": "2026-04-01",
+   "n": 142
+  },
+  {
+   "code": "DEU",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1991-01-01",
+   "last": "2026-04-01",
+   "n": 142
+  },
+  {
+   "code": "DEU",
+   "variable": "inv_priv_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G L",
+   "units": "millions of national currency, chain-linked volume (2020 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1991-01-01",
+   "last": "2026-04-01",
+   "n": 142
+  },
+  {
+   "code": "DNK",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "DNK",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "EST",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1999-01-01",
+   "last": "2025-04-01",
+   "n": 106
+  },
+  {
+   "code": "EST",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1999-01-01",
+   "last": "2025-04-01",
+   "n": 106
+  },
+  {
+   "code": "FIN",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1990-01-01",
+   "last": "2026-04-01",
+   "n": 146
+  },
+  {
+   "code": "FIN",
+   "variable": "inv_gov_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G L",
+   "units": "millions of national currency, chain-linked volume (2015 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1990-01-01",
+   "last": "2026-04-01",
+   "n": 146
+  },
+  {
+   "code": "FIN",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1990-01-01",
+   "last": "2026-04-01",
+   "n": 146
+  },
+  {
+   "code": "FIN",
+   "variable": "inv_priv_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G L",
+   "units": "millions of national currency, chain-linked volume (2015 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1990-01-01",
+   "last": "2026-04-01",
+   "n": 146
+  },
+  {
+   "code": "FRA",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1980-01-01",
+   "last": "2026-04-01",
+   "n": 186
+  },
+  {
+   "code": "FRA",
+   "variable": "inv_gov_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G L",
+   "units": "millions of national currency, chain-linked volume (2020 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1980-01-01",
+   "last": "2026-04-01",
+   "n": 186
+  },
+  {
+   "code": "FRA",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1980-01-01",
+   "last": "2026-04-01",
+   "n": 186
+  },
+  {
+   "code": "FRA",
+   "variable": "inv_priv_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G L",
+   "units": "millions of national currency, chain-linked volume (2020 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1981-01-01",
+   "last": "2026-04-01",
+   "n": 182
+  },
+  {
+   "code": "GBR",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1995-01-01",
+   "last": "2026-04-01",
+   "n": 126
+  },
+  {
+   "code": "GBR",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1995-01-01",
+   "last": "2026-04-01",
+   "n": 126
+  },
+  {
+   "code": "GRC",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "GRC",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "HUN",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "HUN",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "IRL",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "IRL",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "ISL",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1995-01-01",
+   "last": "2026-04-01",
+   "n": 126
+  },
+  {
+   "code": "ISL",
+   "variable": "inv_gov_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G L",
+   "units": "millions of national currency, chain-linked volume (2020 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1995-01-01",
+   "last": "2026-04-01",
+   "n": 126
+  },
+  {
+   "code": "ITA",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "ITA",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "JPN",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1994-01-01",
+   "last": "2026-04-01",
+   "n": 130
+  },
+  {
+   "code": "JPN",
+   "variable": "inv_gov_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G L",
+   "units": "millions of national currency, chain-linked volume (2020 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1994-01-01",
+   "last": "2026-04-01",
+   "n": 130
+  },
+  {
+   "code": "JPN",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1994-01-01",
+   "last": "2026-04-01",
+   "n": 130
+  },
+  {
+   "code": "JPN",
+   "variable": "inv_priv_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G L",
+   "units": "millions of national currency, chain-linked volume (2020 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1995-01-01",
+   "last": "2026-04-01",
+   "n": 126
+  },
+  {
+   "code": "KOR",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "2000-01-01",
+   "last": "2026-04-01",
+   "n": 106
+  },
+  {
+   "code": "KOR",
+   "variable": "inv_gov_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G L",
+   "units": "millions of national currency, chain-linked volume (2020 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1997-01-01",
+   "last": "2026-04-01",
+   "n": 118
+  },
+  {
+   "code": "KOR",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "2000-01-01",
+   "last": "2026-04-01",
+   "n": 106
+  },
+  {
+   "code": "KOR",
+   "variable": "inv_priv_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G L",
+   "units": "millions of national currency, chain-linked volume (2020 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1997-01-01",
+   "last": "2026-04-01",
+   "n": 118
+  },
+  {
+   "code": "LTU",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "LTU",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "LUX",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "LUX",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "LVA",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "LVA",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "MEX",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "2008-01-01",
+   "last": "2026-01-01",
+   "n": 73
+  },
+  {
+   "code": "MEX",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "2008-01-01",
+   "last": "2026-01-01",
+   "n": 73
+  },
+  {
+   "code": "NLD",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1995-01-01",
+   "last": "2026-01-01",
+   "n": 125
+  },
+  {
+   "code": "NLD",
+   "variable": "inv_gov_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G L",
+   "units": "millions of national currency, chain-linked volume (2021 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1996-01-01",
+   "last": "2026-01-01",
+   "n": 121
+  },
+  {
+   "code": "NLD",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1995-01-01",
+   "last": "2026-01-01",
+   "n": 125
+  },
+  {
+   "code": "NLD",
+   "variable": "inv_priv_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G L",
+   "units": "millions of national currency, chain-linked volume (2021 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1996-01-01",
+   "last": "2026-01-01",
+   "n": 121
+  },
+  {
+   "code": "NOR",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1978-01-01",
+   "last": "2026-04-01",
+   "n": 194
+  },
+  {
+   "code": "NOR",
+   "variable": "inv_gov_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G L",
+   "units": "millions of national currency, chain-linked volume (2023 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1978-01-01",
+   "last": "2026-04-01",
+   "n": 194
+  },
+  {
+   "code": "NOR",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1978-01-01",
+   "last": "2026-04-01",
+   "n": 194
+  },
+  {
+   "code": "NOR",
+   "variable": "inv_priv_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G L",
+   "units": "millions of national currency, chain-linked volume (2023 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1979-01-01",
+   "last": "2026-04-01",
+   "n": 190
+  },
+  {
+   "code": "NZL",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1987-04-01",
+   "last": "2026-04-01",
+   "n": 157
+  },
+  {
+   "code": "NZL",
+   "variable": "inv_gov_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G L",
+   "units": "millions of national currency, chain-linked volume (2009-2010 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1987-04-01",
+   "last": "2026-04-01",
+   "n": 157
+  },
+  {
+   "code": "NZL",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1987-04-01",
+   "last": "2026-04-01",
+   "n": 157
+  },
+  {
+   "code": "NZL",
+   "variable": "inv_priv_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G L",
+   "units": "millions of national currency, chain-linked volume (2009-2010 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1987-04-01",
+   "last": "2026-04-01",
+   "n": 157
+  },
+  {
+   "code": "POL",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "POL",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "ROU",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "ROU",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "SVK",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "SVK",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "SVN",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "SVN",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1999-01-01",
+   "last": "2026-01-01",
+   "n": 109
+  },
+  {
+   "code": "SWE",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1980-01-01",
+   "last": "1992-10-01",
+   "n": 52
+  },
+  {
+   "code": "SWE",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "puremacro",
+   "first": "1980-01-01",
+   "last": "1992-10-01",
+   "n": 52
+  },
+  {
+   "code": "USA",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1947-01-01",
+   "last": "2026-04-01",
+   "n": 318
+  },
+  {
+   "code": "USA",
+   "variable": "inv_gov_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S13 P51G L",
+   "units": "millions of national currency, chain-linked volume (2017 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "2007-01-01",
+   "last": "2026-04-01",
+   "n": 78
+  },
+  {
+   "code": "USA",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1947-01-01",
+   "last": "2026-04-01",
+   "n": 318
+  },
+  {
+   "code": "USA",
+   "variable": "inv_priv_real",
+   "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "series": "S1W P51G L",
+   "units": "millions of national currency, chain-linked volume (2017 prices)",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "2007-01-01",
+   "last": "2026-04-01",
+   "n": 78
+  },
+  {
+   "code": "ZAF",
+   "variable": "inv_gov",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1995-01-01",
+   "last": "2026-01-01",
+   "n": 125
+  },
+  {
+   "code": "ZAF",
+   "variable": "inv_priv",
+   "source": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "series": "S1 P51G D less S13 P51G D V",
+   "units": "millions of national currency, current prices",
+   "unit_mult": 6,
+   "sa": "oecd",
+   "first": "1995-01-01",
+   "last": "2026-01-01",
+   "n": 125
+  }
+ ],
+ "source": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR; OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+ "fetched_at": "2026-10-07T23:47:39+00:00",
+ "missing": [
+  {
+   "code": "AUS",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "AUS",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "AUT",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "AUT",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "BGR",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "BGR",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "CAN",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "CAN",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "COL",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "COL",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "CZE",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "CZE",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "DNK",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "DNK",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "EST",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "EST",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "GBR",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "GBR",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "GRC",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "GRC",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "HUN",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "HUN",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "IRL",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "IRL",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "ISL",
+   "variable": "inv_priv",
+   "reason": "not published"
+  },
+  {
+   "code": "ISL",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "ITA",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "ITA",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "LTU",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "LTU",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "LUX",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "LUX",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "LVA",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "LVA",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "MEX",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "MEX",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "POL",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "POL",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "ROU",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "ROU",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "SVK",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "SVK",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "SVN",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "SVN",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "SWE",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "SWE",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  },
+  {
+   "code": "ZAF",
+   "variable": "inv_gov_real",
+   "reason": "not published"
+  },
+  {
+   "code": "ZAF",
+   "variable": "inv_priv_real",
+   "reason": "not published"
+  }
+ ],
+ "requests": [
+  {
+   "flow": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR",
+   "key": "Q...S13+S1W..P51G.......",
+   "status": "ok",
+   "rows": 12192
+  },
+  {
+   "flow": "OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+   "key": "Q...S1+S13..D.P51G......N.",
+   "status": "ok",
+   "rows": 11785
+  }
+ ],
+ "sa_engines": {
+  "AUT|inv_priv|V": "binary",
+  "BGR|inv_priv|V": "binary",
+  "COL|inv_gov|V": "binary",
+  "COL|inv_priv|V": "binary",
+  "CZE|inv_priv|V": "binary",
+  "DNK|inv_priv|V": "binary",
+  "EST|inv_priv|V": "binary",
+  "GBR|inv_priv|V": "binary",
+  "GRC|inv_priv|V": "binary",
+  "HUN|inv_priv|V": "binary",
+  "IRL|inv_priv|V": "binary",
+  "ITA|inv_gov|V": "binary",
+  "ITA|inv_priv|V": "binary",
+  "LTU|inv_priv|V": "binary",
+  "LUX|inv_priv|V": "binary",
+  "LVA|inv_priv|V": "binary",
+  "MEX|inv_gov|V": "binary",
+  "MEX|inv_priv|V": "binary",
+  "POL|inv_priv|V": "binary",
+  "ROU|inv_priv|V": "binary",
+  "SVK|inv_priv|V": "binary",
+  "SVN|inv_priv|V": "binary",
+  "SWE|inv_gov|V": "binary",
+  "SWE|inv_priv|V": "binary"
+ }
+}

@@ -21,9 +21,9 @@ Haga clic en el enlace del cuaderno. La primera celda de código instala
 | Código | Tema | Español | Inglés |
 |---|---|---|---|
 | T00 | Syllabus interactivo del curso | [español](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T00_syllabus_es.ipynb) | [inglés](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T00_syllabus.ipynb) |
-| T01_A | Hechos del ciclo económico desde el mercado de trabajo | [español](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_A_business_cycle_facts_es.ipynb) | [inglés](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_A_business_cycle_facts.ipynb) |
-| T01_B | Contabilidad nacional y hechos estilizados internacionales | [español](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_B_hechos_estilizados_internacionales_es.ipynb) | [inglés](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_B_cross_country_facts.ipynb) |
-| T01_C | El ciclo a frecuencia mensual, semanal y diaria | [español](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_C_alta_frecuencia_es.ipynb) | [inglés](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_C_high_frequency.ipynb) |
+| T01_A | Hechos del ciclo económico desde el mercado de trabajo | [español](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_A_data_panels_es.ipynb) | [inglés](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_A_data_panels.ipynb) |
+| T01_B | Contabilidad nacional y hechos estilizados internacionales | [español](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_B_measurement_and_cycles_es.ipynb) | [inglés](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_B_measurement_and_cycles.ipynb) |
+| T01_C | El ciclo a frecuencia mensual, semanal y diaria | [español](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_C_stylized_facts_es.ipynb) | [inglés](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_C_stylized_facts.ipynb) |
 | T02_A | Modelo neoclásico de crecimiento: log-linealización y aproximación local | [español](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_A_neoclassical_growth_local_es.ipynb) | [inglés](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_A_neoclassical_growth_local.ipynb) |
 | T02_B | RBC canónico: simulación, momentos y el debate de las horas | [español](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_B_rbc_dynare_local_es.ipynb) | [inglés](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_B_rbc_dynare_local.ipynb) |
 | T02_C | Precios rígidos y búsqueda: fricciones en bienes y trabajo | [español](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_C_new_keynesian_local_es.ipynb) | [inglés](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_C_new_keynesian_local.ipynb) |
@@ -60,7 +60,7 @@ Requiere Python 3.11 o posterior.
 git clone --depth 1 --filter=blob:none --sparse https://github.com/jalonso1979/puremacro.git
 cd puremacro
 git sparse-checkout set curso/notebooks
-python -m pip install "puremacro[io]>=4.0.1,<5" statsmodels arch jupyterlab
+python -m pip install "puremacro[io]>=4.8.1,<5" statsmodels arch jupyterlab
 cd curso/notebooks
 jupyter lab
 ```
@@ -110,9 +110,9 @@ data); it does not ask for Google Drive access. Run the cells in order.
 | Code | Topic | Spanish | English |
 |---|---|---|---|
 | T00 | Interactive course syllabus | [Spanish](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T00_syllabus_es.ipynb) | [English](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T00_syllabus.ipynb) |
-| T01_A | Business-cycle facts from the labour side | [Spanish](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_A_business_cycle_facts_es.ipynb) | [English](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_A_business_cycle_facts.ipynb) |
-| T01_B | National accounts and cross-country stylized facts | [Spanish](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_B_hechos_estilizados_internacionales_es.ipynb) | [English](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_B_cross_country_facts.ipynb) |
-| T01_C | The cycle at monthly, weekly and daily frequency | [Spanish](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_C_alta_frecuencia_es.ipynb) | [English](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_C_high_frequency.ipynb) |
+| T01_A | Business-cycle facts from the labour side | [Spanish](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_A_data_panels_es.ipynb) | [English](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_A_data_panels.ipynb) |
+| T01_B | National accounts and cross-country stylized facts | [Spanish](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_B_measurement_and_cycles_es.ipynb) | [English](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_B_measurement_and_cycles.ipynb) |
+| T01_C | The cycle at monthly, weekly and daily frequency | [Spanish](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_C_stylized_facts_es.ipynb) | [English](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_C_stylized_facts.ipynb) |
 | T02_A | Neoclassical growth model: log-linearization and local approximation | [Spanish](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_A_neoclassical_growth_local_es.ipynb) | [English](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_A_neoclassical_growth_local.ipynb) |
 | T02_B | Canonical RBC: simulation, moments and the hours debate | [Spanish](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_B_rbc_dynare_local_es.ipynb) | [English](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_B_rbc_dynare_local.ipynb) |
 | T02_C | Sticky prices and search: frictions in goods and labour markets | [Spanish](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_C_new_keynesian_local_es.ipynb) | [English](https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_C_new_keynesian_local.ipynb) |
@@ -149,7 +149,7 @@ Requires Python 3.11 or later.
 git clone --depth 1 --filter=blob:none --sparse https://github.com/jalonso1979/puremacro.git
 cd puremacro
 git sparse-checkout set curso/notebooks
-python -m pip install "puremacro[io]>=4.0.1,<5" statsmodels arch jupyterlab
+python -m pip install "puremacro[io]>=4.8.1,<5" statsmodels arch jupyterlab
 cd curso/notebooks
 jupyter lab
 ```

@@ -1,0 +1,528 @@
+{
+  "assembled_utc": "2026-10-07T23:48:52.985790+00:00",
+  "description": "Teaching snapshots; releases differ across sources. Not an as-of information set.",
+  "puremacro_version": "4.7.0",
+  "live_blocks": [
+    "m_bis",
+    "m_commodities",
+    "m_eurostat",
+    "m_imf",
+    "m_oecd_lfs",
+    "m_oecd_stes",
+    "m_oecd_vac",
+    "m_rates",
+    "m_stocks",
+    "q_bis",
+    "q_eurostat_na",
+    "q_eurostat_vac",
+    "q_ilo",
+    "q_imf_nea",
+    "q_oecd_gfcf_sector",
+    "q_oecd_lfs",
+    "q_oecd_pop",
+    "q_oecd_qna",
+    "q_oecd_vac",
+    "sahm",
+    "t01_pwt110",
+    "t01_pwt110_labor",
+    "wdi_countries",
+    "y_eurostat_na",
+    "y_ilo",
+    "y_imf_icsd",
+    "y_imf_nea",
+    "y_maddison",
+    "y_oecd_ana",
+    "y_wdi"
+  ],
+  "panels": {
+    "annual": {
+      "file": "t01_annual.csv.gz",
+      "sha256": "f5a701d3176639b3852f858ea9bbc353fb6d77c995ed2da0c839a1a058622bde",
+      "countries": 218,
+      "variables": 190,
+      "observations": 911066,
+      "first": "1820-01-01",
+      "last": "2026-01-01",
+      "frequency": "Y"
+    },
+    "quarterly": {
+      "file": "t01_quarterly.csv.gz",
+      "sha256": "4562af81c3998e623271a41179d9ac9142ed273625e1c9b008103b4593e91c8c",
+      "countries": 194,
+      "variables": 203,
+      "observations": 964497,
+      "first": "1791-01-01",
+      "last": "2026-07-01",
+      "frequency": "Q"
+    },
+    "monthly": {
+      "file": "t01_monthly.csv.gz",
+      "sha256": "fcc39868b80b71fa1fc0d433bd0ebdc9363b7c7ee361ce0558295ee209bf8280",
+      "countries": 207,
+      "variables": 65,
+      "observations": 1485477,
+      "first": "1791-01-01",
+      "last": "2026-09-01",
+      "frequency": "M"
+    },
+    "commodities": {
+      "file": "t01_commodities.csv.gz",
+      "sha256": "d2dbe738001ba0de07fe7a0b4b8e70cd63751b28e070ce21837be39a92229bfb",
+      "countries": 1,
+      "variables": 48,
+      "observations": 37187,
+      "first": "1960-01-01",
+      "last": "2026-09-01",
+      "frequency": "M"
+    }
+  },
+  "blocks": {
+    "wdi_countries": {
+      "file": "t01_blocks/wdi_countries.csv.gz",
+      "sha256": "2e169e85870b89c9bddf677176d5787bb1dc8bf056d7d6e71d058fb30a893420",
+      "rows": 217,
+      "call": "wdi_countries()",
+      "provider": "World Bank WDI (source 2), api.worldbank.org/v2",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:47:10+00:00",
+      "origin": "live"
+    },
+    "y_wdi": {
+      "file": "t01_blocks/y_wdi.csv.gz",
+      "sha256": "ad27de6b23a0ab4a9c038a4d1178f4e5f03efbdc2d6b0a258db4d44a2b6ee8c9",
+      "rows": 660478,
+      "call": "wdi_panel(\"all\", start=1960, real=True)",
+      "provider": "World Bank WDI (source 2), api.worldbank.org/v2",
+      "release": "2026-07-13",
+      "fetched_utc": "2026-10-07T23:47:13+00:00",
+      "origin": "live"
+    },
+    "y_oecd_ana": {
+      "file": "t01_blocks/y_oecd_ana.csv.gz",
+      "sha256": "836ef0ccded5e8546fc2f14c68d9dbb5c0dd3cd2edd451b33b080f555bbe2fa7",
+      "rows": 267590,
+      "call": "ana_panel(ana_countries(), start=\"1950\", assets=True, durability=True, income=True, output=True, labor=True, sectors=True, stocks=True, real=True)",
+      "provider": "OECD.SDD.NAD,DSD_NAMAIN10@DF_TABLE1,2.0 + OECD.SDD.NAD,DSD_NASEC10@DF_TABLE14,1.1 + OECD.SDD.NAD,DSD_NAMAIN10@DF_TABLE5A_T117,2.0 + OECD.SDD.NAD,DSD_NAMAIN10@DF_TABLE5_T117,1.0 + OECD.SDD.NAD,DSD_NASEC10@DF_TABLE14_GFCF,1.1 + OECD.SDD.NAD,DSD_NAMAIN10@DF_TABLE9A,2.0 + OECD.SDD.NAD,DSD_NASEC10@DF_TABLE9B,1.1 + OECD.SDD.NAD,DSD_NAMAIN10@DF_TABLE3_EMPDC,2.0 + OECD.SDD.NAD,DSD_NAMAIN10@DF_TABLE3_POP_EMPNC,2.0",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:47:13+00:00",
+      "origin": "live"
+    },
+    "y_eurostat_na": {
+      "file": "t01_blocks/y_eurostat_na.csv.gz",
+      "sha256": "25043cf493e4e81a54e2c53685bbae3b4faa64d6e102d4e7bbb8cd43db1045b0",
+      "rows": 137422,
+      "call": "eurostat_na_panel(freq=\"A\", durability=True, assets=True, output=True, income=True, labor=True, sectors=True, capital=True, real=True)",
+      "provider": "Eurostat SDMX 2.1: nama_10_gdp, nasa_10_nf_tr, nama_10_fcs, nama_10_an6, nama_10_a10, nama_10_a10_e, nama_10_pe, gov_10a_main, nama_10_nfa_st",
+      "release": "21/07/26 11:00:00",
+      "fetched_utc": "2026-10-07T23:47:23+00:00",
+      "origin": "live"
+    },
+    "y_imf_nea": {
+      "file": "t01_blocks/y_imf_nea.csv.gz",
+      "sha256": "2c82ca493c62adca1fa1a492c0332e4d472483e927bf6b5158c757e5ece0cc5d",
+      "rows": 102106,
+      "call": "imf_nea_panel(freq=\"A\", real=True)",
+      "provider": "IMF SDMX 2.1 API, api.imf.org/external/sdmx/2.1",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:47:23+00:00",
+      "origin": "live"
+    },
+    "y_imf_icsd": {
+      "file": "t01_blocks/y_imf_icsd.csv.gz",
+      "sha256": "ce96c97449fd0f3e7f458e0ce13ebd0a5352dc0420d0729197926e6aa95d3dbb",
+      "rows": 134722,
+      "call": "imf_icsd()",
+      "provider": "IMF SDMX 2.1 API, api.imf.org/external/sdmx/2.1",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:47:24+00:00",
+      "origin": "live"
+    },
+    "y_ilo": {
+      "file": "t01_blocks/y_ilo.csv.gz",
+      "sha256": "6e56fbd485c14b98b6029814e9d5083d624fde23dd97eef5980df6393e4df131",
+      "rows": 90506,
+      "call": "ilostat_panel(freq=\"A\", modelled=True)",
+      "provider": "ILOSTAT SDMX web service (sdmx.ilo.org); ILO,DF_EMP_TEMP_SEX_AGE_NB,1.0 (LAST_UPDATE 2026-10-03T07:10:53); ILO,DF_UNE_TUNE_SEX_AGE_NB,1.0 (LAST_UPDATE 2026-10-03T07:10:53); ILO,DF_EAP_TEAP_SEX_AGE_NB,1.0 (LAST_UPDATE 2026-10-03T07:10:53); ILO,DF_POP_XWAP_SEX_AGE_NB,1.0 (LAST_UPDATE 2026-10-03T07:10:53); ILO,DF_UNE_DEAP_SEX_AGE_RT,1.0 (LAST_UPDATE 2026-10-03T07:10:53); ILO,DF_EAP_DWAP_SEX_AGE_RT,1.0 (LAST_UPDATE 2026-10-03T07:10:53); ILO,DF_EMP_DWAP_SEX_AGE_RT,1.0 (LAST_UPDATE 2026-10-03T07:10:53); ILO,DF_EMP_TEMP_SEX_STE_NB,1.0 (LAST_UPDATE 2026-10-03T07:10:53); ILO,DF_HOW_TEMP_SEX_NB,1.0 (LAST_UPDATE 2026-10-02T07:01:11); ILO,DF_EMP_NIFL_SEX_RT,1.0 (LAST_UPDATE 2026-10-02T07:13:20); ILO,DF_LAP_2GDP_NOC_RT,1.0 (LAST_UPDATE 2026-03-20T13:54:04); ILO,DF_EMP_2EMP_SEX_AGE_NB,1.0 (LAST_UPDATE 2025-12-02T13:33:47); ILO,DF_UNE_2EAP_SEX_AGE_RT,1.0 (LAST_UPDATE 2025-12-02T13:33:47); ILO,DF_EAP_2EAP_SEX_AGE_NB,1.0 (LAST_UPDATE 2025-12-02T17:36:06); ILO,DF_POP_2WAP_SEX_AGE_NB,1.0 (LAST_UPDATE 2026-03-01T15:51:04); ILO,DF_EMP_2EMP_SEX_STE_NB,1.0 (LAST_UPDATE 2025-12-02T17:36:06); ILO,DF_HOW_2EMP_SEX_NB,1.0 (LAST_UPDATE 2025-12-02T13:10:14)",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:47:27+00:00",
+      "origin": "live"
+    },
+    "t01_pwt110": {
+      "file": "t01_pwt110.csv.gz",
+      "sha256": "c5f6872e35a9f794db3e181317c6729d963678c996e6c3c2e31b630575342bd4",
+      "rows": 11201,
+      "call": "fetch_pwt(\"main\")",
+      "provider": "Penn World Table 11.0, pwt110.dta (DataverseNL doi:10.34894/FABVLR)",
+      "release": "2025-10-10",
+      "fetched_utc": "2026-10-07T23:47:31+00:00",
+      "origin": "live"
+    },
+    "t01_pwt110_labor": {
+      "file": "t01_pwt110_labor.csv.gz",
+      "sha256": "c7565356bb3898e51f78391eab8af946bd98d3d72c6a83fbcb396b20ece13b8e",
+      "rows": 12247,
+      "call": "fetch_pwt(\"labor\")",
+      "provider": "Penn World Table 11.0, pwt110_labor_detail.dta (DataverseNL doi:10.34894/FABVLR)",
+      "release": "2025-10-10",
+      "fetched_utc": "2026-10-07T23:47:31+00:00",
+      "origin": "live"
+    },
+    "y_maddison": {
+      "file": "t01_blocks/y_maddison.csv.gz",
+      "sha256": "5650e8699a91ac0857bd01239f40b2e15a507fe0b73a8f6e5bf10a9e3645c3bf",
+      "rows": 34620,
+      "call": "fetch_maddison(start=1820)",
+      "provider": "Maddison Project Database 2023, maddison2023_web.dta (DataverseNL doi:10.34894/INZBF2)",
+      "release": "2024-04-26",
+      "fetched_utc": "2026-10-07T23:47:31+00:00",
+      "origin": "live"
+    },
+    "q_oecd_qna": {
+      "file": "t01_blocks/q_oecd_qna.csv.gz",
+      "sha256": "81ff3fceada356895f6a65d2c52c3b0754d40bdbfc34d6c365511b1480ef6e76",
+      "rows": 444584,
+      "call": "qna_panel(qna_countries(), start=\"1947\", assets=True, durability=True, output=True, income=True, labor=True, labor_activities=True, sa=\"x13\", real=False)",
+      "provider": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR",
+      "release": null,
+      "fetched_utc": null,
+      "origin": "live"
+    },
+    "q_oecd_gfcf_sector": {
+      "file": "t01_blocks/q_oecd_gfcf_sector.csv.gz",
+      "sha256": "9491c3298b72e9408277d7c345be3134045b8a5001acc20597a3c6d1622aafd7",
+      "rows": 11500,
+      "call": "qna_sector_gfcf(start=\"1947\", sa=\"x13\")",
+      "provider": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_SECTOR; OECD.SDD.NAD,DSD_NASEC1@DF_QSA",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:47:39+00:00",
+      "origin": "live"
+    },
+    "q_oecd_pop": {
+      "file": "t01_blocks/q_oecd_pop.csv.gz",
+      "sha256": "02d6bba18d10247f58f855d373d5fb88e712927eb05c0e36ec1909a05f780b9e",
+      "rows": 20672,
+      "call": "qna_population(start=\"1947\")",
+      "provider": "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_POP_EMPNC",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:47:39+00:00",
+      "origin": "live"
+    },
+    "q_oecd_lfs": {
+      "file": "t01_blocks/q_oecd_lfs.csv.gz",
+      "sha256": "171c42e739490ec582b30fa60516621643078f4be0f352957b45aebe7f54c9ec",
+      "rows": 42390,
+      "call": "oecd_lfs_panel(freq=\"Q\", start=\"1950\")",
+      "provider": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:47:40+00:00",
+      "origin": "live"
+    },
+    "q_oecd_vac": {
+      "file": "t01_blocks/q_oecd_vac.csv.gz",
+      "sha256": "375114b9f002e4d7646433ee6a21b7b7724372f9d82a8155f7e1861800e23c19",
+      "rows": 9510,
+      "call": "oecd_vacancies(freq=\"Q\", start=\"1950\")",
+      "provider": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:47:40+00:00",
+      "origin": "live"
+    },
+    "q_eurostat_vac": {
+      "file": "t01_blocks/q_eurostat_vac.csv.gz",
+      "sha256": "15e4efdc4bd9917260193bbaed08bc828aaaab7e91ad8317921fe58a4c80ce4e",
+      "rows": 1818,
+      "call": "fetch_eurostat_vacancies(indicator=\"JVR\", nace=\"B-T\", s_adj=\"SA\")",
+      "provider": "Eurostat jvs_q_r21 Q.B-T.TOTAL.SA.JVR.",
+      "release": "15/09/26 11:00:00",
+      "fetched_utc": "2026-10-07T23:47:44+00:00",
+      "origin": "live"
+    },
+    "q_ilo": {
+      "file": "t01_blocks/q_ilo.csv.gz",
+      "sha256": "21ab0b0e6b9437ba0a6898ac340ddb9874a1f9c11a60de96fe1f0558221cfcd2",
+      "rows": 89417,
+      "call": "ilostat_panel(freq=\"Q\")",
+      "provider": "ILOSTAT SDMX web service (sdmx.ilo.org); ILO,DF_EMP_TEMP_SEX_AGE_NB,1.0 (LAST_UPDATE 2026-10-03T07:10:53); ILO,DF_UNE_TUNE_SEX_AGE_NB,1.0 (LAST_UPDATE 2026-10-03T07:10:53); ILO,DF_EAP_TEAP_SEX_AGE_NB,1.0 (LAST_UPDATE 2026-10-03T07:10:53); ILO,DF_POP_XWAP_SEX_AGE_NB,1.0 (LAST_UPDATE 2026-10-03T07:10:53); ILO,DF_UNE_DEAP_SEX_AGE_RT,1.0 (LAST_UPDATE 2026-10-03T07:10:53); ILO,DF_EAP_DWAP_SEX_AGE_RT,1.0 (LAST_UPDATE 2026-10-03T07:10:53); ILO,DF_EMP_DWAP_SEX_AGE_RT,1.0 (LAST_UPDATE 2026-10-03T07:10:53); ILO,DF_EMP_TEMP_SEX_STE_NB,1.0 (LAST_UPDATE 2026-10-03T07:10:53); ILO,DF_HOW_TEMP_SEX_NB,1.0 (LAST_UPDATE 2026-10-02T07:01:11); ILO,DF_EMP_NIFL_SEX_RT,1.0 (LAST_UPDATE 2026-10-02T07:13:20)",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:47:47+00:00",
+      "origin": "live"
+    },
+    "q_eurostat_na": {
+      "file": "t01_blocks/q_eurostat_na.csv.gz",
+      "sha256": "59e01216244790a1227b8743ad50d4c22f5b3fad181ecfd8fbe76bd161700783",
+      "rows": 431450,
+      "call": "eurostat_na_panel(freq=\"Q\", durability=True, assets=True, output=True, income=True, labor=True, real=True)",
+      "provider": "Eurostat SDMX 2.1: namq_10_gdp, namq_10_fcs, namq_10_an6, namq_10_a10, namq_10_a10_e, namq_10_pe",
+      "release": "07/10/26 11:00:00",
+      "fetched_utc": "2026-10-07T23:47:58+00:00",
+      "origin": "live"
+    },
+    "q_imf_nea": {
+      "file": "t01_blocks/q_imf_nea.csv.gz",
+      "sha256": "e8127218f7d2169c6654700a0a748ea48d7a617af3ce1b1a2033dd33f5a93af7",
+      "rows": 193320,
+      "call": "imf_nea_panel(freq=\"Q\", sa=\"SA\", real=True)",
+      "provider": "IMF SDMX 2.1 API, api.imf.org/external/sdmx/2.1",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:47:59+00:00",
+      "origin": "live"
+    },
+    "q_bis": {
+      "file": "t01_blocks/q_bis.csv.gz",
+      "sha256": "a3a8d5d9f4bc9c7b987c001f0f214f1bc0323edf4fb1257ecbe97cf0f546862e",
+      "rows": 247071,
+      "call": "bis_panel(freq=\"Q\")",
+      "provider": "BIS statistics API (stats.bis.org/api/v2): WS_EER, WS_CBPOL, WS_LONG_CPI, WS_XRU, WS_TC, WS_CREDIT_GAP, WS_SPP, WS_DSR",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:48:01+00:00",
+      "origin": "live"
+    },
+    "m_oecd_stes": {
+      "file": "t01_blocks/m_oecd_stes.csv.gz",
+      "sha256": "9ff48e834110fab04ccc192bcaf10247f40ac9e7b310fcb35c47d4e8d2e9883d",
+      "rows": 543434,
+      "call": "stes_panel(start=\"1900\")",
+      "provider": "OECD SDMX (sdmx.oecd.org): OECD.SDD.STES,DSD_STES@DF_INDSERV,4.3; OECD.SDD.STES,DSD_STES@DF_FINMARK,4.0; OECD.SDD.STES,DSD_KEI@DF_KEI,4.0; OECD.SDD.STES,DSD_STES@DF_CLI,4.1; OECD.SDD.STES,DSD_STES@DF_MONAGG,4.0; OECD.SDD.TPS,DSD_LFS@DF_IALFS_UNE_M,1.0; OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0; OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC,1.1; OECD.SDD.TPS,DSD_PRICES_COICOP2018@DF_PRICES_C2018_ALL,1.0; OECD.SDD.TPS,DSD_PRICES@DF_PRICES_ALL,1.0",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:48:03+00:00",
+      "origin": "live"
+    },
+    "m_oecd_lfs": {
+      "file": "t01_blocks/m_oecd_lfs.csv.gz",
+      "sha256": "71fd86aa2d44333b7f640a9cf1846632633e8dce4f407110bc681c3ae6474633",
+      "rows": 46833,
+      "call": "oecd_lfs_panel(freq=\"M\", start=\"1950\")",
+      "provider": "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,1.0",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:48:05+00:00",
+      "origin": "live"
+    },
+    "m_oecd_vac": {
+      "file": "t01_blocks/m_oecd_vac.csv.gz",
+      "sha256": "25849653c3b0dd086889bf7fc76471f3786be5874f5a570b0644caa38f7d5bd7",
+      "rows": 28034,
+      "call": "oecd_vacancies(freq=\"M\", start=\"1950\")",
+      "provider": "OECD.SDD.TPS,DSD_OLAB@DF_OIALAB_INDIC",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:48:05+00:00",
+      "origin": "live"
+    },
+    "m_eurostat": {
+      "file": "t01_blocks/m_eurostat.csv.gz",
+      "sha256": "ffb30b2b4d90e286fd77729fbf90d39dd9edec3f552f684e70e770635d7e1540",
+      "rows": 189688,
+      "call": "eurostat_monthly_panel()",
+      "provider": "Eurostat SDMX 2.1: sts_inpr_m, une_rt_m, prc_hicp_minr, irt_st_m, irt_lt_mcby_m, ert_eff_ic_m, sts_trtu_m, irt_h_ddmr_m, irt_h_mr3_m",
+      "release": "26/04/21 23:00:00",
+      "fetched_utc": "2026-10-07T23:48:07+00:00",
+      "origin": "live"
+    },
+    "m_bis": {
+      "file": "t01_blocks/m_bis.csv.gz",
+      "sha256": "a9c28cf857711e1e41515ebb091941b4a3bd8a1e539a1f52957e57cc26633441",
+      "rows": 452927,
+      "call": "bis_panel(freq=\"M\")",
+      "provider": "BIS statistics API (stats.bis.org/api/v2): WS_EER, WS_CBPOL, WS_LONG_CPI, WS_XRU",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:48:08+00:00",
+      "origin": "live"
+    },
+    "m_imf": {
+      "file": "t01_blocks/m_imf.csv.gz",
+      "sha256": "d573658e4b7525777a73922fa1506de031dbe64e803f57e9cd4d6d49f73c8469",
+      "rows": 912534,
+      "call": "imf_monthly_panel()",
+      "provider": "IMF SDMX 2.1 API, api.imf.org/external/sdmx/2.1",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:48:12+00:00",
+      "origin": "live"
+    },
+    "m_rates": {
+      "file": "t01_blocks/m_rates.csv.gz",
+      "sha256": "ab85a8375d1bb579c95ea5957dc642c38c50d7049b6332e367d07dab5f708449",
+      "rows": 61854,
+      "call": "rates_panel(start=\"1950\")",
+      "provider": "FRED (OECD MEI mirror; Moody's); ECB Data Portal (FM, IRS); Deutsche Bundesbank (BBSIS)",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:48:13+00:00",
+      "origin": "live"
+    },
+    "m_stocks": {
+      "file": "t01_blocks/m_stocks.csv.gz",
+      "sha256": "3a55e36d59adad541b91be8aab7d29ceec38c3e0f9c10258f80a2f3899ef8633",
+      "rows": 13890,
+      "call": "stock_index_monthly()",
+      "provider": "Yahoo Finance chart API (month-end close); ECB Data Portal FM (monthly averages)",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:48:13+00:00",
+      "origin": "live"
+    },
+    "m_commodities": {
+      "file": "t01_blocks/m_commodities.csv.gz",
+      "sha256": "046dc2a677c052f3ff974aaa6bf0d08d57860ba90101ee42204ec2abbc3d18b1",
+      "rows": 37187,
+      "call": "commodity_prices_monthly()",
+      "provider": "World Bank Pink Sheet, CMO-Historical-Data-Monthly.xlsx",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:48:13+00:00",
+      "origin": "live"
+    },
+    "sahm": {
+      "file": "t01_blocks/sahm.csv.gz",
+      "sha256": "34e19bc1299ecf8c28006bee77360699350479809f42aac10ce05c512e0fcc1b",
+      "rows": 945,
+      "call": "fetch_fred_many([\"UNRATE\", \"SAHMCURRENT\", \"SAHMREALTIME\"])",
+      "provider": "FRED fredgraph.csv (fred.stlouisfed.org)",
+      "release": null,
+      "fetched_utc": "2026-10-07T23:48:13+00:00",
+      "origin": "live"
+    }
+  },
+  "dictionary": {
+    "file": "t01_series.csv",
+    "sha256": "9ab9a44f066e14472d146cc45b671089972f82548999100f8e13015512377882"
+  },
+  "countries": {
+    "file": "t01_countries.csv",
+    "sha256": "8f527dbd9d3ae277fcc7b8d32d55af54b4bc72c11dce819496b1f0237df11dd8"
+  },
+  "provenance": {
+    "file": "t01_provenance.csv",
+    "sha256": "2d9778061e169ebf5da6f6736621b4ac291d4f19ac1e83c3366155460e44d614"
+  },
+  "seams": {
+    "file": "t01_seams.csv",
+    "sha256": "214573a126d84aa14af70cc934ff428bf572e31fec0d677dd660c62b73977931"
+  },
+  "coverage": {
+    "annual": {
+      "file": "t01_coverage_annual.csv",
+      "sha256": "59fde8639e989f6629d339ee816c73b0550a9149872e4189c83a140699572250"
+    },
+    "quarterly": {
+      "file": "t01_coverage_quarterly.csv",
+      "sha256": "83b1c5d5630a4b9e1cf5302839b80277e06c9fba72549662783e3e9f4a557c0e"
+    },
+    "monthly": {
+      "file": "t01_coverage_monthly.csv",
+      "sha256": "b1aa133e52bb3cd787e0c25222a59ae9e4baf9b888381c232b6ac72fe1ec593d"
+    }
+  },
+  "ranks": {
+    "Y": {
+      "y_oecd_ana": 1,
+      "y_ilo": 1,
+      "y_maddison": 1,
+      "y_eurostat_na": 2,
+      "y_imf_nea": 3,
+      "y_wdi": 4,
+      "y_imf_icsd": 5
+    },
+    "Q": {
+      "q_oecd_qna": 1,
+      "q_oecd_gfcf_sector": 1,
+      "q_oecd_pop": 1,
+      "q_oecd_lfs": 1,
+      "q_oecd_vac": 1,
+      "q_bis": 1,
+      "q_eurostat_na": 2,
+      "q_eurostat_vac": 2,
+      "q_imf_nea": 3,
+      "q_ilo": 3
+    },
+    "M": {
+      "m_oecd_stes": 1,
+      "m_oecd_lfs": 1,
+      "m_oecd_vac": 1,
+      "m_bis": 1,
+      "m_stocks": 1,
+      "m_rates": 2,
+      "m_eurostat": 2,
+      "m_imf": 3
+    }
+  },
+  "prefer": {
+    "Y": {
+      "population": [
+        "y_wdi",
+        "y_oecd_ana",
+        "y_eurostat_na"
+      ]
+    },
+    "M": {
+      "reer": [
+        "m_bis",
+        "m_oecd_stes",
+        "m_eurostat",
+        "m_imf"
+      ],
+      "fx_usd": [
+        "m_bis",
+        "m_oecd_stes",
+        "m_imf"
+      ],
+      "cpi": [
+        "m_oecd_stes",
+        "m_bis",
+        "m_imf"
+      ]
+    }
+  },
+  "thresholds": {
+    "Y": {
+      "min_obs": 8,
+      "min_overlap": 3
+    },
+    "Q": {
+      "min_obs": 20,
+      "min_overlap": 4
+    },
+    "M": {
+      "min_obs": 60,
+      "min_overlap": 12
+    }
+  },
+  "pwt": {
+    "file": "t01_pwt110.csv.gz",
+    "sha256": "c5f6872e35a9f794db3e181317c6729d963678c996e6c3c2e31b630575342bd4",
+    "countries": 185,
+    "release": "2025-10-10",
+    "doi": "10.34894/FABVLR",
+    "call": "fetch_pwt(\"main\")",
+    "fetched_utc": "2026-10-07T23:47:31+00:00"
+  },
+  "pwt_labor": {
+    "file": "t01_pwt110_labor.csv.gz",
+    "sha256": "c7565356bb3898e51f78391eab8af946bd98d3d72c6a83fbcb396b20ece13b8e",
+    "countries": 211,
+    "release": "2025-10-10",
+    "doi": "10.34894/FABVLR",
+    "call": "fetch_pwt(\"labor\")",
+    "fetched_utc": "2026-10-07T23:47:31+00:00"
+  },
+  "pwt_dictionary": {
+    "file": "t01_pwt110_dictionary.csv",
+    "sha256": "a0d33a6656143df2f124ee0b5117863aa968b62fe613d8a819a391b10d2c8ce1",
+    "note": "PWT's variable list, kept from the previous pipeline; not rebuilt here"
+  },
+  "sahm_sources": {
+    "UNRATE": {
+      "file": "t01_UNRATE.csv",
+      "sha256": "229f734708f256445dc606e3c23d8993c0c6786713bfe67de94980de5bdc0338",
+      "url": "https://fred.stlouisfed.org/series/UNRATE",
+      "fetched_utc": "2026-10-07T23:48:13+00:00"
+    },
+    "SAHMCURRENT": {
+      "file": "t01_SAHMCURRENT.csv",
+      "sha256": "44608d1b1902e6fa6a50705d2850ea933348c6022b4f732bcc9620871dce1420",
+      "url": "https://fred.stlouisfed.org/series/SAHMCURRENT",
+      "fetched_utc": "2026-10-07T23:48:13+00:00"
+    },
+    "SAHMREALTIME": {
+      "file": "t01_SAHMREALTIME.csv",
+      "sha256": "d3d6914b8bbc157f98f72b80c838ab5253ffa377fed51889cbcf325483c6ab87",
+      "url": "https://fred.stlouisfed.org/series/SAHMREALTIME",
+      "fetched_utc": "2026-10-07T23:48:13+00:00"
+    }
+  }
+}

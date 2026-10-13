@@ -74,7 +74,7 @@ Serie con derechos de un tercero: consulte los términos de Cboe antes de redist
 
 FRED redistribuye series de muchos editores y algunas tienen derechos de terceros: consulte la ficha de cada serie en FRED y los términos de su editor.
 
-`K1PTOTL1ES000.csv`, `M1NTOTL1ES000.csv`, `M1PTOTL1ES000.csv`, `PERIC.csv`, `PIRIC.csv`
+`K1PTOTL1ES000.csv`, `M1NTOTL1ES000.csv`, `M1PTOTL1ES000.csv`, `NE.CON.PRVT.ZS.json.gz`, `NE.GDI.TOTL.ZS.json.gz`, `NY.GDP.MKTP.KD.json.gz`, `NY.GDP.PCAP.PP.KD.json.gz`, `PERIC.csv`, `PIRIC.csv`, `README.md`, `SP.POP.TOTL.json.gz`
 
 ### OCDE (QNA, STES, MEI, ANA, KEI, LFS)
 
@@ -168,7 +168,7 @@ Consulte los términos del editor. Cite Jurado, Ludvigson y Ng (2015).
 
 Consulte los términos del editor. Cite la base EU KLEMS.
 
-`klems_labor_share.csv`
+`klems_labor_share.csv`, `korv_panel_klems.csv`
 
 ### Banco de México — anuncios de política monetaria, clasificados para el curso
 
@@ -182,7 +182,7 @@ Clasificación propia del curso a partir de comunicados públicos de Banxico. Ci
 
 Resultados calculados con puremacro (Aiyagari, contabilidad del ciclo) a partir de los datos de arriba. Cite las fuentes de origen.
 
-`a6_aiyagari_egm.npz`, `a6_aiyagari_ss.npz`, `wedges_bca_curso.csv`, `wedges_bca_slim.csv`, `wedges_panel_BGP_clean_nu2.csv`
+`a6_aiyagari_egm.npz`, `a6_aiyagari_ss.npz`, `countries.json.gz`, `ip.csv.gz`, `m_bis.csv.gz`, `m_bis.meta.json`, `m_commodities.csv.gz`, `m_commodities.meta.json`, `m_eurostat.csv.gz`, `m_eurostat.meta.json`, `m_imf.csv.gz`, `m_imf.meta.json`, `m_oecd_lfs.csv.gz`, `m_oecd_lfs.meta.json`, `m_oecd_stes.csv.gz`, `m_oecd_stes.meta.json`, `m_oecd_vac.csv.gz`, `m_oecd_vac.meta.json`, `m_rates.csv.gz`, `m_rates.meta.json`, `m_stocks.csv.gz`, `m_stocks.meta.json`, `pwt110.xlsx`, `q_bis.csv.gz`, `q_bis.meta.json`, `q_eurostat_na.csv.gz`, `q_eurostat_na.meta.json`, `q_eurostat_vac.csv.gz`, `q_eurostat_vac.meta.json`, `q_ilo.csv.gz`, `q_ilo.meta.json`, `q_imf_nea.csv.gz`, `q_imf_nea.meta.json`, `q_oecd_gfcf_sector.csv.gz`, `q_oecd_gfcf_sector.meta.json`, `q_oecd_lfs.csv.gz`, `q_oecd_lfs.meta.json`, `q_oecd_pop.csv.gz`, `q_oecd_pop.meta.json`, `q_oecd_qna.csv.gz`, `q_oecd_qna.meta.json`, `q_oecd_vac.csv.gz`, `q_oecd_vac.meta.json`, `sahm.csv.gz`, `sahm.meta.json`, `t01_SAHMCURRENT.csv`, `t01_SAHMREALTIME.csv`, `t01_UNRATE.csv`, `t01_annual.csv.gz`, `t01_commodities.csv.gz`, `t01_countries.csv`, `t01_coverage_annual.csv`, `t01_coverage_monthly.csv`, `t01_coverage_quarterly.csv`, `t01_manifest.json`, `t01_monthly.csv.gz`, `t01_provenance.csv`, `t01_pwt110.csv.gz`, `t01_pwt110.meta.json`, `t01_pwt110_dictionary.csv`, `t01_pwt110_labor.csv.gz`, `t01_pwt110_labor.meta.json`, `t01_quarterly.csv.gz`, `t01_seams.csv`, `t01_series.csv`, `unemployment.csv.gz`, `wdi_countries.csv.gz`, `wdi_countries.meta.json`, `wedges_bca_curso.csv`, `wedges_bca_slim.csv`, `wedges_panel_BGP_clean_nu2.csv`, `y_eurostat_na.csv.gz`, `y_eurostat_na.meta.json`, `y_ilo.csv.gz`, `y_ilo.meta.json`, `y_imf_icsd.csv.gz`, `y_imf_icsd.meta.json`, `y_imf_nea.csv.gz`, `y_imf_nea.meta.json`, `y_maddison.csv.gz`, `y_maddison.meta.json`, `y_oecd_ana.csv.gz`, `y_oecd_ana.meta.json`, `y_wdi.csv.gz`, `y_wdi.meta.json`
 
 ---
 

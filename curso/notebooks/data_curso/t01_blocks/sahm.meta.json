@@ -1,0 +1,28 @@
+{
+ "meta": [
+  {
+   "id": "UNRATE",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=UNRATE",
+   "first": "1948-01-01",
+   "last": "2026-09-01",
+   "n": 944
+  },
+  {
+   "id": "SAHMCURRENT",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=SAHMCURRENT",
+   "first": "1949-03-01",
+   "last": "2026-09-01",
+   "n": 931
+  },
+  {
+   "id": "SAHMREALTIME",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=SAHMREALTIME",
+   "first": "1959-12-01",
+   "last": "2026-09-01",
+   "n": 801
+  }
+ ],
+ "missing": [],
+ "source": "FRED fredgraph.csv (fred.stlouisfed.org)",
+ "fetched_at": "2026-10-07T23:48:13+00:00"
+}

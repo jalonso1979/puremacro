@@ -7,7 +7,7 @@
       "titulo_es": "Medición del ciclo: contabilidad nacional, filtros y hechos estilizados",
       "titulo_en": "Measuring the cycle: national accounts, filters and stylized facts",
       "semanas": "1–2",
-      "bytes": 959330,
+      "bytes": 959817,
       "paginas": 54
     },
     {
@@ -16,7 +16,7 @@
       "titulo_es": "El modelo neoclásico de crecimiento",
       "titulo_en": "The neoclassical growth model",
       "semanas": "3–4",
-      "bytes": 967430,
+      "bytes": 969924,
       "paginas": 68
     },
     {
@@ -25,8 +25,8 @@
       "titulo_es": "Riesgo e incertidumbre",
       "titulo_en": "Risk and uncertainty",
       "semanas": "5",
-      "bytes": 721734,
-      "paginas": 45
+      "bytes": 744316,
+      "paginas": 47
     },
     {
       "numero": 4,
@@ -34,7 +34,7 @@
       "titulo_es": "Ciclos económicos reales y contabilidad del ciclo",
       "titulo_en": "Real business cycles and business-cycle accounting",
       "semanas": "7–8",
-      "bytes": 1002696,
+      "bytes": 1007807,
       "paginas": 74
     },
     {
@@ -43,7 +43,7 @@
       "titulo_es": "Identificación empírica: SVAR, evidencia narrativa y proyecciones locales",
       "titulo_en": "Empirical identification: SVARs, narrative evidence and local projections",
       "semanas": "9–10",
-      "bytes": 1272957,
+      "bytes": 1267653,
       "paginas": 82
     },
     {
@@ -52,8 +52,8 @@
       "titulo_es": "Mercados incompletos, heterogeneidad y HANK",
       "titulo_en": "Incomplete markets, heterogeneity and HANK",
       "semanas": "11",
-      "bytes": 528132,
-      "paginas": 37
+      "bytes": 549660,
+      "paginas": 38
     },
     {
       "numero": 7,
@@ -61,8 +61,8 @@
       "titulo_es": "Mecanismos: trabajo, capital y economía pequeña y abierta",
       "titulo_en": "Mechanisms: labour, capital and the small open economy",
       "semanas": "13–14",
-      "bytes": 1092967,
-      "paginas": 82
+      "bytes": 1095021,
+      "paginas": 83
     },
     {
       "numero": 8,
@@ -70,8 +70,8 @@
       "titulo_es": "Mercados no competitivos: precios rígidos y fricciones laborales",
       "titulo_en": "Non-competitive markets: sticky prices and labour-market frictions",
       "semanas": "15–16",
-      "bytes": 838230,
-      "paginas": 69
+      "bytes": 841088,
+      "paginas": 70
     }
   ]
 }

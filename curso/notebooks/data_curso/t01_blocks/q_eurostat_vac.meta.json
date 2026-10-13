@@ -1,0 +1,19 @@
+{
+ "meta": [
+  {
+   "variable": "jvr",
+   "units": "percent of occupied plus vacant posts",
+   "sa": "SA",
+   "flow": "jvs_q_r21",
+   "key": "Q.B-T.TOTAL.SA.JVR.",
+   "n": 1818,
+   "n_codes": 29,
+   "first": "2003-04-01",
+   "last": "2026-04-01"
+  }
+ ],
+ "source": "Eurostat jvs_q_r21 Q.B-T.TOTAL.SA.JVR.",
+ "release": "15/09/26 11:00:00",
+ "fetched_at": "2026-10-07T23:47:44+00:00",
+ "missing": []
+}
