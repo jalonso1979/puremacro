@@ -24,7 +24,9 @@ def _ols_var(Y: np.ndarray, p: int):
     return A_list, c, Sigma, resid, X
 
 
-def _irf_from_var(A_list: list[np.ndarray], horizon: int, impact: np.ndarray) -> np.ndarray:
+def _irf_from_var(
+    A_list: list[np.ndarray], horizon: int, impact: np.ndarray
+) -> np.ndarray:
     n = impact.shape[0]
     p = len(A_list)
     Phi = [np.zeros((n, n)) for _ in range(horizon + 1)]
@@ -91,7 +93,8 @@ def residual_bootstrap(
     Y_all = np.empty((n_draws, p + T_eff, n))
     Y_all[:, :p, :] = Y_init
     for t in range(T_eff):
-        lags = np.concatenate([Y_all[:, p + t - 1 - lag, :] for lag in range(p)], axis=1)
+        # ⚡ Bolt: Vectorized slicing avoids np.concatenate memory reallocation overhead
+        lags = Y_all[:, t : p + t, :][:, ::-1, :].reshape(n_draws, p * n)
         Y_all[:, p + t, :] = lags @ A_stack.T + intercept + E_all[:, t, :]
 
     draws = []
