@@ -100,7 +100,8 @@ def wild_bootstrap_var(
     Yb_all = np.empty((n_boot, T, n))
     Yb_all[:, :p, :] = Y[:p]
     for t in range(p, T):
-        lags = np.concatenate([Yb_all[:, t - 1 - l, :] for l in range(p)], axis=1)
+        # ⚡ Bolt: Vectorized slicing avoids np.concatenate memory reallocation overhead
+        lags = Yb_all[:, t - p : t, :][:, ::-1, :].reshape(n_boot, p * n)
         Yb_all[:, t, :] = lags @ A_stack.T + c + E_all[:, t - p, :]
 
     # Mertens-Ravn (2013) wild bootstrap: the SAME Rademacher weight multiplies
@@ -108,6 +109,7 @@ def wild_bootstrap_var(
     # reduced-form innovations and the proxy is preserved draw by draw. Impact
     # functions that use an instrument accept the weights through ``w=``.
     import inspect as _inspect
+
     try:
         _accepts_w = "w" in _inspect.signature(impact_fn).parameters
     except (TypeError, ValueError):

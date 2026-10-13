@@ -55,6 +55,7 @@ Kim, S., Shephard, N., & Chib, S. (1998). Stochastic volatility: likelihood infe
 Carter, C. K., & Kohn, R. (1994). On Gibbs sampling for state space models.
     Biometrika, 81(3), 541-553.
 """
+
 from __future__ import annotations
 
 import warnings
@@ -74,22 +75,26 @@ from .bvar import _univariate_sigma
 # Kim, Shephard & Chib (1998) 7-component Gaussian mixture approximation to
 # log(χ²_1). Weights, means, and variances from Table 4 (shifted by -1.2704).
 # ===========================================================================
-_KSC_WEIGHTS = np.array([0.00730, 0.10556, 0.00002, 0.04395,
-                         0.34001, 0.24566, 0.25750])
-_KSC_MEANS   = np.array([-11.40039, -5.24321, -9.83726, 1.50746,
-                          -0.65098,  0.52478, -2.35859])
-_KSC_VARS    = np.array([5.79596, 2.61369, 5.17950, 0.16735,
-                          0.64009, 0.34023, 1.26261])
+_KSC_WEIGHTS = np.array([0.00730, 0.10556, 0.00002, 0.04395, 0.34001, 0.24566, 0.25750])
+_KSC_MEANS = np.array(
+    [-11.40039, -5.24321, -9.83726, 1.50746, -0.65098, 0.52478, -2.35859]
+)
+_KSC_VARS = np.array([5.79596, 2.61369, 5.17950, 0.16735, 0.64009, 0.34023, 1.26261])
 
 # Maximum number of candidate β draws per sweep before the previous B is kept.
 _MAX_STABILITY_RETRIES = 50
 
 
-def _sample_mixture_indicators(y_star: np.ndarray, h: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+def _sample_mixture_indicators(
+    y_star: np.ndarray, h: np.ndarray, rng: np.random.Generator
+) -> np.ndarray:
     """Sample mixture component indicators s_t in {0..6} for KSC mixture."""
     T = len(y_star)
     diff = (y_star - h)[:, None] - _KSC_MEANS[None, :]
-    log_phi = -0.5 * np.log(2.0 * np.pi * _KSC_VARS)[None, :] - 0.5 * diff ** 2 / _KSC_VARS[None, :]
+    log_phi = (
+        -0.5 * np.log(2.0 * np.pi * _KSC_VARS)[None, :]
+        - 0.5 * diff**2 / _KSC_VARS[None, :]
+    )
     log_post = np.log(_KSC_WEIGHTS)[None, :] + log_phi
     log_post = log_post - log_post.max(axis=1, keepdims=True)
     p = np.exp(log_post)
@@ -115,7 +120,7 @@ def _ffbs_sv_ar1(
         y_adj_t = h~_t + e_t,      e_t ~ N(0, v_t)
     """
     T = len(y_adj)
-    p0 = sigma_h2 / max(1.0 - phi ** 2, 1e-6)
+    p0 = sigma_h2 / max(1.0 - phi**2, 1e-6)
     a_pred = np.empty(T + 1)
     P_pred = np.empty(T + 1)
     a_filt = np.empty(T)
@@ -131,13 +136,13 @@ def _ffbs_sv_ar1(
         a_filt[t] = a_pred[t] + K_k * v_err
         P_filt[t] = P_pred[t] * (1.0 - K_k)
         a_pred[t + 1] = phi * a_filt[t]
-        P_pred[t + 1] = (phi ** 2) * P_filt[t] + sigma_h2
+        P_pred[t + 1] = (phi**2) * P_filt[t] + sigma_h2
 
     # Backward sampling
     h_tilde = np.empty(T)
     h_tilde[-1] = a_filt[-1] + np.sqrt(max(P_filt[-1], 1e-12)) * rng.standard_normal()
     for t in range(T - 2, -1, -1):
-        var_pred = (phi ** 2) * P_filt[t] + sigma_h2
+        var_pred = (phi**2) * P_filt[t] + sigma_h2
         K_b = (phi * P_filt[t]) / max(var_pred, 1e-12)
         m_b = a_filt[t] + K_b * (h_tilde[t + 1] - phi * a_filt[t])
         v_b = max(P_filt[t] * sigma_h2 / max(var_pred, 1e-12), 1e-12)
@@ -151,7 +156,9 @@ _PHI_PRIOR_MEAN = 0.85
 _PHI_PRIOR_VAR = 0.1
 
 
-def _sample_phi_mh(h_dev: np.ndarray, phi_i: float, sig2_i: float, rng: np.random.Generator) -> float:
+def _sample_phi_mh(
+    h_dev: np.ndarray, phi_i: float, sig2_i: float, rng: np.random.Generator
+) -> float:
     """One independence Metropolis-Hastings update of the AR(1) persistence φ_i.
 
     ``h_dev`` is the demeaned log-volatility path h_{i,1:T} - μ_i. The proposal is
@@ -168,16 +175,18 @@ def _sample_phi_mh(h_dev: np.ndarray, phi_i: float, sig2_i: float, rng: np.rando
     """
     x_phi = h_dev[:-1]
     y_phi = h_dev[1:]
-    v_phi_inv = (1.0 / _PHI_PRIOR_VAR) + float(np.sum(x_phi ** 2)) / sig2_i
+    v_phi_inv = (1.0 / _PHI_PRIOR_VAR) + float(np.sum(x_phi**2)) / sig2_i
     v_phi = 1.0 / max(v_phi_inv, 1e-12)
-    m_phi = v_phi * ((_PHI_PRIOR_MEAN / _PHI_PRIOR_VAR) + float(np.sum(x_phi * y_phi)) / sig2_i)
+    m_phi = v_phi * (
+        (_PHI_PRIOR_MEAN / _PHI_PRIOR_VAR) + float(np.sum(x_phi * y_phi)) / sig2_i
+    )
     prop_phi = m_phi + np.sqrt(v_phi) * rng.standard_normal()
 
     if abs(prop_phi) < 0.999:
         log_acc = (
-            0.5 * np.log(max(1.0 - prop_phi ** 2, 1e-8))
-            - 0.5 * np.log(max(1.0 - phi_i ** 2, 1e-8))
-            + 0.5 * (prop_phi ** 2 - phi_i ** 2) * (h_dev[0] ** 2) / sig2_i
+            0.5 * np.log(max(1.0 - prop_phi**2, 1e-8))
+            - 0.5 * np.log(max(1.0 - phi_i**2, 1e-8))
+            + 0.5 * (prop_phi**2 - phi_i**2) * (h_dev[0] ** 2) / sig2_i
         )
         if np.log(max(rng.uniform(), 1e-12)) < log_acc:
             return float(prop_phi)
@@ -291,14 +300,16 @@ class BVAR_SV_IRF(np.ndarray):
                 for s in shocks:
                     resp_name = names[r] if names else str(r)
                     shock_name = names[s] if names else str(s)
-                    rows.append({
-                        "horizon": h,
-                        "target": resp_name,
-                        "shock": shock_name,
-                        "median": float(self.median[h, r, s]),
-                        "lower": float(self.lower[h, r, s]),
-                        "upper": float(self.upper[h, r, s]),
-                    })
+                    rows.append(
+                        {
+                            "horizon": h,
+                            "target": resp_name,
+                            "shock": shock_name,
+                            "median": float(self.median[h, r, s]),
+                            "lower": float(self.lower[h, r, s]),
+                            "upper": float(self.upper[h, r, s]),
+                        }
+                    )
         return pd.DataFrame(rows)
 
 
@@ -367,15 +378,17 @@ class BVAR_SVForecast:
         rows = []
         for j in range(self.horizon):
             for i, name in enumerate(self.names):
-                rows.append({
-                    "horizon": j + 1,
-                    "period": self.index[j],
-                    "variable": name,
-                    "median": float(med[j, i]),
-                    "mean": float(mean[j, i]),
-                    "lower": float(lo[j, i]),
-                    "upper": float(hi[j, i]),
-                })
+                rows.append(
+                    {
+                        "horizon": j + 1,
+                        "period": self.index[j],
+                        "variable": name,
+                        "median": float(med[j, i]),
+                        "mean": float(mean[j, i]),
+                        "lower": float(lo[j, i]),
+                        "upper": float(hi[j, i]),
+                    }
+                )
         return pd.DataFrame(rows)
 
     def to_markdown(self, *, digits: int | None = None) -> str:
@@ -422,11 +435,18 @@ class BVAR_SVForecast:
             fig = None
         else:
             fig, axes_raw = plt.subplots(
-                1, len(var_list), figsize=figsize or (5.0 * len(var_list), 3.6), squeeze=False
+                1,
+                len(var_list),
+                figsize=figsize or (5.0 * len(var_list), 3.6),
+                squeeze=False,
             )
             axes = axes_raw.ravel()
 
-        hist = self.history.iloc[-int(n_history):] if n_history > 0 else self.history.iloc[0:0]
+        hist = (
+            self.history.iloc[-int(n_history) :]
+            if n_history > 0
+            else self.history.iloc[0:0]
+        )
         hist_x = np.asarray(hist.index)
         fc_x = np.asarray(self.index)
         sorted_levels = sorted(float(l) for l in levels)
@@ -435,11 +455,24 @@ class BVAR_SVForecast:
         for panel, i in enumerate(var_list):
             a = axes[panel]
             if len(hist) > 0:
-                a.plot(hist_x, hist.iloc[:, i].to_numpy(dtype=float), color="navy", linewidth=1.2, label="history")
+                a.plot(
+                    hist_x,
+                    hist.iloc[:, i].to_numpy(dtype=float),
+                    color="navy",
+                    linewidth=1.2,
+                    label="history",
+                )
             for shade, level in zip(shades, sorted_levels):
                 lo = self.quantile((1.0 - level) / 2.0)[:, i]
                 hi = self.quantile((1.0 + level) / 2.0)[:, i]
-                a.fill_between(fc_x, lo, hi, color=f"{shade:.3f}", linewidth=0, label=f"{int(round(level * 100))}%")
+                a.fill_between(
+                    fc_x,
+                    lo,
+                    hi,
+                    color=f"{shade:.3f}",
+                    linewidth=0,
+                    label=f"{int(round(level * 100))}%",
+                )
             a.plot(fc_x, self.median[:, i], color="0.0", linewidth=1.4, label="median")
             a.set_title(f"Forecast fan chart: {self.names[i]}")
             a.grid(True, linestyle="--", alpha=0.5)
@@ -560,7 +593,9 @@ class BVAR_SVResult:
         p = self.lags
         out = np.empty((D, p, n, n))
         for l in range(p):
-            out[:, l] = self.beta_draws[:, 1 + l * n : 1 + (l + 1) * n, :].transpose(0, 2, 1)
+            out[:, l] = self.beta_draws[:, 1 + l * n : 1 + (l + 1) * n, :].transpose(
+                0, 2, 1
+            )
         return out
 
     @property
@@ -585,15 +620,17 @@ class BVAR_SVResult:
             return self.log_scores.copy()
         return float(np.sum(self.log_scores))
 
-    def _log_density_draws(self, y_t: np.ndarray, x_t: np.ndarray, h_t: np.ndarray) -> np.ndarray:
+    def _log_density_draws(
+        self, y_t: np.ndarray, x_t: np.ndarray, h_t: np.ndarray
+    ) -> np.ndarray:
         """log p(y_t | β_d, A_d, h_t^d) for every draw d, given regressors x_t and (D, n) log-vols."""
         n = self.n
         u_draws = y_t[None, :] - (self.beta_draws.transpose(0, 2, 1) @ x_t)  # (D, n)
-        nu_draws = np.einsum("dij,dj->di", self.a_draws, u_draws)            # (D, n)
+        nu_draws = np.einsum("dij,dj->di", self.a_draws, u_draws)  # (D, n)
         return (
             -0.5 * n * np.log(2.0 * np.pi)
             - 0.5 * np.sum(h_t, axis=1)
-            - 0.5 * np.sum(np.exp(-h_t) * (nu_draws ** 2), axis=1)
+            - 0.5 * np.sum(np.exp(-h_t) * (nu_draws**2), axis=1)
         )
 
     def log_score(
@@ -625,11 +662,16 @@ class BVAR_SVResult:
         if holdout is None:
             return self.predictive_log_score(point_by_point=point_by_point)
 
-        Y_new = np.asarray(holdout.values if isinstance(holdout, pd.DataFrame) else holdout, dtype=float)
+        Y_new = np.asarray(
+            holdout.values if isinstance(holdout, pd.DataFrame) else holdout,
+            dtype=float,
+        )
         if Y_new.ndim == 1 and self.n == 1:
             Y_new = Y_new[:, None]
         if Y_new.ndim != 2 or Y_new.shape[1] != self.n:
-            raise ValueError(f"holdout must have shape (H, {self.n}); got {Y_new.shape}")
+            raise ValueError(
+                f"holdout must have shape (H, {self.n}); got {Y_new.shape}"
+            )
         if Y_new.shape[0] == 0:
             raise ValueError("holdout must contain at least one observation")
         if not np.all(np.isfinite(Y_new)):
@@ -644,8 +686,11 @@ class BVAR_SVResult:
         scores = np.empty(Y_new.shape[0])
         for j in range(Y_new.shape[0]):
             x_t = _lag_vector(Y_hist[j : j + p], p)
-            h_t = self.mu_draws + self.phi_draws * (h_prev - self.mu_draws) \
+            h_t = (
+                self.mu_draws
+                + self.phi_draws * (h_prev - self.mu_draws)
                 + self.sigma_h_draws * rng.standard_normal((D, n))
+            )
             log_p_d = self._log_density_draws(Y_new[j], x_t, h_t)
             scores[j] = float(logsumexp(log_p_d) - np.log(D))
             h_prev = h_t
@@ -679,20 +724,29 @@ class BVAR_SVResult:
         rng = np.random.default_rng(seed)
 
         Y_arr = np.asarray(self.data.values, dtype=float)
-        lag_buf = np.repeat(Y_arr[-p:][None, :, :], D, axis=0)  # (D, p, n), oldest first
+        lag_buf = np.repeat(
+            Y_arr[-p:][None, :, :], D, axis=0
+        )  # (D, p, n), oldest first
         h_prev = self.h_draws[:, -1, :].copy()
         paths = np.empty((D, horizon, n))
         h_paths = np.empty((D, horizon, n))
         for j in range(horizon):
-            h_t = self.mu_draws + self.phi_draws * (h_prev - self.mu_draws) \
+            h_t = (
+                self.mu_draws
+                + self.phi_draws * (h_prev - self.mu_draws)
                 + self.sigma_h_draws * rng.standard_normal((D, n))
+            )
             nu = np.exp(h_t / 2.0) * rng.standard_normal((D, n))
             u = np.linalg.solve(self.a_draws, nu[:, :, None])[:, :, 0]
-            x = np.concatenate([np.ones((D, 1))] + [lag_buf[:, -l, :] for l in range(1, p + 1)], axis=1)
+            x = np.concatenate(
+                [np.ones((D, 1))] + [lag_buf[:, -l, :] for l in range(1, p + 1)], axis=1
+            )
             y = np.einsum("dk,dkn->dn", x, self.beta_draws) + u
             paths[:, j] = y
             h_paths[:, j] = h_t
-            lag_buf = np.concatenate([lag_buf[:, 1:, :], y[:, None, :]], axis=1)
+            # ⚡ Bolt: in-place array shifting avoids np.concatenate memory reallocation
+            lag_buf[:, :-1] = lag_buf[:, 1:]
+            lag_buf[:, -1] = y
             h_prev = h_t
 
         return BVAR_SVForecast(
@@ -743,8 +797,7 @@ class BVAR_SVResult:
         for d in range(D):
             # Extract lag matrices A_1..A_p: A_l has shape (n, n)
             A_list = [
-                self.beta_draws[d, 1 + l * n : 1 + (l + 1) * n, :].T
-                for l in range(p)
+                self.beta_draws[d, 1 + l * n : 1 + (l + 1) * n, :].T for l in range(p)
             ]
 
             # Structural impact matrix at date t_idx:
@@ -800,19 +853,23 @@ class BVAR_SVResult:
             sig_m = float(np.mean(self.sigma_h_draws[:, i]))
             sig_s = float(np.std(self.sigma_h_draws[:, i], ddof=1))
             h_m = float(np.mean(self.h_draws[:, :, i]))
-            rhat_val = float(self.r_hat.get(f"h_{name}_mean", self.r_hat.get("max", 1.0)))
+            rhat_val = float(
+                self.r_hat.get(f"h_{name}_mean", self.r_hat.get("max", 1.0))
+            )
 
-            rows.append({
-                "variable": name,
-                "mu_mean": round(mu_m, 4),
-                "mu_sd": round(mu_s, 4),
-                "phi_mean": round(phi_m, 4),
-                "phi_sd": round(phi_s, 4),
-                "sigma_h_mean": round(sig_m, 4),
-                "sigma_h_sd": round(sig_s, 4),
-                "log_vol_mean": round(h_m, 4),
-                "R_hat": round(rhat_val, 4),
-            })
+            rows.append(
+                {
+                    "variable": name,
+                    "mu_mean": round(mu_m, 4),
+                    "mu_sd": round(mu_s, 4),
+                    "phi_mean": round(phi_m, 4),
+                    "phi_sd": round(phi_s, 4),
+                    "sigma_h_mean": round(sig_m, 4),
+                    "sigma_h_sd": round(sig_s, 4),
+                    "log_vol_mean": round(h_m, 4),
+                    "R_hat": round(rhat_val, 4),
+                }
+            )
         return pd.DataFrame(rows)
 
     def summary(self, ci: float = 0.9) -> str:
@@ -823,7 +880,9 @@ class BVAR_SVResult:
         if not np.isfinite(max_rhat):
             conv_flag = "UNDIAGNOSED (too few draws for a split R̂)"
         else:
-            conv_flag = "CONVERGED (R̂ < 1.1)" if max_rhat < 1.1 else "WARNING (R̂ >= 1.1)"
+            conv_flag = (
+                "CONVERGED (R̂ < 1.1)" if max_rhat < 1.1 else "WARNING (R̂ >= 1.1)"
+            )
         total_ls = float(np.sum(self.log_scores))
         mean_ls = float(np.mean(self.log_scores))
         q_lo, q_hi = 50.0 * (1.0 - ci), 50.0 * (1.0 + ci)
@@ -862,7 +921,9 @@ class BVAR_SVResult:
                 lines.append(
                     f"    {name:<12} {label:<3}= {med:+.3f} [{lo:+.3f}, {hi:+.3f}]  R̂ = {rh:.3f}"
                 )
-        lines.append("==================================================================")
+        lines.append(
+            "=================================================================="
+        )
         return "\n".join(lines)
 
     def to_markdown(self) -> str:
@@ -930,8 +991,12 @@ class BVAR_SVResult:
         # 1. Log-volatilities
         for j, i in enumerate(vol_vars):
             col = colors[j % len(colors)]
-            axes[0].plot(t_axis, h_med[:, i], label=f"{self.names[i]} (median)", color=col)
-            axes[0].fill_between(t_axis, h_low[:, i], h_high[:, i], color=col, alpha=0.2)
+            axes[0].plot(
+                t_axis, h_med[:, i], label=f"{self.names[i]} (median)", color=col
+            )
+            axes[0].fill_between(
+                t_axis, h_low[:, i], h_high[:, i], color=col, alpha=0.2
+            )
         axes[0].set_title(f"Log-Volatility $h_{{t}}$ ({int(ci*100)}% CI)")
         axes[0].set_xlabel("Time (effective)")
         axes[0].set_ylabel("Log-Variance")
@@ -941,8 +1006,12 @@ class BVAR_SVResult:
         # 2. Conditional SD
         for j, i in enumerate(vol_vars):
             col = colors[j % len(colors)]
-            axes[1].plot(t_axis, sd_med[:, i], label=f"{self.names[i]} (median)", color=col)
-            axes[1].fill_between(t_axis, sd_low[:, i], sd_high[:, i], color=col, alpha=0.2)
+            axes[1].plot(
+                t_axis, sd_med[:, i], label=f"{self.names[i]} (median)", color=col
+            )
+            axes[1].fill_between(
+                t_axis, sd_low[:, i], sd_high[:, i], color=col, alpha=0.2
+            )
         axes[1].set_title(f"Cond. Std. Dev. $\\exp(h_{{t}}/2)$ ({int(ci*100)}% CI)")
         axes[1].set_xlabel("Time (effective)")
         axes[1].set_ylabel("Std Dev")
@@ -951,7 +1020,12 @@ class BVAR_SVResult:
 
         # 3. Volatility-conditioned IRF
         h_axis = np.arange(horizon + 1)
-        axes[2].plot(h_axis, irf_res.median[:, irf_target, shock_idx], label="Median IRF", color="darkgreen")
+        axes[2].plot(
+            h_axis,
+            irf_res.median[:, irf_target, shock_idx],
+            label="Median IRF",
+            color="darkgreen",
+        )
         axes[2].fill_between(
             h_axis,
             irf_res.lower[:, irf_target, shock_idx],
@@ -1057,10 +1131,18 @@ def bvar_sv(
     """
     if p is not None:
         lags = p
-    if isinstance(lags, bool) or not isinstance(lags, (int, np.integer)) or int(lags) <= 0:
+    if (
+        isinstance(lags, bool)
+        or not isinstance(lags, (int, np.integer))
+        or int(lags) <= 0
+    ):
         raise ValueError(f"lags must be a positive integer, got {lags}")
     lags = int(lags)
-    if isinstance(n_draws, (int, np.integer)) and not isinstance(n_draws, bool) and int(n_draws) <= 0:
+    if (
+        isinstance(n_draws, (int, np.integer))
+        and not isinstance(n_draws, bool)
+        and int(n_draws) <= 0
+    ):
         raise ValueError("n_draws must be > 0 and n_burn must be >= 0")
     n_draws = _check_int(n_draws, "n_draws", 2)
     n_burn = _check_int(n_burn, "n_burn", 0)
@@ -1080,13 +1162,17 @@ def bvar_sv(
     if Y_arr.ndim != 2:
         raise ValueError("data must be a 2D array or DataFrame")
     if not np.all(np.isfinite(Y_arr)):
-        raise ValueError("data contains NaN or infinite values; drop or impute them before calling bvar_sv")
+        raise ValueError(
+            "data contains NaN or infinite values; drop or impute them before calling bvar_sv"
+        )
 
     T, n = Y_arr.shape
     if n < 1:
         raise ValueError("data must contain at least one variable")
     if T <= lags + 2:
-        raise ValueError(f"Insufficient observations: T={T} must exceed lags+2={lags+2}")
+        raise ValueError(
+            f"Insufficient observations: T={T} must exceed lags+2={lags+2}"
+        )
 
     T_eff = T - lags
     k = 1 + n * lags
@@ -1110,16 +1196,16 @@ def bvar_sv(
     beta0 = np.zeros(n * k)
     if minnesota_prior:
         sigmas = np.array([_univariate_sigma(Y_arr[:, i], lags) for i in range(n)])
-        v0 = np.ones(n * k) * (intercept_prior_std ** 2)
+        v0 = np.ones(n * k) * (intercept_prior_std**2)
 
         for i in range(n):
             # Intercept
-            v0[i * k] = intercept_prior_std ** 2
+            v0[i * k] = intercept_prior_std**2
             # Own lag 1 prior mean is 1.0
             beta0[i * k + 1 + i] = 1.0
 
             for lag in range(1, lags + 1):
-                decay = lag ** lambda3
+                decay = lag**lambda3
                 for j in range(n):
                     idx = i * k + 1 + (lag - 1) * n + j
                     if i == j:
@@ -1127,13 +1213,15 @@ def bvar_sv(
                         std = lambda1 / decay
                     else:
                         # Cross lag
-                        std = (lambda1 * lambda2 * sigmas[i]) / max(decay * sigmas[j], 1e-12)
-                    v0[idx] = max(std ** 2, 1e-12)
+                        std = (lambda1 * lambda2 * sigmas[i]) / max(
+                            decay * sigmas[j], 1e-12
+                        )
+                    v0[idx] = max(std**2, 1e-12)
     else:
         # Diffuse N(0, 100^2) on lag coefficients; intercept_prior_std on the intercepts.
         v0 = np.ones(n * k) * 1e4
         for i in range(n):
-            v0[i * k] = intercept_prior_std ** 2
+            v0[i * k] = intercept_prior_std**2
 
     V0_inv = np.diag(1.0 / v0)
     V0_inv_beta0 = V0_inv @ beta0
@@ -1189,7 +1277,9 @@ def bvar_sv(
             # Over-dispersed starts so that split-R-hat measures genuine mixing
             h_cur = h_cur + rng.normal(0.0, 0.5, size=(1, n))
             phi_cur = np.asarray(rng.uniform(0.5, 0.95, size=n), dtype=float)
-            sigma_h2_cur = np.exp(np.asarray(rng.uniform(np.log(0.02), np.log(0.2), size=n), dtype=float))
+            sigma_h2_cur = np.exp(
+                np.asarray(rng.uniform(np.log(0.02), np.log(0.2), size=n), dtype=float)
+            )
         mu_cur = np.mean(h_cur, axis=0)
 
         chain_beta = []
@@ -1211,7 +1301,9 @@ def bvar_sv(
             Sigma_inv = 0.5 * (Sigma_inv + np.swapaxes(Sigma_inv, 1, 2))
 
             # Joint precision: V_post^{-1} = V0^{-1} + sum_t Σ_t^{-1} ⊗ (x_t x_t')
-            prec = V0_inv + np.einsum("tij,tkl->ikjl", Sigma_inv, X_outer).reshape(n * k, n * k)
+            prec = V0_inv + np.einsum("tij,tkl->ikjl", Sigma_inv, X_outer).reshape(
+                n * k, n * k
+            )
             prec = 0.5 * (prec + prec.T)
             rhs = V0_inv_beta0 + np.einsum("tij,tj,tk->ik", Sigma_inv, Y_dep, X).ravel()
 
@@ -1243,7 +1335,7 @@ def bvar_sv(
             for i in range(1, n):
                 # Equation i: u_{i,t} = - sum_{j<i} a_{i,j} u_{j,t} + ν_{i,t}
                 w_t = -U[:, :i]  # (T_eff, i)
-                u_t = U[:, i]    # (T_eff,)
+                u_t = U[:, i]  # (T_eff,)
                 weight_i = np.exp(-h_cur[:, i] / 2.0)
                 w_star = w_t * weight_i[:, None]
                 u_star = u_t * weight_i
@@ -1267,7 +1359,7 @@ def bvar_sv(
             # -------------------------------------------------------------
             nu = U @ A_cur.T  # (T_eff, n)
             offset = 1e-6
-            y_star = np.log(nu ** 2 + offset)
+            y_star = np.log(nu**2 + offset)
 
             for i in range(n):
                 s_i = _sample_mixture_indicators(y_star[:, i], h_cur[:, i], rng)
@@ -1288,13 +1380,14 @@ def bvar_sv(
                 # Sample μ_i ~ N(m_μ, V_μ)  (prior N(0, 10))
                 v_mu_inv = (
                     (1.0 / 10.0)
-                    + (1.0 - phi_i ** 2) / sig2_i
+                    + (1.0 - phi_i**2) / sig2_i
                     + ((1.0 - phi_i) ** 2) * (T_eff - 1) / sig2_i
                 )
                 v_mu = 1.0 / max(v_mu_inv, 1e-12)
                 m_mu = v_mu * (
-                    ((1.0 - phi_i ** 2) / sig2_i) * h_cur[0, i]
-                    + ((1.0 - phi_i) / sig2_i) * float(np.sum(h_cur[1:, i] - phi_i * h_cur[:-1, i]))
+                    ((1.0 - phi_i**2) / sig2_i) * h_cur[0, i]
+                    + ((1.0 - phi_i) / sig2_i)
+                    * float(np.sum(h_cur[1:, i] - phi_i * h_cur[:-1, i]))
                 )
                 mu_cur[i] = m_mu + np.sqrt(v_mu) * rng.standard_normal()
 
@@ -1305,7 +1398,9 @@ def bvar_sv(
                 # Sample σ_{h,i}² ~ IG(a_post, b_post)  (prior IG(2, 0.05))
                 res_h = h_dev[1:] - phi_cur[i] * h_dev[:-1]
                 a_post = 2.0 + T_eff / 2.0
-                b_post = 0.05 + 0.5 * ((1.0 - phi_cur[i] ** 2) * (h_dev[0] ** 2) + float(np.sum(res_h ** 2)))
+                b_post = 0.05 + 0.5 * (
+                    (1.0 - phi_cur[i] ** 2) * (h_dev[0] ** 2) + float(np.sum(res_h**2))
+                )
                 sigma_h2_cur[i] = 1.0 / max(rng.gamma(a_post, 1.0 / b_post), 1e-12)
 
             # Store retained draws
@@ -1351,7 +1446,9 @@ def bvar_sv(
     for param_idx in range(n_params_beta):
         chains_stacked = []
         for c, start, end in split_chains_for_gr:
-            c_vals = all_chains_beta[c][start:end].reshape(end - start, -1)[:, param_idx]
+            c_vals = all_chains_beta[c][start:end].reshape(end - start, -1)[
+                :, param_idx
+            ]
             chains_stacked.append(c_vals)
         gr_res = gelman_rubin(np.array(chains_stacked))
         val = float(gr_res.get("R_hat", 1.0))
@@ -1450,17 +1547,17 @@ def bvar_sv(
     log_scores = np.empty(T_eff)
     for t in range(T_eff):
         y_t = Y_dep[t]  # (n,)
-        x_t = X[t]      # (k,)
+        x_t = X[t]  # (k,)
         # For all d:
         # u_t(d) = y_t - B(d).T @ x_t
         u_draws = y_t[None, :] - (pooled_beta.transpose(0, 2, 1) @ x_t)  # (D, n)
-        nu_draws = np.einsum("dij,dj->di", pooled_a, u_draws)           # (D, n)
-        h_t_draws = pooled_h[:, t, :]                                    # (D, n)
+        nu_draws = np.einsum("dij,dj->di", pooled_a, u_draws)  # (D, n)
+        h_t_draws = pooled_h[:, t, :]  # (D, n)
 
         log_p_d = (
             -0.5 * n * np.log(2.0 * np.pi)
             - 0.5 * np.sum(h_t_draws, axis=1)
-            - 0.5 * np.sum(np.exp(-h_t_draws) * (nu_draws ** 2), axis=1)
+            - 0.5 * np.sum(np.exp(-h_t_draws) * (nu_draws**2), axis=1)
         )
         log_scores[t] = float(logsumexp(log_p_d) - np.log(total_draws))
 
