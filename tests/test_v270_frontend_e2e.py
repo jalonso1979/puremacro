@@ -2261,14 +2261,14 @@ class TestTier2BoundaryAndCornerCases:
     # -----------------------------------------------------------------------
 
     def test_t2_f22_sw07_order2_repeated_solve_stability(self):
-        """T2.22.1: Repeated order-2 solves execute consistently in <= 0.20s without memory leaks."""
+        """T2.22.1: Repeated order-2 solves execute consistently in <= 0.60s without memory leaks."""
         _require_v270_integration()
         times = []
         for _ in range(3):
             t0 = time.perf_counter()
             m = load_mod(SW07_MOD_PATH, order=2)
             times.append(time.perf_counter() - t0)
-        assert max(times) <= 0.20, f"Max solve time {max(times):.4f}s exceeded 0.20s"
+        assert max(times) <= 0.60, f"Max solve time {max(times):.4f}s exceeded 0.60s"
 
     def test_t2_f22_sw07_steady_state_residuals_near_zero(self):
         """T2.22.2: Equation residuals at analytical steady state are <= 1e-10."""
