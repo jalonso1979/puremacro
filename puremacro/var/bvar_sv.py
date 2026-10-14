@@ -683,16 +683,20 @@ class BVAR_SVResult:
         h_prev = self.h_draws[:, -1, :].copy()
         paths = np.empty((D, horizon, n))
         h_paths = np.empty((D, horizon, n))
+        ones_d = np.ones((D, 1))
         for j in range(horizon):
             h_t = self.mu_draws + self.phi_draws * (h_prev - self.mu_draws) \
                 + self.sigma_h_draws * rng.standard_normal((D, n))
             nu = np.exp(h_t / 2.0) * rng.standard_normal((D, n))
             u = np.linalg.solve(self.a_draws, nu[:, :, None])[:, :, 0]
-            x = np.concatenate([np.ones((D, 1))] + [lag_buf[:, -l, :] for l in range(1, p + 1)], axis=1)
+            # ⚡ Bolt: Vectorize and reshape to avoid np.concatenate list comprehension for x
+            x = np.concatenate([ones_d, lag_buf[:, ::-1, :].reshape(D, p * n)], axis=1)
             y = np.einsum("dk,dkn->dn", x, self.beta_draws) + u
             paths[:, j] = y
             h_paths[:, j] = h_t
-            lag_buf = np.concatenate([lag_buf[:, 1:, :], y[:, None, :]], axis=1)
+            # ⚡ Bolt: Use inplace assignment instead of np.concatenate to minimize reallocation overhead
+            lag_buf[:, :-1, :] = lag_buf[:, 1:, :]
+            lag_buf[:, -1, :] = y
             h_prev = h_t
 
         return BVAR_SVForecast(
