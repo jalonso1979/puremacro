@@ -1,0 +1,3 @@
+## 2025-02-12 - Inline Styling in Jupyter Outputs
+**Learning:** Colab and Jupyter HTML displays do not consistently inherit external CSS or pseudo-classes via inline attributes. Applying hover or focus-visible effects in python string formatting requires injecting a `<style>` block within the rendered HTML directly.
+**Action:** When adding interactive design polish to Jupyter-specific HTML string structures, wrap local CSS logic in an embedded `<style>` block with explicit selectors. Ensure `{` and `}` are properly escaped with `{{` and `}}` when utilizing python f-strings. Use `!important` modifier to bypass potential default kernel environment styling.
