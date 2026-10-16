@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="es" data-lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-title-es="Nuevo keynesiano: precios rígidos y regla de Taylor · Laboratorios MAV" data-title-en="New Keynesian: sticky prices and the Taylor rule · MAV Labs">Nuevo keynesiano: precios rígidos y regla de Taylor · Laboratorios MAV</title>
+<meta name="description" content="Laboratorio interactivo: el modelo neokeynesiano de tres ecuaciones. Mueve la rigidez de Calvo y la regla de Taylor, compara choques monetarios, de demanda y de costos, encuentra la frontera del principio de Taylor y mira la cota inferior cero con OccBin.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23111'/%3E%3Cpath d='M5 9c3 0 4 15 8 15s4-9 7-9 4 5 7 5' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/mav.css?v=dbf54522">
+<style>
+  /* Propios de este laboratorio */
+  .ctl-sub { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600;
+    margin: 20px 0 10px; padding-top: 14px; border-top: 1px solid var(--rule); }
+  .notice-title { font-weight: 700; color: var(--ink); margin: 0 0 .4em; font-size: 1.1rem; }
+  #indeterminate { padding: 6px 0 6px 18px; }
+  #indeterminate p:last-child { margin-bottom: 0; max-width: 68ch; }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn:disabled:hover { border-color: var(--rule); }
+  .sub-hero { padding: 60px 0 28px; }
+  .sub-hero h2 { max-width: 30ch; }
+  /* En pantallas angostas la columna no debe crecer con una ecuación ancha: la ecuación se desplaza sola */
+  @media (max-width: 800px) { .two { grid-template-columns: minmax(0, 1fr); } }
+  details.math p { overflow-x: auto; overflow-y: hidden; }
+  .links code { overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="../index.html">MAV <span class="es">· Laboratorios</span><span class="en">· Labs</span></a>
+    <nav class="topnav" aria-label="Principal">
+      <a href="../index.html" class="hide-sm"><span class="es">Laboratorios</span><span class="en">All labs</span></a>
+      <a href="https://jorgealonsoortiz.work/macro-avanzada/" data-curso="https://jorgealonsoortiz.work/macro-avanzada/" class="hide-sm"><span class="es">El curso</span><span class="en">The course</span></a>
+      <a href="https://jorgealonsoortiz.work/puremacro/" class="hide-sm">puremacro</a>
+      <span class="lang-toggle" role="group" aria-label="Idioma / Language">
+        <button type="button" data-lang="es">ES</button><button type="button" data-lang="en">EN</button>
+      </span>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <p class="kicker"><span class="es">Unidad B2 · Mercados no competitivos</span><span class="en">Unit B2 · Non-competitive markets</span></p>
+    <h1><span class="es">¿Cuánto producto cuesta bajar la inflación?</span><span class="en">How much output does it cost to bring inflation down?</span></h1>
+    <p class="lead">
+      <span class="es">Con precios rígidos, una tasa de interés más alta sube la tasa real, enfría la demanda y solo así baja la inflación. Mueve la rigidez de Calvo y la regla de Taylor, compara un choque de demanda con uno de costos y busca el punto en el que la regla deja de anclar la economía.</span>
+      <span class="en">With sticky prices, a higher interest rate raises the real rate, cools demand, and only through that brings inflation down. Move Calvo stickiness and the Taylor rule, compare a demand shock with a cost-push shock, and find the point where the rule stops anchoring the economy.</span>
+    </p>
+  </section>
+
+  <section class="wrap lab" aria-label="Laboratorio">
+    <aside class="controls" id="controls">
+      <h2><span class="es">Controles</span><span class="en">Controls</span></h2>
+    </aside>
+    <div class="charts">
+      <div id="tiles" aria-live="polite"></div>
+      <div id="indeterminate" class="notice" role="status" style="display:none"></div>
+      <div id="irf-charts" class="charts">
+        <div id="chart-y"></div>
+        <div id="chart-pi"></div>
+        <div id="chart-rates"></div>
+      </div>
+      <div id="chart-det"></div>
+    </div>
+  </section>
+
+  <section class="wrap sub-hero" aria-labelledby="zlb-h">
+    <p class="kicker"><span class="es">Extensión · OccBin</span><span class="en">Extension · OccBin</span></p>
+    <h2 id="zlb-h"><span class="es">La cota inferior cero: el mismo choque, dos mundos</span><span class="en">The zero lower bound: the same shock, two worlds</span></h2>
+    <p class="lead">
+      <span class="es">La tasa nominal no puede bajar de cero. Si un choque de demanda la lleva al piso, la regla deja de estabilizar, la deflación esperada sube la tasa real y la caída se amplifica. Con −2.5% y una tasa de 4%, la brecha cae 10.9% en vez de 3.8% y la economía pasa seis trimestres en la cota. Baja la tasa nominal de largo plazo a 2% y prueba un choque de solo −1.5%: siete trimestres en la cota.</span>
+      <span class="en">The nominal rate cannot go below zero. If a demand shock pushes it to the floor, the rule stops stabilizing, expected deflation raises the real rate, and the slump is amplified. With −2.5% and a 4% rate, the output gap falls 10.9% instead of 3.8% and the economy spends six quarters at the bound. Lower the steady-state nominal rate to 2% and try a shock of only −1.5%: seven quarters at the bound.</span>
+    </p>
+  </section>
+
+  <section class="wrap lab" aria-label="Cota inferior cero">
+    <aside class="controls" id="controls-zlb">
+      <h2><span class="es">Controles</span><span class="en">Controls</span></h2>
+    </aside>
+    <div class="charts">
+      <div id="tiles-zlb" aria-live="polite"></div>
+      <div id="chart-zlb-y"></div>
+      <div id="chart-zlb-pi"></div>
+      <div id="chart-zlb-i"></div>
+    </div>
+  </section>
+
+  <section class="band section rule-top" style="margin-top:56px">
+    <div class="wrap two">
+      <div>
+        <h2><span class="es">Qué probar</span><span class="en">Things to try</span></h2>
+        <ol class="try">
+          <li><span class="es">Con el choque monetario y la calibración del curso, la brecha cae 0.55% y la inflación 0.59 puntos en el impacto: razón de sacrificio de 0.93. Sube θ a 0.90 (precios fijos diez trimestres): la inflación apenas se mueve (−0.14) y la razón llega a 4.98. Baja θ a 0.10: la brecha cae solo 0.05%. Con precios casi flexibles, el dinero vuelve a ser casi neutral.</span><span class="en">With the monetary shock and the course calibration, the output gap falls 0.55% and inflation 0.59 points on impact: a sacrifice ratio of 0.93. Raise θ to 0.90 (prices fixed for ten quarters): inflation barely moves (−0.14) and the ratio reaches 4.98. Lower θ to 0.10: the gap falls only 0.05%. With nearly flexible prices, money is nearly neutral again.</span></li>
+          <li><span class="es">Vuelve a la calibración del curso y baja φπ a 0.95. El laboratorio marca indeterminación: la frontera está en 0.99. Sube φy a 1 y 0.95 vuelve a ser determinado, pero 0.90 no: con 1 − β = 0.01, responder a la brecha casi no mueve la frontera. Ahora sube θ a 0.90: la frontera baja hasta 0.44, porque con κ pequeña cada punto de inflación permanente exige mucha más brecha.</span><span class="en">Go back to the course calibration and lower φπ to 0.95. The lab reports indeterminacy: the frontier is at 0.99. Raise φy to 1 and 0.95 is determinate again, but 0.90 is not: with 1 − β = 0.01, responding to the gap barely moves the frontier. Now raise θ to 0.90: the frontier drops to 0.44, because with a small κ each point of permanent inflation requires a much larger gap.</span></li>
+          <li><span class="es">Elige el choque de costos con la calibración del curso: la inflación salta 2.52 puntos y la brecha cae 0.69%, una disyuntiva de 0.85. Sube φπ a 3 y compara con la referencia: el pico de inflación baja a 1.97, pero la brecha cae 1.19% y la disyuntiva sube a 1.66. Cambia al choque de demanda sin mover φπ: en el impacto, la brecha (0.62% frente a 0.71%) y la inflación (0.40 frente a 0.48) quedan las dos por debajo de la referencia. Ese choque no obliga a elegir.</span><span class="en">Choose the cost-push shock with the course calibration: inflation jumps 2.52 points and the output gap falls 0.69%, a trade-off of 0.85. Raise φπ to 3 and compare with the reference: peak inflation drops to 1.97, but the gap falls 1.19% and the trade-off rises to 1.66. Switch to the demand shock without touching φπ: on impact, the gap (0.62% versus 0.71%) and inflation (0.40 versus 0.48) are both below the reference. That shock forces no choice.</span></li>
+          <li><span class="es">Restablece la calibración, elige el choque monetario y sube su persistencia ρ a 0.80. En la gráfica de tasas, la tasa nominal <em>baja</em> 0.40 puntos en el impacto aunque la política se endureció, mientras la tasa real sube 1.97. La inflación esperada cae tanto que la regla recorta i: la postura de la política se lee en la tasa real, no en la nominal.</span><span class="en">Reset the calibration, choose the monetary shock and raise its persistence ρ to 0.80. In the rates chart, the nominal rate <em>falls</em> 0.40 points on impact even though policy tightened, while the real rate rises 1.97. Expected inflation falls so much that the rule cuts i: the policy stance shows up in the real rate, not the nominal one.</span></li>
+        </ol>
+      </div>
+      <div>
+        <h2><span class="es">La matemática</span><span class="en">The math</span></h2>
+        <details class="math" open>
+          <summary><span class="es">El modelo de tres ecuaciones</span><span class="en">The three-equation model</span></summary>
+          <p><span class="es">Con \(\tilde y_t\) la brecha del producto, \(\pi_t\) la inflación trimestral e \(i_t\) la tasa nominal, todas en desviaciones del estado estacionario (<code>modelos/new_keynesian_3eq.mod</code>):</span><span class="en">With \(\tilde y_t\) the output gap, \(\pi_t\) quarterly inflation and \(i_t\) the nominal rate, all in deviations from steady state (<code>modelos/new_keynesian_3eq.mod</code>):</span></p>
+          $$\tilde y_t = E_t\tilde y_{t+1}-\tfrac{1}{\sigma}\left(i_t-E_t\pi_{t+1}-r^n_t\right)$$
+          $$\pi_t=\beta E_t\pi_{t+1}+\kappa\,\tilde y_t+u_t$$
+          $$i_t=\rho_i\, i_{t-1}+(1-\rho_i)\left(\phi_\pi\pi_t+\phi_y\tilde y_t\right)+v_t$$
+          <p><span class="es">con \(r^n_t=\rho_{rn}r^n_{t-1}+\varepsilon^{rn}_t\), \(u_t=\rho_u u_{t-1}+\varepsilon^u_t\) y \(v_t=\rho_v v_{t-1}+\varepsilon^i_t\). En el .mod, \(\rho_v=0\), así que \(v_t=\varepsilon^i_t\). Calibración: \(\beta=0.99\), \(\sigma=1\), \(\kappa=0.1275\), \(\phi_\pi=1.5\), \(\phi_y=0.125\), \(\rho_i=0.75\), \(\rho_{rn}=\rho_u=0.5\); desviaciones estándar de 0.0025, 0.005 y 0.005.</span><span class="en">with \(r^n_t=\rho_{rn}r^n_{t-1}+\varepsilon^{rn}_t\), \(u_t=\rho_u u_{t-1}+\varepsilon^u_t\) and \(v_t=\rho_v v_{t-1}+\varepsilon^i_t\). In the .mod file \(\rho_v=0\), so \(v_t=\varepsilon^i_t\). Calibration: \(\beta=0.99\), \(\sigma=1\), \(\kappa=0.1275\), \(\phi_\pi=1.5\), \(\phi_y=0.125\), \(\rho_i=0.75\), \(\rho_{rn}=\rho_u=0.5\); standard deviations of 0.0025, 0.005 and 0.005.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">De la rigidez de Calvo a κ</span><span class="en">From Calvo stickiness to κ</span></summary>
+          <p><span class="es">Una empresa no puede reajustar su precio con probabilidad \(\theta\); la duración media de un precio es \(1/(1-\theta)\) trimestres. La pendiente de la curva de Phillips es</span><span class="en">A firm cannot reset its price with probability \(\theta\); a price lasts \(1/(1-\theta)\) quarters on average. The slope of the Phillips curve is</span></p>
+          $$\kappa=\frac{(1-\theta)(1-\beta\theta)}{\theta}\,(\sigma+\varphi),$$
+          <p><span class="es">con \(\varphi\) la inversa de la elasticidad de Frisch. Como en el cuaderno T02_C, \(\varphi=0.4854\) se fija para que \(\theta=0.75\) reproduzca \(\kappa=0.1275\); el control de θ mueve solo κ. Cuando \(\theta\to 0\), \(\kappa\to\infty\), la brecha se anula y el dinero es neutral.</span><span class="en">with \(\varphi\) the inverse Frisch elasticity. As in notebook T02_C, \(\varphi=0.4854\) is set so that \(\theta=0.75\) reproduces \(\kappa=0.1275\); the θ control moves only κ. As \(\theta\to 0\), \(\kappa\to\infty\), the gap vanishes and money is neutral.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">El principio de Taylor</span><span class="en">The Taylor principle</span></summary>
+          <p><span class="es">Una inflación permanente \(\bar\pi\) exige, por la curva de Phillips, una brecha \(\bar y=\frac{1-\beta}{\kappa}\bar\pi\), y la regla responde a largo plazo con \(\bar\imath=\big(\phi_\pi+\phi_y\frac{1-\beta}{\kappa}\big)\bar\pi\). Si ese coeficiente es mayor que uno, la tasa real sube con la inflación y la única desviación autosostenida es cero. Con \(\phi_\pi,\phi_y\ge 0\) y \(0\le\rho_i<1\), el equilibrio es único si y solo si</span><span class="en">By the Phillips curve, permanent inflation \(\bar\pi\) requires a gap \(\bar y=\frac{1-\beta}{\kappa}\bar\pi\), and the rule responds in the long run with \(\bar\imath=\big(\phi_\pi+\phi_y\frac{1-\beta}{\kappa}\big)\bar\pi\). If that coefficient exceeds one, the real rate rises with inflation and the only self-sustaining deviation is zero. With \(\phi_\pi,\phi_y\ge 0\) and \(0\le\rho_i<1\), the equilibrium is unique if and only if</span></p>
+          $$\kappa(\phi_\pi-1)+(1-\beta)\phi_y>0 .$$
+          <p><span class="es">El suavizamiento no mueve la frontera, porque la regla está escrita con coeficientes de largo plazo (Bullard y Mitra 2002; Woodford 2003). La condición coincide con las banderas de Blanchard–Kahn de puremacro en todos los casos probados.</span><span class="en">Smoothing does not move the frontier, because the rule is written with long-run coefficients (Bullard and Mitra 2002; Woodford 2003). The condition matches puremacro's Blanchard–Kahn flags in every case tested.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Unidades y estadísticos</span><span class="en">Units and statistics</span></summary>
+          <p><span class="es">La brecha va en % (\(100\,\tilde y\)); inflación y tasas, en puntos anualizados (\(400\times\)). La tasa real es \(r_t=i_t-E_t\pi_{t+1}\): después del choque no llegan sorpresas, así que \(E_t\pi_{t+1}\) es la inflación del trimestre siguiente en la misma trayectoria. Las razones acumulan 24 trimestres, como el barrido de Calvo de T02_C:</span><span class="en">The gap is in % (\(100\,\tilde y\)); inflation and rates in annualized points (\(400\times\)). The real rate is \(r_t=i_t-E_t\pi_{t+1}\): no surprises arrive after the shock, so \(E_t\pi_{t+1}\) is next quarter's inflation on the same path. The ratios cumulate 24 quarters, as in the Calvo sweep of T02_C:</span></p>
+          $$\text{ratio}=\frac{\sum_{t=0}^{23}100\,\tilde y_t}{\sum_{t=0}^{23}400\,\pi_t}.$$
+          <p><span class="es">Con el choque de costos se muestra con el signo cambiado: puntos de brecha perdidos por cada punto de inflación adicional.</span><span class="en">For the cost-push shock it is shown with the sign flipped: points of output gap lost per point of additional inflation.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">La cota cero con OccBin</span><span class="en">The zero bound with OccBin</span></summary>
+          <p><span class="es">El modelo de <code>nk_zlb_ref.mod</code> tiene la regla \(r_t=\phi_\pi\pi_t+\phi_y y_t\) y un choque de demanda \(g_t\) en la IS; en <code>nk_zlb_cons.mod</code> la regla se reemplaza por \(r_t=-r_{ss}\). Con previsión perfecta, dada una secuencia de regímenes, la recursión hacia atrás desde el régimen de referencia da</span><span class="en">The model in <code>nk_zlb_ref.mod</code> has the rule \(r_t=\phi_\pi\pi_t+\phi_y y_t\) and a demand shock \(g_t\) in the IS curve; in <code>nk_zlb_cons.mod</code> the rule is replaced by \(r_t=-r_{ss}\). Under perfect foresight, given a regime sequence, the backward recursion from the reference regime gives</span></p>
+          $$x_t=\big(A_0^{s_t}-A_1^{s_t}P_{t+1}\big)^{-1}\big(A_2^{s_t}x_{t-1}+A_1^{s_t}D_{t+1}+c^{s_t}\big).$$
+          <p><span class="es">Se simula hacia adelante, se marca \(s_t=1\) donde la tasa nocional \(\phi_\pi\pi_t+\phi_y y_t\) queda por debajo de \(-r_{ss}\) y se repite hasta que la secuencia no cambia (Guerrieri e Iacoviello 2015). Coincide con <code>puremacro.dsge.solve_occbin</code> en regímenes y trayectorias.</span><span class="en">Simulate forward, set \(s_t=1\) wherever the notional rate \(\phi_\pi\pi_t+\phi_y y_t\) is below \(-r_{ss}\), and repeat until the sequence stops changing (Guerrieri and Iacoviello 2015). It matches <code>puremacro.dsge.solve_occbin</code> in regimes and paths.</span></p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <h2><span class="es">Llévalo más lejos</span><span class="en">Take it further</span></h2>
+    <div class="two">
+      <ul class="links">
+        <li><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_C_new_keynesian_local_es.ipynb" class="es">Cuaderno T02_C en Colab: el modelo neokeynesiano, la región de determinación y la curva de Taylor →</a><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_C_new_keynesian_local.ipynb" class="en">Notebook T02_C in Colab: the New Keynesian model, the determinacy region and the Taylor curve →</a></li>
+        <li><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_D_occbin_zlb_regimes_es.ipynb" class="es">Cuaderno T02_D en Colab: la cota cero, el multiplicador fiscal y la orientación hacia adelante →</a><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_D_occbin_zlb_regimes.ipynb" class="en">Notebook T02_D in Colab: the zero bound, the fiscal multiplier and forward guidance →</a></li>
+        <li><a href="../diapositivas/MAV_08_mercados_no_competitivos.pdf" data-deck="8"><span class="es">Diapositivas 8: mercados no competitivos →</span><span class="en">Slides 8: non-competitive markets (Spanish) →</span></a></li>
+        <li><a href="https://jorgealonsoortiz.work/puremacro/"><span class="es">En Python: </span><span class="en">In Python: </span><code>puremacro.dsge.load_mod</code>, <code>LinearModel.irf</code>, <code>puremacro.dsge.solve_occbin</code> →</a></li>
+      </ul>
+      <p class="small" id="source">
+        <span class="es">Modelos: <code>modelos/new_keynesian_3eq.mod</code>, <code>nk_zlb_ref.mod</code> y <code>nk_zlb_cons.mod</code> del curso. El laboratorio los resuelve en el navegador; sus impulsos-respuesta coinciden con los de puremacro 4.0.1 hasta 10<sup>−14</sup>.</span>
+        <span class="en">Models: the course's <code>modelos/new_keynesian_3eq.mod</code>, <code>nk_zlb_ref.mod</code> and <code>nk_zlb_cons.mod</code>. The lab solves them in the browser; its impulse responses match puremacro 4.0.1 to within 10<sup>−14</sup>.</span>
+      </p>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span class="es">Macroeconomía Avanzada · ITAM · Jorge Alonso-Ortiz. Código MIT; textos y diapositivas <a href="https://creativecommons.org/licenses/by/4.0/deed.es">CC BY 4.0</a>. Fuente en</span><span class="en">Advanced Macroeconomics · ITAM · Jorge Alonso-Ortiz. Code MIT; text and slides <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Source at</span>
+    <a href="https://github.com/jalonso1979/puremacro/tree/main/curso">github.com/jalonso1979/puremacro</a>.
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="../assets/mav.js?v=25ec1916"></script>
+<script defer src="../assets/num.js?v=7de34487"></script>
+<script defer src="nuevo-keynesiano.js?v=9ee45949"></script>
+</body>
+</html>
