@@ -91,7 +91,8 @@ def residual_bootstrap(
     Y_all = np.empty((n_draws, p + T_eff, n))
     Y_all[:, :p, :] = Y_init
     for t in range(T_eff):
-        lags = np.concatenate([Y_all[:, p + t - 1 - lag, :] for lag in range(p)], axis=1)
+        # ⚡ Bolt: Vectorize slicing and reshaping to avoid np.concatenate list comprehension reallocation
+        lags = Y_all[:, t : p + t, :][:, ::-1, :].reshape(n_draws, p * n)
         Y_all[:, p + t, :] = lags @ A_stack.T + intercept + E_all[:, t, :]
 
     draws = []
