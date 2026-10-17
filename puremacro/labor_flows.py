@@ -19,6 +19,7 @@ The module also provides quarterly aggregation by chained multiplication of
 the monthly matrices, and an LP-style IRF helper that estimates how a
 generic shock series moves each transition rate.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -31,9 +32,12 @@ import pandas as pd
 @dataclass
 class TransitionPanel:
     """Monthly 3-by-3 E/U/N transition probabilities and quarterly chain."""
-    monthly: pd.DataFrame      # index=date, cols=p_EE,p_EU,p_EN,p_UE,p_UU,p_UN,p_NE,p_NU,p_NN
-    quarterly: pd.DataFrame    # index=qdate, same cols (chained 3-month product)
-    stocks: pd.DataFrame       # monthly E, U, N (levels in thousands or shares)
+
+    monthly: (
+        pd.DataFrame
+    )  # index=date, cols=p_EE,p_EU,p_EN,p_UE,p_UU,p_UN,p_NE,p_NU,p_NN
+    quarterly: pd.DataFrame  # index=qdate, same cols (chained 3-month product)
+    stocks: pd.DataFrame  # monthly E, U, N (levels in thousands or shares)
 
     @property
     def states(self) -> tuple[str, str, str]:
@@ -41,11 +45,13 @@ class TransitionPanel:
 
     def matrix_at(self, date) -> np.ndarray:
         row = self.monthly.loc[date]
-        return np.array([
-            [row["p_EE"], row["p_EU"], row["p_EN"]],
-            [row["p_UE"], row["p_UU"], row["p_UN"]],
-            [row["p_NE"], row["p_NU"], row["p_NN"]],
-        ])
+        return np.array(
+            [
+                [row["p_EE"], row["p_EU"], row["p_EN"]],
+                [row["p_UE"], row["p_UU"], row["p_UN"]],
+                [row["p_NE"], row["p_NU"], row["p_NN"]],
+            ]
+        )
 
 
 CPS_FLOW_SERIES: dict[str, str] = {
@@ -67,13 +73,15 @@ CPS_FLOW_SERIES: dict[str, str] = {
 }
 
 CPS_STOCK_SERIES: dict[str, str] = {
-    "E": "CE16OV",          # employed (Household Survey, thousands)
-    "U": "UNEMPLOY",         # unemployed (thousands)
-    "N": "LNS15000000",     # not in labor force (thousands, civilian noninstitutional)
+    "E": "CE16OV",  # employed (Household Survey, thousands)
+    "U": "UNEMPLOY",  # unemployed (thousands)
+    "N": "LNS15000000",  # not in labor force (thousands, civilian noninstitutional)
 }
 
 
-def transitions_from_cps_flows(flows: pd.DataFrame, stocks: pd.DataFrame) -> TransitionPanel:
+def transitions_from_cps_flows(
+    flows: pd.DataFrame, stocks: pd.DataFrame
+) -> TransitionPanel:
     """Build 3-state transition matrix from CPS flow counts + origin stocks.
 
     Each transition probability is the flow from origin to destination
@@ -104,7 +112,7 @@ def transitions_from_cps_flows(flows: pd.DataFrame, stocks: pd.DataFrame) -> Tra
         in thousands at the start of the month, i.e. lagged once if the flow
         is published as during-the-month).
     """
-    required_flow = list(CPS_FLOW_SERIES.keys())   # the 8 published flows
+    required_flow = list(CPS_FLOW_SERIES.keys())  # the 8 published flows
     required_stock = list(CPS_STOCK_SERIES.keys())
     missing_f = [c for c in required_flow if c not in flows.columns]
     missing_s = [c for c in required_stock if c not in stocks.columns]
@@ -145,7 +153,9 @@ def transitions_from_cps_flows(flows: pd.DataFrame, stocks: pd.DataFrame) -> Tra
         row_sum = p[cols].sum(axis=1)
         for c in cols:
             p[c] = p[c] / row_sum
-    return TransitionPanel(monthly=p.dropna(), quarterly=_quarterly_chain(p.dropna()), stocks=stocks)
+    return TransitionPanel(
+        monthly=p.dropna(), quarterly=_quarterly_chain(p.dropna()), stocks=stocks
+    )
 
 
 def transitions_from_shimer(urate: pd.Series) -> TransitionPanel:
@@ -193,11 +203,20 @@ def transitions_from_shimer(urate: pd.Series) -> TransitionPanel:
     s = (u_next - u * (1 - f)) / (1 - u)
     s = s.clip(0.0, 1.0)
     f = f.clip(0.0, 1.0)
-    p = pd.DataFrame({
-        "p_EE": 1.0 - s, "p_EU": s, "p_EN": 0.0,
-        "p_UE": f, "p_UU": 1.0 - f, "p_UN": 0.0,
-        "p_NE": 0.0, "p_NU": 0.0, "p_NN": 1.0,
-    }, index=u.index).dropna()
+    p = pd.DataFrame(
+        {
+            "p_EE": 1.0 - s,
+            "p_EU": s,
+            "p_EN": 0.0,
+            "p_UE": f,
+            "p_UU": 1.0 - f,
+            "p_UN": 0.0,
+            "p_NE": 0.0,
+            "p_NU": 0.0,
+            "p_NN": 1.0,
+        },
+        index=u.index,
+    ).dropna()
     # No stock data — fill a placeholder so downstream consumers behave.
     stocks = pd.DataFrame(
         {"E": (1 - u).reindex(p.index), "U": u.reindex(p.index), "N": np.nan},
@@ -214,27 +233,39 @@ def _quarterly_chain(p_monthly: pd.DataFrame) -> pd.DataFrame:
     """
     p_monthly = p_monthly.sort_index()
     p_monthly["qdate"] = pd.to_datetime(p_monthly.index) + pd.offsets.QuarterEnd(0)
-    out = []
-    for q, group in p_monthly.groupby("qdate"):
-        if len(group) < 3:
-            continue
-        # Take first 3 months of the quarter to multiply
-        mats = [
-            np.array([
-                [row["p_EE"], row["p_EU"], row["p_EN"]],
-                [row["p_UE"], row["p_UU"], row["p_UN"]],
-                [row["p_NE"], row["p_NU"], row["p_NN"]],
-            ])
-            for _, row in group.iloc[:3].iterrows()
-        ]
-        prod = mats[0] @ mats[1] @ mats[2]
-        out.append({
-            "qdate": q,
-            "p_EE": prod[0, 0], "p_EU": prod[0, 1], "p_EN": prod[0, 2],
-            "p_UE": prod[1, 0], "p_UU": prod[1, 1], "p_UN": prod[1, 2],
-            "p_NE": prod[2, 0], "p_NU": prod[2, 1], "p_NN": prod[2, 2],
-        })
-    return pd.DataFrame(out).set_index("qdate") if out else pd.DataFrame()
+
+    # ⚡ Bolt: Vectorize chained matrix multiplication instead of iterrows() allocation
+    counts = p_monthly.groupby("qdate").size()
+    valid_qdates = counts[counts >= 3].index
+
+    if len(valid_qdates) == 0:
+        return pd.DataFrame()
+
+    p_valid = p_monthly[p_monthly["qdate"].isin(valid_qdates)]
+    p_top3 = p_valid.groupby("qdate").head(3)
+
+    cols = ["p_EE", "p_EU", "p_EN", "p_UE", "p_UU", "p_UN", "p_NE", "p_NU", "p_NN"]
+    vals = p_top3[cols].values
+    N = len(valid_qdates)
+    mats = vals.reshape(N, 3, 3, 3)
+
+    prod = mats[:, 0] @ mats[:, 1] @ mats[:, 2]
+
+    out_df = pd.DataFrame(
+        {
+            "qdate": valid_qdates,
+            "p_EE": prod[:, 0, 0],
+            "p_EU": prod[:, 0, 1],
+            "p_EN": prod[:, 0, 2],
+            "p_UE": prod[:, 1, 0],
+            "p_UU": prod[:, 1, 1],
+            "p_UN": prod[:, 1, 2],
+            "p_NE": prod[:, 2, 0],
+            "p_NU": prod[:, 2, 1],
+            "p_NN": prod[:, 2, 2],
+        }
+    )
+    return out_df.set_index("qdate")
 
 
 def supply_demand_decomposition(panel: TransitionPanel) -> pd.DataFrame:
@@ -251,30 +282,34 @@ def supply_demand_decomposition(panel: TransitionPanel) -> pd.DataFrame:
     s = panel.stocks
     if s["N"].isna().all():
         # 2-state fall-back: no N column
-        out = pd.DataFrame({
-            "demand_in": p["p_UE"] * s["U"].shift(1),  # hires from U
-            "demand_out": p["p_EU"] * s["E"].shift(1),  # separations to U
-            "supply_in": np.nan,
-            "supply_out": np.nan,
-            "net_E_change": (p["p_UE"] * s["U"].shift(1))
-                            - (p["p_EU"] * s["E"].shift(1)),
-        })
+        out = pd.DataFrame(
+            {
+                "demand_in": p["p_UE"] * s["U"].shift(1),  # hires from U
+                "demand_out": p["p_EU"] * s["E"].shift(1),  # separations to U
+                "supply_in": np.nan,
+                "supply_out": np.nan,
+                "net_E_change": (p["p_UE"] * s["U"].shift(1))
+                - (p["p_EU"] * s["E"].shift(1)),
+            }
+        )
     else:
-        out = pd.DataFrame({
-            "demand_in": p["p_UE"] * s["U"].shift(1),
-            "demand_out": p["p_EU"] * s["E"].shift(1),
-            "supply_in": p["p_NE"] * s["N"].shift(1),
-            "supply_out": p["p_EN"] * s["E"].shift(1),
-        })
+        out = pd.DataFrame(
+            {
+                "demand_in": p["p_UE"] * s["U"].shift(1),
+                "demand_out": p["p_EU"] * s["E"].shift(1),
+                "supply_in": p["p_NE"] * s["N"].shift(1),
+                "supply_out": p["p_EN"] * s["E"].shift(1),
+            }
+        )
         out["net_E_change"] = (
-            out["demand_in"] + out["supply_in"]
-            - out["demand_out"] - out["supply_out"]
+            out["demand_in"] + out["supply_in"] - out["demand_out"] - out["supply_out"]
         )
     return out
 
 
 def transition_shock_response(
-    panel: TransitionPanel, shock: pd.Series,
+    panel: TransitionPanel,
+    shock: pd.Series,
     horizons: Sequence[int] = range(0, 13),
     transitions: Sequence[str] = ("p_UE", "p_EU", "p_EN", "p_NE", "p_NU", "p_UN"),
 ) -> pd.DataFrame:
@@ -288,7 +323,11 @@ def transition_shock_response(
     """
     import statsmodels.api as sm
 
-    p = panel.monthly if shock.index.inferred_freq in ("M", "MS", "ME") else panel.quarterly
+    p = (
+        panel.monthly
+        if shock.index.inferred_freq in ("M", "MS", "ME")
+        else panel.quarterly
+    )
     p = p.join(shock.rename("shock"), how="inner").dropna(subset=["shock"])
     rows = []
     for outcome in transitions:
@@ -299,17 +338,32 @@ def transition_shock_response(
             df = pd.DataFrame({"y": y, "shock": p["shock"]}).dropna()
             X = sm.add_constant(df["shock"])
             try:
-                m = sm.OLS(df["y"], X).fit(
-                    cov_type="HAC", cov_kwds={"maxlags": h + 1}
+                m = sm.OLS(df["y"], X).fit(cov_type="HAC", cov_kwds={"maxlags": h + 1})
+                rows.append(
+                    {
+                        "transition": outcome,
+                        "h": h,
+                        "beta": float(m.params["shock"]),
+                        "se": float(m.bse["shock"]),
+                        "t": float(m.tvalues["shock"]),
+                        "n": int(len(df)),
+                    }
                 )
-                rows.append({
-                    "transition": outcome, "h": h,
-                    "beta": float(m.params["shock"]),
-                    "se":   float(m.bse["shock"]),
-                    "t":    float(m.tvalues["shock"]),
-                    "n":    int(len(df)),
-                })
-            except (ValueError, ArithmeticError, np.linalg.LinAlgError, RuntimeError, Exception):
-                rows.append({"transition": outcome, "h": h,
-                              "beta": np.nan, "se": np.nan, "t": np.nan, "n": 0})
+            except (
+                ValueError,
+                ArithmeticError,
+                np.linalg.LinAlgError,
+                RuntimeError,
+                Exception,
+            ):
+                rows.append(
+                    {
+                        "transition": outcome,
+                        "h": h,
+                        "beta": np.nan,
+                        "se": np.nan,
+                        "t": np.nan,
+                        "n": 0,
+                    }
+                )
     return pd.DataFrame(rows)
