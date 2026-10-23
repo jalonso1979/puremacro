@@ -474,27 +474,23 @@ def fetch_emissions_panel(
         return merged.sort_values(["code", "variable", "date"]).reset_index(drop=True)
 
     # Quarterly expansion: expand each annual observation into 4 quarterly periods
-    q_records: list[dict[str, object]] = []
-    for _, row in merged.iterrows():
-        base_year = row["date"].year
-        var_name = str(row["variable"])
-        q_var = var_name[:-2] + "_q" if var_name.endswith("_a") else var_name + "_q"
-        q_source = f"resampled_from_A:{row['source']}"
-
-        for m in (1, 4, 7, 10):
-            q_records.append({
-                "code": row["code"],
-                "date": pd.Timestamp(f"{base_year}-{m:02d}-01"),
-                "variable": q_var,
-                "value": row["value"],
-                "sa_source": row["sa_source"],
-                "source": q_source,
-            })
-
-    if not q_records:
+    if merged.empty:
         return _EMPTY.copy()
 
-    q_df = pd.DataFrame(q_records, columns=["code", "date", "variable", "value", "sa_source", "source"])
+    # ⚡ Bolt: Vectorize row duplication instead of iterrows()
+    n_rows = len(merged)
+    q_df = merged.iloc[np.repeat(np.arange(n_rows), 4)].reset_index(drop=True)
+
+    months = np.tile([1, 4, 7, 10], n_rows)
+    years = q_df["date"].dt.year
+    q_df["date"] = pd.to_datetime({"year": years, "month": months, "day": 1})
+
+    mask_a = q_df["variable"].str.endswith("_a")
+    q_df["variable"] = np.where(mask_a, q_df["variable"].str[:-2] + "_q", q_df["variable"] + "_q")
+
+    q_df["source"] = "resampled_from_A:" + q_df["source"]
+
+    q_df = q_df[["code", "date", "variable", "value", "sa_source", "source"]]
     q_df = q_df.sort_values(["code", "variable", "date"]).reset_index(drop=True)
     return q_df
 

@@ -65,20 +65,23 @@ def _harmonize_annual_to_quarterly(
         q_var = var[:-2] + "_q" if var.endswith("_a") else f"{var}_q"
 
         if harmonization == "repeat":
-            for _, row in grp_sorted.iterrows():
-                yr = row["date"].year
-                val = float(row["value"])
-                src = f"resampled_from_A:{row['source']}"
-                for m in (1, 4, 7, 10):
-                    records.append({
-                        "code": code,
-                        "date": pd.Timestamp(f"{yr}-{m:02d}-01"),
-                        "variable": q_var,
-                        "value": val,
-                        "sa_source": "annual_repeated",
-                        "source": src,
-                        "is_imputed": m != 1,
-                    })
+            # ⚡ Bolt: Vectorize row duplication instead of iterrows()
+            n_rows = len(grp_sorted)
+            df_q = grp_sorted.iloc[np.repeat(np.arange(n_rows), 4)].reset_index(drop=True)
+
+            months = np.tile([1, 4, 7, 10], n_rows)
+            years = df_q["date"].dt.year
+            df_q["date"] = pd.to_datetime({"year": years, "month": months, "day": 1})
+
+            df_q["code"] = code
+            df_q["variable"] = q_var
+            df_q["source"] = "resampled_from_A:" + df_q["source"].astype(str)
+            df_q["sa_source"] = "annual_repeated"
+            df_q["is_imputed"] = (months != 1)
+
+            # Extract directly to dictionaries, to conform with the existing pattern
+            # building `records` block by block
+            records.extend(df_q[["code", "date", "variable", "value", "sa_source", "source", "is_imputed"]].to_dict("records"))
         elif harmonization == "interpolate":
             s = grp_sorted.set_index("date")["value"].astype(float)
             s = s[~s.index.duplicated(keep="first")]
