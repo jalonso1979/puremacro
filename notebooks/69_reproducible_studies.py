@@ -106,7 +106,6 @@ for ax, response, label in zip(axes, spec.responses,
     ax.set(xlabel="Months after innovation", ylabel=label)
 axes[0].legend(fontsize=8)
 fig.suptitle("Mexico: a recursive identification assumption")
-plt.show()
 
 # %% [markdown]
 # **Read the output.** The impact checks verify the chosen 25-basis-point normalization and the zero restriction, not the truth of the recursive identification. Read the subsequent inflation response from the figure; do not impose a negative sign after seeing the data. `identification` remains `not_checked` in the audit. Changing the lag count uses the same input window but changes the fitted sample length, which the manifest records.
@@ -151,7 +150,6 @@ for ax, response, label in zip(axes, ("C", "A"),
     ax.axhline(0, color=_nbstyle.SPINE, linewidth=0.8)
     ax.set(xlabel="Quarters after transfer", ylabel=label)
 fig.suptitle("Illustrative household transfer at fixed prices")
-plt.show()
 
 # %% [markdown]
 # **Read the output.** Consumption rises immediately by less than the transfer; saving carries part of the resources to later dates. The resource identity is an algebraic check independent of the solver's convergence flag. It does not test household optimality, grid convergence or fiscal sustainability. There are no statistical confidence bands for this calibrated path.
@@ -183,7 +181,6 @@ ax.bar_label(bars, fmt="%.5f", padding=4, color=_nbstyle.TEXTO)
 ax.margins(y=0.25)
 ax.set(ylabel="Gross output change at baseline prices (%)",
        title="Illustrative 5% US tariff on Mexican manufacturing")
-plt.show()
 
 # %% [markdown]
 # **Read the output.** The signs and magnitudes describe this technology and fiscal closure. Physical-equation residuals mix native quantity, price, factor and budget units; their maximum is not a monetary loss. Accounting checks establish internal consistency, not the likely real-world effect of a tariff. No parameter uncertainty is estimated.

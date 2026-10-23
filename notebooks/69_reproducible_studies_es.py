@@ -106,7 +106,6 @@ for ax, response, label in zip(axes, spec.responses,
     ax.set(xlabel="Months after innovation", ylabel=label)
 axes[0].legend(fontsize=8)
 fig.suptitle("Mexico: a recursive identification assumption")
-plt.show()
 
 # %% [markdown]
 # **Lea el resultado.** Las comprobaciones de impacto verifican la normalización de 25 puntos base y la restricción de cero, no la validez del orden recursivo. Lea la respuesta posterior de inflación en la figura; no imponga un signo negativo después de ver los datos. La identificación conserva el estado `not_checked`. Cambiar los rezagos mantiene la ventana de insumos, pero cambia la longitud de la muestra estimada, registrada en el manifiesto.
@@ -151,7 +150,6 @@ for ax, response, label in zip(axes, ("C", "A"),
     ax.axhline(0, color=_nbstyle.SPINE, linewidth=0.8)
     ax.set(xlabel="Quarters after transfer", ylabel=label)
 fig.suptitle("Illustrative household transfer at fixed prices")
-plt.show()
 
 # %% [markdown]
 # **Lea el resultado.** El consumo sube inmediatamente menos que la transferencia; el ahorro traslada recursos a fechas posteriores. La identidad de recursos es una comprobación algebraica independiente de la bandera de convergencia. No verifica optimalidad, precisión de malla ni sostenibilidad fiscal. Esta trayectoria calibrada no tiene bandas estadísticas.
@@ -183,7 +181,6 @@ ax.bar_label(bars, fmt="%.5f", padding=4, color=_nbstyle.TEXTO)
 ax.margins(y=0.25)
 ax.set(ylabel="Gross output change at baseline prices (%)",
        title="Illustrative 5% US tariff on Mexican manufacturing")
-plt.show()
 
 # %% [markdown]
 # **Lea el resultado.** Signos y magnitudes describen esta tecnología y este cierre fiscal. Los residuos físicos mezclan unidades de cantidades, precios, factores y presupuestos; su máximo no es una pérdida monetaria. La contabilidad verifica coherencia interna, no el efecto probable del arancel en la realidad. No se estima incertidumbre paramétrica.

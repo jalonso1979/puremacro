@@ -363,21 +363,35 @@
       P.filter((p) => p.label).forEach((p) => svg.append("text").attr("class", "alabel").attr("x", x(p.x) + 7).attr("y", y(p.y) - 7).text(MAV.t(p.label)));
       const vor = d3.Delaunay.from(P, (p) => x(p.x), (p) => y(p.y));
       const ring = svg.append("circle").attr("r", 7).attr("fill", "none").attr("stroke", "var(--ink)").attr("stroke-width", 1.5).style("display", "none");
-      svg.append("rect").attr("x", m.l).attr("y", m.t).attr("width", width - m.l - m.r).attr("height", height - m.t - m.b).attr("fill", "transparent")
-        .on("pointermove", (ev) => {
-          const [px, py] = d3.pointer(ev); const k = vor.find(px, py); const p = P[k];
-          ring.attr("cx", x(p.x)).attr("cy", y(p.y)).style("display", null);
-          const tip = parts.tip; tip.textContent = "";
-          const h = document.createElement("div"); h.className = "t-head"; h.textContent = p.name ? MAV.t(p.name) : ""; tip.appendChild(h);
-          [[o.xLabel, xFmt(p.x)], [o.yLabel, yFmt(p.y)]].forEach(([l, v]) => {
-            const r = document.createElement("div"); r.className = "t-row"; r.style.gridTemplateColumns = "auto 1fr";
-            const b = document.createElement("b"); b.textContent = v; const s = document.createElement("span"); s.textContent = MAV.t(l);
-            r.append(b, s); tip.appendChild(r); });
-          const sc = parts.plot.clientWidth / width; const left = x(p.x) * sc; const tw = tip.offsetWidth || 150;
-          tip.style.left = (left + 14 + tw > parts.plot.clientWidth ? left - tw - 14 : left + 14) + "px";
-          tip.style.top = Math.max(0, y(p.y) * sc - 20) + "px"; tip.classList.add("on");
-        })
-        .on("pointerleave", () => { ring.style("display", "none"); parts.tip.classList.remove("on"); });
+
+      let curK = 0;
+      const show = (k) => {
+        if (!P.length || k < 0 || k >= P.length) return;
+        curK = k;
+        const p = P[k];
+        ring.attr("cx", x(p.x)).attr("cy", y(p.y)).style("display", null);
+        const tip = parts.tip; tip.textContent = "";
+        const h = document.createElement("div"); h.className = "t-head"; h.textContent = p.name ? MAV.t(p.name) : ""; tip.appendChild(h);
+        [[o.xLabel, xFmt(p.x)], [o.yLabel, yFmt(p.y)]].forEach(([l, v]) => {
+          const r = document.createElement("div"); r.className = "t-row"; r.style.gridTemplateColumns = "auto 1fr";
+          const b = document.createElement("b"); b.textContent = v; const s = document.createElement("span"); s.textContent = MAV.t(l);
+          r.append(b, s); tip.appendChild(r); });
+        const sc = parts.plot.clientWidth / width; const left = x(p.x) * sc; const tw = tip.offsetWidth || 150;
+        tip.style.left = (left + 14 + tw > parts.plot.clientWidth ? left - tw - 14 : left + 14) + "px";
+        tip.style.top = Math.max(0, y(p.y) * sc - 20) + "px"; tip.classList.add("on");
+      };
+      const hide = () => { ring.style("display", "none"); parts.tip.classList.remove("on"); };
+
+      svg.append("rect").attr("x", m.l).attr("y", m.t).attr("width", width - m.l - m.r).attr("height", height - m.t - m.b)
+        .attr("fill", "transparent").attr("tabindex", 0).attr("aria-label", MAV.t({ es: "Explorar valores", en: "Explore values" }))
+        .on("pointermove", (ev) => show(vor.find(...d3.pointer(ev))))
+        .on("pointerleave", hide).on("blur", hide)
+        .on("focus", () => show(curK))
+        .on("keydown", (ev) => {
+          if (!P.length) return;
+          if (ev.key === "ArrowLeft" || ev.key === "ArrowUp") { show(Math.max(0, curK - 1)); ev.preventDefault(); }
+          if (ev.key === "ArrowRight" || ev.key === "ArrowDown") { show(Math.min(P.length - 1, curK + 1)); ev.preventDefault(); }
+        });
       parts.title.textContent = MAV.t(o.title); parts.sub.textContent = MAV.t(o.sub || ""); parts.sub.style.display = o.sub ? "" : "none";
       parts.legend.innerHTML = "";
       const header = [MAV.t({ es: "Observación", en: "Observation" }), MAV.t(o.xLabel), MAV.t(o.yLabel)];
