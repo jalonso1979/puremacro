@@ -1,0 +1,3 @@
+## 2024-05-19 - Accessible Tooltips for Icon-Only Buttons
+**Learning:** Found that custom `card` implementations in individual lab files were missing the `aria-label` and `title` attributes on their CSV export buttons (which consist solely of the text "CSV", acting almost like an icon), unlike the main chart card generator in `mav.js`. This creates an inconsistent and inaccessible experience for screen reader users trying to download data.
+**Action:** Always ensure that dynamically generated UI components with ambiguous or short labels (like "CSV") have descriptive `aria-label` and `title` attributes applied consistently across all implementations in the repository.

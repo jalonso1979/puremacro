@@ -216,8 +216,13 @@ if (typeof document !== "undefined") (function () {
     const q = (s) => el.querySelector(s);
     const parts = { title: q(".chart-title"), sub: q(".chart-sub"), legend: q(".legend"), plot: q(".chart"), tip: q(".tooltip"),
       table: q(".table-view"), tableBtn: q('[data-act="table"]'), csvBtn: q('[data-act="csv"]') };
-    const paint = () => { const on = parts.table.classList.contains("on");
-      parts.tableBtn.textContent = T(on ? { es: "Ocultar tabla", en: "Hide table" } : { es: "Tabla", en: "Table" }); };
+    const paint = () => {
+      const csvLabel = MAV.t({ es: "Descargar datos en CSV", en: "Download CSV data" });
+      parts.csvBtn.setAttribute("aria-label", csvLabel);
+      parts.csvBtn.title = csvLabel;
+      const on = parts.table.classList.contains("on");
+      parts.tableBtn.textContent = T(on ? { es: "Ocultar tabla", en: "Hide table" } : { es: "Tabla", en: "Table" });
+    };
     parts.tableBtn.setAttribute("aria-expanded", "false");
     parts.tableBtn.addEventListener("click", () => { parts.tableBtn.setAttribute("aria-expanded", String(parts.table.classList.toggle("on"))); paint(); });
     MAV.onLang(paint); paint();

@@ -150,7 +150,12 @@
     const c = { title: el.querySelector(".chart-title"), sub: el.querySelector(".chart-sub"), legend: el.querySelector(".legend"),
       plot: el.querySelector(".chart"), tip: el.querySelector(".tooltip"), table: el.querySelector(".table-view") };
     const tb = el.querySelector('[data-act="table"]'), cb = el.querySelector('[data-act="csv"]');
-    const paint = () => { tb.textContent = T(c.table.classList.contains("on") ? { es: "Ocultar tabla", en: "Hide table" } : { es: "Tabla", en: "Table" }); };
+    const paint = () => {
+      const csvLabel = MAV.t({ es: "Descargar datos en CSV", en: "Download CSV data" });
+      cb.setAttribute("aria-label", csvLabel);
+      cb.title = csvLabel;
+      tb.textContent = T(c.table.classList.contains("on") ? { es: "Ocultar tabla", en: "Hide table" } : { es: "Tabla", en: "Table" });
+    };
     tb.setAttribute("aria-expanded", "false");
     tb.addEventListener("click", () => { c.table.classList.toggle("on"); tb.setAttribute("aria-expanded", String(c.table.classList.contains("on"))); paint(); });
     c.svg = d3.select(c.plot).insert("svg", ".tooltip");

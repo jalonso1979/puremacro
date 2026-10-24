@@ -356,7 +356,12 @@
       <div class="legend"></div><div class="chart"><div class="tooltip" role="status" aria-live="polite"></div></div><div class="table-view"></div>`;
     const plot = el.querySelector(".chart"), tip = el.querySelector(".tooltip"), legend = el.querySelector(".legend");
     const tableBtn = el.querySelector('[data-act="table"]'), csvBtn = el.querySelector('[data-act="csv"]'), table = el.querySelector(".table-view");
-    const paintTableBtn = () => { tableBtn.textContent = T(table.classList.contains("on") ? { es: "Ocultar tabla", en: "Hide table" } : { es: "Tabla", en: "Table" }); };
+    const paintTableBtn = () => {
+      const csvLabel = T({ es: "Descargar datos en CSV", en: "Download CSV data" });
+      csvBtn.setAttribute("aria-label", csvLabel);
+      csvBtn.title = csvLabel;
+      tableBtn.textContent = T(table.classList.contains("on") ? { es: "Ocultar tabla", en: "Hide table" } : { es: "Tabla", en: "Table" });
+    };
     tableBtn.addEventListener("click", () => { table.classList.toggle("on"); tableBtn.setAttribute("aria-expanded", String(table.classList.contains("on"))); paintTableBtn(); });
     tableBtn.setAttribute("aria-expanded", "false");
     const svg = d3.select(plot).insert("svg", ".tooltip");

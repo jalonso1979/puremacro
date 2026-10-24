@@ -174,7 +174,12 @@
     const parts = { title: el.querySelector(".chart-title"), sub: el.querySelector(".chart-sub"), legend: el.querySelector(".legend"),
       plot: el.querySelector(".chart"), tip: el.querySelector(".tooltip"), table: el.querySelector(".table-view"),
       tableBtn: el.querySelector('[data-act="table"]'), csvBtn: el.querySelector('[data-act="csv"]') };
-    const paintBtn = () => { parts.tableBtn.textContent = MAV.t(parts.table.classList.contains("on") ? { es: "Ocultar tabla", en: "Hide table" } : { es: "Tabla", en: "Table" }); };
+    const paintBtn = () => {
+      const csvLabel = MAV.t({ es: "Descargar datos en CSV", en: "Download CSV data" });
+      parts.csvBtn.setAttribute("aria-label", csvLabel);
+      parts.csvBtn.title = csvLabel;
+      parts.tableBtn.textContent = MAV.t(parts.table.classList.contains("on") ? { es: "Ocultar tabla", en: "Hide table" } : { es: "Tabla", en: "Table" });
+    };
     parts.tableBtn.addEventListener("click", () => {
       const on = parts.table.classList.toggle("on"); parts.tableBtn.setAttribute("aria-expanded", String(on)); paintBtn();
     });

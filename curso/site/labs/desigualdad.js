@@ -833,7 +833,12 @@ if (typeof window !== "undefined" && window.document) (async function () {
     const P = { title: el.querySelector(".chart-title"), sub: el.querySelector(".chart-sub"), legend: el.querySelector(".legend"),
       plot: el.querySelector(".chart"), tip: el.querySelector(".tooltip"), table: el.querySelector(".table-view"),
       tableBtn: el.querySelector('[data-act="table"]'), csvBtn: el.querySelector('[data-act="csv"]') };
-    const paintBtn = () => { P.tableBtn.textContent = T(P.table.classList.contains("on") ? { es: "Ocultar tabla", en: "Hide table" } : { es: "Tabla", en: "Table" }); };
+    const paintBtn = () => {
+      const csvLabel = MAV.t({ es: "Descargar datos en CSV", en: "Download CSV data" });
+      P.csvBtn.setAttribute("aria-label", csvLabel);
+      P.csvBtn.title = csvLabel;
+      P.tableBtn.textContent = T(P.table.classList.contains("on") ? { es: "Ocultar tabla", en: "Hide table" } : { es: "Tabla", en: "Table" });
+    };
     P.tableBtn.addEventListener("click", () => { const on = P.table.classList.toggle("on"); P.tableBtn.setAttribute("aria-expanded", String(on)); paintBtn(); });
     P.tableBtn.setAttribute("aria-expanded", "false"); paintBtn();
     const svg = d3.select(P.plot).insert("svg", ".tooltip");
