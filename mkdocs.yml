@@ -103,7 +103,7 @@ nav:
           - Macroeconomic Policy Simulators & Browser Labs: policy_simulators.md
           - Gertler-Karadi (2011) DSGE: gertler_karadi.md
           - Quantitative Sovereign Default & Sudden Stops: sovereign_default.md
-          - Fiscal Block in a Sovereign Default Model: sovereign_fiscal_rules.md
+          - Fiscal Block and Fiscal Rules in a Sovereign Default Model: sovereign_fiscal_rules.md
           - Climate Macro (DICE): climate.md
           - DSGE Sketchpad & Dynare: dsge_build.md
           - Inspecting and running .mod commands: dsge_mod_inspection.md
@@ -214,7 +214,7 @@ nav:
           - Simuladores de política macroeconómica y laboratorios interactivos: es/policy_simulators.md
           - DSGE de Gertler-Karadi (2011): es/gertler_karadi.md
           - Default soberano cuantitativo y paradas repentinas: es/sovereign_default.md
-          - Bloque fiscal en un modelo de impago soberano: es/sovereign_fiscal_rules.md
+          - Bloque fiscal y reglas fiscales en un modelo de impago soberano: es/sovereign_fiscal_rules.md
           - Macroeconomía del clima (DICE): es/climate.md
           - Cuaderno de bocetos DSGE y Dynare: es/dsge_build.md
           - Inspección y ejecución de comandos .mod: es/dsge_mod_inspection.md

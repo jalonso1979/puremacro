@@ -29,6 +29,17 @@ Development version after 6.0.1; not a published distribution.
 - `tools/reference_validation/check_fiscal_grids.py`: a paired-seed grid
   ladder for the illustrative fiscal calibration, frozen in
   `tests/fixtures/sovereign_fiscal/fiscal_grid_convergence.json`.
+- `puremacro.sovereign.FiscalRule` and `solve_fiscal_sovereign_default(rule=...)`:
+  debt ceilings, deficit limits, escape clauses and soft (penalty) rules,
+  priced by lenders. Ceilings, escapes and penalties use the certified
+  monotone search; deficit limits use the new `policy_search="exhaustive"`
+  (or `"dense"`). States a hard rule leaves without an admissible choice raise
+  `ValueError` naming them, or default for sure with `infeasible="default"`.
+- Predictions about the rules were registered before any rule solve
+  (`tests/fixtures/sovereign_fiscal/rule_predictions_protocol.json`) and
+  measured on a coarse 401 x 21 grid by
+  `tools/reference_validation/check_fiscal_rule_predictions.py`; the guide
+  reports each verdict, including the one that did not hold.
 
 ### Internal
 
@@ -38,6 +49,8 @@ Development version after 6.0.1; not a published distribution.
   dense and monotone, short- and long-term debt).
 - `check_arellano_grids.paired_comparison` accepts a `tolerances` mapping;
   its default is unchanged.
+- The monotone and exhaustive policy searches accept column and transition
+  penalties; without them every operation is unchanged.
 
 ## 6.0.1 (2026-10-29)
 

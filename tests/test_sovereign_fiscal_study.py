@@ -111,3 +111,73 @@ def test_fiscal_guides_tabulate_the_frozen_record(guide, thousands, decimal):
           for name in ("fiscal_6401_321", "fiscal_6401_641")]
     drift = " → ".join(f"{v:.3f}".replace(".", decimal) for v in sd)
     assert drift in text, drift
+
+
+# ------------------------------------------------------------- registered fiscal-rule predictions
+RULE_PROTOCOL = ROOT / "tests" / "fixtures" / "sovereign_fiscal" / "rule_predictions_protocol.json"
+RULE_RECORD = ROOT / "tests" / "fixtures" / "sovereign_fiscal" / "rule_predictions_record.json"
+RULE_ROWS = ("none", "ceiling", "ceiling_escape", "soft_ceiling", "deficit")
+RULE_COLUMNS = ("debt_pct", "spread_mean_pct", "annual_default_pct", "spread_std_pp")
+
+
+def test_rule_record_uses_the_registered_protocol():
+    import hashlib
+
+    text = RULE_PROTOCOL.read_text()
+    record = json.loads(RULE_RECORD.read_text())
+    assert record["protocol"] == json.loads(text)
+    assert record["protocol_sha256"] == hashlib.sha256(text.encode()).hexdigest()
+    assert (record["protocol"]["design"]["grid"]["n_b"], record["protocol"]["design"]["grid"]["n_y"]) == (401, 21)
+    for name, solve in record["solves"].items():
+        assert solve["converged"] and solve["rule_infeasible_states"] == 0
+        assert solve["policy_search"] == record["protocol"]["policy_search"][name]
+        if solve["policy_search"] == "monotone":
+            assert solve["monotone_certification_gap"] <= 1e-11
+    for case in record["cases"].values():
+        assert [run["seed"] for run in case["runs"]] == record["protocol"]["design"]["seeds"]
+
+
+def test_escape_clause_within_registered_tolerance_of_ceiling():
+    from tools.reference_validation.check_arellano_grids import paired_comparison
+
+    record = json.loads(RULE_RECORD.read_text())
+    tolerances = json.loads(RULE_PROTOCOL.read_text())["tolerances"]
+    comparison = paired_comparison(record["cases"]["ceiling"], record["cases"]["ceiling_escape"],
+                                   tolerances=tolerances)
+    assert comparison["passed"], comparison
+    cap = record["protocol"]["rules"]["ceiling"]["debt_ceiling"]
+    assert all(v < cap for v in record["measurements"]["max_b_recession"].values())
+
+
+def test_rule_prediction_verdicts_recompute_from_measurements():
+    record = json.loads(RULE_RECORD.read_text())
+    m, p = record["measurements"], record["protocol"]["predictions"]
+    lo, hi = p["ceiling_binding_share_pct"]
+    dlo, dhi = p["deficit_binding_share_pct"]
+    assert record["predictions"]["ceiling_binding_share_pct"]["held"] == (lo <= m["ceiling_binding"]["binding_share_pct"] <= hi)
+    assert record["predictions"]["deficit_binding_share_pct"]["held"] == (dlo <= m["deficit_binding"]["binding_share_pct"] <= dhi)
+    assert record["predictions"]["ceiling_binding_in_booms"]["held"] == (m["ceiling_binding"]["binding_in_booms"] == 1.0)
+    assert record["predictions"]["escape_inert"]["held"] == (
+        all(v < 0.02 for v in m["max_b_recession"].values()) and m["escape_vs_ceiling"]["passed"])
+
+
+@pytest.mark.parametrize("guide,decimal", [("docs/sovereign_fiscal_rules.md", "."),
+                                           ("docs/es/sovereign_fiscal_rules.md", ",")])
+def test_guides_report_the_rule_record(guide, decimal):
+    record = json.loads(RULE_RECORD.read_text())
+    text = (ROOT / guide).read_text(encoding="utf-8")
+
+    def fmt(value, digits):
+        return f"{value:.{digits}f}".replace(".", decimal)
+
+    for name in RULE_ROWS:
+        moments = record["cases"][name]["moments"]
+        row = f"| `{name}` | " + " | ".join(fmt(moments[k], 3) for k in RULE_COLUMNS) + " |"
+        assert row in text, row
+    m = record["measurements"]
+    for value, digits in ((m["penalty_output_equivalent"], 4), (m["ceiling_binding"]["binding_share_pct"], 1),
+                          (m["deficit_binding"]["binding_share_pct"], 1), (m["max_b_recession"]["401x21"], 5),
+                          (m["max_b_recession"]["801x41"], 5)):
+        assert fmt(value, digits) in text, fmt(value, digits)
+    assert ("COARSE 401 × 21" if decimal == "." else "MALLA GRUESA 401 × 21") in text
+    assert ("not held" if decimal == "." else "no se cumplió") in text

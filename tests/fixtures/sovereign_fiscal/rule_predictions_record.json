@@ -1,0 +1,1337 @@
+{
+  "recorded_at": "2026-10-29T23:07:40.014669+00:00",
+  "repository_head": "f98103241c7d95866b191e9c92e77038be2d6c9f",
+  "protocol_sha256": "a49470be05533a71ce51df8a38c0b26292507db3243a0aeb651feecbe9eaef63",
+  "protocol": {
+    "registered": "2026-10-29, before any phase-2 (fiscal rule) solve; maintainer amendment after the phase-1 review",
+    "rule": "No threshold, tolerance or design entry may be changed after seeing results. A failed prediction is reported as found.",
+    "calibration": {
+      "tau": 0.2,
+      "psi": 1.0,
+      "gamma_c": 2.0,
+      "gamma_g": 2.0,
+      "note": "illustrative, public sovereign parameters otherwise, not fitted"
+    },
+    "units": "debt and thresholds in mean output per quarter (mean y = 1); annual-GDP ratios are a quarter of these",
+    "rules": {
+      "none": null,
+      "ceiling": {
+        "debt_ceiling": 0.02
+      },
+      "ceiling_escape": {
+        "debt_ceiling": 0.02,
+        "escape_below": 0.92
+      },
+      "soft_ceiling": {
+        "debt_ceiling": 0.02,
+        "penalty": 0.05
+      },
+      "deficit": {
+        "deficit_limit": 0.005
+      }
+    },
+    "policy_search": {
+      "none": "monotone",
+      "ceiling": "monotone",
+      "ceiling_escape": "monotone",
+      "soft_ceiling": "monotone",
+      "deficit": "exhaustive"
+    },
+    "design": {
+      "grid": {
+        "n_b": 401,
+        "n_y": 21,
+        "label": "COARSE 401 x 21 grid: rules are compared only within this one grid; coarse moments differ from converged ones (e.g. spread SD)"
+      },
+      "escape_cross_check_grids": [
+        [
+          401,
+          21
+        ],
+        [
+          801,
+          41
+        ]
+      ],
+      "seeds": [
+        1979,
+        1980,
+        1981,
+        1982,
+        1983,
+        1984,
+        1985,
+        1986,
+        1987,
+        1988,
+        1989,
+        1990,
+        1991,
+        1992,
+        1993,
+        1994
+      ],
+      "periods": 100000,
+      "burn": 1000,
+      "start": "zero debt, income node n_y // 2, common random numbers across rules"
+    },
+    "definitions": {
+      "binding_share_pct": "100 * share of repayment periods (after burn) on the NO-RULE model's paths in which the unconstrained choice violates the rule: b' > cap + 1e-12 (ceiling), b' - b > limit + 1e-12 (deficit)",
+      "binding_in_booms": "share of those binding periods with y > 1 (above mean output)",
+      "max_b_recession": "max over repayment states with y < 0.92 of the no-rule policy b'(b, y), over states visited on the no-rule paths after burn",
+      "penalty_output_equivalent": "penalty / (psi * g^-gamma_g) averaged over repayment periods of the soft_ceiling model's paths: quarterly output needed to offset the penalty at the marginal utility of spending",
+      "escape_vs_ceiling": "paired-seed change ceiling_escape - ceiling of each moment; |mean| + 95% Student-t half-width <= tolerance"
+    },
+    "tolerances": {
+      "debt_pct": 0.1,
+      "spread_mean_pct": 0.1,
+      "annual_default_pct": 0.1,
+      "spread_std_pp": 0.1,
+      "spending_pct": 0.1,
+      "corr_pb_y": 0.02
+    },
+    "predictions": {
+      "escape_inert": "max_b_recession about 0.001, far below the 0.02 cap at both cross-check grids; ceiling_escape within tolerance of ceiling on every moment (lenders' prices bind before the rule in recessions)",
+      "ceiling_binding_share_pct": [
+        19.0,
+        23.0
+      ],
+      "ceiling_binding_in_booms": 1.0,
+      "deficit_binding_share_pct": [
+        1.0,
+        2.0
+      ],
+      "penalty_output_equivalent": "about 0.002 of quarterly output (0.05 utils at psi v'(g) = g^-2 ~ 25, g ~ 0.2)"
+    }
+  },
+  "label": "COARSE 401 x 21 grid: rules are compared only within this one grid; coarse moments differ from converged ones (e.g. spread SD)",
+  "solves": {
+    "none": {
+      "converged": true,
+      "iterations": 119,
+      "residual": 9.928124988789477e-11,
+      "policy_search": "monotone",
+      "monotone_certification_gap": 0.0,
+      "rule_infeasible_states": 0
+    },
+    "ceiling": {
+      "converged": true,
+      "iterations": 110,
+      "residual": 9.889333796309074e-11,
+      "policy_search": "monotone",
+      "monotone_certification_gap": 0.0,
+      "rule_infeasible_states": 0
+    },
+    "ceiling_escape": {
+      "converged": true,
+      "iterations": 110,
+      "residual": 8.860467914928449e-11,
+      "policy_search": "monotone",
+      "monotone_certification_gap": 0.0,
+      "rule_infeasible_states": 0
+    },
+    "soft_ceiling": {
+      "converged": true,
+      "iterations": 117,
+      "residual": 8.635936410428258e-11,
+      "policy_search": "monotone",
+      "monotone_certification_gap": 0.0,
+      "rule_infeasible_states": 0
+    },
+    "deficit": {
+      "converged": true,
+      "iterations": 113,
+      "residual": 7.688072400924284e-11,
+      "policy_search": "exhaustive",
+      "monotone_certification_gap": null,
+      "rule_infeasible_states": 0
+    }
+  },
+  "cases": {
+    "none": {
+      "runs": [
+        {
+          "seed": 1979,
+          "moments": {
+            "debt_pct": 1.065245118827265,
+            "spread_mean_pct": 3.905641771438263,
+            "annual_default_pct": 3.5179717984185643,
+            "spread_std_pp": 5.896506346001697,
+            "spending_pct": 19.978220208437897,
+            "corr_pb_y": -0.12998019159547958,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1980,
+          "moments": {
+            "debt_pct": 1.057410233874926,
+            "spread_mean_pct": 3.922326336902408,
+            "annual_default_pct": 3.848304716140925,
+            "spread_std_pp": 5.918677445077354,
+            "spending_pct": 19.978511751080678,
+            "corr_pb_y": -0.1299429262323135,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1981,
+          "moments": {
+            "debt_pct": 1.052765953310365,
+            "spread_mean_pct": 3.914455598199533,
+            "annual_default_pct": 3.8108256443712656,
+            "spread_std_pp": 5.924821728496162,
+            "spending_pct": 19.97891758212873,
+            "corr_pb_y": -0.13144051622431552,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1982,
+          "moments": {
+            "debt_pct": 1.0521588912798399,
+            "spread_mean_pct": 3.923874014596601,
+            "annual_default_pct": 3.8575360609258915,
+            "spread_std_pp": 5.961447563724994,
+            "spending_pct": 19.979579581466403,
+            "corr_pb_y": -0.1298727855202273,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1983,
+          "moments": {
+            "debt_pct": 1.0544847630520893,
+            "spread_mean_pct": 3.926238820265863,
+            "annual_default_pct": 3.7514362907984222,
+            "spread_std_pp": 5.929243258011558,
+            "spending_pct": 19.978652992192306,
+            "corr_pb_y": -0.13862118129326054,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1984,
+          "moments": {
+            "debt_pct": 1.0750844480252837,
+            "spread_mean_pct": 3.8700395915483243,
+            "annual_default_pct": 3.6922949701267287,
+            "spread_std_pp": 5.846655515164645,
+            "spending_pct": 19.978379361326677,
+            "corr_pb_y": -0.13330102911666628,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1985,
+          "moments": {
+            "debt_pct": 1.0709683942150652,
+            "spread_mean_pct": 3.9310511401583086,
+            "annual_default_pct": 3.763713254681377,
+            "spread_std_pp": 6.005358840593875,
+            "spending_pct": 19.978449663771052,
+            "corr_pb_y": -0.13138137868290362,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1986,
+          "moments": {
+            "debt_pct": 1.0507826182879998,
+            "spread_mean_pct": 3.9408509794425353,
+            "annual_default_pct": 3.7900573059974763,
+            "spread_std_pp": 5.92662032882383,
+            "spending_pct": 19.97905052686463,
+            "corr_pb_y": -0.13085374916478745,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1987,
+          "moments": {
+            "debt_pct": 1.0474362628275409,
+            "spread_mean_pct": 3.889184039639954,
+            "annual_default_pct": 3.6285401021949153,
+            "spread_std_pp": 5.8386096699333185,
+            "spending_pct": 19.978802321744872,
+            "corr_pb_y": -0.13035141656629748,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1988,
+          "moments": {
+            "debt_pct": 1.0473518394380734,
+            "spread_mean_pct": 3.9271427388277402,
+            "annual_default_pct": 3.898004296522308,
+            "spread_std_pp": 5.932144108839273,
+            "spending_pct": 19.979185846354106,
+            "corr_pb_y": -0.13207064635050192,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1989,
+          "moments": {
+            "debt_pct": 1.044728957724554,
+            "spread_mean_pct": 3.928724612544183,
+            "annual_default_pct": 3.820996853783739,
+            "spread_std_pp": 5.882270947713264,
+            "spending_pct": 19.97932632861649,
+            "corr_pb_y": -0.13092077573471284,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1990,
+          "moments": {
+            "debt_pct": 1.0715727816064609,
+            "spread_mean_pct": 3.8871806452266204,
+            "annual_default_pct": 3.6910217550973963,
+            "spread_std_pp": 5.905451011109621,
+            "spending_pct": 19.97821100094751,
+            "corr_pb_y": -0.129167309888712,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1991,
+          "moments": {
+            "debt_pct": 1.0498911639483843,
+            "spread_mean_pct": 3.9082282894344336,
+            "annual_default_pct": 3.5273951384729765,
+            "spread_std_pp": 5.8632068745908255,
+            "spending_pct": 19.978577122324293,
+            "corr_pb_y": -0.13637083129135438,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1992,
+          "moments": {
+            "debt_pct": 1.023217779054903,
+            "spread_mean_pct": 3.935233964731504,
+            "annual_default_pct": 3.9825710766810527,
+            "spread_std_pp": 5.8737891601958285,
+            "spending_pct": 19.979929388927907,
+            "corr_pb_y": -0.12980041572588716,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1993,
+          "moments": {
+            "debt_pct": 1.0872102350319715,
+            "spread_mean_pct": 3.855863539380418,
+            "annual_default_pct": 3.678798286813846,
+            "spread_std_pp": 5.847252582876164,
+            "spending_pct": 19.978038311943617,
+            "corr_pb_y": -0.13214689040739,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1994,
+          "moments": {
+            "debt_pct": 1.0635169436402894,
+            "spread_mean_pct": 3.9179876424891713,
+            "annual_default_pct": 3.6519092819360917,
+            "spread_std_pp": 5.949842677160519,
+            "spending_pct": 19.978221571513323,
+            "corr_pb_y": -0.1297505241304897,
+            "boundary_choice_share_pct": 0.0
+          }
+        }
+      ],
+      "moments": {
+        "debt_pct": 1.0571141490090632,
+        "spread_mean_pct": 3.911501482801617,
+        "annual_default_pct": 3.7444610520601858,
+        "spread_std_pp": 5.906368628644557,
+        "spending_pct": 19.978753347477532,
+        "corr_pb_y": -0.1316232854953312,
+        "boundary_choice_share_pct": 0.0
+      }
+    },
+    "ceiling": {
+      "runs": [
+        {
+          "seed": 1979,
+          "moments": {
+            "debt_pct": 0.7983703289432342,
+            "spread_mean_pct": 3.7246181760351833,
+            "annual_default_pct": 3.3240882986730456,
+            "spread_std_pp": 5.713091742422076,
+            "spending_pct": 19.984033523172496,
+            "corr_pb_y": -0.10828244082364022,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1980,
+          "moments": {
+            "debt_pct": 0.7911516856908746,
+            "spread_mean_pct": 3.7191766969943467,
+            "annual_default_pct": 3.703971940860604,
+            "spread_std_pp": 5.675843087932058,
+            "spending_pct": 19.98480286897554,
+            "corr_pb_y": -0.10920713436140098,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1981,
+          "moments": {
+            "debt_pct": 0.7963312763451158,
+            "spread_mean_pct": 3.7159357437188296,
+            "annual_default_pct": 3.645655524864736,
+            "spread_std_pp": 5.68080091248488,
+            "spending_pct": 19.984716025072366,
+            "corr_pb_y": -0.10912877569931244,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1982,
+          "moments": {
+            "debt_pct": 0.7893099998067624,
+            "spread_mean_pct": 3.7463748428070995,
+            "annual_default_pct": 3.628249101202529,
+            "spread_std_pp": 5.7688288667240375,
+            "spending_pct": 19.98501962964059,
+            "corr_pb_y": -0.1066230473558799,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1983,
+          "moments": {
+            "debt_pct": 0.8028266605278466,
+            "spread_mean_pct": 3.7459062065190896,
+            "annual_default_pct": 3.5768189054520643,
+            "spread_std_pp": 5.715623439442838,
+            "spending_pct": 19.98436156944294,
+            "corr_pb_y": -0.11670679322290159,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1984,
+          "moments": {
+            "debt_pct": 0.8083880950604981,
+            "spread_mean_pct": 3.6829503822962093,
+            "annual_default_pct": 3.5115260679170452,
+            "spread_std_pp": 5.636728101632683,
+            "spending_pct": 19.984485551589515,
+            "corr_pb_y": -0.11177241735534445,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1985,
+          "moments": {
+            "debt_pct": 0.8006721860098351,
+            "spread_mean_pct": 3.7390288054693284,
+            "annual_default_pct": 3.5897965506557883,
+            "spread_std_pp": 5.777085917964539,
+            "spending_pct": 19.984610002922675,
+            "corr_pb_y": -0.10910495426622449,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1986,
+          "moments": {
+            "debt_pct": 0.7910167617556854,
+            "spread_mean_pct": 3.7682700129867923,
+            "annual_default_pct": 3.611719492541014,
+            "spread_std_pp": 5.744999452475827,
+            "spending_pct": 19.984798573398063,
+            "corr_pb_y": -0.10887876109501483,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1987,
+          "moments": {
+            "debt_pct": 0.7916181336306043,
+            "spread_mean_pct": 3.708099350873911,
+            "annual_default_pct": 3.4803095904849495,
+            "spread_std_pp": 5.636709145301513,
+            "spending_pct": 19.9847395500859,
+            "corr_pb_y": -0.10931636477281385,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1988,
+          "moments": {
+            "debt_pct": 0.7921839907164699,
+            "spread_mean_pct": 3.7286971035167515,
+            "annual_default_pct": 3.7375811503121565,
+            "spread_std_pp": 5.686616399429475,
+            "spending_pct": 19.985178861651132,
+            "corr_pb_y": -0.10981091167950036,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1989,
+          "moments": {
+            "debt_pct": 0.784403168901567,
+            "spread_mean_pct": 3.754395834131996,
+            "annual_default_pct": 3.617758023670474,
+            "spread_std_pp": 5.696724328346893,
+            "spending_pct": 19.984813601289773,
+            "corr_pb_y": -0.109995374986184,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1990,
+          "moments": {
+            "debt_pct": 0.801270273019237,
+            "spread_mean_pct": 3.6977266728224474,
+            "annual_default_pct": 3.5437384993900802,
+            "spread_std_pp": 5.706327785163774,
+            "spending_pct": 19.984431345107808,
+            "corr_pb_y": -0.10691816667997919,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1991,
+          "moments": {
+            "debt_pct": 0.8012834829834453,
+            "spread_mean_pct": 3.748669389213245,
+            "annual_default_pct": 3.3261116269472817,
+            "spread_std_pp": 5.733111035137856,
+            "spending_pct": 19.984060543612152,
+            "corr_pb_y": -0.11454028885263248,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1992,
+          "moments": {
+            "debt_pct": 0.7775010613254245,
+            "spread_mean_pct": 3.7642808187503123,
+            "annual_default_pct": 3.7923904052936313,
+            "spread_std_pp": 5.702853447438668,
+            "spending_pct": 19.98529405750483,
+            "corr_pb_y": -0.10800067222167885,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1993,
+          "moments": {
+            "debt_pct": 0.812206921087825,
+            "spread_mean_pct": 3.6618375214947387,
+            "annual_default_pct": 3.481029012020299,
+            "spread_std_pp": 5.620576208534614,
+            "spending_pct": 19.984056725652575,
+            "corr_pb_y": -0.10835347100254603,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1994,
+          "moments": {
+            "debt_pct": 0.7978785172065529,
+            "spread_mean_pct": 3.702199223493388,
+            "annual_default_pct": 3.5370406759677735,
+            "spread_std_pp": 5.671660635422949,
+            "spending_pct": 19.98477008227991,
+            "corr_pb_y": -0.1072430609391029,
+            "boundary_choice_share_pct": 0.0
+          }
+        }
+      ],
+      "moments": {
+        "debt_pct": 0.7960257839381861,
+        "spread_mean_pct": 3.7255104238202295,
+        "annual_default_pct": 3.5692365541408417,
+        "spread_std_pp": 5.697973781615918,
+        "spending_pct": 19.984635781962393,
+        "corr_pb_y": -0.10961766470713478,
+        "boundary_choice_share_pct": 0.0
+      }
+    },
+    "ceiling_escape": {
+      "runs": [
+        {
+          "seed": 1979,
+          "moments": {
+            "debt_pct": 0.7983703289432342,
+            "spread_mean_pct": 3.724618176035177,
+            "annual_default_pct": 3.3240882986730456,
+            "spread_std_pp": 5.713091742422072,
+            "spending_pct": 19.984033523172496,
+            "corr_pb_y": -0.10828244082364022,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1980,
+          "moments": {
+            "debt_pct": 0.7911516856908746,
+            "spread_mean_pct": 3.719176696994339,
+            "annual_default_pct": 3.703971940860604,
+            "spread_std_pp": 5.675843087932053,
+            "spending_pct": 19.98480286897554,
+            "corr_pb_y": -0.10920713436140098,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1981,
+          "moments": {
+            "debt_pct": 0.7963312763451158,
+            "spread_mean_pct": 3.715935743718822,
+            "annual_default_pct": 3.645655524864736,
+            "spread_std_pp": 5.680800912484876,
+            "spending_pct": 19.984716025072366,
+            "corr_pb_y": -0.1091287756993124,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1982,
+          "moments": {
+            "debt_pct": 0.7893099998067624,
+            "spread_mean_pct": 3.7463748428070915,
+            "annual_default_pct": 3.628249101202529,
+            "spread_std_pp": 5.768828866724032,
+            "spending_pct": 19.98501962964059,
+            "corr_pb_y": -0.1066230473558799,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1983,
+          "moments": {
+            "debt_pct": 0.8028266605278466,
+            "spread_mean_pct": 3.7459062065190825,
+            "annual_default_pct": 3.5768189054520643,
+            "spread_std_pp": 5.715623439442833,
+            "spending_pct": 19.98436156944294,
+            "corr_pb_y": -0.11670679322290159,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1984,
+          "moments": {
+            "debt_pct": 0.8083880950604981,
+            "spread_mean_pct": 3.682950382296203,
+            "annual_default_pct": 3.5115260679170452,
+            "spread_std_pp": 5.636728101632678,
+            "spending_pct": 19.984485551589515,
+            "corr_pb_y": -0.11177241735534445,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1985,
+          "moments": {
+            "debt_pct": 0.8006721860098351,
+            "spread_mean_pct": 3.739028805469321,
+            "annual_default_pct": 3.5897965506557883,
+            "spread_std_pp": 5.777085917964534,
+            "spending_pct": 19.984610002922675,
+            "corr_pb_y": -0.10910495426622449,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1986,
+          "moments": {
+            "debt_pct": 0.7910167617556854,
+            "spread_mean_pct": 3.768270012986785,
+            "annual_default_pct": 3.611719492541014,
+            "spread_std_pp": 5.744999452475822,
+            "spending_pct": 19.984798573398063,
+            "corr_pb_y": -0.10887876109501482,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1987,
+          "moments": {
+            "debt_pct": 0.7916181336306043,
+            "spread_mean_pct": 3.7080993508739044,
+            "annual_default_pct": 3.4803095904849495,
+            "spread_std_pp": 5.6367091453015075,
+            "spending_pct": 19.9847395500859,
+            "corr_pb_y": -0.10931636477281384,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1988,
+          "moments": {
+            "debt_pct": 0.7921839907164699,
+            "spread_mean_pct": 3.728697103516744,
+            "annual_default_pct": 3.7375811503121565,
+            "spread_std_pp": 5.68661639942947,
+            "spending_pct": 19.985178861651132,
+            "corr_pb_y": -0.10981091167950031,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1989,
+          "moments": {
+            "debt_pct": 0.784403168901567,
+            "spread_mean_pct": 3.7543958341319885,
+            "annual_default_pct": 3.617758023670474,
+            "spread_std_pp": 5.696724328346889,
+            "spending_pct": 19.984813601289773,
+            "corr_pb_y": -0.109995374986184,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1990,
+          "moments": {
+            "debt_pct": 0.801270273019237,
+            "spread_mean_pct": 3.6977266728224407,
+            "annual_default_pct": 3.5437384993900802,
+            "spread_std_pp": 5.70632778516377,
+            "spending_pct": 19.984431345107808,
+            "corr_pb_y": -0.10691816667997919,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1991,
+          "moments": {
+            "debt_pct": 0.8012834829834453,
+            "spread_mean_pct": 3.748669389213239,
+            "annual_default_pct": 3.3261116269472817,
+            "spread_std_pp": 5.733111035137851,
+            "spending_pct": 19.984060543612152,
+            "corr_pb_y": -0.11454028885263248,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1992,
+          "moments": {
+            "debt_pct": 0.7775010613254245,
+            "spread_mean_pct": 3.7642808187503047,
+            "annual_default_pct": 3.7923904052936313,
+            "spread_std_pp": 5.702853447438661,
+            "spending_pct": 19.98529405750483,
+            "corr_pb_y": -0.10800067222167885,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1993,
+          "moments": {
+            "debt_pct": 0.812206921087825,
+            "spread_mean_pct": 3.661837521494732,
+            "annual_default_pct": 3.481029012020299,
+            "spread_std_pp": 5.620576208534608,
+            "spending_pct": 19.984056725652575,
+            "corr_pb_y": -0.10835347100254603,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1994,
+          "moments": {
+            "debt_pct": 0.7978785172065529,
+            "spread_mean_pct": 3.7021992234933805,
+            "annual_default_pct": 3.5370406759677735,
+            "spread_std_pp": 5.671660635422944,
+            "spending_pct": 19.98477008227991,
+            "corr_pb_y": -0.1072430609391029,
+            "boundary_choice_share_pct": 0.0
+          }
+        }
+      ],
+      "moments": {
+        "debt_pct": 0.7960257839381861,
+        "spread_mean_pct": 3.7255104238202223,
+        "annual_default_pct": 3.5692365541408417,
+        "spread_std_pp": 5.697973781615913,
+        "spending_pct": 19.984635781962393,
+        "corr_pb_y": -0.10961766470713477,
+        "boundary_choice_share_pct": 0.0
+      }
+    },
+    "soft_ceiling": {
+      "runs": [
+        {
+          "seed": 1979,
+          "moments": {
+            "debt_pct": 0.7983703289432342,
+            "spread_mean_pct": 3.7246181760351598,
+            "annual_default_pct": 3.3240882986730456,
+            "spread_std_pp": 5.7130917424220655,
+            "spending_pct": 19.984033523172496,
+            "corr_pb_y": -0.1082824408236403,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1980,
+          "moments": {
+            "debt_pct": 0.7911516856908746,
+            "spread_mean_pct": 3.719176696994322,
+            "annual_default_pct": 3.703971940860604,
+            "spread_std_pp": 5.675843087932047,
+            "spending_pct": 19.98480286897554,
+            "corr_pb_y": -0.1092071343614011,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1981,
+          "moments": {
+            "debt_pct": 0.7963312763451158,
+            "spread_mean_pct": 3.715935743718805,
+            "annual_default_pct": 3.645655524864736,
+            "spread_std_pp": 5.680800912484869,
+            "spending_pct": 19.984716025072366,
+            "corr_pb_y": -0.10912877569931265,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1982,
+          "moments": {
+            "debt_pct": 0.7893099998067624,
+            "spread_mean_pct": 3.746374842807074,
+            "annual_default_pct": 3.628249101202529,
+            "spread_std_pp": 5.768828866724027,
+            "spending_pct": 19.98501962964059,
+            "corr_pb_y": -0.10662304735588002,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1983,
+          "moments": {
+            "debt_pct": 0.8028266605278466,
+            "spread_mean_pct": 3.745906206519065,
+            "annual_default_pct": 3.5768189054520643,
+            "spread_std_pp": 5.715623439442828,
+            "spending_pct": 19.98436156944294,
+            "corr_pb_y": -0.11670679322290166,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1984,
+          "moments": {
+            "debt_pct": 0.8083880950604981,
+            "spread_mean_pct": 3.6829503822961858,
+            "annual_default_pct": 3.5115260679170452,
+            "spread_std_pp": 5.636728101632673,
+            "spending_pct": 19.984485551589515,
+            "corr_pb_y": -0.11177241735534466,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1985,
+          "moments": {
+            "debt_pct": 0.8006721860098351,
+            "spread_mean_pct": 3.739028805469303,
+            "annual_default_pct": 3.5897965506557883,
+            "spread_std_pp": 5.777085917964529,
+            "spending_pct": 19.984610002922675,
+            "corr_pb_y": -0.10910495426622471,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1986,
+          "moments": {
+            "debt_pct": 0.7910167617556854,
+            "spread_mean_pct": 3.768270012986768,
+            "annual_default_pct": 3.611719492541014,
+            "spread_std_pp": 5.744999452475816,
+            "spending_pct": 19.984798573398063,
+            "corr_pb_y": -0.10887876109501497,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1987,
+          "moments": {
+            "debt_pct": 0.7916181336306043,
+            "spread_mean_pct": 3.708099350873886,
+            "annual_default_pct": 3.4803095904849495,
+            "spread_std_pp": 5.636709145301501,
+            "spending_pct": 19.9847395500859,
+            "corr_pb_y": -0.10931636477281395,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1988,
+          "moments": {
+            "debt_pct": 0.7921839907164699,
+            "spread_mean_pct": 3.7286971035167276,
+            "annual_default_pct": 3.7375811503121565,
+            "spread_std_pp": 5.686616399429464,
+            "spending_pct": 19.985178861651132,
+            "corr_pb_y": -0.10981091167950054,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1989,
+          "moments": {
+            "debt_pct": 0.784403168901567,
+            "spread_mean_pct": 3.7543958341319725,
+            "annual_default_pct": 3.617758023670474,
+            "spread_std_pp": 5.696724328346884,
+            "spending_pct": 19.984813601289773,
+            "corr_pb_y": -0.10999537498618416,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1990,
+          "moments": {
+            "debt_pct": 0.801270273019237,
+            "spread_mean_pct": 3.6977266728224225,
+            "annual_default_pct": 3.5437384993900802,
+            "spread_std_pp": 5.706327785163764,
+            "spending_pct": 19.984431345107808,
+            "corr_pb_y": -0.10691816667997932,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1991,
+          "moments": {
+            "debt_pct": 0.8012834829834453,
+            "spread_mean_pct": 3.748669389213221,
+            "annual_default_pct": 3.3261116269472817,
+            "spread_std_pp": 5.733111035137846,
+            "spending_pct": 19.984060543612152,
+            "corr_pb_y": -0.11454028885263283,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1992,
+          "moments": {
+            "debt_pct": 0.7775010613254245,
+            "spread_mean_pct": 3.7642808187502874,
+            "annual_default_pct": 3.7923904052936313,
+            "spread_std_pp": 5.702853447438655,
+            "spending_pct": 19.98529405750483,
+            "corr_pb_y": -0.10800067222167906,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1993,
+          "moments": {
+            "debt_pct": 0.812206921087825,
+            "spread_mean_pct": 3.6618375214947143,
+            "annual_default_pct": 3.481029012020299,
+            "spread_std_pp": 5.620576208534602,
+            "spending_pct": 19.984056725652575,
+            "corr_pb_y": -0.10835347100254618,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1994,
+          "moments": {
+            "debt_pct": 0.7978785172065529,
+            "spread_mean_pct": 3.702199223493363,
+            "annual_default_pct": 3.5370406759677735,
+            "spread_std_pp": 5.6716606354229375,
+            "spending_pct": 19.98477008227991,
+            "corr_pb_y": -0.10724306093910314,
+            "boundary_choice_share_pct": 0.0
+          }
+        }
+      ],
+      "moments": {
+        "debt_pct": 0.7960257839381861,
+        "spread_mean_pct": 3.7255104238202046,
+        "annual_default_pct": 3.5692365541408417,
+        "spread_std_pp": 5.697973781615907,
+        "spending_pct": 19.984635781962393,
+        "corr_pb_y": -0.10961766470713495,
+        "boundary_choice_share_pct": 0.0
+      }
+    },
+    "deficit": {
+      "runs": [
+        {
+          "seed": 1979,
+          "moments": {
+            "debt_pct": 1.061224306165952,
+            "spread_mean_pct": 3.9024893271961116,
+            "annual_default_pct": 3.5094600592479432,
+            "spread_std_pp": 5.895956190423517,
+            "spending_pct": 19.97826767584001,
+            "corr_pb_y": -0.13010318492630765,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1980,
+          "moments": {
+            "debt_pct": 1.0531858485223624,
+            "spread_mean_pct": 3.9185585749193024,
+            "annual_default_pct": 3.8438836479615612,
+            "spread_std_pp": 5.9156677629119425,
+            "spending_pct": 19.97860014494114,
+            "corr_pb_y": -0.13014254053182508,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1981,
+          "moments": {
+            "debt_pct": 1.0484843790629412,
+            "spread_mean_pct": 3.9106547990602967,
+            "annual_default_pct": 3.7940996779571505,
+            "spread_std_pp": 5.920709023721339,
+            "spending_pct": 19.978915392096173,
+            "corr_pb_y": -0.13157126502271882,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1982,
+          "moments": {
+            "debt_pct": 1.0477453213056245,
+            "spread_mean_pct": 3.9203508809754255,
+            "annual_default_pct": 3.853357201245822,
+            "spread_std_pp": 5.958336738787046,
+            "spending_pct": 19.97965837616941,
+            "corr_pb_y": -0.13009383518674447,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1983,
+          "moments": {
+            "debt_pct": 1.0503001051710337,
+            "spread_mean_pct": 3.9240698791951543,
+            "annual_default_pct": 3.7469077660356267,
+            "spread_std_pp": 5.929268980108203,
+            "spending_pct": 19.97874136676503,
+            "corr_pb_y": -0.13871210959614336,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1984,
+          "moments": {
+            "debt_pct": 1.070837838278823,
+            "spread_mean_pct": 3.8661543005121963,
+            "annual_default_pct": 3.679662628684831,
+            "spread_std_pp": 5.843038071899503,
+            "spending_pct": 19.978441841893556,
+            "corr_pb_y": -0.13351302291893924,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1985,
+          "moments": {
+            "debt_pct": 1.0667298530411449,
+            "spread_mean_pct": 3.929363846775183,
+            "annual_default_pct": 3.7594606890276685,
+            "spread_std_pp": 6.003777362014278,
+            "spending_pct": 19.978530109129135,
+            "corr_pb_y": -0.13163472318540145,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1986,
+          "moments": {
+            "debt_pct": 1.0467616538605529,
+            "spread_mean_pct": 3.9361837683069645,
+            "annual_default_pct": 3.7900573059974763,
+            "spread_std_pp": 5.9208268161815445,
+            "spending_pct": 19.97916056492362,
+            "corr_pb_y": -0.1309779887216012,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1987,
+          "moments": {
+            "debt_pct": 1.0433917012620104,
+            "spread_mean_pct": 3.886464391449982,
+            "annual_default_pct": 3.624402656240303,
+            "spread_std_pp": 5.8365708390829,
+            "spending_pct": 19.97889582742234,
+            "corr_pb_y": -0.13051787652007446,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1988,
+          "moments": {
+            "debt_pct": 1.043462158405619,
+            "spread_mean_pct": 3.92210386051969,
+            "annual_default_pct": 3.898004296522308,
+            "spread_std_pp": 5.925785331622891,
+            "spending_pct": 19.979279184987355,
+            "corr_pb_y": -0.13216427634176217,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1989,
+          "moments": {
+            "debt_pct": 1.0405532589043835,
+            "spread_mean_pct": 3.923557250674076,
+            "annual_default_pct": 3.8126384203009542,
+            "spread_std_pp": 5.875138686760603,
+            "spending_pct": 19.979384318546796,
+            "corr_pb_y": -0.1310499690812485,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1990,
+          "moments": {
+            "debt_pct": 1.0674408483586675,
+            "spread_mean_pct": 3.8832109976899343,
+            "annual_default_pct": 3.6910217550973963,
+            "spread_std_pp": 5.901385628191317,
+            "spending_pct": 19.978320419971492,
+            "corr_pb_y": -0.12933567297007012,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1991,
+          "moments": {
+            "debt_pct": 1.045579937136963,
+            "spread_mean_pct": 3.903310787726502,
+            "annual_default_pct": 3.5190979213779,
+            "spread_std_pp": 5.8567703591096425,
+            "spending_pct": 19.97864914173979,
+            "corr_pb_y": -0.1365182654399351,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1992,
+          "moments": {
+            "debt_pct": 1.0188360070404503,
+            "spread_mean_pct": 3.928701322151476,
+            "annual_default_pct": 3.9825710766810527,
+            "spread_std_pp": 5.863531776173969,
+            "spending_pct": 19.980050038989443,
+            "corr_pb_y": -0.12998822547535355,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1993,
+          "moments": {
+            "debt_pct": 1.0831665860195727,
+            "spread_mean_pct": 3.8527016082832684,
+            "annual_default_pct": 3.678798286813846,
+            "spread_std_pp": 5.845165768964276,
+            "spending_pct": 19.9781457030348,
+            "corr_pb_y": -0.13225649900158667,
+            "boundary_choice_share_pct": 0.0
+          }
+        },
+        {
+          "seed": 1994,
+          "moments": {
+            "debt_pct": 1.0593796621550529,
+            "spread_mean_pct": 3.9132968954731915,
+            "annual_default_pct": 3.6434020266423772,
+            "spread_std_pp": 5.945074341571702,
+            "spending_pct": 19.97829368452658,
+            "corr_pb_y": -0.1298864796577314,
+            "boundary_choice_share_pct": 0.0
+          }
+        }
+      ],
+      "moments": {
+        "debt_pct": 1.052942466543197,
+        "spread_mean_pct": 3.907573280681797,
+        "annual_default_pct": 3.739176588489639,
+        "spread_std_pp": 5.902312729845292,
+        "spending_pct": 19.97883336193604,
+        "corr_pb_y": -0.1317791209110902,
+        "boundary_choice_share_pct": 0.0
+      }
+    }
+  },
+  "measurements": {
+    "ceiling_binding": {
+      "binding_share_pct": 23.41054819352215,
+      "per_seed_pct": [
+        23.478994397117326,
+        23.23570315686008,
+        23.24275722186791,
+        23.55657716017135,
+        23.124026876495606,
+        23.901136162088285,
+        23.8771228458399,
+        23.35052945967961,
+        23.2158328201167,
+        23.27757865392274,
+        22.66642981787024,
+        23.904985643435133,
+        23.014335125223987,
+        22.476714161762093,
+        24.538231025445583,
+        23.705406111256202
+      ],
+      "binding_periods": 358640,
+      "repayment_periods": 1531959,
+      "binding_in_booms": 1.0
+    },
+    "deficit_binding": {
+      "binding_share_pct": 1.6510232976208894,
+      "per_seed_pct": [
+        1.6329591135364812,
+        1.663651668357157,
+        1.6644536681756876,
+        1.6779855814439453,
+        1.6792584929517123,
+        1.6265167085728593,
+        1.719152844900473,
+        1.592556235510349,
+        1.6440329432886922,
+        1.6045190634890691,
+        1.6070887451541782,
+        1.6862438005742626,
+        1.718964870608826,
+        1.6349742313843967,
+        1.652866674323661,
+        1.6108644554714024
+      ],
+      "binding_periods": 25293,
+      "repayment_periods": 1531959,
+      "binding_in_booms": 1.0
+    },
+    "max_b_recession": {
+      "401x21": 0.00048000000000000126,
+      "801x41": 0.0006000000000000033
+    },
+    "penalty_output_equivalent": 0.0020210216010856366,
+    "soft_ceiling_mean_g": 0.2004157432908042,
+    "soft_ceiling_above_cap_share_pct": 0.0,
+    "ceiling_escape_above_cap_share_pct": 0.0,
+    "escape_vs_ceiling": {
+      "passed": true,
+      "moments": {
+        "debt_pct": {
+          "change": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "absolute_change_bound": 0.0,
+          "tolerance": 0.1,
+          "status": "passed"
+        },
+        "spread_mean_pct": {
+          "change": -7.105427357601002e-15,
+          "ci95": [
+            -7.416976335646116e-15,
+            -6.793878379555888e-15
+          ],
+          "absolute_change_bound": 7.416976335646116e-15,
+          "tolerance": 0.1,
+          "status": "passed"
+        },
+        "annual_default_pct": {
+          "change": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "absolute_change_bound": 0.0,
+          "tolerance": 0.1,
+          "status": "passed"
+        },
+        "spread_std_pp": {
+          "change": -4.9960036108132044e-15,
+          "ci95": [
+            -5.3775716238612486e-15,
+            -4.61443559776516e-15
+          ],
+          "absolute_change_bound": 5.3775716238612486e-15,
+          "tolerance": 0.1,
+          "status": "passed"
+        },
+        "spending_pct": {
+          "change": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "absolute_change_bound": 0.0,
+          "tolerance": 0.1,
+          "status": "passed"
+        },
+        "corr_pb_y": {
+          "change": 6.938893903907228e-18,
+          "ci95": [
+            -6.985787811501106e-19,
+            1.4576366588964566e-17
+          ],
+          "absolute_change_bound": 1.4576366588964566e-17,
+          "tolerance": 0.02,
+          "status": "passed"
+        }
+      }
+    }
+  },
+  "predictions": {
+    "escape_inert": {
+      "held": true,
+      "max_b_recession": {
+        "401x21": 0.00048000000000000126,
+        "801x41": 0.0006000000000000033
+      },
+      "escape_vs_ceiling_passed": true
+    },
+    "ceiling_binding_share_pct": {
+      "held": false,
+      "predicted": [
+        19.0,
+        23.0
+      ],
+      "found": 23.41054819352215
+    },
+    "ceiling_binding_in_booms": {
+      "held": true,
+      "predicted": 1.0,
+      "found": 1.0
+    },
+    "deficit_binding_share_pct": {
+      "held": true,
+      "predicted": [
+        1.0,
+        2.0
+      ],
+      "found": 1.6510232976208894
+    },
+    "penalty_output_equivalent": {
+      "held": null,
+      "predicted": "about 0.002 of quarterly output (0.05 utils at psi v'(g) = g^-2 ~ 25, g ~ 0.2)",
+      "found": 0.0020210216010856366,
+      "note": "registered as 'about 0.002' with no numeric band; reported, not graded"
+    }
+  }
+}
