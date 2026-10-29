@@ -104,7 +104,7 @@ def _compile_rule(rule: FiscalRule, b_grid: np.ndarray, y_grid: np.ndarray, mean
     n_b, n_y = b_grid.shape[0], y_grid.shape[0]
     active = np.ones(n_y, dtype=bool) if rule.escape_below is None else ~(y_grid < rule.escape_below * mean_y)
     soft = rule.penalty is not None
-    cost = float(rule.penalty) if soft else float("inf")
+    cost = float("inf") if rule.penalty is None else float(rule.penalty)
     cap = None if rule.debt_ceiling is None else rule.debt_ceiling * mean_y
     limit = None if rule.deficit_limit is None else rule.deficit_limit * mean_y
 
