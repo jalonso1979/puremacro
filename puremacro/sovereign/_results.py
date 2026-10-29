@@ -16,6 +16,8 @@ import pandas as pd
 if TYPE_CHECKING:
     import matplotlib.figure
 
+    from puremacro.sovereign.rules import FiscalRule
+
 
 __all__ = [
     "SovereignDefaultResult",
@@ -420,6 +422,7 @@ class FiscalSovereignResult(SovereignDefaultResult):
     debt_to_gdp: np.ndarray = field(default_factory=lambda: np.zeros((0,)))
     private_consumption_repay: np.ndarray = field(default_factory=lambda: np.zeros((0,)))
     private_consumption_default: np.ndarray = field(default_factory=lambda: np.zeros((0,)))
+    rule: FiscalRule | None = None
 
     def summary(self) -> pd.DataFrame:
         """Return the sovereign summary plus the fiscal parameters."""
