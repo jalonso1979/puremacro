@@ -109,6 +109,14 @@ def run(output: Path) -> dict:
     g = soft_paths.g[:, burn:][rep]
     m["penalty_output_equivalent"] = float(np.mean(rules["soft_ceiling"]["penalty"] * g ** cal["gamma_g"] / cal["psi"]))
     m["soft_ceiling_mean_g"] = float(g.mean())
+    # Informational (added after the first run, not a registered prediction): how often the
+    # soft and escape-clause models actually choose debt above the cap.
+    cap_value = rules["ceiling"]["debt_ceiling"]
+    for name in ("soft_ceiling", "ceiling_escape"):
+        res_k, paths_k = results[name], paths[name]
+        rep_k = paths_k.repaid[:, burn:]
+        above = res_k.b_grid[paths_k.b_next_index[:, burn:]] > cap_value + TOL
+        m[f"{name}_above_cap_share_pct"] = float(100.0 * (rep_k & above).sum() / rep_k.sum())
     m["escape_vs_ceiling"] = paired_comparison(record["cases"]["ceiling"], record["cases"]["ceiling_escape"],
                                                tolerances=tolerances)
 
