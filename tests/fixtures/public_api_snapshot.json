@@ -3049,6 +3049,7 @@
       "shapley_var"
     ],
     "puremacro.sovereign": [
+      "FiscalRule",
       "FiscalSovereignResult",
       "RestructuringResult",
       "SovereignDefaultResult",
@@ -3089,6 +3090,9 @@
     "puremacro.sovereign.restructuring": [
       "decompose_spread_term_structure",
       "evaluate_debt_restructuring"
+    ],
+    "puremacro.sovereign.rules": [
+      "FiscalRule"
     ],
     "puremacro.spatial": [
       "AllenArkolakisModel",
@@ -7488,6 +7492,7 @@
       "psi",
       "q_bond",
       "residual",
+      "rule",
       "spread",
       "spread_mean",
       "spread_y_corr",
@@ -7566,6 +7571,13 @@
       "policy_k_prime",
       "policy_q_asset",
       "z_grid"
+    ],
+    "puremacro.sovereign.rules.FiscalRule": [
+      "debt_ceiling",
+      "deficit_limit",
+      "escape_below",
+      "infeasible",
+      "penalty"
     ],
     "puremacro.spatial._lp_bootstrap.SpatialLPBootstrap": [
       "assume_stationary",
