@@ -190,3 +190,102 @@ def test_monotone_rejects_convex_utility_before_solving():
 
     with pytest.raises(ValueError, match="gamma"):
         solve_sovereign_default(gamma=-1.0, n_b=20, n_y=5, max_iter=1, policy_search="monotone")
+
+
+def _penalized_dense(b_grid, y_grid, q, ev, beta, u, column=None, transition=None):
+    c = (y_grid[None, None, :] - 1.0 * b_grid[:, None, None]) + q[None, :, :] * b_grid[None, :, None]
+    w = u(c) + beta * ev[None, :, :]
+    if column is not None:
+        w = w - column[None, :, :]
+    if transition is not None:
+        w = w - transition
+    return w.max(axis=1), w.argmax(axis=1)
+
+
+def _random_column_penalty(rng, n_b, n_y, hard):
+    pen = rng.uniform(0.0, 2.0, (n_b, n_y))
+    if hard:
+        pen = np.where(rng.random((n_b, n_y)) < 0.3, np.inf, 0.0)
+        pen[0] = 0.0  # keep one admissible node per income state
+    return pen
+
+
+@pytest.mark.parametrize("seed", range(10))
+@pytest.mark.parametrize("hard", [False, True])
+def test_column_penalty_matches_brute_force(seed, hard):
+    from puremacro.sovereign._monotone import exhaustive_maximize, maximize
+
+    rng = np.random.default_rng(100 + seed)
+    b_grid, y_grid, q, ev = _inputs(seed, 33, 4)
+    pen = _random_column_penalty(rng, 33, 4, hard)
+    args = (b_grid, y_grid, q, ev, 0.95, _crra(2.0))
+    dense_value, dense_policy = _penalized_dense(*args, column=pen)
+    for value, policy in (maximize(*args, column_penalty=pen),
+                          exhaustive_maximize(*args, column_penalty=pen)):
+        assert np.max(np.abs(value - dense_value)) <= 1e-12
+        assert np.array_equal(policy, dense_policy)
+
+
+def test_hard_column_mask_equals_removed_columns():
+    from puremacro.sovereign._monotone import maximize
+
+    rng = np.random.default_rng(7)
+    b_grid, y_grid, q, ev = _inputs(7, 40, 5)
+    pen = _random_column_penalty(rng, 40, 5, hard=True)
+    masked_ev = np.where(np.isinf(pen), -np.inf, ev)
+    a = maximize(b_grid, y_grid, q, ev, 0.95, _crra(2.0), column_penalty=pen)
+    b = maximize(b_grid, y_grid, q, masked_ev, 0.95, _crra(2.0))
+    assert np.array_equal(a[0], b[0]) and np.array_equal(a[1], b[1])
+
+
+@pytest.mark.parametrize("block_rows", [1, 7, 128])
+def test_transition_penalty_matches_brute_force(block_rows):
+    from puremacro.sovereign._monotone import exhaustive_maximize
+
+    b_grid, y_grid, q, ev = _inputs(11, 30, 4)
+    limit = 0.05
+    full = np.where(b_grid[None, :, None] - b_grid[:, None, None] > limit, 0.3, 0.0) * np.ones((1, 1, 4))
+    full[:, :, 2] = np.where(full[:, :, 2] > 0, np.inf, 0.0)  # one income state hard
+
+    def transition(first, last, j):
+        return full[first:last, :, j]
+
+    column = np.where(b_grid[:, None] > 0.3, 0.1, 0.0) * np.ones((1, 4))
+    args = (b_grid, y_grid, q, ev, 0.95, _crra(2.0))
+    dense_value, dense_policy = _penalized_dense(*args, column=column, transition=full)
+    value, policy = exhaustive_maximize(*args, block_rows=block_rows, column_penalty=column,
+                                        transition_penalty=transition)
+    assert np.max(np.abs(value - dense_value)) <= 1e-12
+    assert np.array_equal(policy, dense_policy)
+
+
+def test_penalty_share_nonincreasing_at_fixed_prices():
+    from puremacro.sovereign._monotone import maximize
+
+    b_grid, y_grid, q, ev = _inputs(4, 60, 5)
+    ev = ev + 5.0 * b_grid[:, None]  # make high debt attractive so the cap matters
+    above = b_grid > 0.1
+    shares = []
+    for penalty in (1e-3, 1e-2, 1e-1, 1.0, 10.0, 1e2, 1e6):
+        pen = np.where(above[:, None], penalty, 0.0) * np.ones((1, 5))
+        _, policy = maximize(b_grid, y_grid, q, ev, 0.95, _crra(2.0), column_penalty=pen)
+        shares.append(float(above[policy].mean()))
+    assert shares[0] > 0.0
+    assert all(later <= earlier for earlier, later in zip(shares, shares[1:]))
+    assert shares[-1] == 0.0
+
+
+def test_all_infeasible_income_column():
+    import warnings
+
+    from puremacro.sovereign._monotone import exhaustive_maximize, maximize
+
+    b_grid, y_grid, q, ev = _inputs(2, 20, 3)
+    pen = np.zeros((20, 3))
+    pen[:, 1] = np.inf
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        for value, _ in (maximize(b_grid, y_grid, q, ev, 0.95, _crra(2.0), column_penalty=pen),
+                         exhaustive_maximize(b_grid, y_grid, q, ev, 0.95, _crra(2.0), column_penalty=pen)):
+            assert np.all(np.isneginf(value[:, 1]))
+            assert np.all(np.isfinite(value[:, [0, 2]]))
