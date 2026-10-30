@@ -106,7 +106,8 @@ def test_ties_choose_lowest_debt_index():
 
 @pytest.mark.parametrize("n_y", [31, 32, 33, 65, 129])
 @pytest.mark.parametrize("ties", [False, True])
-def test_income_batches_match_pinned_original_and_exhaustive(n_y, ties):
+@pytest.mark.parametrize("gamma", [1.0, 2.0, 5.0])
+def test_income_batches_match_pinned_original_and_exhaustive(n_y, ties, gamma):
     from puremacro.sovereign._monotone import maximize
     from tests.test_sovereign._legacy_monotone_6_0_1 import maximize as original
 
@@ -115,7 +116,7 @@ def test_income_batches_match_pinned_original_and_exhaustive(n_y, ties):
         q[25:] = 0.0
         ev[25:] = ev[25]
         ev[:25] -= 50.0
-    args = (b_grid, y_grid, q, ev, .95, _crra(2.0))
+    args = (b_grid, y_grid, q, ev, .95, _crra(gamma))
     got = maximize(*args)
     expected = original(*args)
     dense_value, dense_policy, _ = _dense(*args)

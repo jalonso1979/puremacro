@@ -22,6 +22,7 @@ def test_invalid_custom_grid_is_rejected(grid):
         solve_sovereign_default(debt_grid=grid)
 
 
+@pytest.mark.pyodide_smoke
 def test_nonuniform_grid_matches_dense_and_independent_bellman_equations():
     supplied = GRID.copy()
     fast = solve_sovereign_default(debt_grid=supplied, policy_search="monotone",
