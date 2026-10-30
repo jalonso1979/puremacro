@@ -9,3 +9,7 @@
 ## 2023-10-25 - Row duplication in Pandas DataFrames
 **Learning:** Using `.iterrows()` with list comprehensions to duplicate rows in a Pandas DataFrame (e.g. for expanding annual to quarterly periods) is significantly slower than vectorized Pandas/NumPy operations. Expanding rows iteratively creates high object allocation overhead.
 **Action:** When uniformly expanding or duplicating pandas DataFrame rows N times (e.g., converting annual to quarterly data), use `df.iloc[np.repeat(np.arange(len(df)), N)].reset_index(drop=True)` for a highly performant vectorized approach instead of `iterrows()`.
+
+## 2024-05-15 - Vectorize `_harmonize_annual_to_quarterly` in `climate_panel.py`
+**Learning:** Similar to row duplication in Pandas DataFrames, converting annual data to quarterly data by iterating over groups and rows using `.iterrows()` introduces high overhead. Using vectorized NumPy repeating and reshaping handles row duplication significantly faster.
+**Action:** When uniformly expanding annual observations to quarterly (4 periods) across a DataFrame, utilize NumPy `np.repeat` to copy rows instead of looping with `.iterrows()`.

@@ -55,6 +55,38 @@ def _harmonize_annual_to_quarterly(
     if df_annual.empty:
         return _EMPTY.copy()
 
+    if harmonization == "repeat":
+        # ⚡ Bolt: Vectorize row duplication for quarterly expansion instead of groupby/iterrows
+        df_clean = df_annual.dropna(subset=["value"]).copy()
+        if df_clean.empty:
+            return _EMPTY.copy()
+
+        N = len(df_clean)
+        idx = np.repeat(np.arange(N), 4)
+        offsets = np.tile([1, 4, 7, 10], N)
+
+        dates = df_clean["date"].dt.year.to_numpy()[idx]
+
+        names = df_clean["variable"].astype(str)
+        def norm_var(v):
+            return v[:-2] + "_q" if v.endswith("_a") else f"{v}_q"
+        normalized = {name: norm_var(name) for name in names.unique()}
+
+        out = pd.DataFrame({
+            "code": df_clean["code"].to_numpy()[idx],
+            "date": pd.to_datetime({
+                "year": dates,
+                "month": offsets,
+                "day": 1
+            }),
+            "variable": names.map(normalized).to_numpy()[idx],
+            "value": df_clean["value"].astype(float).to_numpy()[idx],
+            "sa_source": "annual_repeated",
+            "source": ("resampled_from_A:" + df_clean["source"].astype(str)).to_numpy()[idx],
+            "is_imputed": offsets != 1,
+        })
+        return out.drop_duplicates(subset=["code", "date", "variable"], keep="first")
+
     records: list[dict[str, object]] = []
 
     for (code, var), grp in df_annual.groupby(["code", "variable"]):
@@ -64,22 +96,7 @@ def _harmonize_annual_to_quarterly(
 
         q_var = var[:-2] + "_q" if var.endswith("_a") else f"{var}_q"
 
-        if harmonization == "repeat":
-            for _, row in grp_sorted.iterrows():
-                yr = row["date"].year
-                val = float(row["value"])
-                src = f"resampled_from_A:{row['source']}"
-                for m in (1, 4, 7, 10):
-                    records.append({
-                        "code": code,
-                        "date": pd.Timestamp(f"{yr}-{m:02d}-01"),
-                        "variable": q_var,
-                        "value": val,
-                        "sa_source": "annual_repeated",
-                        "source": src,
-                        "is_imputed": m != 1,
-                    })
-        elif harmonization == "interpolate":
+        if harmonization == "interpolate":
             s = grp_sorted.set_index("date")["value"].astype(float)
             s = s[~s.index.duplicated(keep="first")]
             if len(s) == 1:
