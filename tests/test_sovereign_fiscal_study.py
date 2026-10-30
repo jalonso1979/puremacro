@@ -201,3 +201,24 @@ def test_soft_ceiling_off_the_ergodic_set_is_recorded_and_recomputes():
     at_or_below = soft.b_grid <= .02
     assert info["policies_equal_at_or_below_cap"] is True
     assert np.array_equal(soft.policy_index[at_or_below], hard.policy_index[at_or_below])
+
+
+def test_rule_record_recomputes_from_code_for_one_seed():
+    from tools.reference_validation import check_fiscal_rule_predictions as tool
+
+    record = json.loads(RULE_RECORD.read_text())
+    protocol = json.loads(RULE_PROTOCOL.read_text())
+    design = dict(protocol["design"], seeds=[1979])
+    grid = protocol["design"]["grid"]
+    results = {}
+    for name in ("none", "ceiling", "deficit"):
+        res = tool.solve(protocol, name, grid["n_b"], grid["n_y"])
+        assert res.iterations == record["solves"][name]["iterations"]
+        paths = tool._paths(res, design)
+        (run,) = tool._runs(paths, design)
+        assert run == record["cases"][name]["runs"][0], name
+        results[name] = (res, paths)
+    free, free_paths = results["none"]
+    binding = tool._binding(free, free_paths, design["burn"], protocol["rules"]["ceiling"]["debt_ceiling"], None)
+    assert binding["per_seed_pct"] == record["measurements"]["ceiling_binding"]["per_seed_pct"][:1]
+    assert binding["per_seed_pct"][0] == pytest.approx(23.479, abs=5e-4)
