@@ -109,7 +109,7 @@ def test_ties_choose_lowest_debt_index():
 @pytest.mark.parametrize("gamma", [1.0, 2.0, 5.0])
 def test_income_batches_match_pinned_original_and_exhaustive(n_y, ties, gamma):
     from puremacro.sovereign._monotone import maximize
-    from tests.test_sovereign._legacy_monotone_6_0_1 import maximize as original
+    from ._legacy_monotone_6_0_1 import maximize as original
 
     b_grid, y_grid, q, ev = _inputs(1979, 61, n_y)
     if ties:
