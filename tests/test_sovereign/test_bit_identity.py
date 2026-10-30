@@ -161,3 +161,14 @@ def test_brief_scenarios_bit_identical_to_legacy(overrides):
     assert_results_identical(current, legacy)
     pd.testing.assert_frame_equal(current.simulate(periods=500),
                                   legacy_simulate(legacy, periods=500), check_exact=True)
+
+
+@pytest.mark.parametrize('overrides', [{'theta': .5}, {'rho_y': .97}])
+def test_income_batched_equilibrium_and_simulation_match_legacy(overrides):
+    from puremacro.examples.first_brief_sovereign import BASELINE
+
+    kwargs = {**BASELINE, **overrides, 'n_b': 101, 'n_y': 65}
+    current, legacy = solve_sovereign_default(**kwargs), legacy_solve(**kwargs)
+    assert_results_identical(current, legacy)
+    pd.testing.assert_frame_equal(current.simulate(periods=500),
+                                  legacy_simulate(legacy, periods=500), check_exact=True)

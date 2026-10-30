@@ -245,13 +245,39 @@ trasladan a esta solución porque sus arreglos coinciden con los de referencia.
 `converged.simulate()` devuelve una trayectoria con otras convenciones de
 medición, de modo que sus estadísticas no son las mismas cifras.
 
+### Mallas de deuda explícitas
+
+El solucionador de desarrollo 6.1 también acepta `debt_grid=coordinates`, un
+vector finito y estrictamente creciente que incluya un cero exacto. Copia y
+conserva esas coordenadas, que sustituyen `n_b`, `b_min` y `b_max`; el
+comportamiento de la malla generada existente no cambia. La reestructuración
+de vencimientos conserva la malla suministrada. Las tangentes de precios en
+mallas no uniformes usan pendientes PCHIP ponderadas por los intervalos.
+
+Concentrar nodos donde el endeudamiento y los precios de los bonos son sensibles
+puede mejorar la eficiencia; véase [Hatchondo, Martinez y Sapriza (2010)](https://www.imf.org/-/media/websites/imf/imported-full-text-pdf/external/pubs/ft/wp/2010/_wp10100.pdf).
+Esto motiva un experimento separado de reingreso alto con el soporte original
+`[-0.15, 0.33]`, nodos de ahorro lineales y nodos de endeudamiento cuadráticos.
+Sus cuatro casos cruzan 6.401/12.801 nodos de deuda y 641/1.281 estados de
+ingreso; se conservan el diseño de simulación y las cuatro tolerancias de 0,10.
+Ambos refinamientos finales deben pasar. El [informe soberano](brief_sovereign_risk.md)
+conserva los resultados fallidos de las mallas uniformes originales.
+
+```bash
+python -m tools.reference_validation.check_sovereign_curved_grids --output grids_curved
+```
+
+El comando escribe el protocolo antes de resolver y guarda cada coordenada,
+semilla, hash de fuente, residuo de certificación y comparación. Una malla no
+uniforme por sí sola no demuestra convergencia; evalúe el registro completo.
+
 ## Próxima decisión
 
 La calibración pública ya tiene un diseño numérico fijo: 6.401 nodos de deuda,
 641 estados de ingreso y el diseño de precisión para los momentos simulados.
-Los experimentos de reingreso, volatilidad y persistencia del ingreso
-pueden realizarse sobre el diseño convergido, ahora con el solucionador
-público. Mantenga separadas la calibración
+Los experimentos de reingreso, volatilidad y persistencia del ingreso pueden
+partir de ese diseño, pero cada escenario requiere su propia comprobación de
+malla. Mantenga separadas la calibración
 archivada y la pública; la convergencia de la archivada no está establecida más
 allá de 797 puntos de deuda. Vencimientos y reestructuración requieren su propia
 validación externa. Cualquier recalibración sería un resultado nuevo, no parte

@@ -36,7 +36,7 @@ El efecto de la volatilidad no es monótono. Con σ_y = 0,02 / 0,025 / 0,03 el d
 
 ## Resultados
 
-La tabla presenta, para cada escenario en la malla convergida de 6.401 x 641,
+La tabla presenta, para cada escenario en la malla de 6.401 x 641 validada para la base,
 la media sobre 16 trayectorias simuladas de 500.000 trimestres (tras descartar
 1.000 trimestres iniciales), ± la semiamplitud de su intervalo t de Student del
 95 % entre trayectorias. La cifra entre paréntesis, Δ, es el cambio emparejado
@@ -68,9 +68,44 @@ Los marcadores huecos son la base común; los bigotes son intervalos del 95 %
 entre trayectorias, casi todos más estrechos que los marcadores (el valor del
 acceso al mercado es una magnitud resuelta, sin error de muestreo).
 
+### Refinamiento cruzado inicial de los escenarios sensibles
+
+El seguimiento conserva la calibración, las 16 semillas, los 500.000 períodos,
+el descarte inicial y las tolerancias de 0,10. Resuelve las cuatro combinaciones
+de 6.401/12.801 nodos de deuda y 641/1.281 estados de ingreso. Cada celda muestra
+el cambio medio emparejado absoluto más su semiamplitud del 95 %;
+**todos los momentos deben ser como máximo 0,10**.
+
+| Escenario y refinamiento | Deuda | Diferencial medio | Impago | DE del diferencial | Veredicto |
+|---|---:|---:|---:|---:|---|
+| θ = 0,5, deuda con 1.281 estados de ingreso | 0,003457 | 0,106816 | 0,118959 | 0,174051 | No superado |
+| θ = 0,5, ingreso con 12.801 nodos de deuda | 0,016915 | 0,039766 | 0,053709 | 0,054342 | Superado |
+| ρ_y = 0,97, deuda con 1.281 estados de ingreso | 0,016982 | 0,030946 | 0,031479 | 0,101902 | No superado |
+| ρ_y = 0,97, ingreso con 12.801 nodos de deuda | 0,051721 | 0,032086 | 0,049175 | 0,046211 | Superado |
+
+Las ocho soluciones convergieron, con brecha de certificación exhaustiva nula
+y residuo de Bellman inferior a `9e-12`. El problema pendiente es la convergencia
+de los momentos respecto de la malla de deuda, no una iteración de Bellman sin
+terminar. Para θ = 0,5 el desplazamiento de la volatilidad del diferencial es
+−0,167865 pp; simular más no lo elimina. Para ρ_y = 0,97 el desplazamiento es
+−0,096678 pp, pero su cota de incertidumbre rebasa por poco el criterio.
+Ningún escenario supera esta malla cruzada.
+
+El registro completo, incluidas todas las semillas y comparaciones fallidas,
+está en `tests/fixtures/sovereign_brief/sensitive_grid_initial.json`. Se está
+evaluando el refinamiento adicional de deuda 12.801 → 25.601 en ambas
+resoluciones de ingreso, con las mismas tolerancias. Estos resultados iniciales
+no implican el resultado del estudio ampliado.
+
+```bash
+python -m tools.reference_validation.check_sovereign_sensitive_grids --output grids_initial
+python -m tools.reference_validation.check_sovereign_sensitive_grids --extend-from tests/fixtures/sovereign_brief/sensitive_grid_initial.json --output grids_extended
+```
+
 ## Ejecútelo usted mismo
 
-Instale PureMacro 6.1.0 o posterior desde PyPI y ejecute un escenario en la malla convergida. En
+Este ejemplo requiere el código de desarrollo 6.1; 6.0.1 es la distribución
+publicada más reciente. Desde un checkout de desarrollo, instálelo y ejecute un escenario. En
 la estación de trabajo del mantenedor, la resolución con θ = 0,15 tardó unos
 14 minutos, más unos segundos de medición, medidos bajo carga en una
 máquina compartida (cargas medias 5/13/27); el barrido congelado completo, siete
@@ -78,7 +113,7 @@ escenarios en ambas mallas, tardó 6.851 s (1,9 h), con un pico de memoria de
 unos 3,4 GB:
 
 ```bash
-pip install "puremacro>=6.1"
+python -m pip install .
 python -m puremacro.examples.first_brief_sovereign --scenario theta=0.15 --lang es --output informe_theta015
 ```
 
