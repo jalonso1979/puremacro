@@ -196,7 +196,9 @@ _EQUIVALENT_LIBRARY_HASHES = {
         'cb0655d94f4f5dc01c1f71979e8bb71551d98ed5ac90e18a79d4f420b3c7e467'),
     'puremacro/sovereign/arellano.py': (
         'd434bded913776d47a740ca5e35ce3b7a8e7047d3efbafce89b09d5e5b2655a2',
-        '0e70f71915c76dcdc93e628e3439592c66a75b5a43b55f6c82c77f631b850345'),
+        # Explicit debt grids are optional; unchanged default calls retain the
+        # pinned original equilibrium, metadata and simulation bit for bit.
+        '2301827c26be1295a94d038c6a3a5c03afc459994b4cf2764b850a7d70ba795a'),
     'puremacro/sovereign/_results.py': (
         'fc97e14a0e10a450f9e2cacf965cffc8f42a1acc5e6d1c18fae9cb61a1cec3db',
         '21e0bd69e131b5bf3171c96ed79bc0ebf2ed38e86f115a8de82cf6491e922a98'),

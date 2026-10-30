@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from tools.reference_validation.check_sovereign_sensitive_grids import (
-    BASELINE, DESIGN, EXTENDED_GRIDS, GRIDS, MONOTONE_EQUIVALENCE,
+    BASELINE, DESIGN, EXPLICIT_GRID_EQUIVALENCE, EXTENDED_GRIDS, GRIDS, MONOTONE_EQUIVALENCE,
     MONOTONE_SOURCE, SCENARIOS, TOLERANCES, assess, combine, validate_prior_sources,
 )
 
@@ -101,6 +101,14 @@ def test_historical_provenance_accepts_only_the_checked_batching_change():
                                {MONOTONE_SOURCE: new, 'other': 'new'})
     with pytest.raises(ValueError, match='source keys'):
         validate_prior_sources({MONOTONE_SOURCE: old}, {})
+
+
+def test_historical_uniform_grid_sources_accept_the_checked_optional_grid_branch():
+    old, new = EXPLICIT_GRID_EQUIVALENCE
+    path = 'puremacro/sovereign/arellano.py'
+    validate_prior_sources({path: old}, {path: new})
+    with pytest.raises(ValueError, match='unsupported historical source'):
+        validate_prior_sources({path: old}, {path: 'unknown'})
 
 
 def test_frozen_initial_ladder_preserves_failed_debt_refinements():

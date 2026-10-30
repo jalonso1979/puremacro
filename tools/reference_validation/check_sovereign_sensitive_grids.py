@@ -24,6 +24,12 @@ MONOTONE_EQUIVALENCE = (
     'fb04bb672f59c89ec40bd51179df3a249df09e0ddeb7cd9102d6288e7b251464',
     'cb0655d94f4f5dc01c1f71979e8bb71551d98ed5ac90e18a79d4f420b3c7e467',
 )
+# The optional explicit-grid branch leaves all default-grid calls bit-identical
+# to the pinned 6.0.1 solver, including equilibrium metadata and random paths.
+EXPLICIT_GRID_EQUIVALENCE = (
+    '0e70f71915c76dcdc93e628e3439592c66a75b5a43b55f6c82c77f631b850345',
+    '2301827c26be1295a94d038c6a3a5c03afc459994b4cf2764b850a7d70ba795a',
+)
 
 
 def assess(record):
@@ -95,13 +101,15 @@ def assess(record):
 
 
 def validate_prior_sources(prior, current):
-    """Permit only the explicitly checked batching change when extending a run."""
+    """Permit only checked changes that preserve the uniform-grid experiment."""
     if set(prior) != set(current):
         raise ValueError('historical source keys differ')
     for path in current:
         if prior[path] == current[path]:
             continue
-        if path != MONOTONE_SOURCE or (prior[path], current[path]) != MONOTONE_EQUIVALENCE:
+        checked = {MONOTONE_SOURCE: MONOTONE_EQUIVALENCE,
+                   'puremacro/sovereign/arellano.py': EXPLICIT_GRID_EQUIVALENCE}
+        if (prior[path], current[path]) != checked.get(path):
             raise ValueError(f'unsupported historical source change: {path}')
 
 

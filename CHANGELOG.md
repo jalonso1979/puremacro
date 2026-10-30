@@ -13,6 +13,13 @@ but not published; their additions are included in 6.0.1, published on
 
 Development version after 6.0.1; not a published distribution.
 
+- `solve_sovereign_default(debt_grid=...)` accepts explicit nonuniform debt
+  coordinates with an exact zero. Default-grid equilibria and random paths
+  retain pinned legacy parity; supplied coordinates survive maturity
+  restructuring, and their price tangents use nonuniform PCHIP weights.
+  A separate fixed-support curved-grid experiment evaluates the high-reentry
+  brief scenario with unchanged simulation design and moment tolerances.
+
 - Bounded the short-term monotone policy search's workspace by batching
   independent income columns. Values, choices, equilibrium metadata and random
   paths retain exact parity with the pinned original algorithm. The sovereign
