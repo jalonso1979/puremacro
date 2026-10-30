@@ -206,6 +206,8 @@ def _solve_bellman(
     n_y = resources.shape[0]
     monotone = policy_search == "monotone"
     exhaustive_search = policy_search == "exhaustive"
+    if exhaustive_search and delta < 0.999:
+        raise ValueError('policy_search="exhaustive" supports short-term debt only (delta=1, kappa=0)')
     u_func = choice_utility
     column_penalty = None if rule is None else rule.column_penalty
     transition_penalty = None if rule is None else rule.transition_penalty

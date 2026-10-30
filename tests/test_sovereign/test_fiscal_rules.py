@@ -263,3 +263,22 @@ def test_monotone_certification_ignores_forced_default_states() -> None:
     assert np.all(fast.default_prob[forced] == 1.0) and np.all(np.isneginf(fast.v_repay[forced]))
     assert np.array_equal(fast.policy_index[~forced], dense.policy_index[~forced])
     assert np.max(np.abs(fast.bond_price - dense.bond_price)) <= 1e-12
+
+
+def _core_kwargs(**overrides):
+    from puremacro.sovereign.arellano import _crra_utility, _discretize_endowment
+
+    y_grid, p_trans, _ = _discretize_endowment(5, 0.945, 0.025)
+    kwargs = dict(b_grid=np.linspace(0.0, 0.3, 11), p_trans=p_trans, resources=y_grid, resources_default=0.95 * y_grid,
+                  choice_utility=_crra_utility(2.0), flow_repay=None, flow_default=None, beta=0.95, r_star=0.01,
+                  delta=1.0, kappa=0.0, sigma_eps=0.0, theta=0.282, tol=1e-8, max_iter=50, damping=0.4,
+                  recovery_rate=0.0, howard_steps=5, enforce_monotonicity=False, policy_search="exhaustive")
+    kwargs.update(overrides)
+    return kwargs
+
+
+def test_exhaustive_search_rejects_long_term_debt() -> None:
+    from puremacro.sovereign.arellano import _solve_bellman
+
+    with pytest.raises(ValueError, match="short-term"):
+        _solve_bellman(**_core_kwargs(delta=0.2, kappa=0.03))
