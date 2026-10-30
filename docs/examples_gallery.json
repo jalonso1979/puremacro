@@ -1,0 +1,891 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-29T05:09:05Z",
+  "examples": {
+    "first_brief_tariffs": {
+      "description": "Your first policy brief: a 10% US tariff on Chinese goods on the bundled OECD ICIO 2019 table, national EV with its price / factor-income / fiscal split, and synthetic household groups.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 6.051,
+      "figures": [],
+      "last_run": "2026-10-29T05:09:05Z"
+    },
+    "romer_romer_2010_replication": {
+      "description": "Original-data Romer\u2013Romer (2010) baseline and independent evidence.",
+      "status": "FAIL",
+      "reason": "RR2010 baseline: FAIL; h10=-3.08081276, t=-3.52499608; output=output/romer_romer_2010_replication",
+      "runtime_s": 1.458,
+      "figures": [],
+      "last_run": "2026-10-19T00:01:39Z"
+    },
+    "vintage_news_noise": {
+      "description": "Are GDP revisions news or noise? A cross-country answer.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 33.729,
+      "figures": [],
+      "last_run": "2026-10-18T23:49:22Z"
+    },
+    "distributional_trade_ge": {
+      "description": "Synthetic GE tariff experiment with synthetic household groups.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.769,
+      "figures": [],
+      "last_run": "2026-10-18T23:48:28Z"
+    },
+    "anderson_rubin_weak_iv_demo": {
+      "description": "Weak-instrument-robust Anderson-Rubin inference for local projections (LP-IV).",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 3.281,
+      "figures": [
+        "../puremacro/examples/output/anderson_rubin_weak_iv_demo.png"
+      ],
+      "last_run": "2026-10-18T23:39:34Z"
+    },
+    "asset_composition_dynamics": {
+      "description": "Investment composition over time, per country, from the augmented asset-breakdown panel.",
+      "status": "SKIP",
+      "reason": "local data file missing",
+      "runtime_s": 0.738,
+      "figures": [],
+      "last_run": "2026-10-18T23:39:35Z"
+    },
+    "bandpass_cycles_comparison": {
+      "description": "Business cycle filtering comparison: Baxter-King, Christiano-Fitzgerald, Beveridge-Nelson & Hamilton.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.645,
+      "figures": [
+        "../puremacro/examples/output/bandpass_cycles_comparison.png"
+      ],
+      "last_run": "2026-10-18T23:39:36Z"
+    },
+    "berkowitz_demo": {
+      "description": "Berkowitz (2001) joint LR test: a more powerful PIT diagnostic.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.836,
+      "figures": [],
+      "last_run": "2026-10-18T23:39:38Z"
+    },
+    "bloom2009": {
+      "description": "Bloom (2009)-style uncertainty-shock VAR replication on quarterly USA data.",
+      "status": "SKIP",
+      "reason": "local data file missing",
+      "runtime_s": 2.231,
+      "figures": [],
+      "last_run": "2026-10-18T23:39:40Z"
+    },
+    "bvar_fan_chart": {
+      "description": "Density forecast (fan chart) from a Minnesota-prior BVAR via Gibbs.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 2.647,
+      "figures": [
+        "../puremacro/examples/output/bvar_fan_chart.png"
+      ],
+      "last_run": "2026-10-18T23:39:43Z"
+    },
+    "caldara_iacoviello": {
+      "description": "Caldara-Iacoviello (2022)-style geopolitical-risk shock VAR on USA quarterly data.",
+      "status": "SKIP",
+      "reason": "local data file missing",
+      "runtime_s": 1.707,
+      "figures": [],
+      "last_run": "2026-10-18T23:39:45Z"
+    },
+    "central_bank_narrative_sentiment": {
+      "description": "Central Bank Narrative Sentiment & Monetary Policy Transmission.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 3.199,
+      "figures": [
+        "../puremacro/examples/output/central_bank_narrative_sentiment.png"
+      ],
+      "last_run": "2026-10-18T23:39:48Z"
+    },
+    "climate_dice_simulation": {
+      "description": "DICE Climate-Macroeconomic Simulation & Policy Analysis.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.397,
+      "figures": [
+        "../puremacro/examples/output/climate_dice_simulation.png"
+      ],
+      "last_run": "2026-10-18T23:39:49Z"
+    },
+    "climate_sovereign_debt_risk": {
+      "description": "Climate Transition Risk and Sovereign Debt Sustainability.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.486,
+      "figures": [
+        "../puremacro/examples/output/climate_sovereign_debt_risk.png"
+      ],
+      "last_run": "2026-10-18T23:39:51Z"
+    },
+    "cointegration_johansen": {
+      "description": "Engle-Granger and Johansen cointegration on a 3-variable simulated system.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.246,
+      "figures": [],
+      "last_run": "2026-10-18T23:39:52Z"
+    },
+    "dcc_volatility": {
+      "description": "Engle (2002) DCC: time-varying correlations among three return series.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 2.813,
+      "figures": [
+        "../puremacro/examples/output/dcc_volatility.png"
+      ],
+      "last_run": "2026-10-18T23:39:55Z"
+    },
+    "dfm_bai_ng": {
+      "description": "High-dimensional dynamic factor model: Bai-Ng IC + PCA factors.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.106,
+      "figures": [
+        "../puremacro/examples/output/dfm_bai_ng.png"
+      ],
+      "last_run": "2026-10-18T23:39:56Z"
+    },
+    "dfm_nowcast_kalman": {
+      "description": "Single-factor dynamic factor model via the Kalman filter.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 0.932,
+      "figures": [
+        "../puremacro/examples/output/dfm_nowcast_kalman.png"
+      ],
+      "last_run": "2026-10-18T23:39:57Z"
+    },
+    "did_callaway_santanna_demo": {
+      "description": "Callaway-Sant'Anna + Sun-Abraham staggered DiD demo.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.518,
+      "figures": [],
+      "last_run": "2026-10-18T23:39:58Z"
+    },
+    "diebold_yilmaz_spillover": {
+      "description": "Diebold-Yilmaz (2012) volatility-spillover index on a synthetic 4-variable VAR.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.279,
+      "figures": [],
+      "last_run": "2026-10-18T23:40:00Z"
+    },
+    "dsge_ar1_demo": {
+      "description": "Toy AR(1) state-space \u2014 demonstrates puremacro.dsge.estimate_dsge.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 55.334,
+      "figures": [],
+      "last_run": "2026-10-18T23:40:56Z"
+    },
+    "dsge_markov_switching": {
+      "description": "Markov-Switching DSGE Perturbation: Monetary Policy Regimes & Analytical GIRFs.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 2.345,
+      "figures": [
+        "../puremacro/examples/output/dsge_markov_switching.png"
+      ],
+      "last_run": "2026-10-18T23:40:59Z"
+    },
+    "dsge_news_shocks": {
+      "description": "DSGE News & Anticipated Shocks Engine: State Augmentation & Variance Decomposition.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 2.255,
+      "figures": [
+        "../puremacro/examples/output/dsge_news_shocks.png"
+      ],
+      "last_run": "2026-10-18T23:41:01Z"
+    },
+    "dsge_nk_sketchpad": {
+      "description": "Three-equation New Keynesian model, written as equations rather than matrices.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.674,
+      "figures": [],
+      "last_run": "2026-10-18T23:41:02Z"
+    },
+    "dsge_nuts_estimation": {
+      "description": "Bayesian DSGE Estimation via No-U-Turn Sampler (NUTS) Hamiltonian Monte Carlo.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 45.685,
+      "figures": [
+        "../puremacro/examples/output/dsge_nuts_autocorr.png",
+        "../puremacro/examples/output/dsge_nuts_estimation.png",
+        "../puremacro/examples/output/dsge_nuts_posterior.png",
+        "../puremacro/examples/output/dsge_nuts_trace.png"
+      ],
+      "last_run": "2026-10-18T23:41:48Z"
+    },
+    "dsge_optimal_discretion": {
+      "description": "Optimal Monetary Policy: Markov-Perfect Discretion vs LQ Commitment.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 2.118,
+      "figures": [
+        "../puremacro/examples/output/dsge_optimal_discretion.png"
+      ],
+      "last_run": "2026-10-18T23:41:50Z"
+    },
+    "dsge_particle_filter_sv": {
+      "description": "Nonlinear DSGE Particle Filtering with Stochastic Volatility (BPF vs Constant Baseline).",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 2.324,
+      "figures": [
+        "../puremacro/examples/output/dsge_particle_filter_sv.png"
+      ],
+      "last_run": "2026-10-18T23:41:53Z"
+    },
+    "dsge_rbc_klein": {
+      "description": "Linearised RBC model solved with the Klein (2000) QZ method.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.751,
+      "figures": [
+        "../puremacro/examples/output/dsge_rbc_klein.png"
+      ],
+      "last_run": "2026-10-18T23:41:54Z"
+    },
+    "dsge_var_estimation": {
+      "description": "DSGE-VAR Hybrid Estimation & Marginal Data Density Optimization.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 2.279,
+      "figures": [
+        "../puremacro/examples/output/dsge_var_estimation.png"
+      ],
+      "last_run": "2026-10-18T23:41:57Z"
+    },
+    "empirical_benchmark_replications": {
+      "description": "Empirical Benchmark Replications: Gal\u00ed (1999) & Mertens-Ravn (2013).",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 2.674,
+      "figures": [
+        "../puremacro/examples/output/empirical_benchmark_replications.png"
+      ],
+      "last_run": "2026-10-18T23:41:59Z"
+    },
+    "exact_diffuse_kalman": {
+      "description": "Exact-diffuse Kalman initialisation (Koopman-Durbin 2003).",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 0.718,
+      "figures": [
+        "../puremacro/examples/output/exact_diffuse_kalman.png"
+      ],
+      "last_run": "2026-10-18T23:42:00Z"
+    },
+    "fetch_fred_demo": {
+      "description": "Live FRED fetch + LP + markdown report \u2014 full pipeline.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.667,
+      "figures": [
+        "../puremacro/examples/output/fetch_fred_demo.png"
+      ],
+      "last_run": "2026-10-18T23:42:02Z"
+    },
+    "fm_ols_dols_demo": {
+      "description": "Phillips-Hansen FM-OLS and Stock-Watson DOLS vs naive OLS on a known cointegrating DGP.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.643,
+      "figures": [
+        "../puremacro/examples/output/fm_ols_dols.png"
+      ],
+      "last_run": "2026-10-18T23:42:03Z"
+    },
+    "forecast_density_eval": {
+      "description": "Density-forecast evaluation: PIT, CRPS, KLIC for two competing models.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.464,
+      "figures": [
+        "../puremacro/examples/output/forecast_density_eval.png"
+      ],
+      "last_run": "2026-10-18T23:42:05Z"
+    },
+    "gali_1999_hours": {
+      "description": "Gali (1999 AER) technology shocks and the hours debate \u2014 BQ long-run SVAR on real US data.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.905,
+      "figures": [
+        "../puremacro/examples/output/gali_1999_hours.png"
+      ],
+      "last_run": "2026-10-18T23:42:07Z"
+    },
+    "garch_midas_macro_volatility": {
+      "description": "GARCH-MIDAS mixed-frequency volatility model (Engle, Ghysels & Sohn 2013).",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.672,
+      "figures": [
+        "../puremacro/examples/output/garch_midas_macro_volatility.png"
+      ],
+      "last_run": "2026-10-18T23:42:08Z"
+    },
+    "gfevd_spillover": {
+      "description": "Diebold-Yilmaz spillover with GFEVD: order-invariance demo.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.004,
+      "figures": [],
+      "last_run": "2026-10-18T23:42:09Z"
+    },
+    "gk_robust_from_gibbs": {
+      "description": "Posterior-aware sign-restriction bands: Giacomini-Kitagawa 2021 fed by ``minnesota_gibbs`` posterior draws.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 4.633,
+      "figures": [
+        "../puremacro/examples/output/gk_robust_from_gibbs.png"
+      ],
+      "last_run": "2026-10-18T23:42:14Z"
+    },
+    "gk_robust_signs": {
+      "description": "Giacomini-Kitagawa (2021) robust bands vs RWZ posterior bands on a sign-restricted SVAR.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 2.787,
+      "figures": [
+        "../puremacro/examples/output/gk_robust_signs.png"
+      ],
+      "last_run": "2026-10-18T23:42:17Z"
+    },
+    "global_fiscal_stance": {
+      "description": "Global fiscal stance \u2014 sum of signed narrative magnitudes across the homogeneous IV panel, per quarter.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 0.943,
+      "figures": [
+        "../puremacro/examples/output/global_fiscal_stance.csv",
+        "../puremacro/examples/output/global_fiscal_stance.png"
+      ],
+      "last_run": "2026-10-18T23:42:18Z"
+    },
+    "glp_lambda_search": {
+      "description": "Empirical-Bayes hyperparameter search for a Minnesota BVAR (Giannone-Lenza-Primiceri 2015, simplified).",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.551,
+      "figures": [
+        "../puremacro/examples/output/glp_lambda_search.png"
+      ],
+      "last_run": "2026-10-18T23:42:19Z"
+    },
+    "govt_vs_private_investment": {
+      "description": "Government vs private investment shares from the augmented panel.",
+      "status": "SKIP",
+      "reason": "local data file missing",
+      "runtime_s": 0.377,
+      "figures": [],
+      "last_run": "2026-10-18T23:42:20Z"
+    },
+    "hank_sequence_space": {
+      "description": "Sequence-Space HANK Model Simulation & Multiplier Decomposition.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 2.219,
+      "figures": [
+        "../puremacro/examples/output/hank_sequence_space.png"
+      ],
+      "last_run": "2026-10-18T23:42:22Z"
+    },
+    "hank_sequence_space_bridge": {
+      "description": "Heterogeneous-Agent New Keynesian (HANK) Sequence-Space Bridge (.mod).",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 2.263,
+      "figures": [
+        "../puremacro/examples/output/hank_sequence_space_bridge.png"
+      ],
+      "last_run": "2026-10-18T23:42:24Z"
+    },
+    "har_realized_vol": {
+      "description": "Corsi (2009) HAR-RV regression on simulated intra-day returns.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.624,
+      "figures": [
+        "../puremacro/examples/output/har_realized_vol.png"
+      ],
+      "last_run": "2026-10-18T23:42:26Z"
+    },
+    "hfi_gertler_karadi": {
+      "description": "HFI monetary-policy shock: synthetic Gertler-Karadi 2015-style pipeline.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.564,
+      "figures": [
+        "../puremacro/examples/output/hfi_gertler_karadi.png"
+      ],
+      "last_run": "2026-10-18T23:42:27Z"
+    },
+    "kilian_2009_oil": {
+      "description": "Kilian (2009 AER) \"Not All Oil Price Shocks Are Alike\" \u2014 recursive oil-market VAR with historical decomposition.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 2.686,
+      "figures": [
+        "../puremacro/examples/output/kilian_2009_oil.png"
+      ],
+      "last_run": "2026-10-18T23:42:30Z"
+    },
+    "la_lp_pmw_demo": {
+      "description": "Lag-augmented LP (Montiel Olea & Plagborg-M\u00f8ller 2021) vs Newey-West Jord\u00e0 LP.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 2.008,
+      "figures": [
+        "../puremacro/examples/output/la_lp_pmw.png"
+      ],
+      "last_run": "2026-10-18T23:42:32Z"
+    },
+    "labor_flows_demo": {
+      "description": "Labor-force transitions demo using the Shimer 2-state fallback.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 0.415,
+      "figures": [],
+      "last_run": "2026-10-18T23:42:33Z"
+    },
+    "lp_asymmetric_tenreyro": {
+      "description": "Tenreyro-Thwaites (2016)-style asymmetric local projection on synthetic data.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.16,
+      "figures": [],
+      "last_run": "2026-10-18T23:42:34Z"
+    },
+    "lp_panel_dk": {
+      "description": "Panel local projection of GDP on uncertainty with Driscoll-Kraay SE.",
+      "status": "SKIP",
+      "reason": "local data file missing",
+      "runtime_s": 1.474,
+      "figures": [],
+      "last_run": "2026-10-18T23:42:35Z"
+    },
+    "lp_smooth_demo": {
+      "description": "Barnichon-Brownlees (2019) smoothed local projections on synthetic data.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.178,
+      "figures": [],
+      "last_run": "2026-10-18T23:42:36Z"
+    },
+    "lwui_wage_demo": {
+      "description": "LWUI-wage demo: labor x uncertainty x wage triple co-occurrence.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.352,
+      "figures": [],
+      "last_run": "2026-10-18T23:42:38Z"
+    },
+    "mcmc_diagnostics": {
+      "description": "MCMC convergence diagnostics on a real Gibbs sampler.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.786,
+      "figures": [
+        "../puremacro/examples/output/mcmc_diagnostics.png"
+      ],
+      "last_run": "2026-10-18T23:42:40Z"
+    },
+    "midas_quarterly_monthly": {
+      "description": "MIDAS nowcasting: quarterly y on monthly x.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.703,
+      "figures": [
+        "../puremacro/examples/output/midas_quarterly_monthly.png"
+      ],
+      "last_run": "2026-10-18T23:42:41Z"
+    },
+    "mle_sandwich_demo": {
+      "description": "Bring-your-own-likelihood: Student-t MLE with sandwich SE.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.773,
+      "figures": [],
+      "last_run": "2026-10-18T23:42:43Z"
+    },
+    "ms_var_business_cycle": {
+      "description": "Two-regime MSIH MS-VAR for a recession dating exercise.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 2.063,
+      "figures": [
+        "../puremacro/examples/output/ms_var_business_cycle.png"
+      ],
+      "last_run": "2026-10-18T23:42:45Z"
+    },
+    "narrative_bursts_and_transcripts": {
+      "description": "Narrative Macroeconomics: Transcripts, Dynamic Topics, Burst Anomalies, and SVARs.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.846,
+      "figures": [
+        "../puremacro/examples/output/narrative_bursts_and_transcripts.png"
+      ],
+      "last_run": "2026-10-18T23:42:47Z"
+    },
+    "narrative_custom_corpus": {
+      "description": "Custom-corpus pipeline (workflow A): user-supplied texts \u2192 keyword scoring \u2192 quarterly IV \u2192 diagnostics. No network, no LLM.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.434,
+      "figures": [
+        "../puremacro/examples/output/narrative_custom_corpus.png"
+      ],
+      "last_run": "2026-10-18T23:42:48Z"
+    },
+    "narrative_event_study": {
+      "description": "Event study around the largest narrative-IV episodes per country.",
+      "status": "SKIP",
+      "reason": "requires local narrative-IV panel + MAV wedges file (not shipped)",
+      "runtime_s": 0.0,
+      "figures": [],
+      "last_run": "2026-10-18T23:42:48Z"
+    },
+    "narrative_g7_panel": {
+      "description": "G7 narrative-instrument panel demo.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.508,
+      "figures": [
+        "../puremacro/examples/output/narrative_g7_panel.png"
+      ],
+      "last_run": "2026-10-18T23:42:50Z"
+    },
+    "narrative_homogeneous_panel": {
+      "description": "Build the homogeneous cross-country fiscal-narrative-IV panel.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.764,
+      "figures": [
+        "../puremacro/examples/output/homogeneous_panel.png",
+        "../puremacro/examples/output/narrative_iv_panel_consumption.csv",
+        "../puremacro/examples/output/narrative_iv_panel_dedup_audit.csv",
+        "../puremacro/examples/output/narrative_iv_panel_investment.csv",
+        "../puremacro/examples/output/narrative_iv_panel_long.csv",
+        "../puremacro/examples/output/narrative_iv_panel_quarterly.csv"
+      ],
+      "last_run": "2026-10-18T23:42:52Z"
+    },
+    "narrative_indices_demo": {
+      "description": "Narrative indices demo \u2014 assembles all six indices from a synthetic in-process corpus and prints summary statistics.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.244,
+      "figures": [],
+      "last_run": "2026-10-18T23:42:53Z"
+    },
+    "narrative_llm_pipeline": {
+      "description": "End-to-end LLM pipeline (workflow C): a small corpus \u2192 LLM scoring \u2192 ``NarrativeInstrument``.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 0.99,
+      "figures": [],
+      "last_run": "2026-10-18T23:42:54Z"
+    },
+    "narrative_local_llm": {
+      "description": "Run puremacro's narrative LLM features for FREE on a local model.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 0.999,
+      "figures": [],
+      "last_run": "2026-10-18T23:42:55Z"
+    },
+    "narrative_multilingual_live": {
+      "description": "Live multilingual fetch + IMF Article-IV + Google News across the G7 countries plus the IMF and ECB.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.438,
+      "figures": [
+        "../puremacro/examples/output/narrative_multilingual_live.png"
+      ],
+      "last_run": "2026-10-18T23:42:56Z"
+    },
+    "narrative_panel_lp": {
+      "description": "Cross-country fiscal-multiplier panel local projection using the homogeneous narrative-IV panel as the shock series and the wedges-panel RGDP as the outcome.",
+      "status": "SKIP",
+      "reason": "local data file missing",
+      "runtime_s": 0.329,
+      "figures": [],
+      "last_run": "2026-10-18T23:42:57Z"
+    },
+    "narrative_ramey_2011": {
+      "description": "Replication-layer demo (workflow B): Ramey (2011) defense-news narrative instrument \u2192 ``proxy_svar`` on a small US-style VAR \u2192 spending-multiplier-style IRF.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.808,
+      "figures": [
+        "../puremacro/examples/output/narrative_ramey_2011.png"
+      ],
+      "last_run": "2026-10-18T23:42:58Z"
+    },
+    "narrative_romer_romer_2010": {
+      "description": "Replication-layer demo (workflow B): Romer-Romer (2010) US tax narrative shocks \u2192 comparison against the Ramey defense-news series.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.478,
+      "figures": [
+        "../puremacro/examples/output/narrative_rr_vs_ramey.png"
+      ],
+      "last_run": "2026-10-18T23:43:00Z"
+    },
+    "narrative_sign_adrr": {
+      "description": "Narrative sign restrictions (Antol\u00edn-D\u00edaz & Rubio-Ram\u00edrez 2018) \u2014 the October 1979 Volcker episode as an identification input.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.75,
+      "figures": [
+        "../puremacro/examples/output/narrative_sign_adrr.png"
+      ],
+      "last_run": "2026-10-18T23:43:02Z"
+    },
+    "narrative_us_canonical_compare": {
+      "description": "Link a user's US narrative-instrument series to the canonical published instruments: Ramey (2011) defense news, Romer-Romer (2010) exogenous tax, Mertens-Ravn (2013) unanticipated tax.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.86,
+      "figures": [
+        "../puremacro/examples/output/narrative_us_canonical_compare.png"
+      ],
+      "last_run": "2026-10-18T23:43:04Z"
+    },
+    "non_gaussian_svar": {
+      "description": "SVAR identification by non-Gaussianity (Lanne-Meitz-Saikkonen 2017).",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.254,
+      "figures": [
+        "../puremacro/examples/output/non_gaussian_svar.png"
+      ],
+      "last_run": "2026-10-18T23:43:05Z"
+    },
+    "nowcasting_gdp_news": {
+      "description": "Mixed-Frequency GDP Nowcasting & News Decomposition.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.636,
+      "figures": [
+        "../puremacro/examples/output/nowcasting_gdp_news.png"
+      ],
+      "last_run": "2026-10-18T23:43:06Z"
+    },
+    "penalized_macro_forecasting": {
+      "description": "High-Dimensional Penalized Macroeconomic Forecasting.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.565,
+      "figures": [
+        "../puremacro/examples/output/penalized_macro_forecasting.png"
+      ],
+      "last_run": "2026-10-18T23:43:08Z"
+    },
+    "posterior_predictive_fan": {
+      "description": "Posterior-predictive fan chart from BVAR Gibbs draws.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.34,
+      "figures": [
+        "../puremacro/examples/output/posterior_predictive_fan.png"
+      ],
+      "last_run": "2026-10-18T23:43:09Z"
+    },
+    "ramey_zubairy_2018_multipliers": {
+      "description": "Ramey-Zubairy (2018 JPE) spending multipliers \u2014 LP-IV with military news shocks on 126 years of US data.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 2.443,
+      "figures": [
+        "../puremacro/examples/output/ramey_zubairy_2018_multipliers.png"
+      ],
+      "last_run": "2026-10-18T23:43:12Z"
+    },
+    "regime_workflow": {
+      "description": "End-to-end regime workflow: Bai-Perron breaks \u2192 regime indicator \u2192 regime-conditional LP.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 2.042,
+      "figures": [
+        "../puremacro/examples/output/regime_workflow.png"
+      ],
+      "last_run": "2026-10-18T23:43:14Z"
+    },
+    "report_workflow": {
+      "description": "Render LP and IRF results as Markdown / LaTeX tables ready to drop into a paper or a Quarto / Jupyter notebook on iPad.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 0.997,
+      "figures": [],
+      "last_run": "2026-10-18T23:43:15Z"
+    },
+    "scf_aiyagari": {
+      "description": "Aiyagari (1994) calibrated to the Survey of Consumer Finances.",
+      "status": "SKIP",
+      "reason": "network unavailable",
+      "runtime_s": 1.193,
+      "figures": [],
+      "last_run": "2026-10-18T23:43:17Z"
+    },
+    "shock_atlas_demo": {
+      "description": "Shock-atlas registry demo.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 0.964,
+      "figures": [],
+      "last_run": "2026-10-18T23:43:18Z"
+    },
+    "sigma_decomposition": {
+      "description": "SigmaObject volatility decomposition \u2014 Python equivalent of ``MASTER_VolatilityDecomposition_Labor.m``.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 0.981,
+      "figures": [],
+      "last_run": "2026-10-18T23:43:19Z"
+    },
+    "sign_restrictions_uhlig": {
+      "description": "Uhlig (2005)-style sign-restricted SVAR on a synthetic 3-variable DGP.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.075,
+      "figures": [],
+      "last_run": "2026-10-18T23:43:20Z"
+    },
+    "spectral_business_cycle": {
+      "description": "Spectral analysis of a synthetic business-cycle-style series.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 0.686,
+      "figures": [
+        "../puremacro/examples/output/spectral_business_cycle.png"
+      ],
+      "last_run": "2026-10-18T23:43:21Z"
+    },
+    "structural_irf_matching": {
+      "description": "Empirical LPs -> joint sampling covariance -> a three-equation NK model.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.688,
+      "figures": [],
+      "last_run": "2026-10-18T23:43:23Z"
+    },
+    "svariv_mertens_ravn": {
+      "description": "Mertens-Ravn (2013)-style proxy-SVAR replication on synthetic data.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.372,
+      "figures": [
+        "../puremacro/examples/output/svariv_mertens_ravn_irf.png"
+      ],
+      "last_run": "2026-10-18T23:43:24Z"
+    },
+    "synthetic_control_demo": {
+      "description": "Synthetic control on a simulated treatment.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 0.958,
+      "figures": [
+        "../puremacro/examples/output/synthetic_control.png"
+      ],
+      "last_run": "2026-10-18T23:43:25Z"
+    },
+    "synthetic_did_california_prop99": {
+      "description": "Synthetic Difference-in-Differences causal policy evaluation (Arkhangelsky et al. 2021).",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.783,
+      "figures": [
+        "../puremacro/examples/output/synthetic_did_prop99.png"
+      ],
+      "last_run": "2026-10-18T23:43:27Z"
+    },
+    "tvar_threshold_demo": {
+      "description": "Self-exciting threshold VAR: regime-dependent dynamics.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.585,
+      "figures": [
+        "../puremacro/examples/output/tvar_threshold.png"
+      ],
+      "last_run": "2026-10-18T23:43:28Z"
+    },
+    "tvecm_demo": {
+      "description": "Threshold cointegration / TVECM demo.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.285,
+      "figures": [
+        "../puremacro/examples/output/tvecm.png"
+      ],
+      "last_run": "2026-10-18T23:43:30Z"
+    },
+    "tvp_var_demo": {
+      "description": "Time-varying-parameter VAR (Primiceri-style FFBS Gibbs).",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 3.758,
+      "figures": [
+        "../puremacro/examples/output/tvp_var.png"
+      ],
+      "last_run": "2026-10-18T23:43:34Z"
+    },
+    "tvp_var_sv_demo": {
+      "description": "TVP-VAR with stochastic volatility (Primiceri 2005, KSC sampler).",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 5.524,
+      "figures": [
+        "../puremacro/examples/output/tvp_var_sv.png"
+      ],
+      "last_run": "2026-10-18T23:43:39Z"
+    },
+    "vintage_revisions": {
+      "description": "Real-time vintages and forecast revisions.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 0.831,
+      "figures": [
+        "../puremacro/examples/output/vintage_revisions.png"
+      ],
+      "last_run": "2026-10-18T23:43:45Z"
+    },
+    "vulnerable_growth": {
+      "description": "Adrian-Boyarchenko-Giannone (2019) vulnerable-growth demo.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 56.654,
+      "figures": [
+        "../puremacro/examples/output/vulnerable_growth.png"
+      ],
+      "last_run": "2026-10-18T23:44:42Z"
+    },
+    "wavelet_business_cycle": {
+      "description": "Wavelet variance decomposition of a synthetic GDP-like series.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 0.632,
+      "figures": [
+        "../puremacro/examples/output/wavelet_business_cycle.png"
+      ],
+      "last_run": "2026-10-18T23:44:42Z"
+    }
+  }
+}

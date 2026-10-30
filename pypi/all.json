@@ -1,0 +1,28 @@
+{
+  "puremacro": {
+    "releases": {
+      "6.1.0": [
+        {
+          "comment_text": "",
+          "digests": {
+            "md5": "92488818b37fde0f5d24ffeb533706bd",
+            "sha256": "9d36b4738b3937d4be876cced487b473f522dbee54b2ea0c4279d2c38630f7ba"
+          },
+          "downloads": -1,
+          "filename": "puremacro-6.1.0-py3-none-any.whl",
+          "has_sig": false,
+          "md5_digest": "92488818b37fde0f5d24ffeb533706bd",
+          "packagetype": "bdist_wheel",
+          "python_version": "py3",
+          "requires_python": ">=3.11",
+          "size": 6443363,
+          "upload_time": "2026-10-30T19:00:10.930900Z",
+          "upload_time_iso_8601": "2026-10-30T19:00:10.930900Z",
+          "url": "./puremacro-6.1.0-py3-none-any.whl",
+          "yanked": false,
+          "yanked_reason": null
+        }
+      ]
+    }
+  }
+}

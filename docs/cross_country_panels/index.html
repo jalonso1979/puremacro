@@ -1,0 +1,8608 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Macroeconometrics and structural modeling on the core scientific-Python stack">
+      
+      
+        <meta name="author" content="puremacro contributors">
+      
+      
+        <link rel="canonical" href="https://jalonso1979.github.io/puremacro/docs/cross_country_panels/">
+      
+      
+        <link rel="prev" href="../data_ecosystem/">
+      
+      
+        <link rel="next" href="../micro_data/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Cross-country macro panels - puremacro</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#cross-country-macro-panels" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="puremacro" class="md-header__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            puremacro
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Cross-country macro panels
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href=".." class="md-tabs__link">
+          
+  
+  
+  English Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../es/" class="md-tabs__link">
+          
+  
+  
+  Documentación en Español
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="puremacro" class="md-nav__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    puremacro
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    English Documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    English Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../first_brief_tariffs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Your first policy brief
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tariff_validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tariff welfare validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../research_workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Research workflows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../research_reliability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Research reliability and next milestones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arellano_replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arellano original-code replication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../studies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reproducible studies and scenarios
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runnable workflow templates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../result_audits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditing solved results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../result_audits_extended/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path audits and bounded refinement
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance_scaling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workload scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../empirical_research/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-data published replication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Showcase Notebooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Correctness advisories
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../STRUCTURAL_VALIDATION_STATUS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural validation status
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_17" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_1_17" id="__nav_1_17_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_17_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1_17">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarterly National Accounts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-time data (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../real_time_latam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Latin America real-time connectors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Long national accounts panel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global Macro Data Ecosystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-country macro panels
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-country macro panels
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#world-bank-wdi-wdi_panel-puremacrofetchwdi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        World Bank WDI: wdi_panel (puremacro.fetch.wdi)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#oecd-annual-national-accounts-ana_panel-puremacrofetchoecd_ana_panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OECD annual national accounts: ana_panel (puremacro.fetch.oecd_ana_panel)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#oecd-quarterly-blocks-beside-qna_panel-puremacrofetchoecd_qna_extras" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OECD quarterly blocks beside qna_panel (puremacro.fetch.oecd_qna_extras)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#oecd-monthly-short-term-indicators-stes_panel-puremacrofetchoecd_stes_panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OECD monthly short-term indicators: stes_panel (puremacro.fetch.oecd_stes_panel)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#eurostat-eurostat_na_panel-and-eurostat_monthly_panel-puremacrofetcheurostat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eurostat: eurostat_na_panel and eurostat_monthly_panel (puremacro.fetch.eurostat)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#imf-puremacrofetchimf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IMF: puremacro.fetch.imf
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bis-bis_panel-puremacrofetchbis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BIS: bis_panel (puremacro.fetch.bis)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rates-yields-stocks-and-commodities-puremacrofetchrates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rates, yields, stocks and commodities (puremacro.fetch.rates)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ilostat-ilostat_panel-puremacrofetchilostat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ILOSTAT: ilostat_panel (puremacro.fetch.ilostat)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#penn-world-table-110-and-maddison-2023-puremacrofetchpwt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Penn World Table 11.0 and Maddison 2023 (puremacro.fetch.pwt)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#which-call-for-which-concept" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Which call for which concept
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../micro_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Source registry & survey microdata
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../text_analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Text as data (corpus, tokenizer, DTM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_18" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_18" id="__nav_1_18_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometric Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_18_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_18">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Econometric Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR & FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Narrative Sign Restrictions SVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR with Stochastic Volatility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smooth Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../distributional_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distributional & Quantile Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modern Difference-in-Differences
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Honest DiD Sensitivity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../causal_dml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Double / Debiased Machine Learning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dml_irm_iv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Double ML for Treatment Effects & IV (IRM & DML-IV)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Econometrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global VAR (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dependence_bootstrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dependence-aware bootstrap inference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Estimation & Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mcmc_diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Multichain MCMC diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../smc_inference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vectorized Tempered SMC & Marginal Likelihood
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GDP Nowcasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nowcast_latam_news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Latin America Real-Time Nowcasting & News
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Penalized Forecasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_19" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_19" id="__nav_1_19_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macro-finance
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_19_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_19">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Macro-finance
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../asset_pricing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Returns, risk and asset-pricing tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_20" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_20" id="__nav_1_20_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publication & Reporting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_20_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_20">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publication & Reporting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manuscript Tables & Exports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_21" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_21" id="__nav_1_21_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural Models
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_21_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_21">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Structural Models
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../structural_bridge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Empirical-to-structural estimation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sequence-Space HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hank_equilibrium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Published one-asset HANK equilibrium
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Non-Linear HANK Transitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hank_model_closure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Editable HANK equations and panels
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hank_ssj_and_aggregate_risk/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nonlinear HANK & 2nd-Order Aggregate Risk
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../monetary_transmission/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monetary Transmission Simulator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policy_simulators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomic Policy Simulators & Browser Labs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gertler-Karadi (2011) DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sovereign_default/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quantitative Sovereign Default & Sudden Stops
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sovereign_extensions_validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sovereign extension validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sovereign_fiscal_rules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fiscal Block in a Sovereign Default Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../brief_sovereign_risk/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sovereign-risk policy brief
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Climate Macro (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Sketchpad & Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_mod_inspection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inspecting and running .mod commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Choosing a DSGE workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nonlinear models and ordered deterministic commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_transitions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Robust transitions and announced shocks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_global/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global policies and local accuracy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Higher-Order & Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Parity & Surface Area
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradients, NUTS & HANK Bridge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontier (Policy, DSGE-VAR & News)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Non-linear Particle Filtering & Regime Switching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_stacked_newton/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stacked-Time Newton-Krylov (Perfect Foresight)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_22" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_22" id="__nav_1_22_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Dynamic Programming & Projection Solvers
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_22_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_22">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Continuous Dynamic Programming & Projection Solvers
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Declarative dynamic programming (dp)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dp_modfiles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dynamic programming in .mod files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_projection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Projection Solvers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_splines_and_sparse_grids/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Splines & Sparse Grids
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dcegm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discrete Choice EGM (DC-EGM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_equilibrium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Distributions & General Equilibrium
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_hjb_continuous/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous-Time HJB & Adjoint KFE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_transition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Transition Dynamics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_analytic_gradients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parameter Gradients (IFT)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../autodiff_and_protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Forward AD & Differentiable Model Protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_23" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_23" id="__nav_1_23_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontier Macro & Spatial Economics
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_23_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_23">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Frontier Macro & Spatial Economics
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deep_macro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deep Macro & Neural Networks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spatial_and_trade_ge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quantitative Spatial Economics & Gravity Trade GE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../network_spatial_climate_iam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Production Networks, Spatial Climate IAM & PolicyStudio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_accounting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Consistent trade accounting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_welfare/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hicksian consumption welfare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hicksian tariff policy and solver recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_continuation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parameter continuation and multistart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_stability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reduced local stability (experimental)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_household/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Household preferences and exact welfare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_distributional/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distributional household incidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_ces_newton/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exact CES block Newton
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_condensed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Condensed one-factor Leontief model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_mrio/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Native MRIO tables
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_dynamic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dynamic MRIO with sector-specific capital
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_gpu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GPU, MLX and batched Jacobians
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Anywhere (iPad / browser)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../local_llm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local language models (iPad, Mac, Windows, Linux, Colab)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance & Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_27" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_27" id="__nav_1_27_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_27_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_27">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation & goldens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../research_benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Independent research benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connector health
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cache database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signal contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexicon review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap and API policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentación en Español
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Documentación en Español
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio rápido
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/first_brief_tariffs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Su primer informe de política
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/tariff_validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación del bienestar arancelario
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/research_workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Flujos de investigación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/research_reliability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fiabilidad de investigación y próximos hitos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/arellano_replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replicación del código original de Arellano
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/studies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estudios y escenarios reproducibles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/study_workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plantillas ejecutables
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/result_audits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditoría de resultados resueltos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/result_audits_extended/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditoría de trayectorias y refinamiento acotado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/performance_scaling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Escalamiento de cargas de trabajo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/empirical_research/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replicación publicada con datos reales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuadernos de demostración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avisos de corrección
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/STRUCTURAL_VALIDATION_STATUS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estado de validación estructural
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_17" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_17" id="__nav_2_17_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_17_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_17">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuentas nacionales trimestrales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos en tiempo real (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/real_time_latam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Conectores en tiempo real de América Latina
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panel largo de cuentas nacionales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ecosistema de datos macro globales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/cross_country_panels/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paneles macro entre países
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/micro_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Registro de fuentes y microdatos de encuestas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/text_analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Texto como datos (corpus, tokenizador, DTM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_18" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_18" id="__nav_2_18_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motores econométricos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_18_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_18">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Motores econométricos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR y FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SVAR con restricciones narrativas de signo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR con volatilidad estocástica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales suavizadas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/distributional_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales distribucionales y cuantílicas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias en diferencias modernas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sensibilidad en DiD honesto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/causal_dml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aprendizaje automático doble / desesgado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dml_irm_iv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Doble ML para efectos de tratamiento e instrumentos (IRM y DML-IV)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometría espacial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR global (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dependence_bootstrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inferencia bootstrap con dependencia
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estimación y diagnósticos DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/mcmc_diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnósticos MCMC entre cadenas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/smc_inference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inferencia SMC temperada y verosimilitud marginal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting del PIB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/nowcast_latam_news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting en tiempo real de América Latina y descomposición de noticias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pronóstico penalizado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_19" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_19" id="__nav_2_19_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macrofinanzas
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_19_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_19">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Macrofinanzas
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/asset_pricing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendimientos, riesgo y pruebas de valoración de activos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_20" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_20" id="__nav_2_20_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publicación e informes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_20_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_20">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publicación e informes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tablas y exportación de manuscritos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_21" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_21" id="__nav_2_21_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos estructurales
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_21_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_21">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modelos estructurales
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/structural_bridge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estimación empírica-estructural
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HANK en el espacio de secuencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/hank_equilibrium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Equilibrio HANK publicado de un activo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transiciones no lineales en HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/hank_model_closure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ecuaciones HANK editables y paneles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/hank_ssj_and_aggregate_risk/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HANK no lineal y riesgo agregado de 2.º orden
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/monetary_transmission/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Simulador de transmisión monetaria
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/policy_simulators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Simuladores de política macroeconómica y laboratorios interactivos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de Gertler-Karadi (2011)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/sovereign_default/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Default soberano cuantitativo y paradas repentinas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/sovereign_extensions_validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación de extensiones soberanas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/sovereign_fiscal_rules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloque fiscal en un modelo de impago soberano
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/brief_sovereign_risk/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Informe de política sobre riesgo soberano
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía del clima (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuaderno de bocetos DSGE y Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_mod_inspection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inspección y ejecución de comandos .mod
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Elegir un flujo DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos no lineales y comandos deterministas ordenados
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_transitions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transiciones robustas y anuncios de choques
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_global/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Políticas globales y precisión local
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de orden superior y restricciones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paridad y superficie operativa DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradientes, NUTS y Puente HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontera (Política, DSGE-VAR y Noticias)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Filtrado de Partículas No Lineal y Cambio de Régimen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_stacked_newton/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Newton-Krylov apilado en el tiempo (previsión perfecta)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_22" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_22" id="__nav_2_22_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Programación dinámica continua y solucionadores de proyección
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_22_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_22">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Programación dinámica continua y solucionadores de proyección
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Programación dinámica declarativa (dp)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dp_modfiles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Programación dinámica en archivos .mod
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/vfi_continuous_projection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solucionadores de proyección continua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/vfi_splines_and_sparse_grids/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Splines y mallas dispersas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dcegm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DC-EGM de elección discreta
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/vfi_continuous_equilibrium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distribuciones continuas y equilibrio general
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/vfi_hjb_continuous/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HJB en tiempo continuo y KFE adjunta
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/vfi_continuous_transition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dinámica de transición continua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/vfi_analytic_gradients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gradientes paramétricos (TFI)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/autodiff_and_protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Autodiferenciación forward y protocolo de modelos diferenciables
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_23" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_23" id="__nav_2_23_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía de frontera y economía espacial
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_23_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_23">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Macroeconomía de frontera y economía espacial
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/deep_macro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deep Macro y redes neuronales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/spatial_and_trade_ge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Economía espacial cuantitativa y GE de comercio con gravedad
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/network_spatial_climate_iam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Redes de producción, IAM climático espacial y PolicyStudio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/trade_accounting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contabilidad comercial consistente
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/trade_welfare/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bienestar hicksiano de consumo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/trade_policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Política arancelaria hicksiana y recuperación del solver
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/trade_continuation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuación de parámetros y arranques múltiples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/trade_stability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estabilidad local reducida (experimental)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/trade_household/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Preferencias del hogar y bienestar exacto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/trade_distributional/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incidencia distributiva en los hogares
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/trade_ces_newton/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Newton por bloques exacto para CES
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/trade_condensed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelo de Leontief condensado con un factor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/trade_mrio/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tablas MRIO nativas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/trade_dynamic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MRIO dinámico con capital específico por sector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/trade_gpu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GPU, MLX y jacobianos por lotes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ejecución en cualquier entorno (iPad / navegador)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/local_llm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos de lenguaje locales (iPad, Mac, Windows, Linux, Colab)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendimiento y pruebas comparativas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_27" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_27" id="__nav_2_27_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_27_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_27">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de replicación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación y referencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/research_benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmarks independientes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estado de conectores
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credenciales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos de caché
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de señales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de ejemplos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revisión de léxico
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hoja de ruta y API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#world-bank-wdi-wdi_panel-puremacrofetchwdi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        World Bank WDI: wdi_panel (puremacro.fetch.wdi)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#oecd-annual-national-accounts-ana_panel-puremacrofetchoecd_ana_panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OECD annual national accounts: ana_panel (puremacro.fetch.oecd_ana_panel)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#oecd-quarterly-blocks-beside-qna_panel-puremacrofetchoecd_qna_extras" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OECD quarterly blocks beside qna_panel (puremacro.fetch.oecd_qna_extras)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#oecd-monthly-short-term-indicators-stes_panel-puremacrofetchoecd_stes_panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OECD monthly short-term indicators: stes_panel (puremacro.fetch.oecd_stes_panel)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#eurostat-eurostat_na_panel-and-eurostat_monthly_panel-puremacrofetcheurostat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eurostat: eurostat_na_panel and eurostat_monthly_panel (puremacro.fetch.eurostat)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#imf-puremacrofetchimf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IMF: puremacro.fetch.imf
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bis-bis_panel-puremacrofetchbis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BIS: bis_panel (puremacro.fetch.bis)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rates-yields-stocks-and-commodities-puremacrofetchrates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rates, yields, stocks and commodities (puremacro.fetch.rates)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ilostat-ilostat_panel-puremacrofetchilostat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ILOSTAT: ilostat_panel (puremacro.fetch.ilostat)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#penn-world-table-110-and-maddison-2023-puremacrofetchpwt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Penn World Table 11.0 and Maddison 2023 (puremacro.fetch.pwt)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#which-call-for-which-concept" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Which call for which concept
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<blockquote>
+<p>🇬🇧 English · 🇪🇸 <a href="../es/cross_country_panels/">Español</a></p>
+</blockquote>
+<h1 id="cross-country-macro-panels">Cross-country macro panels</h1>
+<p>Ten modules under <code>puremacro.fetch</code> turn a provider's whole cross-section into one DataFrame with one call. They share a contract:</p>
+<ul>
+<li><strong>Shape.</strong> A wide frame indexed by <code>(code, date)</code>: ISO3 codes, <code>date</code> at the start of the period (1 January, the first day of the quarter or month). One column per variable, with the names used elsewhere in puremacro (<code>gdp</code>, <code>cons_hh</code>, <code>inv</code>, <code>urate</code>, <code>cpi</code>, ...).</li>
+<li><strong>Metadata in <code>attrs</code>.</strong> <code>meta</code> (per column or per country and variable: flow, units, coverage), <code>source</code>, <code>fetched_at</code> (UTC) and <code>missing</code> (what was asked for and not obtained, with the reason). Each module has a <code>*_meta(panel)</code> helper that shows <code>meta</code> as a table.</li>
+<li><strong>Never raises on a provider failure.</strong> An HTTP 429, a timeout, a truncated body or a dead API gives a warning and an empty or partial frame; the reason goes to <code>attrs["missing"]</code>.</li>
+<li><strong>urllib only.</strong> No module imports <code>requests</code>, so they work where it is absent and import safely on an iPad or under Pyodide.</li>
+<li><strong>Cached on disk</strong> under <code>~/.cache/puremacro</code> (override with <code>PUREMACRO_HTTP_CACHE_DIR</code>), never inside the repository. A re-run only re-sends what failed. Pass <code>refresh=True</code> to get the latest release.</li>
+<li><strong>OECD pacing.</strong> Every OECD request goes through <code>puremacro.fetch._oecd_sdmx.oecd_csv</code>, which spaces calls (5 s by default), retries on HTTP 429 and caches the <code>csvfile</code> response.</li>
+</ul>
+<p>Coverage counts below were measured live on 7 October 2026.</p>
+<h2 id="world-bank-wdi-wdi_panel-puremacrofetchwdi">World Bank WDI: <code>wdi_panel</code> (<code>puremacro.fetch.wdi</code>)</h2>
+<p><code>wdi_panel(indicators=None, codes=None, *, start=1960, end=None, real=True, long=False, refresh=False, pause=1.0, timeout=120.0)</code> is the widest and longest free annual panel: the World Development Indicators for the 217 economies the World Bank lists (territories included), from 1960.</p>
+<ul>
+<li><strong>Units.</strong> Currency levels in millions of current LCU, persons in thousands, rates and indices as published.</li>
+<li><strong>Real and deflators.</strong> <code>real=True</code> adds <code>&lt;name&gt;_real</code> (constant LCU at each country's own base year, see <code>wdi_meta</code>) and <code>&lt;name&gt;_defl = 100 * nominal / real</code>, kept only where both levels are positive (masked cells are counted in <code>n_masked</code>). Sign-changing items (<code>inventories</code>, <code>stat_disc</code>, <code>taxes_prod</code>) get no deflator. The GDP deflator reproduces WDI's own to 1e-15. Chain-linked <code>_real</code> components do not add up.</li>
+<li><strong>Indicators.</strong> <code>None</code> pulls <code>WDI_CORE</code> (national accounts, population, the ILO labour block, PPP, exchange rate, CPI, private credit: 35 names, 51 requests, about 2.5 minutes cold). <code>"all"</code> pulls the whole <code>WDI_INDICATORS</code> registry (52 names). A mapping <code>{"name": "WDI.CODE"}</code> adds any raw code, unscaled.</li>
+<li><strong>attrs.</strong> <code>meta</code> has one dict per column (indicator, units, unit_mult, first, last, n, n_codes, <code>lastupdated</code>). Error bodies sent with HTTP 200 are re-fetched once, so a bad answer is not served from the 30-day cache.</li>
+<li><strong>Helpers.</strong> <code>wdi_countries()</code> (region, income group) and <code>wdi_meta()</code> (currency, base year, SNA vintage, fiscal-year notes).</li>
+<li><strong>Not in WDI.</strong> Durables, public GFCF (only <code>inv_priv</code>), capital stocks, hours, an employment level (use <code>lf * (1 - urate/100)</code>), economy-wide compensation, anything sub-annual.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.fetch.wdi</span><span class="w"> </span><span class="kn">import</span> <span class="n">wdi_panel</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">p</span> <span class="o">=</span> <span class="n">wdi_panel</span><span class="p">([</span><span class="s2">"gdp"</span><span class="p">,</span> <span class="s2">"pop"</span><span class="p">],</span> <span class="p">[</span><span class="s2">"MEX"</span><span class="p">,</span> <span class="s2">"USA"</span><span class="p">],</span> <span class="n">start</span><span class="o">=</span><span class="mi">1960</span><span class="p">)</span>
+</code></pre></div>
+<p>Source: World Bank WDI, API v2 source 2 (CC BY 4.0).</p>
+<h2 id="oecd-annual-national-accounts-ana_panel-puremacrofetchoecd_ana_panel">OECD annual national accounts: <code>ana_panel</code> (<code>puremacro.fetch.oecd_ana_panel</code>)</h2>
+<p><code>ana_panel(codes=None, *, start="1950", assets=False, durability=False, income=False, output=False, labor=False, sectors=False, stocks=False, real=True, long=False, refresh=False)</code> is the annual twin of <code>qna_panel</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.fetch</span><span class="w"> </span><span class="kn">import</span> <span class="n">ana_panel</span><span class="p">,</span> <span class="n">ana_countries</span><span class="p">,</span> <span class="n">ana_panel_meta</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">p</span> <span class="o">=</span> <span class="n">ana_panel</span><span class="p">([</span><span class="s2">"USA"</span><span class="p">,</span> <span class="s2">"FRA"</span><span class="p">,</span> <span class="s2">"MEX"</span><span class="p">],</span> <span class="n">start</span><span class="o">=</span><span class="s2">"1950"</span><span class="p">,</span> <span class="n">income</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">labor</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">p</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s2">"FRA"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"gdp"</span><span class="p">,</span> <span class="s2">"gdp_defl"</span><span class="p">,</span> <span class="s2">"gdp_real"</span><span class="p">,</span> <span class="s2">"mixed_income"</span><span class="p">,</span> <span class="s2">"hours"</span><span class="p">]]</span>
+</code></pre></div>
+<ul>
+<li><strong>Money</strong> in millions of national currency at current prices.</li>
+<li><strong><code>&lt;x&gt;_defl</code></strong> is <code>100 * V / LR</code> (2020 = 100), exactly the OECD's published deflator. <strong><code>&lt;x&gt;_real</code></strong> is the chain-linked volume at 2020 prices: <code>LR</code> where published, otherwise <code>L</code> rebased by <code>V/L</code> in 2020. Not additive outside 2020.</li>
+<li><strong>One table per series.</strong> Each (country, variable, price base) is read whole from T0102, else T0101, else T0103; <code>meta["tables_not_t0102"]</code> lists the exceptions (today only Russia's GDP volume).</li>
+</ul>
+<p>With <code>codes=None</code> the panel has 64 countries: 6 start before 1960, 12 before 1970, 34 before 1980 and 46 before 1995.</p>
+<table>
+<thead>
+<tr>
+<th>Switch</th>
+<th>Columns</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>(always)</td>
+<td>gdp, cons_hh, cons_gov, inv, capform, exports, imports, discrepancy_exp</td>
+<td>DSD_NAMAIN10 DF_TABLE1 (T0102)</td>
+</tr>
+<tr>
+<td><code>income</code></td>
+<td>comp_emp, surplus_mixed, taxes_prod_imp, subsidies, taxes_prod_imp_net, discrepancy_inc, gdp_income; surplus_gross, mixed_income, cfc, vat</td>
+<td>DF_TABLE1 (T0103); DSD_NASEC10 DF_TABLE14</td>
+</tr>
+<tr>
+<td><code>output</code></td>
+<td>gdp_output, va_total, va_agri, va_ind, va_mfg (memo), va_constr, va_trade, va_ict, va_fin, va_realest, va_prof, va_public, va_other, va_services, taxes_prod, discrepancy_out</td>
+<td>DF_TABLE1 (T0101)</td>
+</tr>
+<tr>
+<td><code>durability</code></td>
+<td>cons_dur, cons_semidur, cons_nondur, cons_serv (households, S14)</td>
+<td>DF_TABLE5A_T117, else DF_TABLE5_T117</td>
+</tr>
+<tr>
+<td><code>assets</code></td>
+<td>inv_dwell, inv_struct, inv_equip, inv_transp, inv_ict, inv_othmach, inv_bio, inv_ipp</td>
+<td>DF_TABLE1 (T0102)</td>
+</tr>
+<tr>
+<td><code>sectors</code></td>
+<td>inv_gov, inv_corp, inv_fin, inv_hh (S14, else S1M)</td>
+<td>DSD_NASEC10 DF_TABLE14_GFCF</td>
+</tr>
+<tr>
+<td><code>stocks</code></td>
+<td>k_net, k_gross (with volumes), k_net_gov</td>
+<td>DF_TABLE9A; DSD_NASEC10 DF_TABLE9B</td>
+</tr>
+<tr>
+<td><code>labor</code></td>
+<td>emp, emp_employees, emp_selfemp, hours, hours_employees, hours_selfemp (each also <code>_agri</code>, <code>_public</code>); pop</td>
+<td>DF_TABLE3_EMPDC; DF_TABLE3_POP_EMPNC</td>
+</tr>
+</tbody>
+</table>
+<p>Income, sectors, <code>k_net_gov</code>, labour and population are current-price or count blocks and get no deflator.</p>
+<p><code>attrs</code>: <code>meta</code> (one dict per country, read with <code>ana_panel_meta</code>: currency, years, volume base, durability table, <code>inv_hh</code> sector, hours scale, absent columns), <code>variables</code> (one dict per column: flow, units, description, coverage, SDMX keys), <code>missing</code> (failures a re-run can fix: 429s, timeouts, non-SDMX bodies, countries without GDP), <code>chunks_empty</code> (404s or empty answers a re-run cannot change) and <code>requests</code> (every request with its status and row count). Requests go in chunks of at most 10 countries; main, assets, income and output share one DF_TABLE1 request.</p>
+<p>Source: OECD SDMX, agency OECD.SDD.NAD.</p>
+<h2 id="oecd-quarterly-blocks-beside-qna_panel-puremacrofetchoecd_qna_extras">OECD quarterly blocks beside <code>qna_panel</code> (<code>puremacro.fetch.oecd_qna_extras</code>)</h2>
+<p>Four functions, each one call, each joining with <code>qna_panel</code> on the index.</p>
+<table>
+<thead>
+<tr>
+<th>function</th>
+<th>columns</th>
+<th>units</th>
+<th>coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>qna_sector_gfcf(codes=None, *, start="1947", sa="x13")</code></td>
+<td><code>inv_gov</code>, <code>inv_priv</code>, <code>inv_gov_real</code>, <code>inv_priv_real</code></td>
+<td>millions of national currency</td>
+<td>34 countries, USA from 1947Q1; volumes for 11</td>
+</tr>
+<tr>
+<td><code>qna_population(codes=None, *, start="1947")</code></td>
+<td><code>pop</code>, <code>emp_nc</code>, <code>emp_employees_nc</code>, <code>emp_selfemp_nc</code></td>
+<td>thousands of persons</td>
+<td>pop 43 (USA from 1947), employment 40 (from 1980)</td>
+</tr>
+<tr>
+<td><code>oecd_lfs_panel(codes=None, *, freq="Q", start="1950")</code></td>
+<td><code>urate</code>, <code>urate_1564</code>, <code>emp_lfs</code>, <code>lf</code>, <code>wap</code>, <code>wap_1564</code>, <code>prate_1564</code>, <code>epop_1564</code></td>
+<td>thousands / percent</td>
+<td>45 countries from 1955; <code>freq="M"</code> for monthly</td>
+</tr>
+<tr>
+<td><code>oecd_vacancies(codes=None, *, freq="Q", start="1950")</code></td>
+<td><code>vacancies</code>, <code>vacancies_new</code>, <code>reg_unemp</code></td>
+<td>thousands of persons</td>
+<td>18 with vacancies (DEU from 1955), 29 with registered unemployment</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Sources.</strong> Government investment comes from <code>DF_QNA_EXPENDITURE_GFCF_SECTOR</code> (S13, S1W) where published, otherwise from the quarterly sector accounts <code>DF_QSA</code> (private = S1 less S13); <code>attrs["meta"]["source"]</code> says which. <code>urate</code> is the harmonised rate (<code>UNE_LF_M</code>), else the survey rate (<code>UNE_LF</code>) for BRA, RUS, ZAF and a few others. Vacancies are levels only (<code>TRANSFORMATION=_Z</code>).</li>
+<li><strong>Seasonal adjustment.</strong> The OECD's adjusted series where published. <code>qna_sector_gfcf(sa="x13")</code> adjusts the rest with <code>qna_panel</code>'s X-13 path (<code>sa="prefer"</code> leaves them raw); the other blocks fall back to unadjusted. <code>attrs["meta"]["sa"]</code> records <code>oecd</code>, <code>puremacro</code>, <code>none</code> or <code>mixed</code> per country and variable.</li>
+<li><strong>Failures.</strong> <code>attrs["missing"]</code> lists every (country, variable) pair not obtained, with <code>"not published"</code> or e.g. <code>"HTTP 429 on &lt;flow&gt;"</code>; <code>attrs["requests"]</code> logs each request, including the availability call. <code>qna_extras_meta(panel)</code> tabulates <code>meta</code>. Every call accepts <code>refresh=True</code>.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.fetch</span><span class="w"> </span><span class="kn">import</span> <span class="n">qna_panel</span><span class="p">,</span> <span class="n">qna_countries</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.fetch.oecd_qna_extras</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="n">qna_sector_gfcf</span><span class="p">,</span> <span class="n">qna_population</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>                                             <span class="n">oecd_lfs_panel</span><span class="p">,</span> <span class="n">oecd_vacancies</span><span class="p">)</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">codes</span> <span class="o">=</span> <span class="n">qna_countries</span><span class="p">()</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">quarterly</span> <span class="o">=</span> <span class="n">qna_panel</span><span class="p">(</span><span class="n">codes</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">qna_sector_gfcf</span><span class="p">(</span><span class="n">codes</span><span class="p">),</span> <span class="n">qna_population</span><span class="p">(</span><span class="n">codes</span><span class="p">),</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>                                   <span class="n">oecd_lfs_panel</span><span class="p">(</span><span class="n">codes</span><span class="p">),</span> <span class="n">oecd_vacancies</span><span class="p">(</span><span class="n">codes</span><span class="p">)],</span> <span class="n">how</span><span class="o">=</span><span class="s2">"outer"</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="oecd-monthly-short-term-indicators-stes_panel-puremacrofetchoecd_stes_panel">OECD monthly short-term indicators: <code>stes_panel</code> (<code>puremacro.fetch.oecd_stes_panel</code>)</h2>
+<p><code>stes_panel(codes=None, *, concepts=None, start="1950", refresh=False, pause=5.0, retries=3, retry_sleep=90.0)</code> returns 31 monthly concepts in levels, as the OECD publishes them: indices (2015 = 100; surveys and the CLI long-run average = 100), percentages, LCU per USD, persons in thousands. Logs, growth rates and seasonal adjustment of the NSA series (CPI, money, <code>urate_nsa</code>) are left to the user. The default <code>start="1950"</code> cuts US industrial production (from 1919) and Canadian CPI (from 1914); pass <code>start="1900"</code> for the full history.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.fetch</span><span class="w"> </span><span class="kn">import</span> <span class="n">stes_panel</span><span class="p">,</span> <span class="n">stes_meta</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">m</span> <span class="o">=</span> <span class="n">stes_panel</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="s2">"1900"</span><span class="p">,</span> <span class="n">pause</span><span class="o">=</span><span class="mf">8.0</span><span class="p">)</span>            <span class="c1"># every economy, all 31 concepts, full history</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">m</span> <span class="o">=</span> <span class="n">stes_panel</span><span class="p">([</span><span class="s2">"USA"</span><span class="p">,</span> <span class="s2">"MEX"</span><span class="p">],</span> <span class="n">concepts</span><span class="o">=</span><span class="p">[</span><span class="s2">"ip"</span><span class="p">,</span> <span class="s2">"cpi"</span><span class="p">,</span> <span class="s2">"rate_3m"</span><span class="p">,</span> <span class="s2">"urate"</span><span class="p">])</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">stes_meta</span><span class="p">(</span><span class="n">m</span><span class="p">)[[</span><span class="s2">"concept"</span><span class="p">,</span> <span class="s2">"unit"</span><span class="p">,</span> <span class="s2">"n_countries"</span><span class="p">,</span> <span class="s2">"first"</span><span class="p">,</span> <span class="s2">"last"</span><span class="p">,</span> <span class="s2">"stale_countries"</span><span class="p">]]</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>group</th>
+<th>concepts</th>
+<th>flow</th>
+<th>coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>production</td>
+<td>ip, ip_mfg, ip_constr, retail_vol (SA)</td>
+<td>STES <code>DF_INDSERV</code></td>
+<td>ip 41 economies, USA from 1919</td>
+</tr>
+<tr>
+<td>markets</td>
+<td>rate_on, rate_3m, rate_10y (% p.a.), share_price, reer_cpi</td>
+<td>STES <code>DF_FINMARK</code></td>
+<td>43-47</td>
+</tr>
+<tr>
+<td>exchange rate</td>
+<td>fx_usd (LCU/USD, euro members spliced to EUR)</td>
+<td>STES <code>DF_KEI</code></td>
+<td>46, no USA</td>
+</tr>
+<tr>
+<td>surveys</td>
+<td>bci, cci, cli (amplitude adjusted)</td>
+<td>STES <code>DF_CLI</code></td>
+<td>46 / 41 / 17</td>
+</tr>
+<tr>
+<td>money</td>
+<td>m1, m3 (NSA index)</td>
+<td>STES <code>DF_MONAGG</code></td>
+<td>29; no individual euro member (ask for <code>"EA20"</code>)</td>
+</tr>
+<tr>
+<td>labour</td>
+<td>urate, urate_nsa; emp, lf, prate, epop</td>
+<td>TPS <code>DF_IALFS_UNE_M</code>, <code>DF_IALFS_INDIC</code></td>
+<td>39; about 10 for monthly LFS levels</td>
+</tr>
+<tr>
+<td>registers</td>
+<td>vacancies, reg_unemp (thousands, SA)</td>
+<td>TPS <code>DF_OIALAB_INDIC</code></td>
+<td>17 / 27</td>
+</tr>
+<tr>
+<td>prices</td>
+<td>cpi, cpi_food, cpi_energy, cpi_core; hicp, hicp_food, hicp_energy, hicp_core (NSA)</td>
+<td>TPS COICOP 2018, then COICOP 1999</td>
+<td>46/45/39/40; 30 each</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Consumer prices.</strong> EU/EEA countries moved to COICOP 2018 in January 2026 and their COICOP-1999 series stop at 2025-12. Each price column takes COICOP 2018 first and fills from COICOP 1999 month by month, ratio-splicing earlier months onto the 2018 level. Gaps are large only where an aggregate was redrawn (BGR energy 13%, NLD core 5%, BGR core 4%). HICP takes the 1999 flow only for EU, CHE, GBR, ISL, NOR and TUR. <code>stes_meta(m)</code> lists <code>countries_fallback</code>, <code>splice_factors</code> and <code>stale_countries</code> (series ending more than six months early: national CPI for AUT, POL, SVK at 2025-12 and RUS at 2022-03, ZAF core at 2024-12, ISL HICP).</li>
+<li><strong>Failures.</strong> Failed concepts go to <code>attrs["missing"]</code>; a requested country without data appears as <code>"concept:CODE"</code>. If a price column's COICOP-2018 request fails the column is dropped, not built from 1999 alone; if only the fallback fails it is kept and flagged (<code>"cpi@DF_PRICES_ALL"</code>). While the OECD throttles, a full call can block 30-45 minutes; <code>retries=1</code> fails fast.</li>
+</ul>
+<p>Source: OECD SDMX API (<code>sdmx.oecd.org</code>).</p>
+<h2 id="eurostat-eurostat_na_panel-and-eurostat_monthly_panel-puremacrofetcheurostat">Eurostat: <code>eurostat_na_panel</code> and <code>eurostat_monthly_panel</code> (<code>puremacro.fetch.eurostat</code>)</h2>
+<p>The longest European national accounts (France and Norway from 1975, French sector accounts from 1949), the Balkan and Eastern-partnership reporters, and monthly indicators the OECD flows lack.</p>
+<ul>
+<li><code>eurostat_na_panel(codes=None, *, freq="A", start=None, durability=False, assets=False, output=False, income=False, labor=False, sectors=False, capital=False, real=True, sa="prefer", refresh=False, timeout=120.0)</code></li>
+<li><code>eurostat_monthly_panel(codes=None, *, start=None, variables=None, refresh=False, timeout=120.0)</code></li>
+<li>Building blocks: <code>eurostat_get(flow, key, ...)</code>, <code>eurostat_codes(flow)</code>, <code>eurostat_meta(panel)</code>.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.fetch.eurostat</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="n">eurostat_na_panel</span><span class="p">,</span> <span class="n">eurostat_monthly_panel</span><span class="p">,</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>                                      <span class="n">eurostat_meta</span><span class="p">,</span> <span class="n">eurostat_get</span><span class="p">,</span> <span class="n">eurostat_codes</span><span class="p">)</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">a</span> <span class="o">=</span> <span class="n">eurostat_na_panel</span><span class="p">()</span>                     <span class="c1"># 41 countries, 1975-2025, gdp ... imports + _real + _defl</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">q</span> <span class="o">=</span> <span class="n">eurostat_na_panel</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="s2">"Q"</span><span class="p">)</span>             <span class="c1"># 39 countries, SCA &gt; SA &gt; NSA per country</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">full</span> <span class="o">=</span> <span class="n">eurostat_na_panel</span><span class="p">([</span><span class="s2">"DEU"</span><span class="p">,</span> <span class="s2">"FRA"</span><span class="p">],</span> <span class="n">durability</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">assets</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>                         <span class="n">income</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">labor</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">sectors</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">capital</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">m</span> <span class="o">=</span> <span class="n">eurostat_monthly_panel</span><span class="p">(</span><span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="s2">"cpi"</span><span class="p">,</span> <span class="s2">"cpi_core"</span><span class="p">,</span> <span class="s2">"urate"</span><span class="p">])</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="n">eurostat_meta</span><span class="p">(</span><span class="n">full</span><span class="p">)</span>                         <span class="c1"># one row per country and variable</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>flag</th>
+<th>columns</th>
+<th>flow (annual / quarterly)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>(always)</td>
+<td>gdp cons_hh cons_gov inv capform exports imports</td>
+<td>nama_10_gdp / namq_10_gdp</td>
+</tr>
+<tr>
+<td>income</td>
+<td>comp_emp surplus_mixed taxes_prod_imp subsidies taxes_products subsidies_prod taxes_prod; annual: mixed_income surplus_gross cfc</td>
+<td>nama_10_gdp + nasa_10_nf_tr / namq_10_gdp</td>
+</tr>
+<tr>
+<td>durability</td>
+<td>cons_dur cons_semidur cons_nondur cons_serv</td>
+<td>nama_10_fcs / namq_10_fcs</td>
+</tr>
+<tr>
+<td>assets</td>
+<td>inv_dwell inv_struct inv_constr inv_equip inv_ipp</td>
+<td>nama_10_an6 / namq_10_an6</td>
+</tr>
+<tr>
+<td>output</td>
+<td>va_total va_services va_agri va_ind va_mfg va_constr va_trade va_info va_fin va_realestate va_business va_public va_other</td>
+<td>nama_10_a10 / namq_10_a10</td>
+</tr>
+<tr>
+<td>labor</td>
+<td>emp emp_employees emp_selfemp (thousands) hours (millions) pop</td>
+<td>nama_10_a10_e + nama_10_pe / namq_ twins</td>
+</tr>
+<tr>
+<td>sectors</td>
+<td>inv_corp inv_fin inv_hh inv_gov</td>
+<td>nasa_10_nf_tr + gov_10a_main / nasq_10_nf_tr + gov_10q_ggnfa</td>
+</tr>
+<tr>
+<td>capital (annual)</td>
+<td>k_net k_dwell k_struct k_equip k_ipp k_gross</td>
+<td>nama_10_nfa_st</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Units.</strong> Millions of national currency; for euro members that is euro over the whole history, so there is no break at adoption. <code>_real</code> is chain-linked volumes with reference year 2020 (2015 where 2020 is not published, e.g. the United Kingdom); <code>_defl</code> is 100 in the reference year.</li>
+<li><strong>Columns always present.</strong> The frame carries every requested column, all-NaN when nothing came back, so <code>df["gdp"]</code> never raises.</li>
+<li><strong>Failures</strong> (timeout, 5xx, dropped connection, truncated download, expired async job) give an empty frame, a warning and the reason in <code>missing</code>. Each request leaves the country dimension open, so any subset of countries reuses the same cached download.</li>
+</ul>
+<h2 id="imf-puremacrofetchimf">IMF: <code>puremacro.fetch.imf</code></h2>
+<p>The IMF serves its data at <code>api.imf.org/external/sdmx/2.1</code>. The old IFS host (<code>dataservices.imf.org</code>) is gone and <code>sdmxcentral.imf.org</code> answers data queries with 501. Every function below also takes <code>refresh=False</code>.</p>
+<table>
+<thead>
+<tr>
+<th>function</th>
+<th>returns</th>
+<th>coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>imf_nea_panel(codes=None, *, freq="A"\|"Q", sa="SA", real=True, start=None)</code></td>
+<td><code>gdp, cons, cons_gov, cons_hh, cons_priv, inv, capform, inventories, exports, imports</code> + <code>_real</code>, <code>_defl</code></td>
+<td>A: 188 economies, 1950-2026; Q SA: 66</td>
+</tr>
+<tr>
+<td><code>imf_monthly_panel(codes=None, *, variables=None, start=None)</code></td>
+<td><code>cpi, cpi_food, cpi_housing, cpi_transport, ip, ip_sa, ip_mfg, urate, emp, lf, policy_rate, mm_rate, tbill_rate, bond_yield, discount_rate, deposit_rate, lending_rate, neer, reer, fx_usd, fx_usd_eop</code></td>
+<td>CPI: 191 economies from 1914; fx: 222 from 1940</td>
+</tr>
+<tr>
+<td><code>imf_labour_panel(codes=None, *, freq="A"\|"Q"\|"M", start=None)</code></td>
+<td><code>urate, emp, lf, unemp</code></td>
+<td>A: emp 190, lf 189</td>
+</tr>
+<tr>
+<td><code>imf_pcps(*, freq="M", start=None)</code></td>
+<td><code>pcom_all, pcom_energy, poil, pcopper, ...</code> + <code>&lt;code&gt;_idx</code> / <code>&lt;code&gt;_usd</code></td>
+<td>188 series from 1992, code <code>WLD</code></td>
+</tr>
+<tr>
+<td><code>imf_weo(codes=None, *, indicators=None, start=None, vintage=None, history_only=False)</code></td>
+<td>17 named WEO series + <code>forecast</code> flag</td>
+<td>197 economies, 1980-2031</td>
+</tr>
+<tr>
+<td><code>imf_icsd(codes=None, *, start=None)</code></td>
+<td><code>inv_gov, inv_priv, k_gov, k_priv, k_pubpriv, gdp</code> (current prices) + <code>_ppp</code>, <code>_gdp</code> variants</td>
+<td>194 economies, 1960-2019</td>
+</tr>
+<tr>
+<td><code>imf_get(flow, key="all", ...)</code>, <code>imf_dataflows()</code>, <code>imf_meta(panel)</code></td>
+<td>raw SDMX-CSV; flow catalogue; metadata table</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Units.</strong> National-currency levels in millions (ICSD's billions are multiplied by 1000), persons in thousands, rates, indices and prices as published. Each <code>attrs["meta"]</code> row gives <code>unit_mult</code> and <code>scale</code> (the factor applied).</li>
+<li><strong>Placeholder zeros.</strong> Some flows publish exact zeros where there are no data (Burkina Faso's expenditure side for 1952-1998, capital stocks of economies ICSD does not cover). They are set to missing and counted in <code>attrs["zeros_dropped"]</code>. Zeros that can be true (inventory changes, the PPP capital stock, unemployment, interest rates) are kept.</li>
+<li><strong>Prices and volumes.</strong> <code>_real</code> is at constant prices of each country's own reference year, mostly chain-linked, so components do not add up. <code>_defl = 100 * nominal / real</code> has that base, which is not always in the sample (BRA, ECU and AUS never come near 100): rebase before comparing levels across countries. <code>cons_hh</code> is households only (67 economies); for households plus NPISH use <code>cons_priv = cons - cons_gov</code>.</li>
+<li><strong>Codes.</strong> IMF group codes (<code>G001</code>, <code>G163</code>, ...) are dropped via <code>IMF_AGGREGATES</code>; <code>KOS</code> becomes <code>XKX</code>, <code>WBG</code> becomes <code>PSE</code>; historical economies (<code>SUN</code>, <code>YUG</code>, ...) are kept.</li>
+<li><strong>WEO.</strong> History ends separately for each country and indicator (<code>LATEST_ACTUAL_ANNUAL_DATA</code>); Argentina's population is projected after 2010 while its GDP is actual to 2025. <code>forecast</code> follows real GDP. <code>history_only=True</code> cuts every column at its own boundary, which is what you want to freeze history. Fiscal years follow the IMF's mapping (India FY2024/25 is 2024, Pakistan FY2024/25 is 2025).</li>
+<li><strong>Time budget.</strong> Each request is retried 3 times (up to 180 s each). <code>imf_monthly_panel</code> stops after two flows fail in a row, so a dead API costs about 25 minutes at worst.</li>
+<li><strong>Not in the IMF flows.</strong> The income side, durables, GFCF by asset, hours, core or energy CPI, money-market tenors: use the OECD, Eurostat or ILO fetchers.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.fetch.imf</span><span class="w"> </span><span class="kn">import</span> <span class="n">imf_nea_panel</span><span class="p">,</span> <span class="n">imf_monthly_panel</span><span class="p">,</span> <span class="n">imf_weo</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">a</span> <span class="o">=</span> <span class="n">imf_nea_panel</span><span class="p">()</span>                                   <span class="c1"># 188 economies, annual</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">q</span> <span class="o">=</span> <span class="n">imf_nea_panel</span><span class="p">([</span><span class="s2">"USA"</span><span class="p">,</span> <span class="s2">"MEX"</span><span class="p">,</span> <span class="s2">"KOR"</span><span class="p">],</span> <span class="n">freq</span><span class="o">=</span><span class="s2">"Q"</span><span class="p">)</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">m</span> <span class="o">=</span> <span class="n">imf_monthly_panel</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">1990</span><span class="p">)</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">hist</span> <span class="o">=</span> <span class="n">imf_weo</span><span class="p">(</span><span class="n">history_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>                     <span class="c1"># WEO history only, per-column boundaries</span>
+</code></pre></div>
+<h2 id="bis-bis_panel-puremacrofetchbis">BIS: <code>bis_panel</code> (<code>puremacro.fetch.bis</code>)</h2>
+<p><code>bis_panel(codes=None, *, variables=None, freq="M", start=None, aggregates=False, refresh=False)</code>. Each variable is one gzip request covering every economy. Also: <code>bis_eer(kind="real", basket="broad", *, freq="M", ...)</code>, <code>bis_get(flow, key, ...)</code>, <code>bis_countries(flow)</code>, <code>bis_meta(panel)</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.fetch.bis</span><span class="w"> </span><span class="kn">import</span> <span class="n">bis_panel</span><span class="p">,</span> <span class="n">bis_eer</span><span class="p">,</span> <span class="n">bis_countries</span><span class="p">,</span> <span class="n">bis_meta</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">m</span> <span class="o">=</span> <span class="n">bis_panel</span><span class="p">()</span>                                    <span class="c1"># monthly, every economy, full history</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">q</span> <span class="o">=</span> <span class="n">bis_panel</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="s2">"Q"</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="s2">"1960"</span><span class="p">)</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">a</span> <span class="o">=</span> <span class="n">bis_panel</span><span class="p">([</span><span class="s2">"GBR"</span><span class="p">,</span> <span class="s2">"USA"</span><span class="p">],</span> <span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="s2">"cpi_a"</span><span class="p">,</span> <span class="s2">"policy_rate"</span><span class="p">],</span> <span class="n">freq</span><span class="o">=</span><span class="s2">"A"</span><span class="p">)</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>variable</th>
+<th>BIS flow / key</th>
+<th>native freq</th>
+<th>units</th>
+<th>economies</th>
+<th>from</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>neer, reer</td>
+<td>WS_EER <code>M.N.B</code> / <code>M.R.B</code></td>
+<td>M</td>
+<td>index 2020=100</td>
+<td>63</td>
+<td>1994-01</td>
+</tr>
+<tr>
+<td>neer_narrow, reer_narrow</td>
+<td>WS_EER <code>M.N.N</code> / <code>M.R.N</code></td>
+<td>M</td>
+<td>index 2020=100</td>
+<td>25 / 26</td>
+<td>1964-01</td>
+</tr>
+<tr>
+<td>policy_rate</td>
+<td>WS_CBPOL <code>M</code></td>
+<td>M</td>
+<td>% p.a., end of period</td>
+<td>48</td>
+<td>1945-01</td>
+</tr>
+<tr>
+<td>cpi</td>
+<td>WS_LONG_CPI <code>M.*.628</code></td>
+<td>M</td>
+<td>index 2010=100</td>
+<td>62</td>
+<td>1913-01</td>
+</tr>
+<tr>
+<td>xr_usd, xr_usd_eop</td>
+<td>WS_XRU <code>M.*..A</code> / <code>..E</code></td>
+<td>M</td>
+<td>national currency per USD</td>
+<td>189</td>
+<td>1791 / 1900</td>
+</tr>
+<tr>
+<td>credit_gdp, credit_bank_gdp, credit_hh_gdp, credit_nfc_gdp, credit_gov_gdp</td>
+<td>WS_TC <code>Q.*.{P,P,H,N,G}.{A,B,A,A,A}.{M,M,M,M,N}.770.A</code></td>
+<td>Q</td>
+<td>% of GDP</td>
+<td>43 (gov 42)</td>
+<td>1947Q4</td>
+</tr>
+<tr>
+<td>credit, credit_usd</td>
+<td>WS_TC <code>Q.*.P.A.M.XDC.A</code> / <code>USD</code></td>
+<td>Q</td>
+<td>millions of national currency / USD</td>
+<td>43</td>
+<td>1940Q2</td>
+</tr>
+<tr>
+<td>credit_gap, credit_trend</td>
+<td>WS_CREDIT_GAP <code>Q.*.P.A.C</code> / <code>.B</code></td>
+<td>Q</td>
+<td>pp of GDP / % of GDP</td>
+<td>43</td>
+<td>1957Q4</td>
+</tr>
+<tr>
+<td>house_price, house_price_real</td>
+<td>WS_SPP <code>Q.*.N.628</code> / <code>R.628</code></td>
+<td>Q</td>
+<td>index 2010=100</td>
+<td>about 57</td>
+<td>1927Q1</td>
+</tr>
+<tr>
+<td>dsr, dsr_hh, dsr_nfc</td>
+<td>WS_DSR <code>Q.*.P</code> / <code>H</code> / <code>N</code></td>
+<td>Q</td>
+<td>% of income</td>
+<td>about 31 / 17</td>
+<td>1999Q1</td>
+</tr>
+<tr>
+<td>cpi_a</td>
+<td>WS_LONG_CPI <code>A.*.628</code></td>
+<td>A</td>
+<td>index 2010=100</td>
+<td>62</td>
+<td>1661</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Frequency.</strong> The BIS publishes only the native frequencies above; a coarser <code>freq</code> is built here. Policy rate, end-of-period exchange rate and credit stocks and ratios take the last sub-period; indices, average exchange rate, house prices and DSR take the mean of a complete period. An incomplete current quarter or year is left out, not averaged over the months available.</li>
+<li><strong>Aggregates.</strong> <code>EA</code> and the other BIS aggregates (EME, ADV, ALL, G20, WLD, WAEMU) are dropped by default so cross-country means never count euro members twice; one named in <code>codes</code> is kept, and <code>aggregates=True</code> keeps all. Economy counts above exclude <code>EA</code>.</li>
+<li><strong>Euro-area policy rate.</strong> National series end in 1998-12 (Greece 2000-12) and <code>EA</code> starts in 1999-01; splice them yourself, e.g. <code>pd.concat([p.loc["DEU"][:"1998-12"], p.loc["EA"]["1999-01":]])</code>.</li>
+<li><strong>Dates.</strong> The date level is <code>datetime64[ns]</code>, except in panels holding <code>cpi_a</code> before 1678 (the UK from 1661), which are <code>datetime64[us]</code>.</li>
+<li><strong>Metadata.</strong> <code>attrs["meta"]</code> gives flow, key, units, unit_mult, sa, first, last and n per code and variable. <code>attrs["missing"]</code> also lists requested codes a flow does not cover (Mexico has no narrow nominal NEER).</li>
+</ul>
+<p>Source: BIS statistics SDMX API v2, https://stats.bis.org/api/v2.</p>
+<h2 id="rates-yields-stocks-and-commodities-puremacrofetchrates">Rates, yields, stocks and commodities (<code>puremacro.fetch.rates</code>)</h2>
+<ul>
+<li><code>rates_panel(codes=None, *, start="1950", variables=("rate_on", "rate_3m", "yield_10y", "yield_corp_aaa", "yield_corp_baa"), refresh=False)</code></li>
+<li><code>stock_index_monthly(codes=None, *, start=None, refresh=False)</code></li>
+<li><code>commodity_prices_monthly(*, start=None, refresh=False)</code></li>
+<li>Building blocks: <code>fetch_fred_many(ids)</code> (one request per id) and <code>ecb_get(flow, key, start=, end=, last_n=)</code> (one ECB Data Portal query).</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.fetch.rates</span><span class="w"> </span><span class="kn">import</span> <span class="n">rates_panel</span><span class="p">,</span> <span class="n">stock_index_monthly</span><span class="p">,</span> <span class="n">commodity_prices_monthly</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">r</span>   <span class="o">=</span> <span class="n">rates_panel</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="s2">"1900"</span><span class="p">)</span>                      <span class="c1"># 47 countries, (code, date) monthly</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">r10</span> <span class="o">=</span> <span class="n">rates_panel</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="p">(</span><span class="s2">"yield_10y"</span><span class="p">,))</span>    <span class="c1"># 42 countries</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">px</span>  <span class="o">=</span> <span class="n">stock_index_monthly</span><span class="p">()</span>                          <span class="c1"># 34 countries, stock_idx + stock_idx_avg</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="n">cm</span>  <span class="o">=</span> <span class="n">commodity_prices_monthly</span><span class="p">()</span>                     <span class="c1"># WLD, 48 commodity_* columns, 1960-01..</span>
+</code></pre></div>
+<p><code>rates_panel</code> columns are percent per annum, monthly averages, NSA. The names match <code>stes_panel</code> and <code>eurostat</code> (<code>rate_on</code>, <code>rate_3m</code>), so the panels splice by column.</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>source (in order)</th>
+<th>coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rate_on</code></td>
+<td>FRED <code>IRSTCI01{CC}M156N</code>; euro members from entry: EONIA, then €STR from 2019-10</td>
+<td>46 countries; FRA, SWE from 1955</td>
+</tr>
+<tr>
+<td><code>rate_3m</code></td>
+<td>FRED <code>IR3TIB01{CC}M156N</code>; euro members from entry: 3-month EURIBOR; CZE, HUN, POL, ROU completed from ECB IRS</td>
+<td>45; CAN from 1956</td>
+</tr>
+<tr>
+<td><code>yield_10y</code></td>
+<td>FRED <code>IRLTLT01{CC}M156N</code>; ECB IRS 10-year (28 EU countries) fills gaps; ECB FM back-histories for USA (1900) and JPN (1972)</td>
+<td>42</td>
+</tr>
+<tr>
+<td><code>yield_corp_aaa</code>, <code>yield_corp_baa</code></td>
+<td>FRED <code>AAA</code>, <code>BAA</code> (Moody's)</td>
+<td>USA from 1919</td>
+</tr>
+<tr>
+<td><code>yield_corp_de</code> (opt-in)</td>
+<td>Bundesbank BBSIS X2000</td>
+<td>DEU from 1957</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Splices are visible.</strong> Every source leg used appears in <code>attrs["meta"]</code>. <code>attrs["complete"]</code> is <code>False</code> when a series some provider serves failed on this call (429, timeout); the ECB leg may then have stood in with a shorter history, so check <code>complete</code> before freezing a CSV.</li>
+<li><strong>Stocks.</strong> <code>stock_idx</code> is the Yahoo month-end close in local currency (from 1985 at the earliest); <code>stock_idx_avg</code> is the ECB monthly average (USA from 1964, JPN from 1972, <code>"EMU"</code> on request from 1986). Neither is STES <code>share_price</code>, a 2015 = 100 index of averages.</li>
+<li><strong>Commodities.</strong> The World Bank Pink Sheet, read with the standard library only; columns are prefixed <code>commodity_</code>, indices are <code>commodity_index_*</code> (2010 = 100).</li>
+<li><strong>Cache.</strong> 30-day TTL; a cached body that no longer parses is re-downloaded once automatically.</li>
+</ul>
+<h2 id="ilostat-ilostat_panel-puremacrofetchilostat">ILOSTAT: <code>ilostat_panel</code> (<code>puremacro.fetch.ilostat</code>)</h2>
+<p><code>ilostat_panel(codes=None, *, freq="A", variables=None, start=None, end=None, modelled=False, refresh=False, timeout=300.0, pause=3.0)</code> returns ILOSTAT's harmonised labour-force-survey series for every reporting economy.</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>ILOSTAT flow / MEASURE</th>
+<th>units</th>
+<th>freq</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>emp, une, lf, wap</td>
+<td>DF_EMP_TEMP / DF_UNE_TUNE / DF_EAP_TEAP / DF_POP_XWAP <code>_SEX_AGE_NB</code></td>
+<td>thousands of persons</td>
+<td>A Q M</td>
+</tr>
+<tr>
+<td>urate, prate, epop</td>
+<td>DF_UNE_DEAP / DF_EAP_DWAP / DF_EMP_DWAP <code>_SEX_AGE_RT</code></td>
+<td>percent</td>
+<td>A Q M</td>
+</tr>
+<tr>
+<td>emp_ees, emp_self</td>
+<td>DF_EMP_TEMP_SEX_STE_NB, STE_AGGREGATE_EES / _SLF</td>
+<td>thousands of persons</td>
+<td>A Q M</td>
+</tr>
+<tr>
+<td>hours</td>
+<td>DF_HOW_TEMP_SEX_NB</td>
+<td>hours per week per employed person</td>
+<td>A Q M</td>
+</tr>
+<tr>
+<td>informal_rate</td>
+<td>DF_EMP_NIFL_SEX_RT</td>
+<td>percent of employment</td>
+<td>A Q (M sparse)</td>
+</tr>
+<tr>
+<td>labour_share</td>
+<td>DF_LAP_2GDP_NOC_RT (ILO modelled)</td>
+<td>percent of GDP</td>
+<td>A</td>
+</tr>
+<tr>
+<td>*_model (<code>modelled=True</code>)</td>
+<td>DF_EMP_2EMP, DF_UNE_2EAP, DF_EAP_2EAP, DF_POP_2WAP, DF_EMP_2EMP_SEX_STE, DF_HOW_2EMP</td>
+<td>as above</td>
+<td>A</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Definitions.</strong> Every series is the 15+, both-sexes total, NSA except the EU monthly rates ILOSTAT relays from Eurostat SA (<code>meta[i]["sa"]</code>). Breaks (<code>OBS_STATUS == "B"</code>) stay in the data and are listed in <code>meta["breaks"]</code>.</li>
+<li><strong>Modelled projections are cut.</strong> The modelled flows publish unflagged projected years (two for emp/urate/lf/hours_model, five for wap_model, one for labour_share). Unless <code>end</code> is given they are cut back from each flow's last year, so a frozen panel does not depend on the build date; the cut is in <code>meta["trimmed_after"]</code>. <code>modelled=True</code> is annual only and raises <code>ValueError</code> at <code>freq="Q"</code>/<code>"M"</code> (the one deliberate raise).</li>
+<li><strong>Coverage.</strong> Annual emp: 226 economies (17 from before 1970, 165 from before 1995); urate 224; employees/self-employed 214; labour_share 189 (2004-2025). Quarterly urate: 122 economies from 1948Q1. USA annual from 1947; MEX annual from 1988 (lf/wap from 1960), quarterly from 1995Q2; ESP annual from 1969, quarterly from 1986Q2.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.fetch.ilostat</span><span class="w"> </span><span class="kn">import</span> <span class="n">ilostat_panel</span><span class="p">,</span> <span class="n">ilostat_meta</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">a</span> <span class="o">=</span> <span class="n">ilostat_panel</span><span class="p">()</span>                                   <span class="c1"># 12 survey variables, ~12 requests</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">q</span> <span class="o">=</span> <span class="n">ilostat_panel</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="s2">"Q"</span><span class="p">)</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">m</span> <span class="o">=</span> <span class="n">ilostat_panel</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="s2">"M"</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="p">(</span><span class="s2">"emp"</span><span class="p">,</span> <span class="s2">"une"</span><span class="p">,</span> <span class="s2">"urate"</span><span class="p">,</span> <span class="s2">"prate"</span><span class="p">))</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="n">x</span> <span class="o">=</span> <span class="n">ilostat_panel</span><span class="p">([</span><span class="s2">"MEX"</span><span class="p">,</span> <span class="s2">"USA"</span><span class="p">,</span> <span class="s2">"ESP"</span><span class="p">],</span> <span class="n">freq</span><span class="o">=</span><span class="s2">"A"</span><span class="p">,</span> <span class="n">modelled</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="n">self_share</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="s2">"emp_self"</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="s2">"emp_ees"</span><span class="p">]</span> <span class="o">+</span> <span class="n">a</span><span class="p">[</span><span class="s2">"emp_self"</span><span class="p">])</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="n">ilostat_meta</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s2">"urate"</span><span class="p">][</span><span class="s2">"breaks"</span><span class="p">]</span>
+</code></pre></div>
+<h2 id="penn-world-table-110-and-maddison-2023-puremacrofetchpwt">Penn World Table 11.0 and Maddison 2023 (<code>puremacro.fetch.pwt</code>)</h2>
+<p><code>fetch_pwt(table="main", *, version="11.0", codes=None, start=None, refresh=False, timeout=180.0)</code>, <code>fetch_maddison(codes=None, *, start=1950, refresh=False, timeout=180.0)</code> and <code>pwt_variables(table="main")</code> download the Stata files from DataverseNL. Each datafile id is an immutable release, so files are cached for ten years.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.fetch.pwt</span><span class="w"> </span><span class="kn">import</span> <span class="n">fetch_pwt</span><span class="p">,</span> <span class="n">fetch_maddison</span><span class="p">,</span> <span class="n">pwt_variables</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">main</span> <span class="o">=</span> <span class="n">fetch_pwt</span><span class="p">(</span><span class="s2">"main"</span><span class="p">)</span>      <span class="c1"># 185 economies, 1950-2023: rgdpe, rgdpna, pop, emp, hc, cn, rnna, labsh, ctfp, csh_*, pl_*</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="n">na</span>   <span class="o">=</span> <span class="n">fetch_pwt</span><span class="p">(</span><span class="s2">"na"</span><span class="p">)</span>        <span class="c1"># 212 economies with v_gdp: v_c v_i v_g v_x v_m v_gdp v_gfcf (millions of current national currency), q_* (constant 2021 prices)</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="n">cap</span>  <span class="o">=</span> <span class="n">fetch_pwt</span><span class="p">(</span><span class="s2">"capital"</span><span class="p">)</span>   <span class="c1"># Ic_/Ip_/Nc_/Np_/Dc_/Kc_/Kp_/Ksh_ by asset (Struc, Mach, TraEq, Other), 180 economies</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="n">lab</span>  <span class="o">=</span> <span class="n">fetch_pwt</span><span class="p">(</span><span class="s2">"labor"</span><span class="p">)</span>     <span class="c1"># comp_sh, lab_sh1..4 (Gollin adjustments), labsh, yr_sch, i_* source flags</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="n">trd</span>  <span class="o">=</span> <span class="n">fetch_pwt</span><span class="p">(</span><span class="s2">"trade"</span><span class="p">)</span>     <span class="c1"># pl_x1..6, pl_m1..6, csh_x1..6, csh_m1..6 (BEC categories)</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="n">mpd</span>  <span class="o">=</span> <span class="n">fetch_maddison</span><span class="p">()</span>       <span class="c1"># 169 economies, gdppc (2011 int. $), pop (thousands), annual from 1950; start=None goes back to 1 AD</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="n">pwt_variables</span><span class="p">(</span><span class="s2">"na"</span><span class="p">)</span>           <span class="c1"># published label | true units | note on stale labels</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>table</th>
+<th>file (datafile id)</th>
+<th>economies</th>
+<th>years</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>main</td>
+<td>pwt110.dta (554030)</td>
+<td>185</td>
+<td>1950-2023</td>
+</tr>
+<tr>
+<td>na</td>
+<td>pwt110_na_data.dta (554024)</td>
+<td>212 with v_gdp (216 codes)</td>
+<td>1950-2023 (avh to 2025)</td>
+</tr>
+<tr>
+<td>capital</td>
+<td>pwt110_capital_detail.dta (554026)</td>
+<td>180</td>
+<td>1950-2023</td>
+</tr>
+<tr>
+<td>labor</td>
+<td>pwt110_labor_detail.dta (554028)</td>
+<td>211 codes</td>
+<td>1950-2023 (avh to 2025)</td>
+</tr>
+<tr>
+<td>trade</td>
+<td>pwt110_trade_detail.dta (554023)</td>
+<td>185</td>
+<td>1950-2023</td>
+</tr>
+<tr>
+<td>Maddison</td>
+<td>maddison2023_web.dta (421303)</td>
+<td>169</td>
+<td>1-2022 (annual from 1950)</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Published column names</strong>, float64 values; the <code>i_*</code> flags are integer codes explained in <code>attrs["value_labels"]</code>.</li>
+<li><strong>The price base is 2021 everywhere</strong>, although some labels still say "2017 prices", "2017=1" or "USA GDPo in 2011=1"; <code>attrs["units"]</code> states the true base. Maddison <code>gdppc</code> is in 2011 international dollars.</li>
+<li><strong>C + I + G + X - M is not GDP</strong> in about a third of the national-accounts rows: use <code>v_gdp</code> as the denominator and never compute a component as a residual. <code>v_gfcf</code> is effectively a series from 1970.</li>
+<li><strong>Capital detail adds up to GFCF</strong> (<code>Ic_*</code> sum to <code>v_gfcf</code>) for 179 of 180 economies; for Taiwan the sum is 6-8% higher.</li>
+<li><strong>Employment is in millions in every table</strong> (the labor file's persons are rescaled).</li>
+<li><strong>Codes.</strong> <code>CH2</code> (PWT's alternative China) is dropped unless asked for. Former economies without GDP (<code>ANT</code>, <code>CSK</code>, <code>SUN</code>, <code>YUG</code> in <code>na</code>; <code>ANT</code> in <code>labor</code>) stay and are listed in <code>attrs["historical_entities"]</code>, so count economies with <code>v_gdp</code>, not with codes. Kosovo is <code>RKS</code> in PWT (<code>XKX</code> at the World Bank and IMF), flagged in <code>attrs["nonstandard_codes"]</code>: rename before merging.</li>
+<li><strong>Licence.</strong> Both are CC BY 4.0, so frozen CSVs may be shared; cite <code>attrs["citation"]</code>, and for Maddison follow <code>attrs["citation_policy"]</code> (cite the original sources when graphing or using fewer than 12 countries).</li>
+</ul>
+<p>Sources: Feenstra, Inklaar &amp; Timmer (2015), PWT 11.0, doi:10.34894/FABVLR; Bolt &amp; van Zanden (2024), MPD 2023, doi:10.34894/INZBF2.</p>
+<h2 id="which-call-for-which-concept">Which call for which concept</h2>
+<table>
+<thead>
+<tr>
+<th>frequency</th>
+<th>concept</th>
+<th>call</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>annual</td>
+<td>GDP and expenditure components</td>
+<td><code>wdi_panel</code>, <code>ana_panel</code>, <code>imf_nea_panel</code>, <code>eurostat_na_panel</code>, <code>fetch_pwt("na")</code></td>
+</tr>
+<tr>
+<td>annual</td>
+<td>long-run output, productivity, human capital</td>
+<td><code>fetch_pwt("main")</code>, <code>fetch_maddison</code></td>
+</tr>
+<tr>
+<td>annual</td>
+<td>public vs private investment, capital stocks</td>
+<td><code>ana_panel(sectors=True, stocks=True)</code>, <code>imf_icsd</code>, <code>eurostat_na_panel(sectors=True, capital=True)</code>, <code>fetch_pwt("capital")</code></td>
+</tr>
+<tr>
+<td>annual</td>
+<td>employment, hours, unemployment, labour share</td>
+<td><code>ana_panel(labor=True)</code>, <code>ilostat_panel</code>, <code>imf_labour_panel</code>, <code>fetch_pwt("labor")</code></td>
+</tr>
+<tr>
+<td>annual</td>
+<td>long CPI, credit, house prices</td>
+<td><code>bis_panel(freq="A")</code></td>
+</tr>
+<tr>
+<td>annual</td>
+<td>forecasts and frozen WEO history</td>
+<td><code>imf_weo</code></td>
+</tr>
+<tr>
+<td>quarterly</td>
+<td>GDP and expenditure components</td>
+<td><code>qna_panel</code>, <code>imf_nea_panel(freq="Q")</code>, <code>eurostat_na_panel(freq="Q")</code></td>
+</tr>
+<tr>
+<td>quarterly</td>
+<td>government vs private investment</td>
+<td><code>qna_sector_gfcf</code>, <code>eurostat_na_panel(freq="Q", sectors=True)</code></td>
+</tr>
+<tr>
+<td>quarterly</td>
+<td>population, employment, unemployment, vacancies</td>
+<td><code>qna_population</code>, <code>oecd_lfs_panel</code>, <code>oecd_vacancies</code>, <code>ilostat_panel(freq="Q")</code></td>
+</tr>
+<tr>
+<td>quarterly</td>
+<td>credit, credit gap, house prices, debt service</td>
+<td><code>bis_panel(freq="Q")</code></td>
+</tr>
+<tr>
+<td>monthly</td>
+<td>production, prices, confidence, money, labour</td>
+<td><code>stes_panel</code>, <code>imf_monthly_panel</code>, <code>eurostat_monthly_panel</code>, <code>ilostat_panel(freq="M")</code></td>
+</tr>
+<tr>
+<td>monthly</td>
+<td>policy and short rates, long and corporate yields</td>
+<td><code>rates_panel</code>, <code>bis_panel</code>, <code>stes_panel</code></td>
+</tr>
+<tr>
+<td>monthly</td>
+<td>exchange rates (bilateral, effective)</td>
+<td><code>bis_panel</code>, <code>bis_eer</code>, <code>imf_monthly_panel</code></td>
+</tr>
+<tr>
+<td>monthly</td>
+<td>stock and commodity prices</td>
+<td><code>stock_index_monthly</code>, <code>commodity_prices_monthly</code>, <code>imf_pcps</code></td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,10651 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Macroeconometrics and structural modeling on the core scientific-Python stack">
+      
+      
+        <meta name="author" content="puremacro contributors">
+      
+      
+        <link rel="canonical" href="https://jalonso1979.github.io/puremacro/docs/es/examples_gallery/">
+      
+      
+        <link rel="prev" href="../SIGNAL_CONTRACT/">
+      
+      
+        <link rel="next" href="../lexicon_review/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Galería de ejemplos - puremacro</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#galeria-de-ejemplos-de-puremacro" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="puremacro" class="md-header__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            puremacro
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Galería de ejemplos
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+  English Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  Documentación en Español
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="puremacro" class="md-nav__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    puremacro
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    English Documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    English Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../first_brief_tariffs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Your first policy brief
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tariff_validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tariff welfare validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../research_workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Research workflows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../research_reliability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Research reliability and next milestones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arellano_replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arellano original-code replication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../studies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reproducible studies and scenarios
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../study_workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runnable workflow templates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../result_audits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditing solved results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../result_audits_extended/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path audits and bounded refinement
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../performance_scaling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workload scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../empirical_research/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-data published replication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Showcase Notebooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Correctness advisories
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../STRUCTURAL_VALIDATION_STATUS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural validation status
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_17" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_17" id="__nav_1_17_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_17_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_17">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarterly National Accounts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-time data (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../real_time_latam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Latin America real-time connectors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Long national accounts panel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global Macro Data Ecosystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cross_country_panels/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-country macro panels
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../micro_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Source registry & survey microdata
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../text_analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Text as data (corpus, tokenizer, DTM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_18" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_18" id="__nav_1_18_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometric Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_18_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_18">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Econometric Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR & FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Narrative Sign Restrictions SVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR with Stochastic Volatility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smooth Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../distributional_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distributional & Quantile Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modern Difference-in-Differences
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Honest DiD Sensitivity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../causal_dml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Double / Debiased Machine Learning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dml_irm_iv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Double ML for Treatment Effects & IV (IRM & DML-IV)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Econometrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global VAR (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dependence_bootstrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dependence-aware bootstrap inference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Estimation & Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mcmc_diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Multichain MCMC diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../smc_inference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vectorized Tempered SMC & Marginal Likelihood
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GDP Nowcasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nowcast_latam_news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Latin America Real-Time Nowcasting & News
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Penalized Forecasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_19" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_19" id="__nav_1_19_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macro-finance
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_19_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_19">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Macro-finance
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../asset_pricing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Returns, risk and asset-pricing tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_20" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_20" id="__nav_1_20_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publication & Reporting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_20_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_20">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publication & Reporting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manuscript Tables & Exports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_21" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_21" id="__nav_1_21_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural Models
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_21_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_21">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Structural Models
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../structural_bridge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Empirical-to-structural estimation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sequence-Space HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hank_equilibrium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Published one-asset HANK equilibrium
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Non-Linear HANK Transitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hank_model_closure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Editable HANK equations and panels
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hank_ssj_and_aggregate_risk/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nonlinear HANK & 2nd-Order Aggregate Risk
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../monetary_transmission/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monetary Transmission Simulator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../policy_simulators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomic Policy Simulators & Browser Labs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gertler-Karadi (2011) DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sovereign_default/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quantitative Sovereign Default & Sudden Stops
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sovereign_extensions_validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sovereign extension validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sovereign_fiscal_rules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fiscal Block in a Sovereign Default Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../brief_sovereign_risk/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sovereign-risk policy brief
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Climate Macro (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Sketchpad & Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_mod_inspection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inspecting and running .mod commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Choosing a DSGE workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nonlinear models and ordered deterministic commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_transitions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Robust transitions and announced shocks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_global/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global policies and local accuracy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Higher-Order & Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Parity & Surface Area
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradients, NUTS & HANK Bridge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontier (Policy, DSGE-VAR & News)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Non-linear Particle Filtering & Regime Switching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_stacked_newton/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stacked-Time Newton-Krylov (Perfect Foresight)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_22" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_22" id="__nav_1_22_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Dynamic Programming & Projection Solvers
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_22_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_22">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Continuous Dynamic Programming & Projection Solvers
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Declarative dynamic programming (dp)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dp_modfiles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dynamic programming in .mod files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_continuous_projection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Projection Solvers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_splines_and_sparse_grids/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Splines & Sparse Grids
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dcegm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discrete Choice EGM (DC-EGM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_continuous_equilibrium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Distributions & General Equilibrium
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_hjb_continuous/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous-Time HJB & Adjoint KFE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_continuous_transition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Transition Dynamics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_analytic_gradients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parameter Gradients (IFT)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../autodiff_and_protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Forward AD & Differentiable Model Protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_23" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_23" id="__nav_1_23_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontier Macro & Spatial Economics
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_23_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_23">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Frontier Macro & Spatial Economics
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deep_macro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deep Macro & Neural Networks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../spatial_and_trade_ge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quantitative Spatial Economics & Gravity Trade GE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../network_spatial_climate_iam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Production Networks, Spatial Climate IAM & PolicyStudio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_accounting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Consistent trade accounting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_welfare/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hicksian consumption welfare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hicksian tariff policy and solver recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_continuation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parameter continuation and multistart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_stability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reduced local stability (experimental)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_household/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Household preferences and exact welfare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_distributional/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distributional household incidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_ces_newton/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exact CES block Newton
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_condensed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Condensed one-factor Leontief model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_mrio/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Native MRIO tables
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_dynamic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dynamic MRIO with sector-specific capital
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_gpu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GPU, MLX and batched Jacobians
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Anywhere (iPad / browser)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../local_llm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local language models (iPad, Mac, Windows, Linux, Colab)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance & Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_27" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_27" id="__nav_1_27_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_27_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_27">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation & goldens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../research_benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Independent research benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connector health
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cache database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signal contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexicon review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap and API policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentación en Español
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Documentación en Español
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio rápido
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../first_brief_tariffs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Su primer informe de política
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tariff_validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación del bienestar arancelario
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../research_workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Flujos de investigación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../research_reliability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fiabilidad de investigación y próximos hitos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arellano_replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replicación del código original de Arellano
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../studies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estudios y escenarios reproducibles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plantillas ejecutables
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../result_audits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditoría de resultados resueltos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../result_audits_extended/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditoría de trayectorias y refinamiento acotado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance_scaling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Escalamiento de cargas de trabajo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../empirical_research/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replicación publicada con datos reales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuadernos de demostración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avisos de corrección
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../STRUCTURAL_VALIDATION_STATUS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estado de validación estructural
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_17" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_17" id="__nav_2_17_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_17_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_17">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuentas nacionales trimestrales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos en tiempo real (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../real_time_latam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Conectores en tiempo real de América Latina
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panel largo de cuentas nacionales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ecosistema de datos macro globales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cross_country_panels/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paneles macro entre países
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../micro_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Registro de fuentes y microdatos de encuestas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../text_analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Texto como datos (corpus, tokenizador, DTM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_18" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_18" id="__nav_2_18_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motores econométricos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_18_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_18">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Motores econométricos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR y FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SVAR con restricciones narrativas de signo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR con volatilidad estocástica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales suavizadas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../distributional_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales distribucionales y cuantílicas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias en diferencias modernas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sensibilidad en DiD honesto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../causal_dml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aprendizaje automático doble / desesgado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dml_irm_iv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Doble ML para efectos de tratamiento e instrumentos (IRM y DML-IV)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometría espacial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR global (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dependence_bootstrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inferencia bootstrap con dependencia
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estimación y diagnósticos DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mcmc_diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnósticos MCMC entre cadenas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../smc_inference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inferencia SMC temperada y verosimilitud marginal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting del PIB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nowcast_latam_news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting en tiempo real de América Latina y descomposición de noticias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pronóstico penalizado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_19" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_19" id="__nav_2_19_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macrofinanzas
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_19_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_19">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Macrofinanzas
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../asset_pricing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendimientos, riesgo y pruebas de valoración de activos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_20" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_20" id="__nav_2_20_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publicación e informes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_20_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_20">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publicación e informes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tablas y exportación de manuscritos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_21" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_21" id="__nav_2_21_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos estructurales
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_21_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_21">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modelos estructurales
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../structural_bridge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estimación empírica-estructural
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HANK en el espacio de secuencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hank_equilibrium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Equilibrio HANK publicado de un activo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transiciones no lineales en HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hank_model_closure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ecuaciones HANK editables y paneles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hank_ssj_and_aggregate_risk/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HANK no lineal y riesgo agregado de 2.º orden
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../monetary_transmission/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Simulador de transmisión monetaria
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policy_simulators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Simuladores de política macroeconómica y laboratorios interactivos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de Gertler-Karadi (2011)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sovereign_default/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Default soberano cuantitativo y paradas repentinas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sovereign_extensions_validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación de extensiones soberanas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sovereign_fiscal_rules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloque fiscal en un modelo de impago soberano
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../brief_sovereign_risk/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Informe de política sobre riesgo soberano
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía del clima (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuaderno de bocetos DSGE y Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_mod_inspection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inspección y ejecución de comandos .mod
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Elegir un flujo DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos no lineales y comandos deterministas ordenados
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_transitions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transiciones robustas y anuncios de choques
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_global/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Políticas globales y precisión local
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de orden superior y restricciones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paridad y superficie operativa DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradientes, NUTS y Puente HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontera (Política, DSGE-VAR y Noticias)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Filtrado de Partículas No Lineal y Cambio de Régimen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_stacked_newton/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Newton-Krylov apilado en el tiempo (previsión perfecta)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_22" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_22" id="__nav_2_22_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Programación dinámica continua y solucionadores de proyección
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_22_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_22">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Programación dinámica continua y solucionadores de proyección
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Programación dinámica declarativa (dp)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dp_modfiles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Programación dinámica en archivos .mod
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_projection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solucionadores de proyección continua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_splines_and_sparse_grids/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Splines y mallas dispersas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dcegm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DC-EGM de elección discreta
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_equilibrium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distribuciones continuas y equilibrio general
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_hjb_continuous/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HJB en tiempo continuo y KFE adjunta
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_transition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dinámica de transición continua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_analytic_gradients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gradientes paramétricos (TFI)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../autodiff_and_protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Autodiferenciación forward y protocolo de modelos diferenciables
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_23" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_23" id="__nav_2_23_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía de frontera y economía espacial
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_23_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_23">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Macroeconomía de frontera y economía espacial
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deep_macro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deep Macro y redes neuronales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spatial_and_trade_ge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Economía espacial cuantitativa y GE de comercio con gravedad
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../network_spatial_climate_iam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Redes de producción, IAM climático espacial y PolicyStudio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_accounting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contabilidad comercial consistente
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_welfare/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bienestar hicksiano de consumo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Política arancelaria hicksiana y recuperación del solver
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_continuation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuación de parámetros y arranques múltiples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_stability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estabilidad local reducida (experimental)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_household/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Preferencias del hogar y bienestar exacto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_distributional/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incidencia distributiva en los hogares
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_ces_newton/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Newton por bloques exacto para CES
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_condensed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelo de Leontief condensado con un factor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_mrio/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tablas MRIO nativas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_dynamic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MRIO dinámico con capital específico por sector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_gpu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GPU, MLX y jacobianos por lotes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ejecución en cualquier entorno (iPad / navegador)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../local_llm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos de lenguaje locales (iPad, Mac, Windows, Linux, Colab)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendimiento y pruebas comparativas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_27" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_27" id="__nav_2_27_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_27_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_27">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de replicación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación y referencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../research_benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmarks independientes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estado de conectores
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credenciales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos de caché
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de señales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de ejemplos
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de ejemplos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#fail-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FAIL (1)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="FAIL (1)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#romer_romer_2010_replication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        romer_romer_2010_replication
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pass-85" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PASS (85)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PASS (85)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#anderson_rubin_weak_iv_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        anderson_rubin_weak_iv_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bandpass_cycles_comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bandpass_cycles_comparison
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#berkowitz_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        berkowitz_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bvar_fan_chart" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bvar_fan_chart
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#central_bank_narrative_sentiment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        central_bank_narrative_sentiment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#climate_dice_simulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        climate_dice_simulation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#climate_sovereign_debt_risk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        climate_sovereign_debt_risk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cointegration_johansen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cointegration_johansen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dcc_volatility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dcc_volatility
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dfm_bai_ng" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dfm_bai_ng
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dfm_nowcast_kalman" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dfm_nowcast_kalman
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#did_callaway_santanna_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        did_callaway_santanna_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#diebold_yilmaz_spillover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        diebold_yilmaz_spillover
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#distributional_trade_ge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        distributional_trade_ge
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsge_ar1_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dsge_ar1_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsge_markov_switching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dsge_markov_switching
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsge_news_shocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dsge_news_shocks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsge_nk_sketchpad" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dsge_nk_sketchpad
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsge_nuts_estimation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dsge_nuts_estimation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsge_optimal_discretion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dsge_optimal_discretion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsge_particle_filter_sv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dsge_particle_filter_sv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsge_rbc_klein" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dsge_rbc_klein
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsge_var_estimation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dsge_var_estimation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#empirical_benchmark_replications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        empirical_benchmark_replications
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exact_diffuse_kalman" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        exact_diffuse_kalman
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fetch_fred_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fetch_fred_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#first_brief_tariffs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        first_brief_tariffs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fm_ols_dols_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fm_ols_dols_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#forecast_density_eval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        forecast_density_eval
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gali_1999_hours" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gali_1999_hours
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#garch_midas_macro_volatility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        garch_midas_macro_volatility
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gfevd_spillover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gfevd_spillover
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gk_robust_from_gibbs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gk_robust_from_gibbs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gk_robust_signs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gk_robust_signs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#global_fiscal_stance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        global_fiscal_stance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#glp_lambda_search" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        glp_lambda_search
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hank_sequence_space" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hank_sequence_space
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hank_sequence_space_bridge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hank_sequence_space_bridge
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#har_realized_vol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        har_realized_vol
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hfi_gertler_karadi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hfi_gertler_karadi
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kilian_2009_oil" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kilian_2009_oil
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#la_lp_pmw_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        la_lp_pmw_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#labor_flows_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        labor_flows_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lp_asymmetric_tenreyro" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lp_asymmetric_tenreyro
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lp_smooth_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lp_smooth_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lwui_wage_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lwui_wage_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mcmc_diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mcmc_diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#midas_quarterly_monthly" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        midas_quarterly_monthly
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mle_sandwich_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mle_sandwich_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ms_var_business_cycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ms_var_business_cycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_bursts_and_transcripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_bursts_and_transcripts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_custom_corpus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_custom_corpus
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_g7_panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_g7_panel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_homogeneous_panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_homogeneous_panel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_indices_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_indices_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_llm_pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_llm_pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_local_llm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_local_llm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_multilingual_live" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_multilingual_live
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_ramey_2011" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_ramey_2011
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_romer_romer_2010" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_romer_romer_2010
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_sign_adrr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_sign_adrr
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_us_canonical_compare" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_us_canonical_compare
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#non_gaussian_svar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        non_gaussian_svar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nowcasting_gdp_news" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        nowcasting_gdp_news
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#penalized_macro_forecasting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        penalized_macro_forecasting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#posterior_predictive_fan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        posterior_predictive_fan
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ramey_zubairy_2018_multipliers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ramey_zubairy_2018_multipliers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#regime_workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        regime_workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#report_workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        report_workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shock_atlas_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        shock_atlas_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigma_decomposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sigma_decomposition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sign_restrictions_uhlig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sign_restrictions_uhlig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spectral_business_cycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spectral_business_cycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#structural_irf_matching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        structural_irf_matching
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#svariv_mertens_ravn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        svariv_mertens_ravn
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#synthetic_control_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        synthetic_control_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#synthetic_did_california_prop99" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        synthetic_did_california_prop99
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tvar_threshold_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tvar_threshold_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tvecm_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tvecm_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tvp_var_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tvp_var_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tvp_var_sv_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tvp_var_sv_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vintage_news_noise" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        vintage_news_noise
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vintage_revisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        vintage_revisions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vulnerable_growth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        vulnerable_growth
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wavelet_business_cycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        wavelet_business_cycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#skip-8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SKIP (8)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SKIP (8)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#asset_composition_dynamics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        asset_composition_dynamics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bloom2009" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bloom2009
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caldara_iacoviello" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        caldara_iacoviello
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#govt_vs_private_investment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        govt_vs_private_investment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lp_panel_dk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lp_panel_dk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_event_study" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_event_study
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_panel_lp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_panel_lp
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scf_aiyagari" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        scf_aiyagari
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revisión de léxico
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hoja de ruta y API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#fail-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FAIL (1)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="FAIL (1)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#romer_romer_2010_replication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        romer_romer_2010_replication
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pass-85" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PASS (85)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PASS (85)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#anderson_rubin_weak_iv_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        anderson_rubin_weak_iv_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bandpass_cycles_comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bandpass_cycles_comparison
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#berkowitz_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        berkowitz_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bvar_fan_chart" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bvar_fan_chart
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#central_bank_narrative_sentiment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        central_bank_narrative_sentiment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#climate_dice_simulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        climate_dice_simulation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#climate_sovereign_debt_risk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        climate_sovereign_debt_risk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cointegration_johansen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cointegration_johansen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dcc_volatility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dcc_volatility
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dfm_bai_ng" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dfm_bai_ng
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dfm_nowcast_kalman" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dfm_nowcast_kalman
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#did_callaway_santanna_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        did_callaway_santanna_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#diebold_yilmaz_spillover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        diebold_yilmaz_spillover
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#distributional_trade_ge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        distributional_trade_ge
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsge_ar1_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dsge_ar1_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsge_markov_switching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dsge_markov_switching
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsge_news_shocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dsge_news_shocks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsge_nk_sketchpad" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dsge_nk_sketchpad
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsge_nuts_estimation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dsge_nuts_estimation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsge_optimal_discretion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dsge_optimal_discretion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsge_particle_filter_sv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dsge_particle_filter_sv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsge_rbc_klein" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dsge_rbc_klein
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dsge_var_estimation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dsge_var_estimation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#empirical_benchmark_replications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        empirical_benchmark_replications
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exact_diffuse_kalman" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        exact_diffuse_kalman
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fetch_fred_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fetch_fred_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#first_brief_tariffs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        first_brief_tariffs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fm_ols_dols_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fm_ols_dols_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#forecast_density_eval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        forecast_density_eval
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gali_1999_hours" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gali_1999_hours
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#garch_midas_macro_volatility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        garch_midas_macro_volatility
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gfevd_spillover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gfevd_spillover
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gk_robust_from_gibbs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gk_robust_from_gibbs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gk_robust_signs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gk_robust_signs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#global_fiscal_stance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        global_fiscal_stance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#glp_lambda_search" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        glp_lambda_search
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hank_sequence_space" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hank_sequence_space
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hank_sequence_space_bridge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hank_sequence_space_bridge
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#har_realized_vol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        har_realized_vol
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hfi_gertler_karadi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hfi_gertler_karadi
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kilian_2009_oil" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kilian_2009_oil
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#la_lp_pmw_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        la_lp_pmw_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#labor_flows_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        labor_flows_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lp_asymmetric_tenreyro" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lp_asymmetric_tenreyro
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lp_smooth_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lp_smooth_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lwui_wage_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lwui_wage_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mcmc_diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mcmc_diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#midas_quarterly_monthly" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        midas_quarterly_monthly
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mle_sandwich_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mle_sandwich_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ms_var_business_cycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ms_var_business_cycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_bursts_and_transcripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_bursts_and_transcripts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_custom_corpus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_custom_corpus
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_g7_panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_g7_panel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_homogeneous_panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_homogeneous_panel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_indices_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_indices_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_llm_pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_llm_pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_local_llm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_local_llm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_multilingual_live" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_multilingual_live
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_ramey_2011" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_ramey_2011
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_romer_romer_2010" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_romer_romer_2010
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_sign_adrr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_sign_adrr
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_us_canonical_compare" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_us_canonical_compare
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#non_gaussian_svar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        non_gaussian_svar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nowcasting_gdp_news" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        nowcasting_gdp_news
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#penalized_macro_forecasting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        penalized_macro_forecasting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#posterior_predictive_fan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        posterior_predictive_fan
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ramey_zubairy_2018_multipliers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ramey_zubairy_2018_multipliers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#regime_workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        regime_workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#report_workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        report_workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shock_atlas_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        shock_atlas_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigma_decomposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sigma_decomposition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sign_restrictions_uhlig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sign_restrictions_uhlig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spectral_business_cycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spectral_business_cycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#structural_irf_matching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        structural_irf_matching
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#svariv_mertens_ravn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        svariv_mertens_ravn
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#synthetic_control_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        synthetic_control_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#synthetic_did_california_prop99" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        synthetic_did_california_prop99
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tvar_threshold_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tvar_threshold_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tvecm_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tvecm_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tvp_var_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tvp_var_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tvp_var_sv_demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tvp_var_sv_demo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vintage_news_noise" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        vintage_news_noise
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vintage_revisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        vintage_revisions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vulnerable_growth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        vulnerable_growth
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wavelet_business_cycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        wavelet_business_cycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#skip-8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SKIP (8)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SKIP (8)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#asset_composition_dynamics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        asset_composition_dynamics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bloom2009" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bloom2009
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caldara_iacoviello" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        caldara_iacoviello
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#govt_vs_private_investment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        govt_vs_private_investment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lp_panel_dk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lp_panel_dk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_event_study" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_event_study
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative_panel_lp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        narrative_panel_lp
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scf_aiyagari" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        scf_aiyagari
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<blockquote>
+<p>🇬🇧 <a href="../../examples_gallery/">English</a> · 🇪🇸 Español</p>
+</blockquote>
+<h1 id="galeria-de-ejemplos-de-puremacro">Galería de ejemplos de puremacro</h1>
+<p>Generado: 2026-10-29T05:09:05Z</p>
+<table>
+<thead>
+<tr>
+<th>Estado</th>
+<th>Cantidad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PASS</td>
+<td>85</td>
+</tr>
+<tr>
+<td>SKIP</td>
+<td>8</td>
+</tr>
+<tr>
+<td>FAIL</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<h2 id="fail-1">FAIL (1)</h2>
+<h3 id="romer_romer_2010_replication">romer_romer_2010_replication</h3>
+<ul>
+<li><strong>Descripción:</strong> Original-data Romer–Romer (2010) baseline and independent evidence.</li>
+<li><strong>Estado:</strong> FAIL</li>
+<li><strong>Motivo:</strong> RR2010 baseline: FAIL; h10=-3.08081276, t=-3.52499608; output=output/romer_romer_2010_replication</li>
+<li><strong>Tiempo de ejecución:</strong> 1.458 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-19T00:01:39Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h2 id="pass-85">PASS (85)</h2>
+<h3 id="anderson_rubin_weak_iv_demo">anderson_rubin_weak_iv_demo</h3>
+<ul>
+<li><strong>Descripción:</strong> Weak-instrument-robust Anderson-Rubin inference for local projections (LP-IV).</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 3.281 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:39:34Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/anderson_rubin_weak_iv_demo.png</code></li>
+</ul>
+<h3 id="bandpass_cycles_comparison">bandpass_cycles_comparison</h3>
+<ul>
+<li><strong>Descripción:</strong> Business cycle filtering comparison: Baxter-King, Christiano-Fitzgerald, Beveridge-Nelson &amp; Hamilton.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.645 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:39:36Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/bandpass_cycles_comparison.png</code></li>
+</ul>
+<h3 id="berkowitz_demo">berkowitz_demo</h3>
+<ul>
+<li><strong>Descripción:</strong> Berkowitz (2001) joint LR test: a more powerful PIT diagnostic.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.836 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:39:38Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="bvar_fan_chart">bvar_fan_chart</h3>
+<ul>
+<li><strong>Descripción:</strong> Density forecast (fan chart) from a Minnesota-prior BVAR via Gibbs.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 2.647 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:39:43Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/bvar_fan_chart.png</code></li>
+</ul>
+<h3 id="central_bank_narrative_sentiment">central_bank_narrative_sentiment</h3>
+<ul>
+<li><strong>Descripción:</strong> Central Bank Narrative Sentiment &amp; Monetary Policy Transmission.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 3.199 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:39:48Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/central_bank_narrative_sentiment.png</code></li>
+</ul>
+<h3 id="climate_dice_simulation">climate_dice_simulation</h3>
+<ul>
+<li><strong>Descripción:</strong> DICE Climate-Macroeconomic Simulation &amp; Policy Analysis.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.397 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:39:49Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/climate_dice_simulation.png</code></li>
+</ul>
+<h3 id="climate_sovereign_debt_risk">climate_sovereign_debt_risk</h3>
+<ul>
+<li><strong>Descripción:</strong> Climate Transition Risk and Sovereign Debt Sustainability.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.486 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:39:51Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/climate_sovereign_debt_risk.png</code></li>
+</ul>
+<h3 id="cointegration_johansen">cointegration_johansen</h3>
+<ul>
+<li><strong>Descripción:</strong> Engle-Granger and Johansen cointegration on a 3-variable simulated system.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.246 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:39:52Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="dcc_volatility">dcc_volatility</h3>
+<ul>
+<li><strong>Descripción:</strong> Engle (2002) DCC: time-varying correlations among three return series.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 2.813 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:39:55Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/dcc_volatility.png</code></li>
+</ul>
+<h3 id="dfm_bai_ng">dfm_bai_ng</h3>
+<ul>
+<li><strong>Descripción:</strong> High-dimensional dynamic factor model: Bai-Ng IC + PCA factors.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.106 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:39:56Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/dfm_bai_ng.png</code></li>
+</ul>
+<h3 id="dfm_nowcast_kalman">dfm_nowcast_kalman</h3>
+<ul>
+<li><strong>Descripción:</strong> Single-factor dynamic factor model via the Kalman filter.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 0.932 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:39:57Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/dfm_nowcast_kalman.png</code></li>
+</ul>
+<h3 id="did_callaway_santanna_demo">did_callaway_santanna_demo</h3>
+<ul>
+<li><strong>Descripción:</strong> Callaway-Sant'Anna + Sun-Abraham staggered DiD demo.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.518 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:39:58Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="diebold_yilmaz_spillover">diebold_yilmaz_spillover</h3>
+<ul>
+<li><strong>Descripción:</strong> Diebold-Yilmaz (2012) volatility-spillover index on a synthetic 4-variable VAR.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.279 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:40:00Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="distributional_trade_ge">distributional_trade_ge</h3>
+<ul>
+<li><strong>Descripción:</strong> Synthetic GE tariff experiment with synthetic household groups.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.769 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:48:28Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="dsge_ar1_demo">dsge_ar1_demo</h3>
+<ul>
+<li><strong>Descripción:</strong> Toy AR(1) state-space — demonstrates puremacro.dsge.estimate_dsge.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 55.334 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:40:56Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="dsge_markov_switching">dsge_markov_switching</h3>
+<ul>
+<li><strong>Descripción:</strong> Markov-Switching DSGE Perturbation: Monetary Policy Regimes &amp; Analytical GIRFs.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 2.345 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:40:59Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/dsge_markov_switching.png</code></li>
+</ul>
+<h3 id="dsge_news_shocks">dsge_news_shocks</h3>
+<ul>
+<li><strong>Descripción:</strong> DSGE News &amp; Anticipated Shocks Engine: State Augmentation &amp; Variance Decomposition.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 2.255 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:41:01Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/dsge_news_shocks.png</code></li>
+</ul>
+<h3 id="dsge_nk_sketchpad">dsge_nk_sketchpad</h3>
+<ul>
+<li><strong>Descripción:</strong> Three-equation New Keynesian model, written as equations rather than matrices.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.674 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:41:02Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="dsge_nuts_estimation">dsge_nuts_estimation</h3>
+<ul>
+<li><strong>Descripción:</strong> Bayesian DSGE Estimation via No-U-Turn Sampler (NUTS) Hamiltonian Monte Carlo.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 45.685 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:41:48Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/dsge_nuts_autocorr.png</code></li>
+<li><code>../puremacro/examples/output/dsge_nuts_estimation.png</code></li>
+<li><code>../puremacro/examples/output/dsge_nuts_posterior.png</code></li>
+<li><code>../puremacro/examples/output/dsge_nuts_trace.png</code></li>
+</ul>
+<h3 id="dsge_optimal_discretion">dsge_optimal_discretion</h3>
+<ul>
+<li><strong>Descripción:</strong> Optimal Monetary Policy: Markov-Perfect Discretion vs LQ Commitment.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 2.118 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:41:50Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/dsge_optimal_discretion.png</code></li>
+</ul>
+<h3 id="dsge_particle_filter_sv">dsge_particle_filter_sv</h3>
+<ul>
+<li><strong>Descripción:</strong> Nonlinear DSGE Particle Filtering with Stochastic Volatility (BPF vs Constant Baseline).</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 2.324 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:41:53Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/dsge_particle_filter_sv.png</code></li>
+</ul>
+<h3 id="dsge_rbc_klein">dsge_rbc_klein</h3>
+<ul>
+<li><strong>Descripción:</strong> Linearised RBC model solved with the Klein (2000) QZ method.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.751 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:41:54Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/dsge_rbc_klein.png</code></li>
+</ul>
+<h3 id="dsge_var_estimation">dsge_var_estimation</h3>
+<ul>
+<li><strong>Descripción:</strong> DSGE-VAR Hybrid Estimation &amp; Marginal Data Density Optimization.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 2.279 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:41:57Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/dsge_var_estimation.png</code></li>
+</ul>
+<h3 id="empirical_benchmark_replications">empirical_benchmark_replications</h3>
+<ul>
+<li><strong>Descripción:</strong> Empirical Benchmark Replications: Galí (1999) &amp; Mertens-Ravn (2013).</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 2.674 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:41:59Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/empirical_benchmark_replications.png</code></li>
+</ul>
+<h3 id="exact_diffuse_kalman">exact_diffuse_kalman</h3>
+<ul>
+<li><strong>Descripción:</strong> Exact-diffuse Kalman initialisation (Koopman-Durbin 2003).</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 0.718 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:00Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/exact_diffuse_kalman.png</code></li>
+</ul>
+<h3 id="fetch_fred_demo">fetch_fred_demo</h3>
+<ul>
+<li><strong>Descripción:</strong> Live FRED fetch + LP + markdown report — full pipeline.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.667 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:02Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/fetch_fred_demo.png</code></li>
+</ul>
+<h3 id="first_brief_tariffs">first_brief_tariffs</h3>
+<ul>
+<li><strong>Descripción:</strong> Your first policy brief: a 10% US tariff on Chinese goods on the bundled OECD ICIO 2019 table, national EV with its price / factor-income / fiscal split, and synthetic household groups.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 6.051 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-29T05:09:05Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="fm_ols_dols_demo">fm_ols_dols_demo</h3>
+<ul>
+<li><strong>Descripción:</strong> Phillips-Hansen FM-OLS and Stock-Watson DOLS vs naive OLS on a known cointegrating DGP.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.643 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:03Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/fm_ols_dols.png</code></li>
+</ul>
+<h3 id="forecast_density_eval">forecast_density_eval</h3>
+<ul>
+<li><strong>Descripción:</strong> Density-forecast evaluation: PIT, CRPS, KLIC for two competing models.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.464 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:05Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/forecast_density_eval.png</code></li>
+</ul>
+<h3 id="gali_1999_hours">gali_1999_hours</h3>
+<ul>
+<li><strong>Descripción:</strong> Gali (1999 AER) technology shocks and the hours debate — BQ long-run SVAR on real US data.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.905 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:07Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/gali_1999_hours.png</code></li>
+</ul>
+<h3 id="garch_midas_macro_volatility">garch_midas_macro_volatility</h3>
+<ul>
+<li><strong>Descripción:</strong> GARCH-MIDAS mixed-frequency volatility model (Engle, Ghysels &amp; Sohn 2013).</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.672 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:08Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/garch_midas_macro_volatility.png</code></li>
+</ul>
+<h3 id="gfevd_spillover">gfevd_spillover</h3>
+<ul>
+<li><strong>Descripción:</strong> Diebold-Yilmaz spillover with GFEVD: order-invariance demo.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.004 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:09Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="gk_robust_from_gibbs">gk_robust_from_gibbs</h3>
+<ul>
+<li><strong>Descripción:</strong> Posterior-aware sign-restriction bands: Giacomini-Kitagawa 2021 fed by <code>minnesota_gibbs</code> posterior draws.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 4.633 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:14Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/gk_robust_from_gibbs.png</code></li>
+</ul>
+<h3 id="gk_robust_signs">gk_robust_signs</h3>
+<ul>
+<li><strong>Descripción:</strong> Giacomini-Kitagawa (2021) robust bands vs RWZ posterior bands on a sign-restricted SVAR.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 2.787 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:17Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/gk_robust_signs.png</code></li>
+</ul>
+<h3 id="global_fiscal_stance">global_fiscal_stance</h3>
+<ul>
+<li><strong>Descripción:</strong> Global fiscal stance — sum of signed narrative magnitudes across the homogeneous IV panel, per quarter.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 0.943 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:18Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/global_fiscal_stance.csv</code></li>
+<li><code>../puremacro/examples/output/global_fiscal_stance.png</code></li>
+</ul>
+<h3 id="glp_lambda_search">glp_lambda_search</h3>
+<ul>
+<li><strong>Descripción:</strong> Empirical-Bayes hyperparameter search for a Minnesota BVAR (Giannone-Lenza-Primiceri 2015, simplified).</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.551 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:19Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/glp_lambda_search.png</code></li>
+</ul>
+<h3 id="hank_sequence_space">hank_sequence_space</h3>
+<ul>
+<li><strong>Descripción:</strong> Sequence-Space HANK Model Simulation &amp; Multiplier Decomposition.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 2.219 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:22Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/hank_sequence_space.png</code></li>
+</ul>
+<h3 id="hank_sequence_space_bridge">hank_sequence_space_bridge</h3>
+<ul>
+<li><strong>Descripción:</strong> Heterogeneous-Agent New Keynesian (HANK) Sequence-Space Bridge (.mod).</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 2.263 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:24Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/hank_sequence_space_bridge.png</code></li>
+</ul>
+<h3 id="har_realized_vol">har_realized_vol</h3>
+<ul>
+<li><strong>Descripción:</strong> Corsi (2009) HAR-RV regression on simulated intra-day returns.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.624 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:26Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/har_realized_vol.png</code></li>
+</ul>
+<h3 id="hfi_gertler_karadi">hfi_gertler_karadi</h3>
+<ul>
+<li><strong>Descripción:</strong> HFI monetary-policy shock: synthetic Gertler-Karadi 2015-style pipeline.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.564 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:27Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/hfi_gertler_karadi.png</code></li>
+</ul>
+<h3 id="kilian_2009_oil">kilian_2009_oil</h3>
+<ul>
+<li><strong>Descripción:</strong> Kilian (2009 AER) "Not All Oil Price Shocks Are Alike" — recursive oil-market VAR with historical decomposition.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 2.686 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:30Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/kilian_2009_oil.png</code></li>
+</ul>
+<h3 id="la_lp_pmw_demo">la_lp_pmw_demo</h3>
+<ul>
+<li><strong>Descripción:</strong> Lag-augmented LP (Montiel Olea &amp; Plagborg-Møller 2021) vs Newey-West Jordà LP.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 2.008 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:32Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/la_lp_pmw.png</code></li>
+</ul>
+<h3 id="labor_flows_demo">labor_flows_demo</h3>
+<ul>
+<li><strong>Descripción:</strong> Labor-force transitions demo using the Shimer 2-state fallback.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 0.415 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:33Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="lp_asymmetric_tenreyro">lp_asymmetric_tenreyro</h3>
+<ul>
+<li><strong>Descripción:</strong> Tenreyro-Thwaites (2016)-style asymmetric local projection on synthetic data.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.16 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:34Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="lp_smooth_demo">lp_smooth_demo</h3>
+<ul>
+<li><strong>Descripción:</strong> Barnichon-Brownlees (2019) smoothed local projections on synthetic data.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.178 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:36Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="lwui_wage_demo">lwui_wage_demo</h3>
+<ul>
+<li><strong>Descripción:</strong> LWUI-wage demo: labor x uncertainty x wage triple co-occurrence.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.352 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:38Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="mcmc_diagnostics">mcmc_diagnostics</h3>
+<ul>
+<li><strong>Descripción:</strong> MCMC convergence diagnostics on a real Gibbs sampler.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.786 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:40Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/mcmc_diagnostics.png</code></li>
+</ul>
+<h3 id="midas_quarterly_monthly">midas_quarterly_monthly</h3>
+<ul>
+<li><strong>Descripción:</strong> MIDAS nowcasting: quarterly y on monthly x.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.703 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:41Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/midas_quarterly_monthly.png</code></li>
+</ul>
+<h3 id="mle_sandwich_demo">mle_sandwich_demo</h3>
+<ul>
+<li><strong>Descripción:</strong> Bring-your-own-likelihood: Student-t MLE with sandwich SE.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.773 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:43Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="ms_var_business_cycle">ms_var_business_cycle</h3>
+<ul>
+<li><strong>Descripción:</strong> Two-regime MSIH MS-VAR for a recession dating exercise.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 2.063 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:45Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/ms_var_business_cycle.png</code></li>
+</ul>
+<h3 id="narrative_bursts_and_transcripts">narrative_bursts_and_transcripts</h3>
+<ul>
+<li><strong>Descripción:</strong> Narrative Macroeconomics: Transcripts, Dynamic Topics, Burst Anomalies, and SVARs.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.846 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:47Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/narrative_bursts_and_transcripts.png</code></li>
+</ul>
+<h3 id="narrative_custom_corpus">narrative_custom_corpus</h3>
+<ul>
+<li><strong>Descripción:</strong> Custom-corpus pipeline (workflow A): user-supplied texts → keyword scoring → quarterly IV → diagnostics. No network, no LLM.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.434 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:48Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/narrative_custom_corpus.png</code></li>
+</ul>
+<h3 id="narrative_g7_panel">narrative_g7_panel</h3>
+<ul>
+<li><strong>Descripción:</strong> G7 narrative-instrument panel demo.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.508 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:50Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/narrative_g7_panel.png</code></li>
+</ul>
+<h3 id="narrative_homogeneous_panel">narrative_homogeneous_panel</h3>
+<ul>
+<li><strong>Descripción:</strong> Build the homogeneous cross-country fiscal-narrative-IV panel.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.764 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:52Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/homogeneous_panel.png</code></li>
+<li><code>../puremacro/examples/output/narrative_iv_panel_consumption.csv</code></li>
+<li><code>../puremacro/examples/output/narrative_iv_panel_dedup_audit.csv</code></li>
+<li><code>../puremacro/examples/output/narrative_iv_panel_investment.csv</code></li>
+<li><code>../puremacro/examples/output/narrative_iv_panel_long.csv</code></li>
+<li><code>../puremacro/examples/output/narrative_iv_panel_quarterly.csv</code></li>
+</ul>
+<h3 id="narrative_indices_demo">narrative_indices_demo</h3>
+<ul>
+<li><strong>Descripción:</strong> Narrative indices demo — assembles all six indices from a synthetic in-process corpus and prints summary statistics.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.244 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:53Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="narrative_llm_pipeline">narrative_llm_pipeline</h3>
+<ul>
+<li><strong>Descripción:</strong> End-to-end LLM pipeline (workflow C): a small corpus → LLM scoring → <code>NarrativeInstrument</code>.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 0.99 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:54Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="narrative_local_llm">narrative_local_llm</h3>
+<ul>
+<li><strong>Descripción:</strong> Run puremacro's narrative LLM features for FREE on a local model.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 0.999 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:55Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="narrative_multilingual_live">narrative_multilingual_live</h3>
+<ul>
+<li><strong>Descripción:</strong> Live multilingual fetch + IMF Article-IV + Google News across the G7 countries plus the IMF and ECB.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.438 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:56Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/narrative_multilingual_live.png</code></li>
+</ul>
+<h3 id="narrative_ramey_2011">narrative_ramey_2011</h3>
+<ul>
+<li><strong>Descripción:</strong> Replication-layer demo (workflow B): Ramey (2011) defense-news narrative instrument → <code>proxy_svar</code> on a small US-style VAR → spending-multiplier-style IRF.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.808 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:58Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/narrative_ramey_2011.png</code></li>
+</ul>
+<h3 id="narrative_romer_romer_2010">narrative_romer_romer_2010</h3>
+<ul>
+<li><strong>Descripción:</strong> Replication-layer demo (workflow B): Romer-Romer (2010) US tax narrative shocks → comparison against the Ramey defense-news series.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.478 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:00Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/narrative_rr_vs_ramey.png</code></li>
+</ul>
+<h3 id="narrative_sign_adrr">narrative_sign_adrr</h3>
+<ul>
+<li><strong>Descripción:</strong> Narrative sign restrictions (Antolín-Díaz &amp; Rubio-Ramírez 2018) — the October 1979 Volcker episode as an identification input.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.75 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:02Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/narrative_sign_adrr.png</code></li>
+</ul>
+<h3 id="narrative_us_canonical_compare">narrative_us_canonical_compare</h3>
+<ul>
+<li><strong>Descripción:</strong> Link a user's US narrative-instrument series to the canonical published instruments: Ramey (2011) defense news, Romer-Romer (2010) exogenous tax, Mertens-Ravn (2013) unanticipated tax.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.86 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:04Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/narrative_us_canonical_compare.png</code></li>
+</ul>
+<h3 id="non_gaussian_svar">non_gaussian_svar</h3>
+<ul>
+<li><strong>Descripción:</strong> SVAR identification by non-Gaussianity (Lanne-Meitz-Saikkonen 2017).</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.254 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:05Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/non_gaussian_svar.png</code></li>
+</ul>
+<h3 id="nowcasting_gdp_news">nowcasting_gdp_news</h3>
+<ul>
+<li><strong>Descripción:</strong> Mixed-Frequency GDP Nowcasting &amp; News Decomposition.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.636 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:06Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/nowcasting_gdp_news.png</code></li>
+</ul>
+<h3 id="penalized_macro_forecasting">penalized_macro_forecasting</h3>
+<ul>
+<li><strong>Descripción:</strong> High-Dimensional Penalized Macroeconomic Forecasting.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.565 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:08Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/penalized_macro_forecasting.png</code></li>
+</ul>
+<h3 id="posterior_predictive_fan">posterior_predictive_fan</h3>
+<ul>
+<li><strong>Descripción:</strong> Posterior-predictive fan chart from BVAR Gibbs draws.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.34 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:09Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/posterior_predictive_fan.png</code></li>
+</ul>
+<h3 id="ramey_zubairy_2018_multipliers">ramey_zubairy_2018_multipliers</h3>
+<ul>
+<li><strong>Descripción:</strong> Ramey-Zubairy (2018 JPE) spending multipliers — LP-IV with military news shocks on 126 years of US data.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 2.443 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:12Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/ramey_zubairy_2018_multipliers.png</code></li>
+</ul>
+<h3 id="regime_workflow">regime_workflow</h3>
+<ul>
+<li><strong>Descripción:</strong> End-to-end regime workflow: Bai-Perron breaks → regime indicator → regime-conditional LP.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 2.042 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:14Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/regime_workflow.png</code></li>
+</ul>
+<h3 id="report_workflow">report_workflow</h3>
+<ul>
+<li><strong>Descripción:</strong> Render LP and IRF results as Markdown / LaTeX tables ready to drop into a paper or a Quarto / Jupyter notebook on iPad.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 0.997 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:15Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="shock_atlas_demo">shock_atlas_demo</h3>
+<ul>
+<li><strong>Descripción:</strong> Shock-atlas registry demo.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 0.964 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:18Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="sigma_decomposition">sigma_decomposition</h3>
+<ul>
+<li><strong>Descripción:</strong> SigmaObject volatility decomposition — Python equivalent of <code>MASTER_VolatilityDecomposition_Labor.m</code>.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 0.981 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:19Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="sign_restrictions_uhlig">sign_restrictions_uhlig</h3>
+<ul>
+<li><strong>Descripción:</strong> Uhlig (2005)-style sign-restricted SVAR on a synthetic 3-variable DGP.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.075 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:20Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="spectral_business_cycle">spectral_business_cycle</h3>
+<ul>
+<li><strong>Descripción:</strong> Spectral analysis of a synthetic business-cycle-style series.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 0.686 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:21Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/spectral_business_cycle.png</code></li>
+</ul>
+<h3 id="structural_irf_matching">structural_irf_matching</h3>
+<ul>
+<li><strong>Descripción:</strong> Empirical LPs -&gt; joint sampling covariance -&gt; a three-equation NK model.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.688 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:23Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="svariv_mertens_ravn">svariv_mertens_ravn</h3>
+<ul>
+<li><strong>Descripción:</strong> Mertens-Ravn (2013)-style proxy-SVAR replication on synthetic data.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.372 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:24Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/svariv_mertens_ravn_irf.png</code></li>
+</ul>
+<h3 id="synthetic_control_demo">synthetic_control_demo</h3>
+<ul>
+<li><strong>Descripción:</strong> Synthetic control on a simulated treatment.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 0.958 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:25Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/synthetic_control.png</code></li>
+</ul>
+<h3 id="synthetic_did_california_prop99">synthetic_did_california_prop99</h3>
+<ul>
+<li><strong>Descripción:</strong> Synthetic Difference-in-Differences causal policy evaluation (Arkhangelsky et al. 2021).</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.783 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:27Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/synthetic_did_prop99.png</code></li>
+</ul>
+<h3 id="tvar_threshold_demo">tvar_threshold_demo</h3>
+<ul>
+<li><strong>Descripción:</strong> Self-exciting threshold VAR: regime-dependent dynamics.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.585 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:28Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/tvar_threshold.png</code></li>
+</ul>
+<h3 id="tvecm_demo">tvecm_demo</h3>
+<ul>
+<li><strong>Descripción:</strong> Threshold cointegration / TVECM demo.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 1.285 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:30Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/tvecm.png</code></li>
+</ul>
+<h3 id="tvp_var_demo">tvp_var_demo</h3>
+<ul>
+<li><strong>Descripción:</strong> Time-varying-parameter VAR (Primiceri-style FFBS Gibbs).</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 3.758 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:34Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/tvp_var.png</code></li>
+</ul>
+<h3 id="tvp_var_sv_demo">tvp_var_sv_demo</h3>
+<ul>
+<li><strong>Descripción:</strong> TVP-VAR with stochastic volatility (Primiceri 2005, KSC sampler).</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 5.524 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:39Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/tvp_var_sv.png</code></li>
+</ul>
+<h3 id="vintage_news_noise">vintage_news_noise</h3>
+<ul>
+<li><strong>Descripción:</strong> Are GDP revisions news or noise? A cross-country answer.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 33.729 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:49:22Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="vintage_revisions">vintage_revisions</h3>
+<ul>
+<li><strong>Descripción:</strong> Real-time vintages and forecast revisions.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 0.831 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:45Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/vintage_revisions.png</code></li>
+</ul>
+<h3 id="vulnerable_growth">vulnerable_growth</h3>
+<ul>
+<li><strong>Descripción:</strong> Adrian-Boyarchenko-Giannone (2019) vulnerable-growth demo.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 56.654 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:44:42Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/vulnerable_growth.png</code></li>
+</ul>
+<h3 id="wavelet_business_cycle">wavelet_business_cycle</h3>
+<ul>
+<li><strong>Descripción:</strong> Wavelet variance decomposition of a synthetic GDP-like series.</li>
+<li><strong>Estado:</strong> PASS</li>
+<li><strong>Tiempo de ejecución:</strong> 0.632 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:44:42Z</li>
+<li><strong>Figuras:</strong></li>
+<li><code>../puremacro/examples/output/wavelet_business_cycle.png</code></li>
+</ul>
+<h2 id="skip-8">SKIP (8)</h2>
+<h3 id="asset_composition_dynamics">asset_composition_dynamics</h3>
+<ul>
+<li><strong>Descripción:</strong> Investment composition over time, per country, from the augmented asset-breakdown panel.</li>
+<li><strong>Estado:</strong> SKIP</li>
+<li><strong>Motivo:</strong> local data file missing</li>
+<li><strong>Tiempo de ejecución:</strong> 0.738 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:39:35Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="bloom2009">bloom2009</h3>
+<ul>
+<li><strong>Descripción:</strong> Bloom (2009)-style uncertainty-shock VAR replication on quarterly USA data.</li>
+<li><strong>Estado:</strong> SKIP</li>
+<li><strong>Motivo:</strong> local data file missing</li>
+<li><strong>Tiempo de ejecución:</strong> 2.231 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:39:40Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="caldara_iacoviello">caldara_iacoviello</h3>
+<ul>
+<li><strong>Descripción:</strong> Caldara-Iacoviello (2022)-style geopolitical-risk shock VAR on USA quarterly data.</li>
+<li><strong>Estado:</strong> SKIP</li>
+<li><strong>Motivo:</strong> local data file missing</li>
+<li><strong>Tiempo de ejecución:</strong> 1.707 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:39:45Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="govt_vs_private_investment">govt_vs_private_investment</h3>
+<ul>
+<li><strong>Descripción:</strong> Government vs private investment shares from the augmented panel.</li>
+<li><strong>Estado:</strong> SKIP</li>
+<li><strong>Motivo:</strong> local data file missing</li>
+<li><strong>Tiempo de ejecución:</strong> 0.377 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:20Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="lp_panel_dk">lp_panel_dk</h3>
+<ul>
+<li><strong>Descripción:</strong> Panel local projection of GDP on uncertainty with Driscoll-Kraay SE.</li>
+<li><strong>Estado:</strong> SKIP</li>
+<li><strong>Motivo:</strong> local data file missing</li>
+<li><strong>Tiempo de ejecución:</strong> 1.474 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:35Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="narrative_event_study">narrative_event_study</h3>
+<ul>
+<li><strong>Descripción:</strong> Event study around the largest narrative-IV episodes per country.</li>
+<li><strong>Estado:</strong> SKIP</li>
+<li><strong>Motivo:</strong> requires local narrative-IV panel + MAV wedges file (not shipped)</li>
+<li><strong>Tiempo de ejecución:</strong> 0.0 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:48Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="narrative_panel_lp">narrative_panel_lp</h3>
+<ul>
+<li><strong>Descripción:</strong> Cross-country fiscal-multiplier panel local projection using the homogeneous narrative-IV panel as the shock series and the wedges-panel RGDP as the outcome.</li>
+<li><strong>Estado:</strong> SKIP</li>
+<li><strong>Motivo:</strong> local data file missing</li>
+<li><strong>Tiempo de ejecución:</strong> 0.329 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:42:57Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+<h3 id="scf_aiyagari">scf_aiyagari</h3>
+<ul>
+<li><strong>Descripción:</strong> Aiyagari (1994) calibrated to the Survey of Consumer Finances.</li>
+<li><strong>Estado:</strong> SKIP</li>
+<li><strong>Motivo:</strong> network unavailable</li>
+<li><strong>Tiempo de ejecución:</strong> 1.193 s</li>
+<li><strong>Última ejecución:</strong> 2026-10-18T23:43:17Z</li>
+<li><strong>Figuras:</strong> ninguna</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>
