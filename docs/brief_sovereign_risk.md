@@ -33,7 +33,7 @@ The volatility effect is not monotone. At σ_y = 0.02 / 0.025 / 0.03 the mean sp
 
 ## Results
 
-The table reports, for each scenario on the converged 6,401 x 641 grid, the
+The table reports, for each scenario on the 6,401 x 641 grid validated for the baseline, the
 mean across 16 simulated paths of 500,000 quarters (after a 1,000-quarter
 burn), ± the half-width of its 95% Student-t interval across paths. The
 number in parentheses, Δ, is the paired change from the 3,201 x 641 grid to
@@ -65,16 +65,48 @@ Hollow markers are the shared baseline; whiskers are 95% intervals across
 paths, most of them narrower than the markers (the value of market access is a
 solved quantity, without sampling error).
 
+### Initial crossed refinement of the sensitive scenarios
+
+The follow-up holds the calibration, 16 seeds, 500,000 periods, burn-in and
+0.10 tolerances fixed. It solves all four combinations of 6,401/12,801 debt
+nodes and 641/1,281 income states. Each cell below is the absolute paired mean
+change plus its 95% half-width; **every moment must be at most 0.10**.
+
+| Scenario and refinement | Debt | Mean spread | Default | Spread SD | Verdict |
+|---|---:|---:|---:|---:|---|
+| θ = 0.5, debt at 1,281 income states | 0.003457 | 0.106816 | 0.118959 | 0.174051 | Failed |
+| θ = 0.5, income at 12,801 debt nodes | 0.016915 | 0.039766 | 0.053709 | 0.054342 | Passed |
+| ρ_y = 0.97, debt at 1,281 income states | 0.016982 | 0.030946 | 0.031479 | 0.101902 | Failed |
+| ρ_y = 0.97, income at 12,801 debt nodes | 0.051721 | 0.032086 | 0.049175 | 0.046211 | Passed |
+
+All eight solves converged, with zero exhaustive-search certification gap and
+Bellman residual below `9e-12`. This isolates the remaining issue to debt-grid
+moment convergence, rather than an unfinished Bellman solve. For θ = 0.5 the
+spread-volatility shift itself is −0.167865 pp; more simulation alone cannot
+remove it. For ρ_y = 0.97 the shift is −0.096678 pp, but its uncertainty bound
+narrowly misses the criterion. Neither case passes this crossed ladder.
+
+The complete record, including every seed and failed comparison, is
+`tests/fixtures/sovereign_brief/sensitive_grid_initial.json`. A further
+12,801 → 25,601 debt refinement at both income resolutions is being evaluated
+under the same tolerances. Its outcome is not implied by these initial results.
+
+```bash
+python -m tools.reference_validation.check_sovereign_sensitive_grids --output grids_initial
+python -m tools.reference_validation.check_sovereign_sensitive_grids --extend-from tests/fixtures/sovereign_brief/sensitive_grid_initial.json --output grids_extended
+```
+
 ## Run it yourself
 
-Install PureMacro 6.1.0 or later from PyPI and run one scenario on the converged grid. On the
+This example requires the 6.1 development source; 6.0.1 is the latest published
+distribution. From a development checkout, install it and run a scenario. On the
 maintainer's workstation the θ = 0.15 solve took about 14 minutes,
 plus seconds for the measurement, measured under load on a shared machine (load
 averages 5/13/27); the whole frozen sweep, seven scenarios on both grids, took
 6,851 s (1.9 h), with a peak memory of about 3.4 GB:
 
 ```bash
-pip install "puremacro>=6.1"
+python -m pip install .
 python -m puremacro.examples.first_brief_sovereign --scenario theta=0.15 --output brief_theta015
 ```
 

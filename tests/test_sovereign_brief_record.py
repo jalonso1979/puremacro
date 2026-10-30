@@ -189,6 +189,11 @@ _EXAMPLE_HASHES = {
 # collateral diagnostics. Every brief calibration and short-term random path
 # remains bit-identical in the parity tests; measurement parity is also tested.
 _EQUIVALENT_LIBRARY_HASHES = {
+    # Income batches preserve the pinned original search bit for bit, including
+    # tied choices across batch boundaries (test_monotone_search.py).
+    'puremacro/sovereign/_monotone.py': (
+        'fb04bb672f59c89ec40bd51179df3a249df09e0ddeb7cd9102d6288e7b251464',
+        'cb0655d94f4f5dc01c1f71979e8bb71551d98ed5ac90e18a79d4f420b3c7e467'),
     'puremacro/sovereign/arellano.py': (
         'd434bded913776d47a740ca5e35ce3b7a8e7047d3efbafce89b09d5e5b2655a2',
         '0e70f71915c76dcdc93e628e3439592c66a75b5a43b55f6c82c77f631b850345'),

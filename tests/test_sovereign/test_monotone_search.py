@@ -104,6 +104,27 @@ def test_ties_choose_lowest_debt_index():
     assert np.array_equal(value, dense_value)
 
 
+@pytest.mark.parametrize("n_y", [31, 32, 33, 65, 129])
+@pytest.mark.parametrize("ties", [False, True])
+def test_income_batches_match_pinned_original_and_exhaustive(n_y, ties):
+    from puremacro.sovereign._monotone import maximize
+    from tests.test_sovereign._legacy_monotone_6_0_1 import maximize as original
+
+    b_grid, y_grid, q, ev = _inputs(1979, 61, n_y)
+    if ties:
+        q[25:] = 0.0
+        ev[25:] = ev[25]
+        ev[:25] -= 50.0
+    args = (b_grid, y_grid, q, ev, .95, _crra(2.0))
+    got = maximize(*args)
+    expected = original(*args)
+    dense_value, dense_policy, _ = _dense(*args)
+    assert np.array_equal(got[0], expected[0])
+    assert np.array_equal(got[1], expected[1])
+    assert np.array_equal(got[0], dense_value)
+    assert np.array_equal(got[1], dense_policy)
+
+
 def test_minimal_grid():
     from puremacro.sovereign._monotone import maximize
 
