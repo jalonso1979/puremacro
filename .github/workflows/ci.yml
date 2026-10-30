@@ -51,7 +51,7 @@ jobs:
       # Check floating-point parity across income-batch boundaries and the
       # explicit-grid path before the long numerical suite on every platform.
       - name: Verify sovereign grid compatibility
-        run: pytest tests/test_sovereign/test_monotone_search.py tests/test_sovereign/test_custom_debt_grid.py tests/test_sovereign/test_bit_identity.py -q
+        run: pytest tests/test_sovereign/test_monotone_search.py tests/test_sovereign/test_custom_debt_grid.py tests/test_sovereign/test_bit_identity.py tests/test_examples/test_first_brief_sovereign.py::test_build_record_schema_and_recomputation -q
 
       # The 3.11 leg resolves NumPy 2.4 (NumPy 2.5 requires Python 3.12), whose
       # stubs differ from 2.5's; v5.4.0 failed typing only there. Check both.

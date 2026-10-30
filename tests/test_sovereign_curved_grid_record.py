@@ -4,6 +4,7 @@ import json
 
 import numpy as np
 import pytest
+from scipy.stats import t as student_t
 
 from tools.reference_validation import check_sovereign_curved_grids as study
 
@@ -101,3 +102,28 @@ def test_combine_rejects_different_environments_and_duplicate_cases(record, tmp_
         study.combine([first, second])
     with pytest.raises(ValueError, match="duplicate"):
         study.combine([first, first])
+
+
+def test_frozen_curved_evidence_recomputes_moments_and_every_verdict():
+    path = study.INITIAL.with_name("curved_grid_convergence.json")
+    frozen = json.loads(path.read_text(encoding="utf-8"))
+    checked = study.assess(deepcopy(frozen))
+    assert (checked["passed"], checked["status"]) == (frozen["passed"], frozen["status"])
+    for case in frozen["cases"].values():
+        assert study.validate_case(case, case["n_b"], case["n_y"], study.study_sources())
+        for moment, per_seed in case["simulation"]["per_seed"].items():
+            values = np.asarray(per_seed)
+            mean = values.mean()
+            se = values.std(ddof=1) / np.sqrt(len(values))
+            half = student_t.ppf(.975, len(values) - 1) * se
+            summary = case["simulation"]["summary"][moment]
+            assert summary["mean"] == pytest.approx(mean, abs=1e-12, rel=0)
+            assert summary["se"] == pytest.approx(se, abs=1e-12, rel=0)
+            assert summary["ci95"] == pytest.approx([mean - half, mean + half], abs=1e-12, rel=0)
+    for label, comparison in checked["comparisons"].items():
+        saved = frozen["comparisons"][label]
+        assert comparison["passed"] == saved["passed"]
+        for moment, values in comparison["moments"].items():
+            assert values["status"] == saved["moments"][moment]["status"]
+            for key in ("change", "ci95", "absolute_change_bound", "tolerance"):
+                assert values[key] == pytest.approx(saved["moments"][moment][key], abs=1e-12, rel=0)
