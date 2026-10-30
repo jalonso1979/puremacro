@@ -177,7 +177,27 @@ def test_guides_report_the_rule_record(guide, decimal):
     m = record["measurements"]
     for value, digits in ((m["penalty_output_equivalent"], 4), (m["ceiling_binding"]["binding_share_pct"], 1),
                           (m["deficit_binding"]["binding_share_pct"], 1), (m["max_b_recession"]["401x21"], 5),
-                          (m["max_b_recession"]["801x41"], 5)):
+                          (m["max_b_recession"]["801x41"], 5),
+                          (m["soft_ceiling_policy_above_cap"]["min_current_debt"], 5)):
         assert fmt(value, digits) in text, fmt(value, digits)
+    assert f'{m["soft_ceiling_policy_above_cap"]["repayment_states"]} ' in text
     assert ("COARSE 401 × 21" if decimal == "." else "MALLA GRUESA 401 × 21") in text
     assert ("not held" if decimal == "." else "no se cumplió") in text
+
+
+def test_soft_ceiling_off_the_ergodic_set_is_recorded_and_recomputes():
+    import numpy as np
+
+    from puremacro.sovereign import FiscalRule, solve_fiscal_sovereign_default
+
+    info = json.loads(RULE_RECORD.read_text())["measurements"]["soft_ceiling_policy_above_cap"]
+    soft = solve_fiscal_sovereign_default(tau=.2, psi=1., n_b=401, n_y=21,
+                                          rule=FiscalRule(debt_ceiling=.02, penalty=.05))
+    hard = solve_fiscal_sovereign_default(tau=.2, psi=1., n_b=401, n_y=21, rule=FiscalRule(debt_ceiling=.02))
+    above = (soft.policy_b > .02 + 1e-12) & (soft.default_prob < .5)
+    rows = np.nonzero(above)[0]
+    assert info["repayment_states"] == int(above.sum()) > 0
+    assert info["min_current_debt"] == float(soft.b_grid[rows].min()) > .02
+    at_or_below = soft.b_grid <= .02
+    assert info["policies_equal_at_or_below_cap"] is True
+    assert np.array_equal(soft.policy_index[at_or_below], hard.policy_index[at_or_below])

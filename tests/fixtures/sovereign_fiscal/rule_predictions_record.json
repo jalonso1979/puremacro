@@ -1,6 +1,6 @@
 {
-  "recorded_at": "2026-10-29T23:07:40.014669+00:00",
-  "repository_head": "f98103241c7d95866b191e9c92e77038be2d6c9f",
+  "recorded_at": "2026-10-30T02:07:54.905842+00:00",
+  "repository_head": "14d52d6ea85c664172d9b3337e699950e963509b",
   "protocol_sha256": "a49470be05533a71ce51df8a38c0b26292507db3243a0aeb651feecbe9eaef63",
   "protocol": {
     "registered": "2026-10-29, before any phase-2 (fiscal rule) solve; maintainer amendment after the phase-1 review",
@@ -1231,6 +1231,12 @@
     "soft_ceiling_mean_g": 0.2004157432908042,
     "soft_ceiling_above_cap_share_pct": 0.0,
     "ceiling_escape_above_cap_share_pct": 0.0,
+    "soft_ceiling_policy_above_cap": {
+      "repayment_states": 503,
+      "min_current_debt": 0.04776,
+      "policies_equal_at_or_below_cap": true,
+      "note": "repayment states (default_prob < 0.5) where the soft-ceiling policy chooses b' above the cap; informational, not a registered prediction"
+    },
     "escape_vs_ceiling": {
       "passed": true,
       "moments": {

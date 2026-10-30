@@ -257,9 +257,14 @@ only in booms, when the government would otherwise borrow more.
 **Penalty scale.** A penalty is in utils. Dividing it by the marginal utility
 of spending, `psi g^(-gamma_g)`, averaged over the soft-ceiling model's
 repayment quarters (mean `g` = 0.200), gives its output equivalent:
-`penalty=0.05` costs about 0.0020 of quarterly output per violation. At that
-price the government never exceeds the cap (0.0% of repayment quarters), so
-here the soft rule behaves like the hard one.
+`penalty=0.05` costs about 0.0020 of quarterly output per violation. On the
+simulated paths, which start from zero debt, the government never exceeds the
+cap at that price (0.0% of repayment quarters), and at every current debt
+`b <= 0.02` the soft and hard rules choose the same debt. Off those paths they
+differ: in 503 repayment states, all with current debt of at least 0.04776, the
+soft-rule government rolls its debt over above the cap and pays the penalty
+rather than cut back to the cap at once. Paths that start from high debt, such
+as debt-sustainability fan charts, would show that difference.
 
 **COARSE 401 × 21 grid — compare rules only within this table.** Coarse
 moments differ from converged ones (the no-rule spread SD is 5.906 pp here

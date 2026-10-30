@@ -117,6 +117,17 @@ def run(output: Path) -> dict:
         rep_k = paths_k.repaid[:, burn:]
         above = res_k.b_grid[paths_k.b_next_index[:, burn:]] > cap_value + TOL
         m[f"{name}_above_cap_share_pct"] = float(100.0 * (rep_k & above).sum() / rep_k.sum())
+    # Informational, not graded: off the ergodic set the soft rule differs from the hard one.
+    hard = results["ceiling"]
+    above_states = (soft.policy_b > cap_value + TOL) & (soft.default_prob < 0.5)
+    at_or_below = soft.b_grid <= cap_value
+    m["soft_ceiling_policy_above_cap"] = dict(
+        repayment_states=int(above_states.sum()),
+        min_current_debt=float(soft.b_grid[np.nonzero(above_states)[0]].min()) if above_states.any() else float("nan"),
+        policies_equal_at_or_below_cap=bool(np.array_equal(soft.policy_index[at_or_below],
+                                                           hard.policy_index[at_or_below])),
+        note="repayment states (default_prob < 0.5) where the soft-ceiling policy chooses b' above the cap; "
+             "informational, not a registered prediction")
     m["escape_vs_ceiling"] = paired_comparison(record["cases"]["ceiling"], record["cases"]["ceiling_escape"],
                                                tolerances=tolerances)
 

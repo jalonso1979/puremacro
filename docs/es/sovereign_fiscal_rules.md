@@ -270,9 +270,15 @@ solo se activa en auges, cuando el gobierno se endeudaría más.
 utilidad marginal del gasto, `psi g^(-gamma_g)`, promediada en los trimestres
 de reembolso del modelo con tope blando (`g` medio = 0,200), da su
 equivalente en producto: `penalty=0.05` cuesta cerca de 0,0020 del producto
-trimestral por incumplimiento. A ese precio el gobierno nunca supera el tope
-(0,0 % de los trimestres de reembolso), así que aquí la regla blanda
-se comporta como la estricta.
+trimestral por incumplimiento. En las trayectorias simuladas, que parten de
+deuda cero, el gobierno nunca supera el tope a ese precio (0,0 % de los
+trimestres de reembolso), y con cualquier deuda actual `b <= 0.02` las reglas
+blanda y estricta eligen la misma deuda. Fuera de esas trayectorias difieren:
+en 503 estados de reembolso, todos con deuda actual de al menos 0,04776, el
+gobierno con regla blanda refinancia su deuda por encima del tope y paga la
+penalización en lugar de recortar de golpe hasta el tope. Las trayectorias que
+parten de deuda alta, como los gráficos de abanico de sostenibilidad, mostrarían
+esa diferencia.
 
 **MALLA GRUESA 401 × 21: compare reglas solo dentro de esta tabla.** Los
 momentos en malla gruesa difieren de los convergidos (la DE del diferencial sin
