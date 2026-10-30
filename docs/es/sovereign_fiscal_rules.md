@@ -256,6 +256,11 @@ restricción incumpliría la regla.
 
 La fracción de activación del tope quedó justo por encima de la banda
 registrada; se informa tal cual, y ningún umbral se cambió después.
+En la fila de la cláusula de escape, «se cumplió» es el criterio de la
+herramienta: la mayor deuda elegida con `y < 0.92` queda por debajo del tope de
+0,02 en ambas mallas, y todos los momentos superan la comparación emparejada con
+el tope simple. Los valores hallados, 0,00048 y 0,00060, son cerca de la mitad
+del «cerca de 0,001» del protocolo.
 
 **Por qué la cláusula de escape no hace nada aquí.** El riesgo de impago es
 máximo en las malas épocas, así que los precios de los prestamistas ya

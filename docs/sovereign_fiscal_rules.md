@@ -245,6 +245,10 @@ quarters in which the unconstrained choice would break the rule.
 
 The ceiling's binding share came out just above the registered band; it is
 reported as found, and no threshold was changed afterwards.
+For the escape-clause row, "held" is the tool's criterion: the largest debt
+chosen with `y < 0.92` is below the 0.02 cap at both grids, and every moment
+passes the paired comparison with the plain ceiling. The values found, 0.00048
+and 0.00060, are about half the protocol's "about 0.001".
 
 **Why the escape clause does nothing here.** Default risk is highest in bad
 times, so lenders' prices already make borrowing in a recession expensive: with
