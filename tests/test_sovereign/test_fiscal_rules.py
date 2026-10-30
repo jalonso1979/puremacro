@@ -282,3 +282,14 @@ def test_exhaustive_search_rejects_long_term_debt() -> None:
 
     with pytest.raises(ValueError, match="short-term"):
         _solve_bellman(**_core_kwargs(delta=0.2, kappa=0.03))
+
+
+def test_certification_differences_require_matching_infeasible_patterns() -> None:
+    from puremacro.sovereign.arellano import _finite_max_abs_diff
+
+    a = np.array([[1.0, -np.inf], [2.0, 3.0]])
+    assert _finite_max_abs_diff(a, a + np.array([[0.5, 0.0], [0.0, -0.25]]), "gap") == 0.5
+    mutated = a.copy()
+    mutated[1, 0] = -np.inf
+    with pytest.raises(RuntimeError, match="residual"):
+        _finite_max_abs_diff(a, mutated, "residual")

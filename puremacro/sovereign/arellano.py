@@ -162,6 +162,15 @@ class _CoreSolution(NamedTuple):
     q_rf: float
 
 
+def _finite_max_abs_diff(a: np.ndarray, b: np.ndarray, what: str) -> float:
+    """Largest |a - b| over finite entries, after checking both mark the same states -inf."""
+    if not np.array_equal(np.isneginf(a), np.isneginf(b)):
+        raise RuntimeError(f"Monotone policy search failed exhaustive certification ({what}): "
+                           "infeasible states differ")
+    finite = np.isfinite(a) & np.isfinite(b)
+    return float(np.max(np.abs(a[finite] - b[finite]), initial=0.0))
+
+
 def _solve_bellman(
     *,
     b_grid: np.ndarray,
@@ -390,15 +399,10 @@ def _solve_bellman(
         accelerated, _ = maximize(b_grid, resources, q, ev_final, beta, u_func, column_penalty=column_penalty)
         exhaustive, _ = exhaustive_maximize(b_grid, resources, q, ev_final, beta, u_func,
                                             column_penalty=column_penalty)
-        finite = np.isfinite(accelerated) & np.isfinite(exhaustive)
-        if not np.array_equal(np.isneginf(accelerated), np.isneginf(exhaustive)):
-            raise RuntimeError("Monotone policy search failed exhaustive certification: infeasible states differ")
-        certification_gap = float(np.max(np.abs(accelerated[finite] - exhaustive[finite]), initial=0.0))
+        certification_gap = _finite_max_abs_diff(accelerated, exhaustive, "certification gap")
         if certification_gap > 1e-11:
             raise RuntimeError(f"Monotone policy search failed exhaustive certification: gap {certification_gap:.3e}")
-        repay = with_flow(exhaustive)
-        both = np.isfinite(repay) & np.isfinite(v_rep)
-        exhaustive_residual = float(np.max(np.abs(repay[both] - v_rep[both]), initial=0.0))
+        exhaustive_residual = _finite_max_abs_diff(with_flow(exhaustive), v_rep, "exhaustive Bellman residual")
 
     return _CoreSolution(
         v_rep=v_rep, v_def=v_def, v_exp=v_exp, q=q, p_def=p_def, m_opt=m_opt,
