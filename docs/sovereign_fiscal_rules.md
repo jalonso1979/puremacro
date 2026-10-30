@@ -253,8 +253,10 @@ and 0.00060, are about half the protocol's "about 0.001".
 **Why the escape clause does nothing here.** Default risk is highest in bad
 times, so lenders' prices already make borrowing in a recession expensive: with
 income below 0.92 the unconstrained government never chooses more than
-0.00048 of quarterly output, a fortieth of the cap. Market discipline binds
-before the rule does, so suspending the rule in recessions changes nothing —
+0.00048 of quarterly output, a fortieth of the cap. At those incomes the bond
+price at the cap is essentially zero (at most 0.13% of the risk-free price), and
+the most the government can raise by borrowing is 0.0011 of quarterly output
+(401 × 21). Market discipline binds before the rule does, so suspending the rule in recessions changes nothing —
 the escape-clause rows equal the plain ceiling on every seed. The ceiling binds
 only in booms, when the government would otherwise borrow more.
 
@@ -282,8 +284,8 @@ against 2.716 at 6,401 × 641 above).
 | `soft_ceiling` | 0.796 | 3.726 | 3.569 | 5.698 |
 | `deficit` | 1.053 | 3.908 | 3.739 | 5.902 |
 
-The ceiling lowers average debt and, because lenders price it, spreads and
-default frequency too; the deficit limit barely binds.
+The ceiling lowers average debt, and lower spreads and default frequency
+accompany the lower debt; the deficit limit barely binds.
 
 ## Limits
 

@@ -266,8 +266,10 @@ del «cerca de 0,001» del protocolo.
 máximo en las malas épocas, así que los precios de los prestamistas ya
 encarecen el endeudamiento en recesión: con ingreso inferior a 0,92 el gobierno
 sin restricción nunca elige más de 0,00048 del producto trimestral, la
-cuadragésima parte del tope. La disciplina de mercado actúa antes que la
-regla, de modo que suspenderla en recesión no cambia nada: las filas con
+cuadragésima parte del tope. Con esos ingresos el precio del bono en el tope es
+prácticamente cero (como mucho el 0,13 % del precio sin riesgo), y lo máximo que
+el gobierno puede obtener endeudándose es 0,0011 del producto trimestral
+(401 × 21). La disciplina de mercado actúa antes que la regla, de modo que suspenderla en recesión no cambia nada: las filas con
 cláusula de escape coinciden con el tope simple en todas las semillas. El tope
 solo se activa en auges, cuando el gobierno se endeudaría más.
 
@@ -297,8 +299,8 @@ regla es aquí 5,906 pp frente a 2,716 con 6.401 × 641).
 | `soft_ceiling` | 0,796 | 3,726 | 3,569 | 5,698 |
 | `deficit` | 1,053 | 3,908 | 3,739 | 5,902 |
 
-El tope reduce la deuda media y, como los prestamistas lo valoran, también los
-diferenciales y la frecuencia de impago; el límite de déficit apenas se activa.
+El tope reduce la deuda media, y la menor deuda va acompañada de diferenciales y
+frecuencia de impago más bajos; el límite de déficit apenas se activa.
 
 ## Límites
 
