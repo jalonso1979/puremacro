@@ -33,7 +33,28 @@ def min_candidate_consumption(b_grid: np.ndarray, y_grid: np.ndarray, q: np.ndar
 
 def maximize(b_grid: np.ndarray, y_grid: np.ndarray, q: np.ndarray, ev: np.ndarray,
              beta: float, u: Utility) -> tuple[np.ndarray, np.ndarray]:
-    """Repayment value and debt-index policy by monotone divide and conquer."""
+    """Repayment value and debt-index policy with bounded search workspace.
+
+    Income columns are independent conditional on ``ev``. Batching them keeps
+    divide-and-conquer candidate arrays small without changing arithmetic,
+    sorting, or tie-breaking within any income column.
+    """
+    n_b, n_y = q.shape
+    block_income = 32
+    if n_y <= block_income:
+        return _maximize_columns(b_grid, y_grid, q, ev, beta, u)
+    value = np.empty((n_b, n_y))
+    policy = np.empty((n_b, n_y), dtype=int)
+    for first in range(0, n_y, block_income):
+        stop = min(first + block_income, n_y)
+        value[:, first:stop], policy[:, first:stop] = _maximize_columns(
+            b_grid, y_grid[first:stop], q[:, first:stop], ev[:, first:stop], beta, u)
+    return value, policy
+
+
+def _maximize_columns(b_grid: np.ndarray, y_grid: np.ndarray, q: np.ndarray,
+                      ev: np.ndarray, beta: float, u: Utility) -> tuple[np.ndarray, np.ndarray]:
+    """Original column-independent divide-and-conquer search."""
     n_b, n_y = q.shape
     order = np.argsort(-(q * b_grid[:, None]), axis=0, kind="stable")
     sorted_q = np.take_along_axis(q, order, axis=0)

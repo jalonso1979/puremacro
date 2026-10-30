@@ -13,6 +13,13 @@ but not published; their additions are included in 6.0.1, published on
 
 Development version after 6.0.1; not a published distribution.
 
+- Bounded the short-term monotone policy search's workspace by batching
+  independent income columns. Values, choices, equilibrium metadata and random
+  paths retain exact parity with the pinned original algorithm. The sovereign
+  brief retains a failed crossed refinement through 12,801 × 1,281 and registers
+  a further debt refinement without relaxing its tolerances or rewriting the
+  historical cases' source provenance.
+
 - `calibrate_one_asset_hank` and `solve_one_asset_hank`: the published ABRS
   one-asset equilibrium with endogenous labor, debt revaluation, asset/labor
   clearing and nonlinear Phillips curve. Independent author-code fixtures
