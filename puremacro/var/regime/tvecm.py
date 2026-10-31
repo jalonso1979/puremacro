@@ -29,6 +29,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
+from numpy.lib.stride_tricks import sliding_window_view
 
 
 @dataclass
@@ -96,10 +97,9 @@ def tvecm_fit(
     if k_lags == 0:
         Z = np.zeros((len(dY), 0))
     else:
-        rows = []
-        for t in range(k_lags, len(dY)):
-            rows.append(np.concatenate([dY[t - j - 1] for j in range(k_lags)]))
-        Z = np.array(rows)
+        # ⚡ Bolt: Vectorized lag gathering via sliding_window_view avoids np.concatenate memory reallocation
+        windows = sliding_window_view(dY[:-1], window_shape=k_lags, axis=0)
+        Z = windows[..., ::-1].transpose(0, 2, 1).reshape(len(dY) - k_lags, k_lags * dY.shape[1])
 
     start = k_lags + delay  # need w_{t-d} and lagged dY
     # align: indep variables at index t use ec at t-delay+1 ... let's be careful:

@@ -9,3 +9,6 @@
 ## 2023-10-25 - Row duplication in Pandas DataFrames
 **Learning:** Using `.iterrows()` with list comprehensions to duplicate rows in a Pandas DataFrame (e.g. for expanding annual to quarterly periods) is significantly slower than vectorized Pandas/NumPy operations. Expanding rows iteratively creates high object allocation overhead.
 **Action:** When uniformly expanding or duplicating pandas DataFrame rows N times (e.g., converting annual to quarterly data), use `df.iloc[np.repeat(np.arange(len(df)), N)].reset_index(drop=True)` for a highly performant vectorized approach instead of `iterrows()`.
+## 2025-02-20 - Vectorized Lag Gathering in Time Series with sliding_window_view
+**Learning:** In highly mathematical code like VECM estimation (`tvecm_fit`), repeatedly allocating arrays in a Python loop (`rows.append(np.concatenate(...))`) to build lagged data matrices creates a massive O(N) allocation bottleneck. `np.lib.stride_tricks.sliding_window_view` solves this entirely in C by manipulating memory strides without duplicating data.
+**Action:** Next time you see a loop iteratively slicing past/lagged data into a new array, replace it with `sliding_window_view` combined with reversing `[::-1]`, transposing, and a final `.reshape()`.
