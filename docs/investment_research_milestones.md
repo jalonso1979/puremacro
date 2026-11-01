@@ -4,7 +4,7 @@ Approved scope: the user accepted the five-stage proposal and delegated sequenci
 
 | Milestone | Deliverable | Acceptance evidence | Status |
 |---|---|---|---|
-| M1 Historical evaluation | Availability-dated observations; lagged target execution; long-only holdings, cash, costs and drift; reproducible ledger | Hand-calculated accounting, future-data perturbation, invalid/missing input tests | In progress |
+| M1 Historical evaluation | Availability-dated observations; lagged target execution; long-only holdings, cash, costs and drift; reproducible ledger | Hand-calculated accounting, future-data perturbation, invalid/missing input tests | Implemented; focused validation recorded in tests/test_asset_pricing/test_backtest.py |
 | M2 Allocation | Equal weights; Ledoit-Wolf covariance; bounded minimum-variance/mean-variance; turnover penalty; frontier | Closed-form solutions, constrained independent reference, infeasibility and scale tests | Pending |
 | M3 Technical research | Momentum, moving averages, breakouts, Wilder RSI, MACD and Bollinger; rolling historical policies; block-bootstrap strategy comparison | Published conventions, scalar references, causality, selection-aware bootstrap controls | Pending |
 | M4 Fundamental analysis | As-of filing selection with retained revisions; financial ratios; FCFF/FCFE/dividend valuation; sensitivity scenarios | Filing-lag controls, independent present values, enterprise/equity consistency | Pending |

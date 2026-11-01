@@ -19,6 +19,7 @@ from .factor_tests import fama_macbeth, time_series_test
 from .sdf import hj_distance, sdf_gmm
 from .ccapm import ccapm
 from .macro_data import fred_consumption_growth, fred_risk_free
+from .backtest import BacktestResult, backtest_portfolio, walk_forward_weights, replay_backtest
 from ._results import (
     CCAPMResult,
     FamaMacBethResult,
@@ -53,4 +54,8 @@ __all__ = [
     "CCAPMResult",
     "fred_consumption_growth",
     "fred_risk_free",
+    "BacktestResult",
+    "backtest_portfolio",
+    "walk_forward_weights",
+    "replay_backtest",
 ]
