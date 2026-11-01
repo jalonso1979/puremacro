@@ -102,6 +102,12 @@ orders with `solve_hank_nonlinear_continuation` separately.
 | Future shock branches | `branching_difference`, `branching_converged` | Root sensitivity at fixed horizon and quadrature order |
 | Quadrature order | Separate same-tree order comparisons | Not certified by branch-depth acceptance |
 
+With reduced household-control policies, the terminal marginal-value basis is
+another approximation. Distribution L1 does not measure its omitted directions;
+inspect that policy's omitted full marginal equations and reachable-shock RMS
+(`full_marginal_stationary_rms_max`) separately. Full-grid interior household
+sweeps do not certify the terminal control basis.
+
 Actual distributions must remain nonnegative and retain unit mass. A projected
 terminal distribution can have negative components: this is reported separately
 and is never substituted for the actual distribution or silently clipped. The
@@ -116,7 +122,10 @@ individual statuses. A simulation stops **before transporting the failed
 action** and preserves the failed period and diagnostics. Equation, horizon and
 branching statuses remain separate, including a passed horizon on a
 branching-only failure. `max_nodes`, `max_workspace_bytes` and iteration limits
-bound the work; increasing branch depth or quadrature order grows trees rapidly.
+bound tree size, estimated working arrays and iterations. The per-tree memory
+estimate is not a process-RSS guarantee and excludes retained results from
+other refinements or previous dates. Increasing branch depth or quadrature
+order grows trees rapidly.
 
 ## Independent inspection
 

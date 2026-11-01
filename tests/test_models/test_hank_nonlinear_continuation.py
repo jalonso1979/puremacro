@@ -65,6 +65,20 @@ def test_independent_node_expectations_accounts_and_full_transport(policy, corre
     np.testing.assert_allclose(result.post_distributions.sum(axis=(1, 2)), 1., atol=1e-13)
 
 
+def test_conditional_shock_moments_and_mean_tail(policy, correction):
+    nodes = correction.tree.nodes
+    for label, parent in nodes.iterrows():
+        children = nodes[nodes.parent == label]
+        if children.empty:
+            continue
+        probabilities = children.conditional_probability.to_numpy()
+        innovations = children.monetary_shock.to_numpy()-policy.rho*parent.monetary_shock
+        assert np.dot(probabilities, innovations) == pytest.approx(0., abs=1e-16)
+        variance = np.dot(probabilities, innovations**2)
+        expected = policy.shock_std**2 if parent.period < 2 else 0.
+        assert variance == pytest.approx(expected, abs=1e-20)
+
+
 def test_later_realizations_cannot_change_earlier_actions(policy):
     options = dict(horizons=(4, 8), branch_depths=(1, 2), keep_trees=True)
     a = simulate_hank_nonlinear(policy, np.array([-1e-4, 4e-5, 1e-5]), **options)

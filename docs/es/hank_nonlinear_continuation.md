@@ -109,6 +109,13 @@ certificar. Compare órdenes por separado con el solucionador de árbol finito.
 | Ramas de choques futuros | `branching_difference`, `branching_converged` | Sensibilidad de la raíz a horizonte y orden de cuadratura fijos |
 | Orden de cuadratura | Comparaciones de orden para el mismo árbol | No lo certifica aceptar la profundidad de ramificación |
 
+Con políticas de controles de hogares reducidos, la base de valores marginales
+terminales añade otra aproximación. La distancia L1 de distribuciones no mide
+sus direcciones omitidas; inspeccione por separado los diagnósticos de
+ecuaciones marginales completas omitidas y su RMS bajo los choques alcanzables
+(`full_marginal_stationary_rms_max`). Las pasadas interiores en la malla
+completa no certifican la base de controles terminal.
+
 Las distribuciones reales deben ser no negativas y conservar masa unitaria.
 Una distribución terminal proyectada puede tener componentes negativos: se
 reportan por separado y nunca sustituyen a la distribución real ni se recortan
@@ -124,8 +131,11 @@ fallida. Con `raise_on_failure=False`, la corrección devuelve
 de transportar la acción fallida**, conservando el período y sus diagnósticos.
 Los estados de ecuaciones, horizonte y ramificación permanecen separados,
 incluso cuando el horizonte pasa y sólo falla la ramificación. `max_nodes`,
-`max_workspace_bytes` y los límites de iteraciones acotan el trabajo; aumentar
-la profundidad o el orden de cuadratura hace crecer rápidamente los árboles.
+`max_workspace_bytes` y los límites de iteraciones acotan el tamaño del árbol,
+los arreglos de trabajo estimados y las iteraciones. La estimación de memoria
+por árbol no garantiza un límite de RSS del proceso y excluye resultados
+retenidos de otros refinamientos o fechas anteriores. Aumentar la profundidad o el orden de cuadratura hace
+crecer rápidamente los árboles.
 
 ## Inspección independiente
 
