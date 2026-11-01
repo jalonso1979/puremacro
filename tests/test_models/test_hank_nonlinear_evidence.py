@@ -84,6 +84,13 @@ def test_independent_root_resource_assets_mass_and_observed_state_accounts(recor
         for t, innovation in enumerate(held):
             shock = .7*shock+innovation
             assert arrays["states"][t, -1] == pytest.approx(shock, abs=1e-15)
+    full_paths = pd.read_csv(FIXTURE/"full_nonlinear.csv")
+    reduced_paths = pd.read_csv(FIXTURE/"snapshots16_nonlinear.csv")
+    columns = ["pi", "w", "Y", "C"]
+    np.testing.assert_allclose(full_paths[columns], reduced_paths[columns], atol=1e-7, rtol=0.)
+    full_d = np.load(FIXTURE/"full_nonlinear.npz")["distributions"]
+    reduced_d = np.load(FIXTURE/"snapshots16_nonlinear.npz")["distributions"]
+    assert np.max(np.sum(abs(full_d-reduced_d), axis=(1, 2))) < 1e-6
 
 
 def test_failed_shorter_refinements_are_preserved_with_their_original_sources():

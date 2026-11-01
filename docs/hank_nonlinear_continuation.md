@@ -170,3 +170,18 @@ reduce total nonlinear-solution cost. Euler/KKT maxima remain about `9.95e-4`.
 The matched small-grid dense comparison differs by `1.46e-11` in root log
 controls; order 2-to-3 and 3-to-5 quadrature comparisons differ by at most
 `2.64e-8` across the reported root metrics. These are case-specific checks.
+
+Across the two independently refined histories, inflation, wage, output and
+consumption level deviations differ by at most `3.54e-8`, and the full
+distribution L1 difference stays below `5.08e-7`. Because their chosen horizons
+differ, this is a combined representation/refinement comparison, not a pure
+compression-error bound.
+
+A separate rank-32 trial keeps the same history and accuracy criteria but uses
+a 600-second soft budget checked between corrections. It accepts 43/48 dates
+before stopping, with `9.42e-9` maximum market error on that prefix. The last
+correction finishes after the soft limit: solve time is 635.3 seconds and rollout
+time 636.0 seconds. Horizon 64 is still needed on 13 dates. This partial result
+does not establish rank 32 as a faster validated replacement. Its checkpointed
+states, stop reason and independent transport/budget checks are retained in
+`tests/fixtures/hank_nonlinear_rank32/`; no correction remains running.

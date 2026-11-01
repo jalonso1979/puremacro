@@ -185,3 +185,20 @@ malla pequeña difiere en `1.46e-11` en controles logarítmicos de la raíz; las
 comparaciones de cuadratura de orden 2 a 3 y de 3 a 5 difieren como máximo en
 `2.64e-8` en las métricas reportadas de la raíz. Son comprobaciones específicas
 de estos casos.
+
+Entre las dos historias refinadas independientemente, las desviaciones de
+inflación, salario, producto y consumo difieren como máximo en `3.54e-8`; la
+distancia L1 de las distribuciones completas permanece por debajo de
+`5.08e-7`. Como los horizontes elegidos difieren, esta comparación combina
+representación y refinamiento; no es una cota del error puro de compresión.
+
+Una prueba separada de rango 32 mantiene la misma historia y los mismos
+criterios, con un presupuesto blando de 600 segundos comprobado entre
+correcciones. Acepta 43/48 fechas antes de detenerse, con error máximo de mercado
+`9.42e-9` en ese prefijo. La última corrección termina después del límite blando:
+el tiempo de solución es 635.3 segundos y el de la trayectoria 636.0 segundos.
+Todavía requiere horizonte 64 en 13 fechas. Este resultado parcial no demuestra
+que el rango 32 sea un reemplazo validado más rápido. Sus estados guardados, el
+motivo de parada y las verificaciones independientes de transporte y presupuesto
+se conservan en `tests/fixtures/hank_nonlinear_rank32/`; no queda ninguna
+corrección en ejecución.
