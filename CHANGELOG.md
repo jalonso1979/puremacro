@@ -13,6 +13,14 @@ but not published; their additions are included in 6.0.1, published on
 
 Development version after 6.0.1; not a published distribution.
 
+- Solved local stochastic HANK policies with constraint- and market-moment-
+  preserving distribution reduction, Schur determinacy checks and held-out
+  full-distribution audits. Nonlinear finite trees can use that solved
+  first-order stochastic terminal policy. A two-asset consol economy clears
+  both asset markets and accounts for coupons, capital gains and portfolio
+  adjustment resources. Failed compression audits remain visible; these are
+  local solutions, not global or second-order aggregate-risk calculations.
+  [Guide](docs/hank_recursive.md).
 - `HANKEquilibriumWorkspace` and `solve_hank_equilibrium`: matrix-free
   Newton-GMRES solves the coupled one-asset finite-history household and market
   equations with analytic EGM/distribution tangents, a reusable sparse

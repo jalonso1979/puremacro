@@ -14,6 +14,8 @@ scaling check alone does not establish a solved heterogeneous-household economy.
 | User-supplied `BlockDAG` | Composition and solution of the supplied blocks | Depends on the actual household equations and equilibrium closure |
 | `build_canonical_hank_dag` and default `solve_hank_nonlinear_transition` | Reduced nonlinear model with prescribed MPC and constraint-mass formulas | Demonstration; no household optimization or distribution solve |
 | `solve_hank_aggregate_risk_order2` | Second-order algebra for prescribed transition matrices and moments | Reduced demonstration; not a general Reiter/Winberry or two-asset HANK solver |
+| `solve_hank_stochastic_policy` | Solved first-order stochastic policy with compressed distribution states | Schur equations, full-state comparisons and held-out nonlinear audits |
+| `solve_hank_stochastic_tree` | Nonlinear one- or two-asset finite histories with a solved local terminal policy | Household budgets, both applicable asset markets, goods and terminal consistency |
 
 The aggregate-risk function rejects a supplied `model` or `steady_state`
 because those inputs are not implemented. Calling it with `model=None` emits
@@ -111,9 +113,10 @@ flowchart TD
 
 ## Next research milestone
 
-First reproduce a published one-asset calibration with matched timing, fiscal
-rules, grids and equilibrium targets. Then validate nonlinear transitions
-against an independent implementation, including distribution mass, Euler
-errors, resource residuals and horizon sensitivity. A general aggregate-risk
-solver requires derivatives through the household problem and distribution,
-plus independent higher-order references; those steps remain future work.
+The [published one-asset equilibrium](hank_equilibrium.md) and
+[local stochastic policies and two-asset closure](hank_recursive.md) now have
+separate implementations and validation records. They retain their stated
+grid, compression and approximation-order limits. Global aggregate-risk
+accuracy and higher-order precautionary or welfare calculations require
+additional methods and independent references. The reduced second-order
+demonstration above retains its original scope.

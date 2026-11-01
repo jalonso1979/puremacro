@@ -2147,18 +2147,24 @@
       "DMPState",
       "FakeNewsResult",
       "FiscalTransferResult",
+      "HANKDistributionBasis",
       "HANKEquilibriumWorkspace",
       "HANKScenarioTreeResult",
+      "HANKStochasticResult",
+      "HANKStochasticTreeResult",
       "MonetaryTransmissionResult",
       "MonetaryTransmissionSimulator",
       "NonlinearHANKResult",
       "OneAssetHANKResult",
       "OneAssetHANKSteadyState",
       "SequenceSpaceHANKResult",
+      "StochasticHANKPolicy",
       "TradePolicySimulationResult",
       "TradePolicySimulator",
+      "TwoAssetHANKSteadyState",
       "TwoAssetSequenceSpaceHANKResult",
       "calibrate_one_asset_hank",
+      "calibrate_two_asset_equilibrium",
       "dmp_irf",
       "dmp_steady_state",
       "fake_news_algorithm",
@@ -2167,6 +2173,8 @@
       "solve_hank_equilibrium",
       "solve_hank_scenario_tree",
       "solve_hank_sequence_space",
+      "solve_hank_stochastic_policy",
+      "solve_hank_stochastic_tree",
       "solve_nonlinear_transition",
       "solve_one_asset_hank",
       "solve_two_asset_hank_sequence_space"
@@ -2174,6 +2182,14 @@
     "puremacro.models.hank_equilibrium": [
       "HANKEquilibriumWorkspace",
       "solve_hank_equilibrium"
+    ],
+    "puremacro.models.hank_recursive": [
+      "HANKDistributionBasis",
+      "HANKStochasticResult",
+      "HANKStochasticTreeResult",
+      "StochasticHANKPolicy",
+      "solve_hank_stochastic_policy",
+      "solve_hank_stochastic_tree"
     ],
     "puremacro.models.hank_scenario_tree": [
       "HANKScenarioTreeResult",
@@ -2193,6 +2209,10 @@
       "solve_hank_sequence_space",
       "solve_nonlinear_transition",
       "solve_two_asset_hank_sequence_space"
+    ],
+    "puremacro.models.hank_two_asset_equilibrium": [
+      "TwoAssetHANKSteadyState",
+      "calibrate_two_asset_equilibrium"
     ],
     "puremacro.models.nested_dmp": [
       "ComparativeStatics",
@@ -6926,6 +6946,40 @@
       "v",
       "w"
     ],
+    "puremacro.models.hank_recursive.HANKDistributionBasis": [
+      "center",
+      "constraints",
+      "diagnostics",
+      "vectors"
+    ],
+    "puremacro.models.hank_recursive.HANKStochasticResult": [
+      "converged",
+      "diagnostics",
+      "distributions",
+      "paths",
+      "states"
+    ],
+    "puremacro.models.hank_recursive.HANKStochasticTreeResult": [
+      "converged",
+      "diagnostics",
+      "distributions",
+      "metadata",
+      "nodes",
+      "paths",
+      "policies",
+      "terminal_states"
+    ],
+    "puremacro.models.hank_recursive.StochasticHANKPolicy": [
+      "_F0",
+      "_F1",
+      "_kernel",
+      "basis",
+      "diagnostics",
+      "feedback",
+      "rho",
+      "shock_std",
+      "transition"
+    ],
     "puremacro.models.hank_scenario_tree.HANKScenarioTreeResult": [
       "converged",
       "diagnostics",
@@ -7040,6 +7094,14 @@
       "r_b_ss",
       "steady_state",
       "trans_matrix"
+    ],
+    "puremacro.models.hank_two_asset_equilibrium.TwoAssetHANKSteadyState": [
+      "_household",
+      "aggregates",
+      "calibration",
+      "converged",
+      "diagnostics",
+      "distribution"
     ],
     "puremacro.models.monetary_transmission.MonetaryTransmissionResult": [
       "aggregate_mpc_hank",

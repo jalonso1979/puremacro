@@ -1,0 +1,392 @@
+"""Solved local stochastic HANK policies with conservative distribution reduction.
+
+This is a first-order rational-expectations solution around a heterogeneous
+steady state, not a global aggregate-risk or second-order welfare calculation.
+The full household marginal values remain controls in the Schur system.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any
+import numpy as np
+import pandas as pd
+from scipy.linalg import null_space, ordqz, solve, solve_discrete_lyapunov
+from scipy.optimize import root
+
+from ._hank_one_asset_recursive import _OneAssetKernel
+
+__all__ = ["HANKDistributionBasis", "StochasticHANKPolicy", "HANKStochasticResult", "HANKStochasticTreeResult",
+           "solve_hank_stochastic_policy", "solve_hank_stochastic_tree"]
+
+
+def _array(value, name, shape=None):
+    if np.iscomplexobj(value):
+        raise ValueError(f"{name} must be finite and real")
+    out = np.array(value, dtype=float, copy=True)
+    if not np.isfinite(out).all() or (shape is not None and out.shape != shape):
+        raise ValueError(f"invalid shape or nonfinite {name}")
+    return out
+
+
+def _integer(value, name, minimum=1):
+    if isinstance(value, bool) or not isinstance(value, (int, np.integer)) or value < minimum:
+        raise ValueError(f"{name} must be an integer >= {minimum}")
+    return int(value)
+
+
+@dataclass(frozen=True)
+class HANKDistributionBasis:
+    """Orthonormal mass/moment-preserving directions around a fixed distribution.
+
+    Linear reconstructions can be negative outside a local neighborhood. They
+    are never clipped or renormalized; ``decode`` raises by default. ``encode``
+    checks the model's exact marginal/moment restrictions before projection.
+    """
+    center: np.ndarray
+    vectors: np.ndarray
+    constraints: np.ndarray
+    diagnostics: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        d = _array(self.center, "center")
+        B, C = _array(self.vectors, "vectors"), _array(self.constraints, "constraints")
+        if (d.ndim < 1 or np.min(d) < 0 or abs(d.sum()-1) > 1e-10 or B.ndim != 2
+                or C.ndim != 2 or B.shape[0] != d.size or C.shape[0] != d.size or B.shape[1] < 1):
+            raise ValueError("invalid distribution basis dimensions or probability mass")
+        if (not np.allclose(B.T@B, np.eye(B.shape[1]), atol=1e-10, rtol=0)
+                or np.max(abs(C.T@B)) > 1e-9 or np.max(abs(B.sum(axis=0))) > 1e-9):
+            raise ValueError("basis must be orthonormal and preserve mass and constraints")
+        for name, value in (("center", d), ("vectors", B), ("constraints", C)):
+            value.flags.writeable = False
+            object.__setattr__(self, name, value)
+        object.__setattr__(self, "diagnostics", dict(self.diagnostics))
+
+    @property
+    def rank(self) -> int:
+        return int(self.vectors.shape[1])
+
+    def project(self, difference: np.ndarray) -> np.ndarray:
+        """Project a signed distribution difference; no positivity assumption."""
+        return self.vectors.T @ _array(difference, "difference", self.center.shape).ravel()
+
+    def encode(self, distribution: np.ndarray) -> np.ndarray:
+        d = _array(distribution, "distribution", self.center.shape)
+        delta = d.ravel()-self.center.ravel()
+        if np.min(d) < -1e-12 or abs(d.sum()-1) > 1e-10:
+            raise ValueError("distribution must be a probability measure")
+        if np.max(abs(self.constraints.T@delta)) > 1e-9:
+            raise ValueError("distribution violates fixed income marginals or asset-market restrictions")
+        return self.vectors.T@delta
+
+    def decode(self, coefficients: np.ndarray, *, check_positive: bool = True) -> np.ndarray:
+        c = _array(coefficients, "coefficients", (self.rank,))
+        d = self.center + (self.vectors@c).reshape(self.center.shape)
+        if check_positive and d.min() < -1e-12:
+            raise ValueError("compressed distribution is negative; reduce the excursion or enrich the basis")
+        return d
+
+
+def _make_basis(kernel, rank, snapshots=None):
+    C = kernel.constraints
+    C = C / np.linalg.norm(C, axis=0)
+    Q, _ = np.linalg.qr(C, mode="reduced")
+    maximum = kernel.d.size - Q.shape[1]
+    if rank is None:
+        B = null_space(Q.T)
+        return HANKDistributionBasis(kernel.d, B, Q, dict(method="full_constraint_nullspace", rank=maximum))
+    rank = _integer(rank, "distribution_rank")
+    if rank > maximum:
+        raise ValueError(f"distribution_rank exceeds the constrained dimension {maximum}")
+    if snapshots is None:
+        seed = kernel.seed_directions()
+        columns = []
+        for _ in range(max(24, 3*rank)):
+            seed -= Q@(Q.T@seed)
+            columns.append(seed.copy())
+            seed = np.column_stack([kernel.fixed_forward(v) for v in seed.T])
+        candidates = np.column_stack(columns)
+        method = "projected_transport_krylov"
+    else:
+        data = _array(snapshots, "snapshots")
+        if data.ndim != kernel.d.ndim+1 or data.shape[1:] != kernel.d.shape:
+            raise ValueError("snapshots must have shape (observations, *distribution.shape)")
+        if np.min(data) < -1e-12 or np.max(abs(data.reshape(len(data), -1).sum(axis=1)-1)) > 1e-10:
+            raise ValueError("snapshots must contain probability distributions")
+        candidates = (data-kernel.d).reshape(len(data), -1).T
+        if np.max(abs(Q.T@candidates)) > 1e-9:
+            raise ValueError("snapshots violate fixed distribution constraints")
+        method = "snapshot_svd"
+    candidates -= Q@(Q.T@candidates)
+    U, singular, _ = np.linalg.svd(candidates, full_matrices=False)
+    available = int(np.sum(singular > (singular[0] if len(singular) else 1)*1e-13))
+    if available < rank:
+        raise ValueError(f"only {available} independent distribution directions; lower distribution_rank")
+    # Reproject and orthogonalize to control cancellation in low-energy vectors.
+    B, _ = np.linalg.qr(U[:, :rank]-Q@(Q.T@U[:, :rank]), mode="reduced")
+    omitted = np.linalg.norm(candidates-B@(B.T@candidates))/max(np.linalg.norm(candidates), 1e-300)
+    return HANKDistributionBasis(kernel.d, B, Q, dict(method=method, rank=rank,
+        available_directions=available, training_relative_error=float(omitted),
+        singular_values=singular.tolist()))
+
+
+@dataclass
+class HANKStochasticResult:
+    """History paths and diagnostics, with local approximation scope explicit."""
+    paths: pd.DataFrame
+    states: np.ndarray
+    distributions: np.ndarray
+    diagnostics: dict[str, Any]
+    converged: bool
+
+
+@dataclass
+class HANKStochasticTreeResult:
+    """Nonlinear finite histories and a first-order stochastic continuation."""
+    nodes: pd.DataFrame
+    paths: pd.DataFrame
+    distributions: np.ndarray
+    policies: dict[str, np.ndarray]
+    terminal_states: np.ndarray
+    converged: bool
+    diagnostics: dict[str, Any]
+    metadata: dict[str, Any]
+
+    def to_dataframe(self):
+        return self.nodes.join(self.paths)
+
+
+@dataclass
+class StochasticHANKPolicy:
+    """Stable infinite-horizon policy y=Gx, x_next=Hx+innovation.
+
+    States are distribution coefficients, inherited nominal-rate deviation,
+    and the current AR(1) monetary disturbance. Controls are household marginal
+    values followed by aggregate log coordinates. Future innovations have zero
+    conditional mean and standard deviation ``shock_std``; first-order policy
+    coefficients are certainty equivalent. No precautionary shift is implied.
+    """
+    basis: HANKDistributionBasis
+    transition: np.ndarray
+    feedback: np.ndarray
+    rho: float
+    shock_std: float
+    diagnostics: dict[str, Any]
+    _kernel: Any = field(repr=False)
+    _F0: np.ndarray = field(repr=False)
+    _F1: np.ndarray = field(repr=False)
+
+    @property
+    def converged(self) -> bool:
+        return bool(self.diagnostics["equilibrium_residual_max_abs"] < 1e-8)
+
+    @property
+    def steady_state(self):
+        from copy import deepcopy
+        return deepcopy(self._kernel.ss)
+
+    @property
+    def aggregate_feedback(self) -> np.ndarray:
+        return self.feedback[-len(self._kernel.aggregate_names):].copy()
+
+    def state(self, distribution: np.ndarray | None = None, *, lag_nominal: float = 0.,
+              monetary_shock: float = 0.) -> np.ndarray:
+        d = self.basis.center if distribution is None else distribution
+        return np.r_[self.basis.encode(d), _array([lag_nominal, monetary_shock], "aggregate states", (2,))]
+
+    def covariance(self) -> np.ndarray:
+        """First-order unconditional covariance; does not shift steady-state means."""
+        Q = np.zeros_like(self.transition)
+        Q[-1, -1] = self.shock_std**2
+        return solve_discrete_lyapunov(self.transition, Q)
+
+    def simulate(self, innovations: np.ndarray, *, initial_state: np.ndarray | None = None) -> HANKStochasticResult:
+        """Simulate the solved linear system; report signed reconstruction limits."""
+        eps = _array(innovations, "innovations")
+        if eps.ndim != 1 or not len(eps):
+            raise ValueError("innovations must be a nonempty vector")
+        ns, k = len(self.transition), self.basis.rank
+        x = np.zeros(ns) if initial_state is None else _array(initial_state, "initial_state", (ns,))
+        states, distributions, rows = [], [], []
+        error = 0.
+        for innovation in eps:
+            x[-1] += innovation
+            y, xp = self.feedback@x, self.transition@x
+            vec, nxt = np.r_[x, y], np.r_[xp, self.feedback@xp]
+            error = max(error, float(np.max(abs(self._F0@vec+self._F1@nxt))))
+            rows.append(dict(zip(self._kernel.aggregate_names, y[-len(self._kernel.aggregate_names):])))
+            states.append(x.copy())
+            distributions.append(self.basis.decode(x[:k], check_positive=False))
+            x = xp
+        dist = np.asarray(distributions)
+        return HANKStochasticResult(pd.DataFrame(rows), np.asarray(states), dist,
+            dict(scope="local first-order stochastic equilibrium; aggregate paths are log deviations",
+                 linear_equilibrium_error=error, minimum_reconstructed_mass=float(dist.min()),
+                 negative_reconstructed_mass=float(np.maximum(-dist, 0).sum(axis=tuple(range(1, dist.ndim))).max()),
+                 stochastic_tail_solved=True, distribution_rank=k), error < 1e-8)
+
+    def _forecast(self, next_state, nominal):
+        kernel = self._kernel
+        nm = len(kernel.m)
+        expected = kernel.m + self.feedback[:nm]@next_state
+        if np.min(expected) <= 0:
+            raise ValueError("terminal household marginal value left the positive domain")
+        branches = []
+        for innovation in (-self.shock_std, self.shock_std):
+            x = next_state.copy()
+            x[-1] += innovation
+            if np.min(kernel.m+self.feedback[:nm]@x) <= 0:
+                raise ValueError("a terminal shock branch has nonpositive household marginal values")
+            u = self.aggregate_feedback@x
+            pi, Y = np.expm1(u[0]), kernel.Y*np.exp(u[2])
+            gross = (1+nominal)/(1+pi)
+            if not np.isfinite([pi, Y, gross]).all() or min(Y, gross) <= 0:
+                raise ValueError("terminal aggregate policy left its local domain")
+            branches.append((.5, Y, u[0], gross))
+        return expected, branches
+
+    def audit(self, innovations: np.ndarray, *, tolerance: float = 1e-5) -> HANKStochasticResult:
+        """Held-out full-distribution nonlinear rollout of the local policy.
+
+        Each period solves continuation/transport consistency with the full
+        household grid. Aggregate policy coefficients stay fixed. Market and
+        goods errors therefore measure approximation error rather than a refit.
+        Euler/KKT errors include household interpolation error and are reported
+        separately; they are not hidden by the aggregate acceptance threshold.
+        """
+        eps = _array(innovations, "innovations")
+        if eps.ndim != 1 or not len(eps) or not np.isfinite(tolerance) or tolerance <= 0:
+            raise ValueError("nonempty innovations and a positive finite tolerance are required")
+        kernel, k = self._kernel, self.basis.rank
+        d = kernel.d.copy()
+        lag = shock = error = compression = budget = euler = exit_mass = 0.
+        rows, states, distributions, statuses = [], [], [], []
+        for innovation in eps:
+            shock = self.rho*shock + innovation
+            # Actual transported distributions need not satisfy the asset-market
+            # restriction exactly when a local policy has nonlinear residuals.
+            x = np.r_[self.basis.project(d-self.basis.center), lag, shock]
+            u = self.aggregate_feedback@x
+            prices = kernel.prices(u, lag, shock, distribution=d)
+
+            def evaluate(z):
+                xp = np.r_[z, prices["nominal"]-kernel.r, self.rho*shock]
+                expected, branches = self._forecast(xp, prices["nominal"])
+                h = kernel.backward(expected, prices)
+                dp = kernel.forward(d, h)
+                return z-self.basis.project(dp-self.basis.center), h, dp, expected, branches
+
+            fit = root(lambda z: evaluate(z)[0], (self.transition@x)[:k], tol=1e-10)
+            consistency, h, dp, expected, branches = evaluate(fit.x)
+            consistency_error = float(np.max(abs(consistency)))
+            statuses.append(dict(success=bool(consistency_error < 1e-9), message=str(fit.message)))
+            continuation = sum(prob*Y/prices["Y"]*logpi/gross for prob, Y, logpi, gross in branches)
+            residual, row = kernel.markets(d, h, prices, continuation)
+            checks = kernel.household_checks(d, h, prices, expected)
+            projection = self.basis.decode(self.basis.project(dp-self.basis.center), check_positive=False)
+            gap = float(np.sum(abs(dp-projection)))
+            error = max(error, float(np.max(abs(residual))), abs(row["goods_mkt"]), consistency_error)
+            compression = max(compression, gap)
+            budget, euler = max(budget, checks["budget_error"]), max(euler, checks["euler_kkt_max"])
+            exit_mass = max(exit_mass, checks["grid_exit_mass"])
+            row.update(compression_l1=gap, continuation_error=consistency_error,
+                       euler_kkt_max=checks["euler_kkt_max"], shock=shock)
+            rows.append(row)
+            states.append(x)
+            distributions.append(d.copy())
+            d, lag = dp, prices["nominal"]-kernel.r
+        dist = np.asarray([*distributions, d])
+        mass_error = float(np.max(abs(dist.reshape(len(dist), -1).sum(axis=1)-1)))
+        ok = bool(error <= tolerance and budget < 1e-8 and mass_error < 1e-10
+                  and dist.min() >= -1e-12 and exit_mass < 1e-10 and all(s["success"] for s in statuses))
+        return HANKStochasticResult(pd.DataFrame(rows), np.asarray(states), dist,
+            dict(scope="nonlinear full-distribution audit of fixed local stochastic policy",
+                 market_residual_max_abs=error, compression_l1_max=compression, mass_error=mass_error,
+                 minimum_mass=float(dist.min()), household_budget_error=budget, euler_kkt_max=euler,
+                 policy_grid_exit_mass=exit_mass, tolerance=tolerance, continuation_solves=statuses), ok)
+
+
+def solve_hank_stochastic_policy(steady_state: Any, *, distribution_rank: int | None = 12,
+                                 snapshots: np.ndarray | None = None, rho: float = .7,
+                                 shock_std: float = .0001, max_system_size: int = 1800) -> StochasticHANKPolicy:
+    """Solve a reduced-state local rational-expectations equilibrium by ordered QZ.
+
+    ``distribution_rank=None`` retains the full constrained distribution and is
+    an independent compression check. Snapshots, when supplied, train the basis
+    only; policy coefficients always solve household and equilibrium equations.
+    Dense QZ retains all household marginal values, so ``max_system_size``
+    bounds its dimension, not RSS. A unit root, incorrect stable-root count or
+    singular state projection raises explicitly. No regularized policy is used.
+    """
+    if not np.isfinite([rho, shock_std]).all() or abs(rho) >= 1 or shock_std < 0:
+        raise ValueError("require abs(rho) < 1 and nonnegative finite shock_std")
+    limit = _integer(max_system_size, "max_system_size")
+    from .one_asset_hank import OneAssetHANKSteadyState
+    kernel: Any
+    if isinstance(steady_state, OneAssetHANKSteadyState):
+        kernel = _OneAssetKernel(steady_state)
+    else:
+        from .hank_two_asset_equilibrium import _TwoAssetKernel
+        kernel = _TwoAssetKernel(steady_state)
+    requested = (kernel.d.size-kernel.constraints.shape[1] if distribution_rank is None
+                 else _integer(distribution_rank, "distribution_rank"))
+    anticipated = requested+2+len(kernel.m)+len(kernel.aggregate_names)
+    if anticipated > limit:
+        raise ValueError(f"Schur system dimension {anticipated} exceeds max_system_size={limit}")
+    zero_prices = kernel.prices(np.zeros(len(kernel.aggregate_names)), 0., 0., distribution=kernel.d)
+    zero_household = kernel.backward(kernel.m, zero_prices)
+    zero_residual, zero_accounts = kernel.markets(kernel.d, zero_household, zero_prices, 0.)
+    base_error = max(float(np.max(abs(zero_residual))), abs(zero_accounts["goods_mkt"]),
+        float(np.max(abs(zero_household["m"]-kernel.m)/(1+abs(kernel.m)))),
+        float(np.max(abs(kernel.forward(kernel.d, zero_household)-kernel.d))))
+    if (not np.isfinite(base_error) or base_error > 1e-8 or np.min(kernel.d) < -1e-12
+            or abs(kernel.d.sum()-1) > 1e-10 or np.min(kernel.m) <= 0):
+        raise ValueError("steady-state equations or distribution are inconsistent")
+    basis = _make_basis(kernel, distribution_rank, snapshots)
+    ns = basis.rank+2
+    dim = ns+len(kernel.m)+len(kernel.aggregate_names)
+    if dim > limit:
+        raise ValueError(f"Schur system dimension {dim} exceeds max_system_size={limit}")
+    eye, zero = np.eye(dim), np.zeros(dim)
+    F0 = np.column_stack([kernel.linear_residual(v, zero, basis, rho) for v in eye])
+    F1 = np.column_stack([kernel.linear_residual(zero, v, basis, rho) for v in eye])
+    S, T, alpha, beta, _, Z = ordqz(-F0, F1, sort="iuc", output="complex")
+    with np.errstate(divide="ignore", invalid="ignore"):
+        eigen = alpha/beta
+    modulus = abs(eigen)
+    if np.any(abs(modulus-1) < 1e-8) or int(np.sum(modulus < 1-1e-8)) != ns:
+        raise ValueError(f"stochastic equilibrium fails determinacy: {np.sum(modulus < 1-1e-8)} stable roots for {ns} states")
+    Zx = Z[:ns, :ns]
+    condition = float(np.linalg.cond(Zx))
+    if not np.isfinite(condition) or condition > 1e12:
+        raise ValueError("stable Schur subspace does not identify a well-conditioned state policy")
+    G = solve(Zx.T, Z[ns:, :ns].T).T
+    H = solve(Zx.T, (Zx@solve(T[:ns, :ns], S[:ns, :ns])).T).T
+    if max(float(abs(G.imag).max()), float(abs(H.imag).max())) > 1e-8:
+        raise ValueError("non-real Schur policy")
+    G, H = G.real, H.real
+    stack = np.vstack([np.eye(ns), G])
+    residual = float(np.max(abs(F0@stack+F1@stack@H)))
+    radius = float(np.max(abs(np.linalg.eigvals(H))))
+    if residual > 1e-8 or radius >= 1-1e-8:
+        raise ValueError("stochastic equilibrium policy failed equation or stability checks")
+    diagnostics = dict(equilibrium_residual_max_abs=residual, steady_state_error=base_error, spectral_radius=radius,
+        stable_roots=ns, state_projection_condition=condition, system_dimension=dim,
+        distribution_rank=basis.rank, full_distribution_dimension=kernel.d.size-kernel.constraints.shape[1],
+        approximation_order=1, stochastic_tail_solved=True, model=kernel.model,
+        household_derivatives="analytic" if kernel.model == "one_asset" else "centered finite differences",
+        scope="local rational-expectations equilibrium, not a global or second-order aggregate-risk solution")
+    for array in (G, H, F0, F1):
+        array.flags.writeable = False
+    return StochasticHANKPolicy(basis, H, G, float(rho), float(shock_std), diagnostics, kernel, F0, F1)
+
+
+def solve_hank_stochastic_tree(policy: StochasticHANKPolicy, tree: pd.DataFrame, *,
+                               tolerance: float = 1e-8, max_iterations: int = 30,
+                               initial: np.ndarray | None = None, method: str = "krylov",
+                               preconditioner: str = "sparse",
+                               max_workspace_bytes: int = 1_073_741_824) -> HANKStochasticTreeResult:
+    """Solve nonlinear finite histories with an endogenous stochastic terminal policy."""
+    from ._hank_stochastic_tree import _solve_tree
+    return _solve_tree(policy, tree, tolerance=tolerance, max_iterations=max_iterations,
+                       initial=initial, method=method, preconditioner=preconditioner,
+                       max_workspace_bytes=max_workspace_bytes)

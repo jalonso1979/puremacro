@@ -104,6 +104,7 @@ nav:
           - Published one-asset HANK equilibrium: hank_equilibrium.md
           - Finite-tree aggregate-risk HANK: hank_scenario_tree.md
           - Optimized coupled HANK equilibrium: hank_optimized.md
+          - Recursive HANK and two-asset equilibrium: hank_recursive.md
           - Non-Linear HANK Transitions: hank_nonlinear.md
           - Editable HANK equations and panels: hank_model_closure.md
           - Nonlinear HANK & 2nd-Order Aggregate Risk: hank_ssj_and_aggregate_risk.md
@@ -226,6 +227,7 @@ nav:
           - Equilibrio HANK publicado de un activo: es/hank_equilibrium.md
           - HANK con riesgo agregado en árbol finito: es/hank_scenario_tree.md
           - Equilibrio HANK acoplado y optimizado: es/hank_optimized.md
+          - HANK recursivo y equilibrio de dos activos: es/hank_recursive.md
           - Transiciones no lineales en HANK: es/hank_nonlinear.md
           - Ecuaciones HANK editables y paneles: es/hank_model_closure.md
           - HANK no lineal y riesgo agregado de 2.º orden: es/hank_ssj_and_aggregate_risk.md

@@ -133,14 +133,13 @@ archivan y sus diferencias requieren repetir el programa. El directorio
 exacto, cuyos límites de entorno no fijaban explícitamente Accelerate;
 esta ejecución con modo de un hilo verificado sustituye aquellos tiempos.
 
-## Hacia HANK estocástico estacionario
+## Continuación estocástica local y dos activos
 
-El siguiente paso es representar la distribución sin expandir un árbol
-exponencial: una representación comprimida y una política terminal
-estocástica resuelta, auditadas en historias agregadas externas al ajuste.
-Deben comprobarse la distribución completa, Euler/KKT y los mercados;
-aproximar unos momentos no basta. Después pueden incorporarse activos líquidos
-e ilíquidos, restricciones de cartera y reglas fiscales más amplias, con
-referencias independientes para las nuevas ecuaciones. Los kernels compilados
-o acelerados requieren mediciones de los bloques costosos y conservar este
-backend NumPy/SciPy como comparación portátil.
+Las [interfaces HANK recursivas](hank_recursive.md) resuelven una política
+estocástica local de primer orden sobre estados distributivos comprimidos y
+la usan como frontera terminal endógena. También ofrecen un equilibrio con
+dos activos y bonos perpetuos, con cuentas fiscales y de bienes explícitas.
+Las auditorías externas conservan la distribución completa y muestran errores
+de compresión y aproximación local. La precisión global bajo riesgo agregado
+y el bienestar de orden superior requieren trabajo adicional; el backend
+finito de esta página mantiene su alcance original.

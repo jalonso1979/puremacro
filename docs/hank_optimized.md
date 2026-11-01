@@ -154,17 +154,12 @@ rerunning the benchmark. `prior_uncontrolled/` retains the initial observations
 and exact runner, whose environment settings did not explicitly pin Accelerate;
 those timings are superseded by this verified-thread run.
 
-## Next steps toward stationary stochastic HANK
+## Local stochastic continuation and two assets
 
-The next difficult step is representing the distribution state without
-expanding an exponentially growing tree. A practical extension should combine
-a compressed distribution representation with a solved stochastic terminal
-policy, then test held-out aggregate histories against the full distribution,
-Euler/KKT conditions and market residuals. Moment fit alone is insufficient.
-
-After that interface is validated, the same tangent/transport design can be
-extended to liquid and illiquid assets, portfolio adjustment constraints and
-richer fiscal rules. Two-asset household derivatives and asset-market closure
-need their own independent references. Compiled or accelerator kernels should
-be added only after profiling those blocks, keeping this NumPy/SciPy solver as
-the portable numerical comparison.
+The separate [recursive HANK interfaces](hank_recursive.md) now solve a local
+first-order stochastic policy over compressed distribution states and use it
+as an endogenous terminal boundary. They also provide a two-asset consol
+equilibrium with explicit fiscal and goods accounting. Held-out audits retain
+full distributions and expose compression and local-approximation errors.
+Global aggregate-risk accuracy and higher-order welfare require further work;
+the finite-history backend documented on this page retains its original scope.

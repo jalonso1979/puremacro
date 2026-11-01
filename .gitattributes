@@ -10,3 +10,6 @@
 # Preserve authenticated author-code bytes, including their original whitespace.
 tests/fixtures/arellano_2008/original/* -whitespace
 tests/fixtures/arellano_2008/portability.patch -whitespace
+
+# Failed HANK experiments retain their authenticated historical source bytes.
+tests/fixtures/hank_recursive/prior_variance_only/sources/** -whitespace

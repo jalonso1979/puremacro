@@ -14,6 +14,8 @@ una economía resuelta con hogares heterogéneos.
 | `BlockDAG` suministrado | Composición y solución de sus bloques | Depende de las ecuaciones de hogares y del cierre de equilibrio |
 | `build_canonical_hank_dag` y `solve_hank_nonlinear_transition` predeterminado | Modelo reducido con fórmulas prescritas de PMC y masa restringida | Demostración sin optimización de hogares ni solución de distribución |
 | `solve_hank_aggregate_risk_order2` | Álgebra de segundo orden con matrices y momentos prescritos | Demostración; no es un solucionador general Reiter/Winberry ni HANK de dos activos |
+| `solve_hank_stochastic_policy` | Política estocástica resuelta de primer orden con distribución comprimida | Ecuaciones de Schur, comparación con estado completo y auditorías no lineales externas |
+| `solve_hank_stochastic_tree` | Historias no lineales de uno o dos activos con política terminal local resuelta | Presupuestos, ambos mercados de activos pertinentes, bienes y consistencia terminal |
 
 La función de riesgo agregado rechaza `model` y `steady_state` suministrados,
 pues no están implementados. Con `model=None` emite una advertencia y registra
@@ -111,9 +113,10 @@ flowchart TD
 
 ## Siguiente hito de investigación
 
-Reproducir una calibración publicada de un activo con fechas, reglas fiscales,
-mallas y objetivos comunes. Después, contrastar transiciones no lineales,
-masa de distribución, errores de Euler, recursos y sensibilidad al horizonte.
-El riesgo agregado general requiere derivadas del problema de hogares y de
-la distribución, además de referencias independientes de orden superior;
-esos pasos siguen pendientes.
+El [equilibrio publicado de un activo](hank_equilibrium.md) y las
+[políticas estocásticas locales y el cierre de dos activos](hank_recursive.md)
+ya cuentan con implementaciones y registros separados. Mantienen sus límites
+de malla, compresión y orden de aproximación. La precisión global bajo riesgo
+agregado y los efectos precautorios o de bienestar de orden superior requieren
+métodos y referencias adicionales. La demostración reducida de segundo orden
+conserva su alcance original.
