@@ -175,3 +175,25 @@ ni de las ecuaciones marginales omitidas. Deben compararse rangos, revisarse
 residuos completos y errores Euler/KKT, y auditarse historias no usadas para
 construir la base. La continuación estocástica local resuelta no establece
 precisión global ni efectos de bienestar de segundo orden.
+
+## Equilibrio y comprobaciones adaptativas conservadas
+
+`tests/fixtures/hank_capital_equilibrium/` conserva una escala de grillas con
+los mismos parámetros físicos. La grilla amplia de 10×10 falla; 15×15, 20×20 y
+30×30 se resuelven. Los máximos de Euler/KKT caen aproximadamente de `0.039`
+a `0.0054` y `0.0023`, sin constituir un certificado de precisión de hogares.
+Beta, la normalización de TFP y la oferta de deuda líquida pueden cambiar;
+es sensibilidad de calibración y grilla, no convergencia de una economía
+completamente fija. Se conservan los fallos de determinación del rango 16 y
+los balances independientes de las trayectorias finitas de 15×15 y 20×20.
+
+La continuación adaptativa tiene un dominio de riesgo declarado por separado.
+Con grilla 15×15, desviación estándar `1e-5`, rangos 48/128 y 96 pasos de Krylov,
+las tres innovaciones realizadas `[-1e-6, 2e-6, 0]` pasan los criterios sin
+cambios: ecuaciones `1e-8`, horizonte y ramas `1e-6`, horizontes `(4,8,16)` y
+profundidades `(1,2)`. La grilla 10×10 con desviación `1e-4` satisface ecuaciones
+y horizonte pero falla en ramas. Una prueba más profunda de 15×15 a ese riesgo
+también incumple comparaciones terminadas y agota su presupuesto de 180 segundos.
+Los registros están en `tests/fixtures/hank_capital_adaptive/`. El resultado
+con menor riesgo no certifica la economía de mayor riesgo ni incertidumbre
+agregada resuelta globalmente.

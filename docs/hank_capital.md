@@ -174,3 +174,28 @@ omitted marginal-value equations. Compare ranks, inspect full-equation and
 Euler/KKT diagnostics, and use held-out nonlinear histories. A solved local
 stochastic tail does not establish global aggregate-risk accuracy or
 second-order welfare effects.
+
+## Retained equilibrium and adaptive checks
+
+`tests/fixtures/hank_capital_equilibrium/` retains a fixed-physical-parameter
+grid ladder. The wide 10×10 household solve fails; 15×15, 20×20 and 30×30 solve.
+All-grid Euler/KKT maxima fall from about `0.039` to `0.0054` to `0.0023`, but
+remain separate from equilibrium convergence. Beta, TFP normalization and
+liquid debt supply can change across this ladder, so it is a calibration/grid
+sensitivity exercise, not convergence for one completely fixed economy.
+Rank 16 distribution projections fail determinacy on 15×15 and 20×20; successful
+larger and smaller ranks are retained without changing the root criterion.
+Independent finite-tree accounts on 15×15 and 20×20 include actual inherited
+capital and quoted prices, household budgets, both markets and resource flows.
+
+Adaptive continuation has a separately stated risk domain. A 15×15 history
+with innovation standard deviation `1e-5`, distribution/marginal ranks 48/128
+and 96 Krylov steps passes all three observed dates at the original `1e-8`
+equation and `1e-6` horizon/branching thresholds. Realized innovations are
+`[-1e-6, 2e-6, 0]`, horizons are `(4,8,16)`, and branch depths are `(1,2)`.
+The coarse 10×10 case with standard deviation `1e-4` passes its finite equations
+and horizon test but fails branching refinement. A deeper 15×15 probe at that
+higher risk also misses completed sensitivity comparisons and reaches its
+180-second experiment budget. Those failures are retained in
+`tests/fixtures/hank_capital_adaptive/`; the smaller-risk success does not
+certify the higher-risk economy or globally solved aggregate uncertainty.
