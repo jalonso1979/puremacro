@@ -25,6 +25,7 @@ from .allocation import (CovarianceResult, PortfolioAllocationResult, estimate_c
 from .technical import technical_indicators, momentum_weights, StrategyComparisonResult, compare_strategies
 from .fundamentals import (fundamentals_asof, fundamental_ratios, ValuationResult,
                            discounted_cash_flow, dividend_discount, valuation_sensitivity)
+from .beliefs import BeliefSimulationResult, simulate_brock_hommes
 from ._results import (
     CCAPMResult,
     FamaMacBethResult,
@@ -68,4 +69,5 @@ __all__ = [
     "technical_indicators", "momentum_weights", "StrategyComparisonResult", "compare_strategies",
     "fundamentals_asof", "fundamental_ratios", "ValuationResult", "discounted_cash_flow",
     "dividend_discount", "valuation_sensitivity",
+    "BeliefSimulationResult", "simulate_brock_hommes",
 ]
