@@ -111,6 +111,7 @@ Fourteen scripts that together span the methods catalogue. Read in this order if
 | `dsge_particle_filter_sv` | 203 | 2nd-order pruned DSGE with Stochastic Volatility solved via vectorized Bootstrap Particle Filter. |
 | `dsge_markov_switching` | 221 | Monetary policy regime-switching (Hawkish vs Dovish) solved via coupled quadratics with analytical GIRFs. |
 | `dsge_news_shocks` | 222 | Forward-looking New Keynesian DSGE news shocks and variance decomposition. |
+| `dsge_workbench` | 66 | Immutable AR(1) experiments, separate accuracy checks, explicit replay, comparisons and report exports. |
 
 
 ### Volatility, connectedness & spillover

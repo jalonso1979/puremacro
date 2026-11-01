@@ -198,9 +198,15 @@ from .hank_nonlinear import (
 )
 from . import priors
 from . import marginal, mode, observation, smoother, news, hank_nonlinear
+from .workbench import (
+    DSGEWorkbench, DSGERun, DSGEComparison, DSGEAccuracyDashboard,
+    DSGEFailure, DSGERunControl, solution_accuracy,
+)
 
 
 __all__ = [
+    "DSGEWorkbench", "DSGERun", "DSGEComparison", "DSGEAccuracyDashboard",
+    "DSGEFailure", "DSGERunControl", "solution_accuracy",
     "NonlinearModel", "read_mod",
     "PerfectForesightSetup",
     "EquilibriumProblem", "EquilibriumPolicy", "TimeIterationResult", "PolicyAudit",

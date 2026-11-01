@@ -120,6 +120,13 @@ The package was significantly extended in **Phase 5** (April–early-May 2026, c
   `_deterministic_execution.py` replays the supported ordered boundary/shock/
   setup/solver program with snapshots; `_mod_execution.py` retains stochastic
   invocations. Unsupported state changes fail compatibility preflight.
+- `dsge/workbench.py`: immutable JSON experiment snapshots and explicit `.mod`
+  replay around existing first-order/path engines. Separate accuracy evidence
+  reuses `validation.audit_result`; recorded HANK diagnostics retain their scope.
+  Cooperative controls use existing Krylov progress/checkpoint hooks. Widget
+  freshness is checked before exports; unapplied or failed edits cannot export
+  the last successful path as a current result. No new numerical solver or
+  background execution service is introduced.
 - `dsge/transitions.py`: finite-budget continuation in shocks, terminal values
   and parameters; open economic domains, residual scaling and explicit horizon
   comparisons. Announcements use dated information sets. Compiled model

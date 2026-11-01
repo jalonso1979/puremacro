@@ -122,6 +122,7 @@ nav:
           - DSGE Sketchpad & Dynare: dsge_build.md
           - Inspecting and running .mod commands: dsge_mod_inspection.md
           - Choosing a DSGE workflow: dsge_workflows.md
+          - Saved DSGE experiments and accuracy: dsge_workbench.md
           - Nonlinear models and ordered deterministic commands: dsge_nonlinear.md
           - Robust transitions and announced shocks: dsge_transitions.md
           - Global policies and local accuracy: dsge_global.md
@@ -248,6 +249,7 @@ nav:
           - Cuaderno de bocetos DSGE y Dynare: es/dsge_build.md
           - Inspección y ejecución de comandos .mod: es/dsge_mod_inspection.md
           - Elegir un flujo DSGE: es/dsge_workflows.md
+          - Experimentos DSGE guardados y precisión: es/dsge_workbench.md
           - Modelos no lineales y comandos deterministas ordenados: es/dsge_nonlinear.md
           - Transiciones robustas y anuncios de choques: es/dsge_transitions.md
           - Políticas globales y precisión local: es/dsge_global.md
