@@ -124,3 +124,30 @@ agregados; `reduced_feedback` y las matrices proyectadas usan los coeficientes
 de la base marginal. `_forecast(next_state, current_nominal)` conserva la
 semántica existente de continuación estocástica con valores marginales
 completos.
+
+## Evidencia numérica conservada
+
+El registro de `tests/fixtures/hank_scaling/` vincula fuentes, matrices y
+trayectorias por SHA-256. Usa procesos nuevos y verifica un solo hilo de BLAS.
+La grilla de un activo de 500×7, con rangos 96 y 128, tiene 229 ecuaciones;
+la de dos activos de 40×40×2, con rangos 24 y 48, tiene 78. Ambas usan 96
+pasos de entrenamiento de Krylov. El rango marginal 128 también funciona en
+la segunda grilla, pero el rango 80 con ese horizonte falla la comprobación
+de una política real. Los rangos no forman una regla monótona de aceptación.
+
+En grillas pequeñas, reducir los controles cambia las trayectorias agregadas
+retenidas como máximo en `5.8e-9` para un activo y `5.1e-11` para dos. Para
+500×7, las primeras 30 respuestas difieren del solucionador independiente en
+el espacio de secuencias, con horizonte 200, en menos de `7.33e-8`.
+
+Las auditorías no lineales de 48 fechas, semilla 9917 y desviación estándar
+`1e-4`, fallan con estas políticas fijas de primer orden. Con una cuarta parte
+de la amplitud, 40×40 pasa; 500×7 aún presenta error de mercado `1.36e-5`,
+superior al umbral sin cambios de `1e-5`. Se conservan por separado los errores
+de ecuaciones marginales, de Euler/grilla y de mercados. La
+[continuación no lineal](hank_nonlinear_continuation.md) resuelve el equilibrio
+condicional finito y mantiene sus propias comprobaciones de horizonte y ramas.
+
+La memoria residente incluye importaciones y calibración; los bytes de las
+matrices se registran aparte. Los tiempos se midieron mientras otras pruebas
+compartían la máquina y no garantizan una aceleración en un equipo exclusivo.

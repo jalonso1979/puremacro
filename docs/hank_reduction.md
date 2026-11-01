@@ -60,7 +60,7 @@ equations only**. They must be read alongside these separate diagnostics:
 | `projected_equilibrium_residual_max_abs` | Residual of the solved reduced matrices |
 | `full_marginal_relative_residual_max_abs` | Maximum omitted household equation coefficient, divided by `1 + abs(m_ss)`, for a unit state direction |
 | `full_marginal_stationary_relative_rms_max` | Largest normalized marginal residual RMS under the policy's stationary shock covariance |
-| `directional_projection_error` | Difference between a fresh directional household evaluation and the assembled projected solution |
+| `directional_projection_error ` | Difference between a fresh directional household evaluation and the assembled projected solution |
 | `reduced_jacobian_bytes`, `basis_bytes` | Stored array sizes; these are not process peak memory |
 
 Unit-coordinate coefficient errors depend on state normalization. The
@@ -96,6 +96,39 @@ The approach follows the separation of stationary household functions from
 reduced aggregate perturbations described by [Bayer and Lütticke (2020)](https://www.ralphluetticke.com/publication/bl_qe/).
 This implementation uses a household-response Krylov/SVD basis, rather than
 claiming to reproduce their sparse-cosine implementation or calibration.
+
+## Retained numerical evidence
+
+The source-bound record in `tests/fixtures/hank_scaling/` uses fresh worker
+processes and verified single-thread BLAS. It includes the failed rank and
+training-horizon cases, full matrices, and the independent held-out paths.
+
+| Household grid | Distribution rank | Marginal rank | Projected equations |
+| --- | ---: | ---: | ---: |
+| One asset, 500×7 | 96 | 128 | 229 |
+| Two assets, 40×40×2 | 24 | 48 | 78 |
+
+Both rows use 96 backward Krylov training steps. The two-asset marginal rank 128
+comparison also solves, whereas rank 80 at that same training horizon fails the
+real-policy check. These settings are measured cases, not monotone rank rules.
+
+On the small comparison grids, retaining reduced controls instead of every
+marginal changes held-out aggregate log paths by at most `5.8e-9` (one asset)
+and `5.1e-11` (two assets). On the default one-asset grid, the first 30 aggregate
+impulse responses differ from the separate 200-period sequence-space solver
+by `7.33e-8` or less. This does not remove the finite-horizon approximation.
+
+The 48-period, seed 9917 nonlinear audit at innovation standard deviation `1e-4`
+fails on these fixed first-order policies. At quarter amplitude, the 40×40
+case passes, while the default 500×7 case still has market error `1.36e-5`, above
+the unchanged `1e-5` threshold. Full household marginal errors, Euler/grid
+errors, and market errors are retained separately. The
+[nonlinear continuation solver](hank_nonlinear_continuation.md) addresses the
+finite conditional equilibrium; its own horizon/branching checks still apply.
+
+Peak resident memory includes imports and calibration; stored matrix bytes
+are listed separately. Timing observations were collected while regression
+checks shared the host and are not exclusive-machine speed guarantees.
 
 ## Additional aggregate closures
 

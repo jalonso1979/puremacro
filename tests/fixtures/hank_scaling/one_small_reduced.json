@@ -1,0 +1,929 @@
+{
+  "name": "one_small_reduced",
+  "settings": {
+    "model": "one",
+    "specification": {
+      "n_a": 80,
+      "n_e": 3,
+      "a_max": 150.0
+    },
+    "backend": "reduced",
+    "distribution_rank": 16,
+    "marginal_rank": 64
+  },
+  "completed": true,
+  "solved": true,
+  "artifact_sha256": {
+    "one_small_reduced_policy.npz": "d448749920713bbc6e22d632d7452cf85656adf305036c052436a53049e60af9",
+    "one_small_reduced_linear.csv": "f9884434c4a6837a7222be657852bba126e50ede059ef4264c49eeb137ff0b8e",
+    "one_small_reduced_audit.csv": "1e01cd02a5d95734c76a5fd3ee1f01cf8d7e3cf22904bc67eee5c5c2837fba63",
+    "one_small_reduced_quarter_audit.csv": "390a08b0df5cc773b8a624aedb8516c865b3abc2d16f4fb7e603ecc84aa3deb6"
+  },
+  "memory_scope": "worker lifetime including imports, calibration, solve, audits and any sequence reference",
+  "blas_control": {
+    "status": "verified_single_thread",
+    "api": "BLASSetThreading/BLASGetThreading",
+    "scope": "calling thread",
+    "previous": 0,
+    "active": 1
+  },
+  "calibration_seconds": 0.8102565000008326,
+  "calibration": {
+    "r": 0.005,
+    "rstar": 0.005,
+    "B": 5.6,
+    "eis": 0.5,
+    "frisch": 0.5,
+    "rho_e": 0.966,
+    "sigma_e": 0.5,
+    "mu": 1.2,
+    "kappa": 0.1,
+    "phi": 1.5,
+    "Y": 1.0,
+    "Z": 1.0,
+    "w": 0.8333333333333334,
+    "beta": 0.9824432876688498,
+    "vphi": 0.786872183126393
+  },
+  "steady_state": {
+    "A": 5.600000000287973,
+    "C": 1.0000000000049005,
+    "NE": 1.000000000004154,
+    "Div": 0.16666666666666663,
+    "Tax": 0.027999999999999997,
+    "Y": 1.0,
+    "pi": 0.0
+  },
+  "steady_diagnostics": {
+    "egm_iterations": 639,
+    "policy_fixed_point_error": 9.379164112033322e-13,
+    "distribution_error": 2.7755575615628914e-17,
+    "market_residual_max_abs": 2.879732008409519e-10,
+    "upper_grid_mass": 0.0,
+    "calibration_evaluations": 11
+  },
+  "solve_seconds": 0.09007433301303536,
+  "peak_resident_bytes_at_solve": 185171968,
+  "policy": {
+    "equilibrium_residual_max_abs": 2.1671553440683056e-13,
+    "projected_equilibrium_residual_max_abs": 2.1671553440683056e-13,
+    "full_equation_residual_max_abs": 0.0011646466412509326,
+    "full_marginal_residual_max_abs": 0.0011646466412509326,
+    "full_marginal_relative_residual_max_abs": 0.0003928828127811065,
+    "full_marginal_stationary_rms_max": 1.625765617819945e-07,
+    "full_marginal_stationary_relative_rms_max": 5.484370505425196e-08,
+    "directional_projection_error": 2.1963663078351437e-14,
+    "steady_state_error": 2.879705363056928e-10,
+    "spectral_radius": 0.9920067779408854,
+    "stable_roots": 18,
+    "state_projection_condition": 77.52602822752739,
+    "system_dimension": 85,
+    "full_control_system_dimension": 261,
+    "distribution_rank": 16,
+    "marginal_rank": 64,
+    "full_distribution_dimension": 236,
+    "full_marginal_dimension": 240,
+    "approximation_order": 1,
+    "stochastic_tail_solved": true,
+    "model": "one_asset",
+    "full_household_derivative_cache": false,
+    "full_grid_schur_allocated": false,
+    "household_derivatives": "analytic directional",
+    "household_difference_step": null,
+    "reduced_jacobian_bytes": 115600,
+    "expanded_feedback_bytes": 34992,
+    "basis_bytes": 153600,
+    "convergence_scope": "projected equations and determinacy only; inspect full residuals and nonlinear audit",
+    "scope": "local first-order policy with reduced states and controls, not a global aggregate-risk solution"
+  },
+  "state_basis": {
+    "method": "projected_transport_krylov",
+    "rank": 16,
+    "available_directions": 111,
+    "market_observable_directions": 2,
+    "training_relative_error": 0.014267414509058253,
+    "singular_values": [
+      6.515182301323402,
+      0.47806163157193565,
+      0.4486982793722503,
+      0.2973072187309256,
+      0.24943588292489327,
+      0.19865734377882288,
+      0.16817473134578856,
+      0.1364350854964196,
+      0.11182621726723038,
+      0.10739738199045999,
+      0.08416641478397344,
+      0.08241343168625738,
+      0.06273351783376936,
+      0.05874501876432575,
+      0.0470770070801403,
+      0.043516381844937044,
+      0.03322800598419402,
+      0.029405071850350625,
+      0.025665028042246678,
+      0.023117933362969977,
+      0.02001673407191253,
+      0.017089438366254272,
+      0.014832658948551992,
+      0.012236867141941426,
+      0.010550239109660358,
+      0.009711072758483997,
+      0.00822364211458359,
+      0.006605965058431622,
+      0.005843729809640659,
+      0.00487335273299028,
+      0.004525729665715798,
+      0.003960102506530328,
+      0.00359082945413745,
+      0.0030144271616763937,
+      0.0025954215666473346,
+      0.0021496213678682844,
+      0.001861022215617742,
+      0.0015311439006649766,
+      0.0012971196772305223,
+      0.0011263685893830363,
+      0.0009692522425385362,
+      0.0008943931611654181,
+      0.0007262811481305406,
+      0.000636195062370636,
+      0.0006010969397483145,
+      0.00047168826398944906,
+      0.00042228673552205376,
+      0.00034873520241594737,
+      0.00031440692337411126,
+      0.00025500461907281946,
+      0.00023204015234042766,
+      0.00020984144433812136,
+      0.0001607799899868923,
+      0.00013288100484297265,
+      0.0001238329038205288,
+      9.004404923818535e-05,
+      7.994543439814248e-05,
+      5.671774510213726e-05,
+      5.055043817609773e-05,
+      3.505157427463047e-05,
+      3.1343958011879625e-05,
+      2.361715871814893e-05,
+      1.6862975908397675e-05,
+      1.5165369267273375e-05,
+      1.075594643689935e-05,
+      9.49943335991136e-06,
+      5.3920439221604815e-06,
+      4.015295373761019e-06,
+      3.6246468375264407e-06,
+      2.048414737428663e-06,
+      1.723956991751339e-06,
+      1.1668039652322142e-06,
+      9.566579869869708e-07,
+      6.897938976741468e-07,
+      4.762807991066037e-07,
+      3.3606639808501995e-07,
+      2.42463760657729e-07,
+      1.9972487446257485e-07,
+      1.3548785685587752e-07,
+      7.39878321878891e-08,
+      3.4030059446675304e-08,
+      2.9439555914497604e-08,
+      2.5037536063917053e-08,
+      1.8067663460735176e-08,
+      1.0384869727425606e-08,
+      7.67191785897372e-09,
+      5.9076602206964096e-09,
+      3.065958955561144e-09,
+      2.59160502111515e-09,
+      2.0439665452102695e-09,
+      1.2975200066657211e-09,
+      1.0662588617106578e-09,
+      8.889348542171008e-10,
+      5.003583882286587e-10,
+      3.52610396705677e-10,
+      2.597655370551739e-10,
+      1.1189804619145493e-10,
+      9.319473245011668e-11,
+      4.972999642429164e-11,
+      3.692285890547119e-11,
+      2.6020898089897736e-11,
+      2.0672706080013316e-11,
+      1.0924810047423772e-11,
+      7.21500616688839e-12,
+      6.0084361048419154e-12,
+      2.729150570206189e-12,
+      1.8082227997328978e-12,
+      1.6998242884928655e-12,
+      7.859282509261828e-13,
+      4.732592045745068e-13,
+      3.6960879339802646e-13,
+      2.127377456609146e-13,
+      1.0899043754831177e-13,
+      8.677017270160152e-14,
+      4.313119271181226e-14,
+      2.4583048601855636e-14,
+      2.1399112849359668e-14,
+      8.029003953612826e-15,
+      4.5627054169049874e-15,
+      3.956115260347436e-15,
+      1.2106821935710376e-15,
+      7.945332139577797e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      3.0968813836769414e-16
+    ]
+  },
+  "control_basis": {
+    "method": "backward_response_krylov",
+    "rank": 64,
+    "requested_rank": 64,
+    "available_directions": 134,
+    "price_response_directions": 3,
+    "krylov_steps": 96,
+    "training_relative_error": 8.861117020661936e-05,
+    "singular_values": [
+      10.601671844632884,
+      7.585748077075989,
+      3.784551028239878,
+      2.233889820837658,
+      1.7666167490432043,
+      1.158559012840993,
+      0.8826867956648143,
+      0.7314327567515888,
+      0.585723518660733,
+      0.4825596467672612,
+      0.4520803982743194,
+      0.3975953033446156,
+      0.3343129724786402,
+      0.2849064637356026,
+      0.24470138702348027,
+      0.23055681039964127,
+      0.2085439112774487,
+      0.1824447557921396,
+      0.16711116483456942,
+      0.15458298247032806,
+      0.13601292973164913,
+      0.12152997222596908,
+      0.11643999159249521,
+      0.09977520768742039,
+      0.09763667764415672,
+      0.0870278735698891,
+      0.07771014492108108,
+      0.07292138070262305,
+      0.06775098452146004,
+      0.05871362858358814,
+      0.05148675635750316,
+      0.049610001781880804,
+      0.04211497920430551,
+      0.03777778849252589,
+      0.03526619683956099,
+      0.03160430831269274,
+      0.029808157858229718,
+      0.027235166445016886,
+      0.024583433838309254,
+      0.021655293402056672,
+      0.020133285507060297,
+      0.016327073031324853,
+      0.01605064218750466,
+      0.012740553619367838,
+      0.012379959881534262,
+      0.009850202158009136,
+      0.009758197822556344,
+      0.008031101739044451,
+      0.0072282980229275255,
+      0.006429502864361863,
+      0.005333520674686308,
+      0.00473566825414381,
+      0.0036571294399736255,
+      0.0035730527759428544,
+      0.00264929226605031,
+      0.002321694722788604,
+      0.0019281558050795369,
+      0.0014961590640283245,
+      0.0013391682206024373,
+      0.0010134837043732318,
+      0.0009247005641288222,
+      0.0008153709127725036,
+      0.0006989685380888603,
+      0.0006217219487047798,
+      0.0004370367929126671,
+      0.000409589642890321,
+      0.00029805277503608304,
+      0.0002775842183531726,
+      0.00025521574250377373,
+      0.00018095086522372636,
+      0.00016193505460110796,
+      0.00012809406327410745,
+      0.00012314907395114487,
+      0.00010631084106099566,
+      9.353973604200606e-05,
+      7.265867360547169e-05,
+      6.14940752168068e-05,
+      6.040678064268918e-05,
+      5.240442235818465e-05,
+      4.1020529430344376e-05,
+      3.1845710343290656e-05,
+      3.0998347754165034e-05,
+      2.4165225597724925e-05,
+      1.81295460952055e-05,
+      1.6608298309720863e-05,
+      1.4873952260923076e-05,
+      1.3031782415955472e-05,
+      1.1587119417267762e-05,
+      8.704792047823785e-06,
+      7.221740993771367e-06,
+      6.075304986034708e-06,
+      4.972973472521999e-06,
+      3.799233084043104e-06,
+      3.22074301820895e-06,
+      2.054440378764285e-06,
+      1.7248360786862722e-06,
+      1.5550603849922443e-06,
+      9.253467213988512e-07,
+      7.444394009590687e-07,
+      5.531891171206393e-07,
+      4.5740959863779213e-07,
+      3.0147546498807514e-07,
+      2.1793478578388393e-07,
+      1.7002666901887598e-07,
+      1.209186786044522e-07,
+      7.731582074754593e-08,
+      6.349594502162453e-08,
+      5.1455857118129655e-08,
+      3.4636841534536976e-08,
+      2.2709386813659792e-08,
+      1.633703093145186e-08,
+      1.3468389611913865e-08,
+      8.794068311257693e-09,
+      4.539386711288955e-09,
+      4.344097852095345e-09,
+      3.3971676277357e-09,
+      1.6395324725323424e-09,
+      1.1468296180875136e-09,
+      1.0447025970238303e-09,
+      5.500288030794556e-10,
+      4.137608028880298e-10,
+      3.5546516836751e-10,
+      1.854970511776251e-10,
+      1.410883777443283e-10,
+      1.3250192696541583e-10,
+      7.706063987675085e-11,
+      5.0606717521404425e-11,
+      3.8228600323439193e-11,
+      2.625319911762946e-11,
+      2.0369313274301764e-11,
+      1.3874962091508627e-11,
+      7.186117384578556e-12,
+      6.1037204956700036e-12,
+      5.3069768837349605e-12,
+      2.51949443558546e-12,
+      1.995092912327971e-12,
+      1.5133485504056983e-12,
+      9.388344033546662e-13,
+      7.17063270597805e-13,
+      4.55522054240926e-13,
+      2.7420009265348414e-13,
+      2.374468082607553e-13,
+      1.7898859612209982e-13,
+      8.82216787880323e-14,
+      6.62670443405624e-14,
+      5.218639900716559e-14,
+      2.3400095105278147e-14,
+      1.6361774573877964e-14,
+      1.5167246572873115e-14,
+      7.554845949947837e-15,
+      4.5679733703079304e-15,
+      4.092223339279733e-15,
+      2.879860312741436e-15,
+      2.0885165503222253e-15,
+      1.8894360452008666e-15,
+      1.5489651850812843e-15,
+      1.3055351008288214e-15,
+      1.2128281706910027e-15,
+      1.0417118827400194e-15,
+      8.5661834493455295e-16,
+      8.488746208386283e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      7.473053655216842e-16,
+      5.428067296062701e-16,
+      4.15082923051249e-16
+    ]
+  },
+  "audits": [
+    {
+      "multiplier": 1.0,
+      "converged": false,
+      "seconds": 0.08629670800291933,
+      "diagnostics": {
+        "scope": "nonlinear full-distribution and full-marginal audit of fixed reduced policy",
+        "market_residual_max_abs": 1.875549231122875e-05,
+        "full_marginal_relative_error": 2.2160342169207134e-05,
+        "compression_l1_max": 0.002045562362541553,
+        "mass_error": 1.3322676295501878e-15,
+        "minimum_mass": 0.0,
+        "household_budget_error": 2.998989945268704e-14,
+        "euler_kkt_max": 0.0009952438644966733,
+        "policy_grid_exit_mass": 0.0,
+        "tolerance": 1e-05,
+        "continuation_solves": [
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          }
+        ]
+      }
+    },
+    {
+      "multiplier": 0.25,
+      "converged": true,
+      "seconds": 0.07636249999632128,
+      "diagnostics": {
+        "scope": "nonlinear full-distribution and full-marginal audit of fixed reduced policy",
+        "market_residual_max_abs": 2.3660855337226394e-06,
+        "full_marginal_relative_error": 5.273200679489596e-07,
+        "compression_l1_max": 0.0001869434960066078,
+        "mass_error": 1.3322676295501878e-15,
+        "minimum_mass": 0.0,
+        "household_budget_error": 3.1002977962657496e-14,
+        "euler_kkt_max": 0.000982475131434379,
+        "policy_grid_exit_mass": 0.0,
+        "tolerance": 1e-05,
+        "continuation_solves": [
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          }
+        ]
+      }
+    }
+  ],
+  "worker_seconds": 1.0810038750059903,
+  "peak_resident_bytes": 185745408
+}

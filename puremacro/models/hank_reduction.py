@@ -452,13 +452,16 @@ def solve_hank_reduced_policy(steady_state: Any, *, distribution_rank: int | Non
         rho: float = .7, shock_std: float = .0001, max_system_size: int = 1800) -> ReducedStochasticHANKPolicy:
     """Reduce distribution states and household marginal controls before QZ.
 
-    Supports the one-asset and fixed-supply illiquid-consol steady states.
+    Supports one-asset, fixed-supply illiquid-consol and productive-capital
+    steady states, preserving each model's aggregate closure.
     ``solve_hank_reduced_kernel`` supplies the extensible aggregate closure.
     Retaining full marginals on a small grid is an independent comparison to
     the existing dense solver; large grids should use an explicit small rank.
     """
     from .one_asset_hank import OneAssetHANKSteadyState
-    kernel = (_OneAssetKernel(steady_state) if isinstance(steady_state, OneAssetHANKSteadyState)
+    from .hank_capital import CapitalHANKSteadyState, _CapitalKernel
+    kernel = (_CapitalKernel(steady_state) if isinstance(steady_state, CapitalHANKSteadyState)
+              else _OneAssetKernel(steady_state) if isinstance(steady_state, OneAssetHANKSteadyState)
               else _DirectionalTwoAssetKernel(steady_state))
     return solve_hank_reduced_kernel(kernel, distribution_rank=distribution_rank, marginal_rank=marginal_rank,
         snapshots=snapshots, marginal_snapshots=marginal_snapshots, krylov_steps=krylov_steps,

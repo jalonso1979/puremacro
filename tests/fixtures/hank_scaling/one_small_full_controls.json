@@ -1,0 +1,658 @@
+{
+  "name": "one_small_full_controls",
+  "settings": {
+    "model": "one",
+    "specification": {
+      "n_a": 80,
+      "n_e": 3,
+      "a_max": 150.0
+    },
+    "backend": "legacy",
+    "distribution_rank": 16
+  },
+  "completed": true,
+  "solved": true,
+  "artifact_sha256": {
+    "one_small_full_controls_policy.npz": "be37d5741f5fdcacbc02e41ed45b44b7fd85392ec39f3ef44a29bf44939e77be",
+    "one_small_full_controls_linear.csv": "cb0f2fa1352861e829cc793e32fda262e37778ad88ff6714e222823bf80eafbf",
+    "one_small_full_controls_audit.csv": "2a90ebfca67f91a29b49fb18e7ebb0af005458f33508fe1c6c4c45a7bbba2e3f",
+    "one_small_full_controls_quarter_audit.csv": "e91bd74bad364bcf04e55c1cdf2b63c89499816a3beef905c0777f26720bbd52"
+  },
+  "memory_scope": "worker lifetime including imports, calibration, solve, audits and any sequence reference",
+  "blas_control": {
+    "status": "verified_single_thread",
+    "api": "BLASSetThreading/BLASGetThreading",
+    "scope": "calling thread",
+    "previous": 0,
+    "active": 1
+  },
+  "calibration_seconds": 0.7835509160067886,
+  "calibration": {
+    "r": 0.005,
+    "rstar": 0.005,
+    "B": 5.6,
+    "eis": 0.5,
+    "frisch": 0.5,
+    "rho_e": 0.966,
+    "sigma_e": 0.5,
+    "mu": 1.2,
+    "kappa": 0.1,
+    "phi": 1.5,
+    "Y": 1.0,
+    "Z": 1.0,
+    "w": 0.8333333333333334,
+    "beta": 0.9824432876688498,
+    "vphi": 0.786872183126393
+  },
+  "steady_state": {
+    "A": 5.600000000287973,
+    "C": 1.0000000000049005,
+    "NE": 1.000000000004154,
+    "Div": 0.16666666666666663,
+    "Tax": 0.027999999999999997,
+    "Y": 1.0,
+    "pi": 0.0
+  },
+  "steady_diagnostics": {
+    "egm_iterations": 639,
+    "policy_fixed_point_error": 9.379164112033322e-13,
+    "distribution_error": 2.7755575615628914e-17,
+    "market_residual_max_abs": 2.879732008409519e-10,
+    "upper_grid_mass": 0.0,
+    "calibration_evaluations": 11
+  },
+  "solve_seconds": 0.44705016698571853,
+  "peak_resident_bytes_at_solve": 193200128,
+  "policy": {
+    "equilibrium_residual_max_abs": 3.448352714485736e-13,
+    "steady_state_error": 2.879705363056928e-10,
+    "spectral_radius": 0.9920077760282475,
+    "stable_roots": 18,
+    "state_projection_condition": 77.5260480512289,
+    "system_dimension": 261,
+    "distribution_rank": 16,
+    "full_distribution_dimension": 236,
+    "approximation_order": 1,
+    "stochastic_tail_solved": true,
+    "model": "one_asset",
+    "household_derivatives": "analytic",
+    "scope": "local rational-expectations equilibrium, not a global or second-order aggregate-risk solution"
+  },
+  "state_basis": {
+    "method": "projected_transport_krylov",
+    "rank": 16,
+    "available_directions": 111,
+    "market_observable_directions": 2,
+    "training_relative_error": 0.014267414509058253,
+    "singular_values": [
+      6.515182301323402,
+      0.47806163157193565,
+      0.4486982793722503,
+      0.2973072187309256,
+      0.24943588292489327,
+      0.19865734377882288,
+      0.16817473134578856,
+      0.1364350854964196,
+      0.11182621726723038,
+      0.10739738199045999,
+      0.08416641478397344,
+      0.08241343168625738,
+      0.06273351783376936,
+      0.05874501876432575,
+      0.0470770070801403,
+      0.043516381844937044,
+      0.03322800598419402,
+      0.029405071850350625,
+      0.025665028042246678,
+      0.023117933362969977,
+      0.02001673407191253,
+      0.017089438366254272,
+      0.014832658948551992,
+      0.012236867141941426,
+      0.010550239109660358,
+      0.009711072758483997,
+      0.00822364211458359,
+      0.006605965058431622,
+      0.005843729809640659,
+      0.00487335273299028,
+      0.004525729665715798,
+      0.003960102506530328,
+      0.00359082945413745,
+      0.0030144271616763937,
+      0.0025954215666473346,
+      0.0021496213678682844,
+      0.001861022215617742,
+      0.0015311439006649766,
+      0.0012971196772305223,
+      0.0011263685893830363,
+      0.0009692522425385362,
+      0.0008943931611654181,
+      0.0007262811481305406,
+      0.000636195062370636,
+      0.0006010969397483145,
+      0.00047168826398944906,
+      0.00042228673552205376,
+      0.00034873520241594737,
+      0.00031440692337411126,
+      0.00025500461907281946,
+      0.00023204015234042766,
+      0.00020984144433812136,
+      0.0001607799899868923,
+      0.00013288100484297265,
+      0.0001238329038205288,
+      9.004404923818535e-05,
+      7.994543439814248e-05,
+      5.671774510213726e-05,
+      5.055043817609773e-05,
+      3.505157427463047e-05,
+      3.1343958011879625e-05,
+      2.361715871814893e-05,
+      1.6862975908397675e-05,
+      1.5165369267273375e-05,
+      1.075594643689935e-05,
+      9.49943335991136e-06,
+      5.3920439221604815e-06,
+      4.015295373761019e-06,
+      3.6246468375264407e-06,
+      2.048414737428663e-06,
+      1.723956991751339e-06,
+      1.1668039652322142e-06,
+      9.566579869869708e-07,
+      6.897938976741468e-07,
+      4.762807991066037e-07,
+      3.3606639808501995e-07,
+      2.42463760657729e-07,
+      1.9972487446257485e-07,
+      1.3548785685587752e-07,
+      7.39878321878891e-08,
+      3.4030059446675304e-08,
+      2.9439555914497604e-08,
+      2.5037536063917053e-08,
+      1.8067663460735176e-08,
+      1.0384869727425606e-08,
+      7.67191785897372e-09,
+      5.9076602206964096e-09,
+      3.065958955561144e-09,
+      2.59160502111515e-09,
+      2.0439665452102695e-09,
+      1.2975200066657211e-09,
+      1.0662588617106578e-09,
+      8.889348542171008e-10,
+      5.003583882286587e-10,
+      3.52610396705677e-10,
+      2.597655370551739e-10,
+      1.1189804619145493e-10,
+      9.319473245011668e-11,
+      4.972999642429164e-11,
+      3.692285890547119e-11,
+      2.6020898089897736e-11,
+      2.0672706080013316e-11,
+      1.0924810047423772e-11,
+      7.21500616688839e-12,
+      6.0084361048419154e-12,
+      2.729150570206189e-12,
+      1.8082227997328978e-12,
+      1.6998242884928655e-12,
+      7.859282509261828e-13,
+      4.732592045745068e-13,
+      3.6960879339802646e-13,
+      2.127377456609146e-13,
+      1.0899043754831177e-13,
+      8.677017270160152e-14,
+      4.313119271181226e-14,
+      2.4583048601855636e-14,
+      2.1399112849359668e-14,
+      8.029003953612826e-15,
+      4.5627054169049874e-15,
+      3.956115260347436e-15,
+      1.2106821935710376e-15,
+      7.945332139577797e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      6.376310504430633e-16,
+      3.0968813836769414e-16
+    ]
+  },
+  "audits": [
+    {
+      "multiplier": 1.0,
+      "converged": false,
+      "seconds": 0.07347450000816025,
+      "diagnostics": {
+        "scope": "nonlinear full-distribution audit of fixed local stochastic policy",
+        "market_residual_max_abs": 1.8753071385546605e-05,
+        "compression_l1_max": 0.002045858478608128,
+        "mass_error": 1.2212453270876722e-15,
+        "minimum_mass": 0.0,
+        "household_budget_error": 3.3736902160796944e-14,
+        "euler_kkt_max": 0.000995240032469251,
+        "policy_grid_exit_mass": 0.0,
+        "tolerance": 1e-05,
+        "continuation_solves": [
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          }
+        ]
+      }
+    },
+    {
+      "multiplier": 0.25,
+      "converged": true,
+      "seconds": 0.0814884580031503,
+      "diagnostics": {
+        "scope": "nonlinear full-distribution audit of fixed local stochastic policy",
+        "market_residual_max_abs": 2.3657471253102358e-06,
+        "compression_l1_max": 0.00018694799199570032,
+        "mass_error": 1.3322676295501878e-15,
+        "minimum_mass": 0.0,
+        "household_budget_error": 3.6887159993170826e-14,
+        "euler_kkt_max": 0.0009824741728131248,
+        "policy_grid_exit_mass": 0.0,
+        "tolerance": 1e-05,
+        "continuation_solves": [
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          },
+          {
+            "success": true,
+            "message": "The solution converged."
+          }
+        ]
+      }
+    }
+  ],
+  "worker_seconds": 1.3984719579748344,
+  "peak_resident_bytes": 193822720
+}

@@ -1,0 +1,75 @@
+{
+  "name": "two_fine",
+  "settings": {
+    "model": "two",
+    "specification": {
+      "n_a": 40,
+      "n_b": 40,
+      "a_max": 80.0,
+      "b_max": 10.0
+    },
+    "backend": "reduced",
+    "distribution_rank": 24,
+    "marginal_rank": 80
+  },
+  "completed": true,
+  "solved": false,
+  "artifact_sha256": {},
+  "memory_scope": "worker lifetime including imports, calibration, solve, audits and any sequence reference",
+  "blas_control": {
+    "status": "verified_single_thread",
+    "api": "BLASSetThreading/BLASGetThreading",
+    "scope": "calling thread",
+    "previous": 0,
+    "active": 1
+  },
+  "calibration_seconds": 2.2704573340015486,
+  "calibration": {
+    "beta": 0.98,
+    "gamma": 1.0,
+    "r": 0.005,
+    "r_a": 0.0125,
+    "coupon": 0.0125,
+    "B": 0.6119195172389498,
+    "consol_units": 4.437469531213426,
+    "q": 1.0,
+    "Y": 1.0585279667263638,
+    "w": 0.8333333333333334,
+    "mu": 1.2,
+    "kappa": 0.1,
+    "phi": 1.5,
+    "frisch": 0.5,
+    "vphi": 0.6845770128890314,
+    "income": 1.0,
+    "chi_0": 1.0,
+    "chi_1": 1.0,
+    "a_bar": 0.25
+  },
+  "steady_state": {
+    "Y": 1.0585279667263638,
+    "C": 1.0515345953683095,
+    "CHI": 0.006993371358054234,
+    "A": 4.437469531213426,
+    "B": 0.6119195172389498,
+    "Tax": 0.05852796672636258,
+    "Div": 0.17642132778772726,
+    "w": 0.8333333333333334,
+    "q": 1.0,
+    "N": 1.0585279667263638
+  },
+  "steady_diagnostics": {
+    "household_policy_error": 9.555201074817887e-11,
+    "distribution_error": 7.225123277443402e-16,
+    "budget_error": 2.220446049250313e-16,
+    "upper_illiquid_mass": 0.0,
+    "upper_liquid_mass": 0.0,
+    "income_process": "fixed two-state chain",
+    "scope": "liquid nominal government bonds and fixed-supply illiquid real consols"
+  },
+  "error": {
+    "type": "ValueError",
+    "message": "non-real Schur policy"
+  },
+  "worker_seconds": 5.828074665972963,
+  "peak_resident_bytes": 511295488
+}

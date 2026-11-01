@@ -2143,12 +2143,17 @@
       "u_midas"
     ],
     "puremacro.models": [
+      "CapitalHANKSteadyState",
       "DMPParameters",
       "DMPState",
       "FakeNewsResult",
       "FiscalTransferResult",
+      "HANKContinuationAccuracyError",
       "HANKDistributionBasis",
       "HANKEquilibriumWorkspace",
+      "HANKMarginalBasis",
+      "HANKNonlinearCorrection",
+      "HANKNonlinearSimulation",
       "HANKScenarioTreeResult",
       "HANKStochasticResult",
       "HANKStochasticTreeResult",
@@ -2157,20 +2162,28 @@
       "NonlinearHANKResult",
       "OneAssetHANKResult",
       "OneAssetHANKSteadyState",
+      "ReducedStochasticHANKPolicy",
       "SequenceSpaceHANKResult",
       "StochasticHANKPolicy",
       "TradePolicySimulationResult",
       "TradePolicySimulator",
       "TwoAssetHANKSteadyState",
       "TwoAssetSequenceSpaceHANKResult",
+      "calibrate_capital_hank",
       "calibrate_one_asset_hank",
       "calibrate_two_asset_equilibrium",
+      "capital_production_block",
+      "correct_hank_stochastic_state",
       "dmp_irf",
       "dmp_steady_state",
       "fake_news_algorithm",
       "monetary_scenario_tree",
+      "simulate_hank_nonlinear",
       "simulate_targeted_transfer",
       "solve_hank_equilibrium",
+      "solve_hank_nonlinear_continuation",
+      "solve_hank_reduced_kernel",
+      "solve_hank_reduced_policy",
       "solve_hank_scenario_tree",
       "solve_hank_sequence_space",
       "solve_hank_stochastic_policy",
@@ -2179,9 +2192,22 @@
       "solve_one_asset_hank",
       "solve_two_asset_hank_sequence_space"
     ],
+    "puremacro.models.hank_capital": [
+      "CapitalHANKSteadyState",
+      "calibrate_capital_hank",
+      "capital_production_block"
+    ],
     "puremacro.models.hank_equilibrium": [
       "HANKEquilibriumWorkspace",
       "solve_hank_equilibrium"
+    ],
+    "puremacro.models.hank_nonlinear_continuation": [
+      "HANKContinuationAccuracyError",
+      "HANKNonlinearCorrection",
+      "HANKNonlinearSimulation",
+      "correct_hank_stochastic_state",
+      "simulate_hank_nonlinear",
+      "solve_hank_nonlinear_continuation"
     ],
     "puremacro.models.hank_recursive": [
       "HANKDistributionBasis",
@@ -2190,6 +2216,12 @@
       "StochasticHANKPolicy",
       "solve_hank_stochastic_policy",
       "solve_hank_stochastic_tree"
+    ],
+    "puremacro.models.hank_reduction": [
+      "HANKMarginalBasis",
+      "ReducedStochasticHANKPolicy",
+      "solve_hank_reduced_kernel",
+      "solve_hank_reduced_policy"
     ],
     "puremacro.models.hank_scenario_tree": [
       "HANKScenarioTreeResult",
@@ -6946,6 +6978,37 @@
       "v",
       "w"
     ],
+    "puremacro.models.hank_capital.CapitalHANKSteadyState": [
+      "_household",
+      "aggregates",
+      "calibration",
+      "converged",
+      "diagnostics",
+      "distribution"
+    ],
+    "puremacro.models.hank_nonlinear_continuation.HANKNonlinearCorrection": [
+      "aggregate_coordinates",
+      "aggregate_states",
+      "converged",
+      "diagnostics",
+      "expected_marginals",
+      "marginal_values",
+      "next_aggregate_state",
+      "post_distributions",
+      "prices",
+      "tree"
+    ],
+    "puremacro.models.hank_nonlinear_continuation.HANKNonlinearSimulation": [
+      "converged",
+      "corrections",
+      "diagnostics",
+      "distributions",
+      "expected_marginals",
+      "paths",
+      "policies",
+      "prices",
+      "states"
+    ],
     "puremacro.models.hank_recursive.HANKDistributionBasis": [
       "center",
       "constraints",
@@ -6976,6 +7039,25 @@
       "basis",
       "diagnostics",
       "feedback",
+      "rho",
+      "shock_std",
+      "transition"
+    ],
+    "puremacro.models.hank_reduction.HANKMarginalBasis": [
+      "center",
+      "diagnostics",
+      "vectors"
+    ],
+    "puremacro.models.hank_reduction.ReducedStochasticHANKPolicy": [
+      "_F0",
+      "_F1",
+      "_full_residual",
+      "_kernel",
+      "basis",
+      "diagnostics",
+      "feedback",
+      "marginal_basis",
+      "reduced_feedback",
       "rho",
       "shock_std",
       "transition"
