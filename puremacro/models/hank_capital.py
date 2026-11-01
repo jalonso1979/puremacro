@@ -132,9 +132,16 @@ def calibrate_capital_hank(*, n_a: int = 15, n_b: int = 15, a_max: float = 200.,
                 warnings=[str(item.message) for item in caught]))
             if (not hh.converged or abs(hh.budget_residual) > 1e-8
                     or min(hh.A_ss, hh.B_ss) <= 0):
+                warning_text = "; ".join(str(item.message) for item in caught)
                 raise ValueError("capital calibration household solve failed at "
-                                 f"beta={beta:.12g}; policy error={hh.residual:.3e}")
+                    f"beta={beta:.12g}; policy error={hh.residual:.3e}; "
+                    f"household warnings: {warning_text or 'none'}")
             cache[beta] = hh
+            # Each block owns a full stationary transition matrix. Retain only
+            # the two most recent solves, while preserving every trial's scalar
+            # diagnostics and warnings in history.
+            if len(cache) > 2:
+                del cache[next(iter(cache))]
         hh = cache[beta]
         Y = (hh.Y_ss+delta*hh.A_ss)/(1-government_share)
         return float((r_a+delta)*hh.A_ss-alpha*Y/mu)
