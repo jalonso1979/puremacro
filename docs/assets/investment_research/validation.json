@@ -1,0 +1,146 @@
+{
+  "schema": "puremacro.investment_research.delivery.v1",
+  "date": "2026-11-01",
+  "branch": "feat/investment-research",
+  "base_revision": "0b3caf3ec44dfbf94b4db47ea0c5b18b16ce6672",
+  "default_suite": {
+    "file_count": 911,
+    "file_disjoint_shards": [
+      {
+        "shard": 0,
+        "file_count": 228,
+        "counts": {
+          "passed": 4483,
+          "failed": 0,
+          "skipped": 28,
+          "deselected": 87
+        },
+        "returncode": 0,
+        "elapsed_seconds": 727.25,
+        "initial_failures": [],
+        "log_sha256": "80c878a528e4845c2e140932b970f2decdcaec46fd68f7d138139c20c8420d5e"
+      },
+      {
+        "shard": 1,
+        "file_count": 228,
+        "counts": {
+          "passed": 5785,
+          "failed": 0,
+          "skipped": 31,
+          "deselected": 90
+        },
+        "returncode": 0,
+        "elapsed_seconds": 633.09,
+        "initial_failures": [],
+        "log_sha256": "4a5efe36251e501f1645ce62e0c9eb4f933a3935cf354990a35d8f956da4df53"
+      },
+      {
+        "shard": 2,
+        "file_count": 228,
+        "counts": {
+          "passed": 5102,
+          "failed": 3,
+          "skipped": 19,
+          "deselected": 40
+        },
+        "returncode": 1,
+        "elapsed_seconds": 1037.82,
+        "initial_failures": [
+          "tests/test_cache_db/test_cache_migrate_cli.py::test_cli_dry_run_does_not_apply",
+          "tests/test_cache_db/test_cache_migrate_cli.py::test_cli_apply_migrates",
+          "tests/test_cache_db/test_cache_migrate_cli.py::test_cli_apply_rm_unlinks"
+        ],
+        "log_sha256": "dc431177d6c03eb81fe6c051b9750231d7581dc042e7e5c380574cd4ceed0fe5"
+      },
+      {
+        "shard": 3,
+        "file_count": 227,
+        "counts": {
+          "passed": 7092,
+          "failed": 1,
+          "skipped": 11,
+          "deselected": 41
+        },
+        "returncode": 1,
+        "elapsed_seconds": 945.65,
+        "initial_failures": [
+          "tests/test_m3_challenger_verification.py::test_all_notebooks_residual_styling_and_syntax"
+        ],
+        "log_sha256": "3d83e42e0be49e9137ded8e695156b3ba08e2cd440c7938eac7265e07c3a1786"
+      }
+    ],
+    "initial_totals": {
+      "passed": 22462,
+      "failed": 4,
+      "skipped": 89,
+      "deselected": 258
+    },
+    "command": "python -m pytest -q --tb=short --durations=8 --color=no <file shard>",
+    "selection": "pyproject.toml default markers; no test expectations weakened",
+    "full_clean_rerun_after_corrections": false
+  },
+  "corrections": [
+    {
+      "cases": [
+        "tests/test_cache_db/test_cache_migrate_cli.py::test_cli_dry_run_does_not_apply",
+        "tests/test_cache_db/test_cache_migrate_cli.py::test_cli_apply_migrates",
+        "tests/test_cache_db/test_cache_migrate_cli.py::test_cli_apply_rm_unlinks"
+      ],
+      "cause": "Shared interpreter did not have this worktree installed; CLI child imports failed.",
+      "fix": "Pass source root via PYTHONPATH; no cache code or test changes.",
+      "rerun": "3 passed"
+    },
+    {
+      "cases": [
+        "tests/test_m3_challenger_verification.py::test_all_notebooks_residual_styling_and_syntax"
+      ],
+      "cause": "New notebooks used plt.show, prohibited by the existing showcase convention.",
+      "fix": "Explicitly display and close figures, re-execute both notebooks and verify source hashes.",
+      "rerun": "Entire 8-test showcase file plus 2 artifact tests passed"
+    }
+  ],
+  "final_focused": {
+    "passed": 130,
+    "deselected": 86,
+    "scope": "128 asset-pricing tests and 2 executable guide pages"
+  },
+  "final_wasm": {
+    "passed": 54,
+    "runtime": "Pyodide 0.28.3 / Python 3.13.2",
+    "source_tree": true
+  },
+  "corrected_checks": {
+    "passed": 13,
+    "scope": "3 CLI + 8 showcase + 2 artifact tests"
+  },
+  "fast_contract_gates": {
+    "passed": 5,
+    "python": "3.11.17",
+    "mypy_platforms": [
+      "native",
+      "win32"
+    ]
+  },
+  "installed_wheel": {
+    "guide_blocks_passed": 12,
+    "module_hashes_match_source": true
+  },
+  "notebooks": {
+    "languages": [
+      "en",
+      "es"
+    ],
+    "code_cells_each": 7,
+    "png_figures_each": 2,
+    "cell_errors": 0
+  },
+  "docs_strict_build": "passed",
+  "not_claimed": [
+    "empirical profitability",
+    "live provider normalization",
+    "iPad/browser UI execution",
+    "Windows runtime execution",
+    "full supported-platform CI acceptance",
+    "publication"
+  ]
+}

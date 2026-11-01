@@ -1,0 +1,8 @@
+{
+  "pyodide_version": "0.28.3",
+  "runtime": "3.13.2 (main, Sep 22 2025, 12:14:53) [Clang 21.0.0git (https:/github.com/llvm/llvm-project 2f05451198e2f222ec66cec489",
+  "puremacro_version": "6.1.0",
+  "source_tree": true,
+  "pytest_returncode": 0,
+  "output": "......................................................                   [100%]\n54 passed in 5.41s\n"
+}

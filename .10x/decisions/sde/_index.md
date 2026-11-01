@@ -1,3 +1,3 @@
 # sde
 
-- investment-research: five numerical milestones and integrated validation; active.
+- investment-research: five numerical milestones and integrated validation; complete.

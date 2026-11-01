@@ -12,6 +12,19 @@ The package was significantly extended in **Phase 5** (April–early-May 2026, c
 
 ### Empirical-to-structural estimation and replication
 
+- `asset_pricing/{backtest,allocation,technical,fundamentals,beliefs}.py`:
+  experimental investment-research API on NumPy/SciPy/pandas. Backtests account
+  for long-only holdings, cash, drift and proportional self-financing costs;
+  input recipes use JSON with a checksum and no executable deserialization.
+  Allocation uses shrinkage covariance, SLSQP and a separate LP objective-gap
+  check. Technical signals preserve causal history and warm-up gaps; max-test
+  bootstrap inference covers only the supplied candidate family. Fundamental
+  facts retain public availability, reporting intervals, units and revisions;
+  DCF reports conditional scenario values. The Brock–Hommes simulator records
+  lagged selection, shocks and explicit assumptions. No data subscription,
+  broker, taxonomy normalization or optional solver is a hidden dependency.
+  Host import-contract checks do not substitute for actual Pyodide execution.
+
 - `study/`: explicit fixed-lag LP/recursive-VAR study specifications and separate
   model-scenario records. Depends on existing estimators, `reports` and the
   `runtime.store` frame codec. ZIP/NPZ/JSON archives retain inputs, checksums and

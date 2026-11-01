@@ -23,13 +23,25 @@ __all__ = ["BacktestResult", "backtest_portfolio", "walk_forward_weights", "repl
 
 
 def _encode(frame: pd.DataFrame) -> dict[str, Any]:
-    return {"dates": [x.isoformat() for x in frame.index], "columns": list(frame.columns),
+    frequency = frame.index.freqstr
+    # A custom holiday calendar cannot be reconstructed from the generic 'C'
+    # alias. Its exact observed dates survive; omit a misleading frequency hint.
+    if frequency is not None and pd.tseries.frequencies.to_offset(frequency) != frame.index.freq:
+        frequency = None
+    return {"dates": [x.isoformat() for x in frame.index],
+            "timezone": str(frame.index.tz) if frame.index.tz is not None else None,
+            "frequency": frequency, "columns": list(frame.columns),
             "values": [[None if pd.isna(x) else float(x) for x in row]
                        for row in frame.to_numpy()]}
 
 
 def _decode(record: dict[str, Any]) -> pd.DataFrame:
-    return pd.DataFrame(record["values"], index=pd.to_datetime(record["dates"]),
+    zone = record.get("timezone")
+    dates = pd.to_datetime(record["dates"], utc=zone is not None)
+    if zone is not None:
+        dates = dates.tz_convert(zone)
+    dates = pd.DatetimeIndex(dates, freq=record.get("frequency"))
+    return pd.DataFrame(record["values"], index=dates,
                         columns=record["columns"], dtype=float)
 
 

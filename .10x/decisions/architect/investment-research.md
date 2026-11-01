@@ -1,3 +1,3 @@
 # Investment research
 
-Use sibling asset_pricing modules: backtest, allocation, technical, fundamentals, beliefs. Dependency direction: technical -> backtest; backtest -> allocation only through user policies; all -> shared result/report and validation helpers. ADR 001 defines timing and cost accounting.
+Use sibling asset_pricing modules: backtest, allocation, technical, fundamentals, beliefs. Callers compose signals and allocations with the backtester through public policies; the modules share result/report and validation helpers rather than import one another. ADR 001 defines timing and cost accounting.

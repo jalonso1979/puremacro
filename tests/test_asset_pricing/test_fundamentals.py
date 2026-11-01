@@ -27,6 +27,16 @@ def test_availability_and_restatement_no_lookahead():
     pd.testing.assert_frame_equal(early,fundamentals_asof(data,'2020-04-01'))
 
 
+def test_duplicate_columns_and_ratio_overflow_rejected():
+    data = facts()
+    with pytest.raises(ValueError, match='unique column'):
+        fundamentals_asof(pd.concat([data, data[['value']]], axis=1), '2020-04-01')
+    with pytest.raises(ValueError, match='overflow'):
+        fundamental_ratios(price=1e200, shares_outstanding=1e200, revenue=1,
+            net_income=1, book_equity=1, debt=0, cash=0,
+            operating_cash_flow=0, capital_expenditure=0)
+
+
 def test_period_types_and_currencies_remain_separate():
     data=facts().iloc[[0]].copy()
     q=data.copy();q['period_type']='quarterly';q['period_start']='2019-10-01';q['value']=3

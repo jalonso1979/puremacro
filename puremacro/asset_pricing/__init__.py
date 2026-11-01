@@ -1,4 +1,4 @@
-"""Macro-finance: returns, risk, VaR and asset-pricing tests.
+"""Macro-finance, portfolio research, valuation and heterogeneous beliefs.
 
 Returns and risk (:mod:`.returns`), value at risk and its backtests, the
 time-series (GRS) and Fama-MacBeth factor tests, linear stochastic discount
@@ -6,6 +6,11 @@ factor GMM, the Hansen-Jagannathan distance and the Hansen-Singleton
 consumption CAPM. The moment-based estimators are built on
 :func:`puremacro.inference.gmm`. No asset data are bundled; see
 :mod:`puremacro.fetch.kenfrench_factors` and :mod:`.macro_data`.
+
+Experimental research APIs add lagged portfolio accounting, constrained
+allocation, technical indicators, availability-dated fundamentals and cash-flow
+valuation, and Brock-Hommes belief dynamics. These operate on explicit supplied
+inputs; numerical validation is separate from empirical investment performance.
 """
 from .returns import (
     annualize_return,

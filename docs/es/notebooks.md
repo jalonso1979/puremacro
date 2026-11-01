@@ -2,6 +2,10 @@
 
 # Cuadernos de demostración
 
+Para carteras y análisis técnico y fundamental, comience con la
+[guía de investigación de inversiones](investment_research.md) y sus cuadernos
+ejecutados bilingües, `investment_research.ipynb` e `investment_research_es.ipynb`.
+
 Elija una pregunta económica, ejecute un ejemplo y cambie un supuesto.
 El catálogo enlaza los cuadernos ejecutados y sus fuentes Python editables en
 ambos idiomas. Los cuadernos `00` describen versiones anteriores: son recorridos

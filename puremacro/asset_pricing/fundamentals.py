@@ -30,6 +30,8 @@ def fundamentals_asof(facts: pd.DataFrame, as_of: Any) -> pd.DataFrame:
     required = {"asset","metric","unit","period_type","period_end","available_at","value"}
     if not isinstance(facts,pd.DataFrame) or not required.issubset(facts.columns):
         raise ValueError(f"facts require columns {sorted(required)}")
+    if facts.columns.has_duplicates:
+        raise ValueError("facts must have unique column names")
     out = facts.copy(deep=True)
     for column in ("asset","metric","unit","period_type"):
         if not out[column].map(lambda x: isinstance(x,str) and bool(x)).all():
@@ -88,6 +90,8 @@ def fundamental_ratios(*, price: float, shares_outstanding: float, revenue: floa
     values = {k:finite(v,k,0 if k in ("debt","cash","capital_expenditure") else None) for k,v in values.items()}
     market = price*shares
     enterprise = market+values["debt"]-values["cash"]
+    if not np.isfinite([market,enterprise]).all():
+        raise ValueError("market or enterprise value overflowed")
     ebit = None if ebitda is None else finite(ebitda,"ebitda")
     rows = [("market_cap",market,"ok"),("enterprise_value",enterprise,"ok")]
     for metric,num,den in [
@@ -101,7 +105,10 @@ def fundamental_ratios(*, price: float, shares_outstanding: float, revenue: floa
         ("free_cash_flow_yield",values["operating_cash_flow"]-values["capital_expenditure"],market),
     ]:
         status = "missing_denominator" if den is None else "nonpositive_denominator" if den <= 0 else "ok"
-        rows.append((metric,float(num/den) if status == "ok" and den is not None else np.nan,status))
+        ratio = float(num/den) if status == "ok" and den is not None else np.nan
+        if status == "ok" and not np.isfinite(ratio):
+            raise ValueError(f"{metric} overflowed")
+        rows.append((metric,ratio,status))
     return pd.DataFrame(rows,columns=["metric","value","status"])
 
 

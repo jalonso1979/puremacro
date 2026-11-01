@@ -155,7 +155,7 @@ def optimize_portfolio(
         eigenvalues = np.linalg.eigvalsh(sigma)
     except np.linalg.LinAlgError as exc:
         raise ValueError("covariance eigendecomposition failed") from exc
-    if eigenvalues.min() < -1e-10*magnitude:
+    if eigenvalues.min() < -32*np.finfo(float).eps*n*magnitude:
         raise ValueError("covariance must be positive semidefinite")
     gamma = finite(risk_aversion, "risk_aversion", 0)
     if gamma == 0:
@@ -219,7 +219,10 @@ def optimize_portfolio(
     if not solved.success or violation > tol or gap > tol:
         raise RuntimeError(f"allocation not certified: {solved.message}; violation={violation:g}, normalized gap={gap:g}")
     weights = x[:n]
-    return PortfolioAllocationResult(names, readonly(weights), float(weights @ sigma @ weights),
+    variance = float(weights @ sigma @ weights)
+    if not np.isfinite(variance) or variance < 0:
+        raise RuntimeError("negative portfolio variance or overflow; covariance is not usable at working precision")
+    return PortfolioAllocationResult(names, readonly(weights), variance,
         float(mu @ weights) if expected_returns is not None else np.nan,
         float(np.abs(weights-previous).sum()) if previous_weights is not None else np.nan,
         objective(x)*scale, gap*scale, violation, True)

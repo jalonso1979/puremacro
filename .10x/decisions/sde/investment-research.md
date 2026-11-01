@@ -9,3 +9,5 @@ M3: causal technical indicators with explicit warm-up/seed conventions, determin
 M4: revision-preserving as-of fact selection, explicit period and unit separation, financial ratios with undefined statuses, firm/equity/dividend DCF and retained invalid sensitivity cases. Ten focused tests passed. Live provider normalization is deliberately separate from this offline numerical/data contract.
 
 M5: affine-rule Brock-Hommes dynamics following Hommes equations 104-111, with explicit profit timing, three initial deviations, logit saturation, memory, costs and RHS shocks. Six focused tests passed against an independent scalar recurrence, analytical controls and future-shock perturbations. No digitized chaotic-path replication claim.
+
+M6: public workflow integration, bilingual executed notebooks/guides, explicit API snapshot additions, installed-wheel and Pyodide receipts, and a complete default-suite sweep with retained initial failures and successful targeted corrections. Late review fixed custom-calendar replay, negative portfolio variance and notebook display conventions. Final focused count: 130 passed.

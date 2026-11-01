@@ -11,6 +11,15 @@ but not published; their additions are included in 6.0.1, published on
 
 ## 6.1.0 (unreleased)
 
+- Added experimental investment-research kernels in `asset_pricing`: lagged,
+  self-financing long-only backtests with cash, costs, eligibility and JSON replay;
+  Ledoit–Wolf covariance, bounded mean/minimum-variance allocation and frontier;
+  causal technical indicators, momentum policies and a block-bootstrap max test;
+  availability-dated fundamentals, financial ratios, FCFF/FCFE/dividend valuation
+  and sensitivity; Brock–Hommes affine-belief dynamics with explicit fitness timing.
+  No new runtime dependencies or bundled market data. Bilingual guides and
+  executed notebooks document numerical checks, timing and unsupported extensions.
+
 Development version after 6.0.1; not a published distribution.
 
 - `calibrate_one_asset_hank` and `solve_one_asset_hank`: the published ABRS

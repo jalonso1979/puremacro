@@ -73,3 +73,9 @@ def test_indefinite_and_asymmetric_matrices_rejected():
     for s in [np.array([[1,2],[2,1]]), np.array([[1,.1],[.3,1]])]:
         with pytest.raises(ValueError):
             optimize_portfolio(s)
+
+
+@pytest.mark.parametrize("negative", [-1e-12, -1e-16])
+def test_nearly_indefinite_input_never_reports_negative_risk(negative):
+    with pytest.raises((ValueError, RuntimeError), match="positive semidefinite|negative portfolio variance"):
+        optimize_portfolio(np.diag([1., negative]))

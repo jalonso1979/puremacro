@@ -12,6 +12,11 @@ and exercises.
 
 ## Catalog
 
+The [investment research tutorial](investment_research.ipynb) adds synthetic
+portfolio backtests, allocation, technical signals, dated valuation and belief
+dynamics ([EN source](investment_research.py), [ES source](investment_research_es.py),
+[ES notebook](investment_research_es.ipynb)). It requires the unreleased 6.1.0 source tree.
+
 The titles open executed English notebooks. Every row also links the Spanish
 notebook and both editable sources. Release tours `00` describe older versions.
 
