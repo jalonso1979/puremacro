@@ -1,0 +1,3 @@
+policy,tariff=0.1;adjustment=0;curvature=1,tariff=0.1;adjustment=0;curvature=2,tariff=0.1;adjustment=2;curvature=1,tariff=0.1;adjustment=2;curvature=2,tariff=0.25;adjustment=0;curvature=1,tariff=0.25;adjustment=0;curvature=2,tariff=0.25;adjustment=2;curvature=1,tariff=0.25;adjustment=2;curvature=2
+bottom_40_income,0.17841694226140703,0.17974635994377763,0.1875052130935444,0.1888926647409903,0.3796920089893092,0.3857341395371918,0.42516801414421934,0.43175633024856097
+equal_per_household,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0

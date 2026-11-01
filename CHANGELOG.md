@@ -13,6 +13,19 @@ but not published; their additions are included in 6.0.1, published on
 
 Development version after 6.0.1; not a published distribution.
 
+- Observed ENIGH 2022 household policy studies retain source hashes, survey
+  weights, zero-spending exclusions and household-level welfare. Explicit
+  budget-neutral compensation supports signed per-household transfers.
+  Robust policy comparisons report dominance and minimax regret over complete
+  assumption grids, with no implicit probabilities or failed-cell deletion.
+- Conditional dynamic CES sourcing accounts for procurement and quadratic
+  adjustment resources. Finite household consumption paths report CES/CRRA
+  consumption equivalents under explicit financing. These are conditional
+  incidence experiments, not national dynamic GE or causal tariff estimates.
+- Finite-tree aggregate-risk HANK solves household choices before future shocks
+  are revealed, with one distribution per history and explicit firm valuation
+  and terminal closures. Deterministic paths reduce to the existing published
+  one-asset model; this does not certify stationary stochastic HANK.
 - `calibrate_one_asset_hank` and `solve_one_asset_hank`: the published ABRS
   one-asset equilibrium with endogenous labor, debt revaluation, asset/labor
   clearing and nonlinear Phillips curve. Independent author-code fixtures

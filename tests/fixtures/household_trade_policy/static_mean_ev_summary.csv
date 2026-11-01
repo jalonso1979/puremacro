@@ -1,0 +1,5 @@
+policy,worst_payoff,best_payoff,maximum_regret,undominated,maximin,minimax_regret
+bottom_40_income,-2775.6460613301997,-719.4867948995866,7.014843998221295,False,False,False
+equal_per_household,-2772.2869321093517,-718.5483148383628,3.655714777373305,False,False,False
+food_expenditure,-2773.4544991821776,-718.8636132842795,4.823281850199237,False,False,False
+no_compensation,-2768.6312173319784,-717.53182220414,0.0,True,True,True

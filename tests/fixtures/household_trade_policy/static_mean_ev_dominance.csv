@@ -1,0 +1,5 @@
+policy,bottom_40_income,equal_per_household,food_expenditure,no_compensation
+bottom_40_income,False,False,False,False
+equal_per_household,True,False,True,False
+food_expenditure,True,False,False,False
+no_compensation,True,True,True,False

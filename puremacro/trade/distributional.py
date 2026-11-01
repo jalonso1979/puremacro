@@ -202,6 +202,7 @@ def compute_distributional_welfare(
     factor_income_changes: pd.Series | None = None,
     transfer_total: float = 0.0,
     transfer_weights: pd.Series | None = None,
+    household_transfers: pd.Series | None = None,
     rule: Literal["fixed_baskets", "cobb_douglas", "ces", "stone_geary"] = "fixed_baskets",
     expenditure_elasticities: pd.DataFrame | None = None,
     supernumerary_share: float | pd.Series | None = None,
@@ -220,6 +221,12 @@ def compute_distributional_welfare(
     ``transfer_g = transfer_total * a_g / sum_h(weight_h * a_h)``. Defaults are
     equal per-unit transfers, not equal group totals. Thus weighted transfers
     conserve the supplied revenue. No fiscal revenue is inferred from incomes.
+
+    Alternatively, ``household_transfers`` supplies signed transfers per
+    represented unit (including taxes). Its weighted sum must equal the
+    declared ``transfer_total``; it cannot be combined with allocation weights.
+    Thus a budget-neutral program uses ``transfer_total=0`` and retains both
+    recipients and taxpayers. This does not model behavioral tax responses.
 
     Attribution telescopes anchored EV and CV along prices -> factor income ->
     transfers. It adds exactly but is order dependent and descriptive, not
@@ -253,6 +260,13 @@ def compute_distributional_welfare(
     weights = g.population_weights.to_numpy()
     allocation = scores.to_numpy() / scores.max()
     transfer = float(revenue) * (allocation / np.dot(weights, allocation))
+    if household_transfers is not None:
+        if transfer_weights is not None:
+            raise ValueError("household_transfers and transfer_weights are mutually exclusive")
+        transfer = _series(household_transfers, g.expenditure.index, "household_transfers").to_numpy()
+        scale = max(abs(float(revenue)), float(np.dot(weights, np.abs(transfer))), 1.0)
+        if abs(float(np.dot(weights, transfer)) - float(revenue)) > 1e-12 * scale:
+            raise ValueError("household_transfers must conserve the declared transfer_total")
     eta = (None if expenditure_elasticities is None else
            _frame(expenditure_elasticities, g.expenditure.index, g.expenditure.columns,
                   "expenditure_elasticities").to_numpy().T)
@@ -295,7 +309,8 @@ def compute_distributional_welfare(
                    "mean_cv_pct": float(np.average(frame["cv_pct"], weights=weights))})
     if not np.isfinite(frame.to_numpy()).all() or not np.isfinite(list(totals.values())).all():
         raise ValueError("incidence aggregation overflowed; rescale monetary or population units")
-    if not np.isclose(totals["total_transfer"], float(revenue), rtol=1e-12, atol=1e-12 * abs(float(revenue))):
+    transfer_scale = max(abs(float(revenue)), float(np.dot(weights, np.abs(transfer))), 1.0)
+    if abs(totals["total_transfer"] - float(revenue)) > 1e-12 * transfer_scale:
         raise ValueError("transfer allocation failed aggregate revenue conservation")
     metadata = {
         "source": g.provenance["source"], "provenance": deepcopy(g.provenance),
@@ -318,6 +333,7 @@ def compute_distributional_welfare(
         "transfer_total": float(revenue), "transfer_conservation_error": totals["total_transfer"] - float(revenue),
         "baseline_prices": p0.to_dict(), "prices": p1.to_dict(),
         "factor_income_changes": changes.to_dict(), "transfer_weights": scores.to_dict(),
+        "transfer_mode": "supplied_signed_per_unit" if household_transfers is not None else "allocated_total",
     }
     return DistributionalWelfareResult(frame, pd.Series(totals, name="aggregate"), metadata)
 
