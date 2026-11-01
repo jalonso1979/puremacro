@@ -155,3 +155,18 @@ verified single-thread Accelerate status where its API is available. Timings
 describe that run and are not portable speed guarantees. The held-out seed,
 history and original `1e-5` fixed-policy audit threshold are unchanged; numerical
 refinement adds horizon or branches rather than relaxing acceptance thresholds.
+
+The retained 80-by-3, 48-date comparison gives:
+
+| Terminal distribution basis | Fixed-policy market error | Corrected market error | Corrected dates | Observed correction time |
+|---|---:|---:|---:|---:|
+| Full admissible basis | `1.65e-5` | `7.06e-9` | 48/48 | 43.1 s |
+| 16 snapshot directions | `2.74e-5` | `8.28e-9` | 48/48 | 978.7 s |
+
+Both corrected histories pass the unchanged horizon and branching criteria.
+The 16-direction boundary requires horizon 64 on 20 dates, while the full basis
+requires at most 16. Smaller state dimension therefore does not automatically
+reduce total nonlinear-solution cost. Euler/KKT maxima remain about `9.95e-4`.
+The matched small-grid dense comparison differs by `1.46e-11` in root log
+controls; order 2-to-3 and 3-to-5 quadrature comparisons differ by at most
+`2.64e-8` across the reported root metrics. These are case-specific checks.

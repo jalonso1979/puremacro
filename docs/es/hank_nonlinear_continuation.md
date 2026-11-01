@@ -168,3 +168,20 @@ está disponible. Los tiempos describen esa ejecución y no son garantías
 portables de velocidad. La semilla, la historia reservada y el umbral original
 `1e-5` de la auditoría de política fija no cambian; el refinamiento numérico
 añade horizonte o ramas en lugar de relajar los umbrales de aceptación.
+
+La comparación retenida de 80 por 3 puntos y 48 fechas produce:
+
+| Base terminal de distribuciones | Error de mercado con política fija | Error corregido | Fechas corregidas | Tiempo observado de corrección |
+|---|---:|---:|---:|---:|
+| Base admisible completa | `1.65e-5` | `7.06e-9` | 48/48 | 43.1 s |
+| 16 direcciones de instantáneas | `2.74e-5` | `8.28e-9` | 48/48 | 978.7 s |
+
+Ambas historias corregidas satisfacen los mismos criterios de horizonte y
+ramificación. La frontera de 16 direcciones requiere horizonte 64 en 20 fechas;
+la base completa requiere como máximo 16. Por ello, reducir la dimensión del
+estado no reduce automáticamente el coste total de solución no lineal. Los
+máximos de Euler/KKT permanecen cerca de `9.95e-4`. La comparación densa en la
+malla pequeña difiere en `1.46e-11` en controles logarítmicos de la raíz; las
+comparaciones de cuadratura de orden 2 a 3 y de 3 a 5 difieren como máximo en
+`2.64e-8` en las métricas reportadas de la raíz. Son comprobaciones específicas
+de estos casos.

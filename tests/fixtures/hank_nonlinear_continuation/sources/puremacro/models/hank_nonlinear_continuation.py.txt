@@ -1,0 +1,522 @@
+"""State-conditioned nonlinear stochastic HANK continuation.
+
+The finite tree is solved again at each observed state. Only its terminal
+boundary uses a local linear stochastic policy. Horizon and branching tests
+measure sensitivity, not an infinite-horizon or global error bound.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any
+
+import numpy as np
+import pandas as pd
+from scipy.optimize import root
+from scipy.sparse.linalg import LinearOperator
+
+from puremacro.dsge.stacked_newton import preconditioned_lgmres
+from ._hank_stochastic_tree import _TreeProblem
+from .hank_equilibrium import _compile_tree
+from .hank_recursive import HANKStochasticTreeResult, _array, _integer
+
+__all__ = ["HANKNonlinearCorrection", "HANKNonlinearSimulation",
+           "HANKContinuationAccuracyError", "solve_hank_nonlinear_continuation",
+           "correct_hank_stochastic_state", "simulate_hank_nonlinear"]
+
+
+def _state_names(kernel):
+    names = tuple(getattr(kernel, "aggregate_state_names", ("lag_nominal", "monetary_shock")))
+    if len(set(names)) != len(names) or not {"lag_nominal", "monetary_shock"}.issubset(names):
+        raise ValueError("aggregate_state_names must contain distinct lag_nominal and monetary_shock")
+    if len(names) != 2 and not all(hasattr(kernel, name) for name in ("prices_from_state", "next_aggregate_state")):
+        raise ValueError("additional aggregate states require prices_from_state and next_aggregate_state")
+    return names
+
+
+def _next_state(kernel, prices, aggregate_state, rho):
+    if hasattr(kernel, "next_aggregate_state"):
+        return _array(kernel.next_aggregate_state(prices, aggregate_state, rho),
+                      "next aggregate state", (len(_state_names(kernel)),))
+    return np.array([prices["nominal"]-kernel.r, rho*aggregate_state[1]])
+
+
+def _prices(kernel, u, aggregate_state, distribution, lag_q):
+    if hasattr(kernel, "prices_from_state"):
+        return kernel.prices_from_state(u, aggregate_state, distribution, lag_q=lag_q)
+    return kernel.prices(u, *aggregate_state, distribution=distribution, lag_q=lag_q)
+
+
+def _scenario_tree(shock, rho, sigma, horizon, depth, order, max_nodes):
+    horizon, depth = _integer(horizon, "horizon", 2), _integer(depth, "branch_depth", 0)
+    order = _integer(order, "quadrature_order", 2)
+    if order > 32:
+        raise ValueError("quadrature_order must not exceed 32")
+    if depth >= horizon:
+        raise ValueError("branch_depth must be less than horizon")
+    if horizon > _integer(max_nodes, "max_nodes", 2):
+        raise ValueError("conditional tree exceeds max_nodes")
+    count = sum(order**min(t, depth) for t in range(horizon))
+    if count > _integer(max_nodes, "max_nodes", 2):
+        raise ValueError("conditional tree exceeds max_nodes")
+    draws, weights = np.polynomial.hermite.hermgauss(order)
+    draws, weights = sigma*np.sqrt(2)*draws, weights/np.sqrt(np.pi)
+    rows = [dict(parent=None, conditional_probability=1., monetary_shock=shock)]
+    frontier = [0]
+    for t in range(1, horizon):
+        new = []
+        innovations = list(zip(draws, weights)) if t <= depth else [(0., 1.)]
+        for parent in frontier:
+            for innovation, probability in innovations:
+                new.append(len(rows))
+                rows.append(dict(parent=f"n{parent}", conditional_probability=float(probability),
+                    monetary_shock=rho*rows[parent]["monetary_shock"]+innovation))
+        frontier = new
+    return pd.DataFrame(rows, index=[f"n{i}" for i in range(len(rows))])
+
+
+@dataclass
+class HANKNonlinearCorrection:
+    """A finite conditional equilibrium, including data for independent audits.
+
+    ``tree.paths`` contains level deviations; ``aggregate_coordinates`` contains
+    log deviations. Household arrays and prices are levels. The root action is
+    the first row; ``post_distributions[0]`` is the actual next distribution.
+    """
+    tree: HANKStochasticTreeResult
+    aggregate_states: np.ndarray
+    aggregate_coordinates: np.ndarray
+    post_distributions: np.ndarray
+    expected_marginals: np.ndarray
+    marginal_values: np.ndarray
+    prices: pd.DataFrame
+    next_aggregate_state: np.ndarray
+    converged: bool
+    diagnostics: dict[str, Any]
+
+
+@dataclass
+class HANKNonlinearSimulation:
+    """Nonanticipative observed paths with full, positive distribution transport."""
+    paths: pd.DataFrame
+    states: np.ndarray
+    distributions: np.ndarray
+    policies: dict[str, np.ndarray]
+    expected_marginals: np.ndarray
+    prices: pd.DataFrame
+    converged: bool
+    diagnostics: dict[str, Any]
+    corrections: list[HANKNonlinearCorrection] = field(default_factory=list, repr=False)
+
+
+class HANKContinuationAccuracyError(ValueError):
+    """An adaptive correction failed; its finite-tree evidence remains available."""
+    def __init__(self, message: str, result: HANKNonlinearCorrection):
+        super().__init__(message)
+        self.result = result
+
+
+class _ContinuationProblem(_TreeProblem):
+    def __init__(self, policy, tree, distribution, aggregate_state, lag_q, max_workspace_bytes):
+        # Structural interface deliberately accepts both full and reduced local
+        # policies. No reduced residual matrix is mistaken for a full-grid one.
+        required = ("basis", "aggregate_feedback", "transition", "rho", "shock_std", "_kernel", "_forecast")
+        if not all(hasattr(policy, name) for name in required) or not policy.converged:
+            raise ValueError("a solved stochastic HANK policy is required")
+        self.policy, self.kernel = policy, policy._kernel
+        self.names = _state_names(self.kernel)
+        self.shock_position = self.names.index("monetary_shock")
+        self.initial_distribution = _array(distribution, "distribution", self.kernel.d.shape)
+        if np.min(self.initial_distribution) < 0 or abs(self.initial_distribution.sum()-1) > 1e-10:
+            raise ValueError("distribution must be nonnegative and have unit mass")
+        self.initial_aggregate_state = _array(aggregate_state, "aggregate_state", (len(self.names),))
+        if not np.isfinite(lag_q) or lag_q <= 0:
+            raise ValueError("lag_q must be positive and finite")
+        self.lag_q = float(lag_q)
+        self.nodes, self.parents, self.children, self.prob, self.shocks = _compile_tree(tree)
+        self.N, self.k, self.nu = len(tree), policy.basis.rank, len(self.kernel.aggregate_names)
+        self.leaves = [i for i, children in enumerate(self.children) if not children]
+        self.leaf_index = {i: j for j, i in enumerate(self.leaves)}
+        self.size = self.N*self.nu+len(self.leaves)*self.k
+        scratch = 16*self.kernel.shape[0]*self.kernel.d.size if self.kernel.d.ndim == 3 else 0
+        self.estimated_bytes = 8*(40*self.N*self.kernel.d.size+self.size*100+scratch)
+        if self.estimated_bytes > _integer(max_workspace_bytes, "max_workspace_bytes"):
+            raise ValueError("stochastic tree exceeds estimated working-array budget")
+        self.evaluations = 0
+
+    def initial(self):
+        states = np.empty((self.N, self.k+len(self.names)))
+        states[0] = np.r_[self.policy.basis.project(self.initial_distribution-self.policy.basis.center),
+                           self.initial_aggregate_state]
+        aggregate = np.empty((self.nu, self.N))
+        for i, parent in enumerate(self.parents):
+            if i:
+                states[i] = self.policy.transition@states[parent]
+            states[i, self.k+self.shock_position] = self.shocks[i]
+            aggregate[:, i] = self.policy.aggregate_feedback@states[i]
+        terminal = np.asarray([(self.policy.transition@states[i])[:self.k] for i in self.leaves])
+        return np.r_[aggregate.ravel(), terminal.ravel()]
+
+    def evaluate(self, coordinates):
+        self.evaluations += 1
+        kernel, policy = self.kernel, self.policy
+        U = coordinates[:self.nu*self.N].reshape(self.nu, self.N)
+        terminal = coordinates[self.nu*self.N:].reshape(len(self.leaves), self.k)
+        aggregate_states = np.empty((self.N, len(self.names)))
+        prices: list[dict[str, Any]] = []
+        tail: dict[int, Any] = {}
+        for i, parent in enumerate(self.parents):
+            aggregate_states[i] = (_next_state(kernel, prices[parent], aggregate_states[parent], policy.rho)
+                                   if i else self.initial_aggregate_state)
+            aggregate_states[i, self.shock_position] = self.shocks[i]
+            # Future prices must be functions of aggregate state and inherited
+            # quoted q. Distribution transport is subsequently solved exactly.
+            prices.append(_prices(kernel, U[:, i], aggregate_states[i], self.initial_distribution,
+                                  prices[parent]["q"] if i else self.lag_q))
+        for i in self.leaves:
+            nxt = _next_state(kernel, prices[i], aggregate_states[i], policy.rho)
+            tail[i] = policy._forecast(np.r_[terminal[self.leaf_index[i]], nxt], prices[i]["nominal"])
+        household: list[Any] = [None]*self.N
+        expected: list[Any] = [None]*self.N
+        for i in range(self.N-1, -1, -1):
+            children = self.children[i]
+            expected[i] = sum(self.prob[j]*household[j]["m"] for j in children) if children else tail[i][0]
+            if not np.isfinite(expected[i]).all() or np.min(expected[i]) <= 0:
+                raise ValueError("conditional expected marginal values must be positive and finite")
+            household[i] = kernel.backward(expected[i], prices[i])
+            if any(not np.isfinite(value).all() for value in household[i].values()) or np.min(household[i]["c"]) <= 0:
+                raise ValueError("conditional household policy must be finite with positive consumption")
+        distributions = np.empty((self.N,)+kernel.d.shape)
+        distributions[0] = self.initial_distribution
+        projected = np.empty_like(terminal)
+        rows, residuals, post, continuations = [], [], [], []
+        for i, children in enumerate(self.children):
+            dp = kernel.forward(distributions[i], household[i])
+            post.append(dp)
+            if children:
+                distributions[children] = dp
+                continuation = sum(self.prob[j]*prices[j]["Y"]/prices[i]["Y"]*
+                    np.log1p(prices[j]["pi"])/(1+prices[j]["r"]) for j in children)
+            else:
+                projected[self.leaf_index[i]] = policy.basis.project(dp-policy.basis.center)
+                continuation = sum(prob*Y/prices[i]["Y"]*logpi/gross
+                                   for prob, Y, logpi, gross in tail[i][1])
+            residual, row = kernel.markets(distributions[i], household[i], prices[i], continuation)
+            residuals.append(residual)
+            rows.append(row)
+            continuations.append(continuation)
+        residual = np.r_[np.asarray(residuals).T.ravel(), (terminal-projected).ravel()]
+        if not np.isfinite(residual).all():
+            raise ValueError("nonfinite stochastic equilibrium residual")
+        return dict(residual=residual, rows=rows, distributions=distributions, household=household,
+                    prices=prices, expected=expected, post=post, terminal=terminal,
+                    aggregate_states=aggregate_states, coordinates=U.T, continuations=continuations)
+
+
+def _numerical_solve(problem, tolerance, max_iterations, method, preconditioner, max_workspace_bytes):
+    x = problem.initial()
+    state = problem.evaluate(x)
+    history: list[dict[str, Any]] = []
+    status, products = "maximum_iterations", 0
+    if method == "hybr":
+        if 16*problem.size**2+problem.estimated_bytes > max_workspace_bytes:
+            raise ValueError("dense reference Jacobian exceeds max_workspace_bytes")
+        fit = root(lambda y: problem.evaluate(y)["residual"], x, method="hybr", tol=tolerance,
+                   options={"maxfev": max_iterations*(problem.size+1)})
+        state = problem.evaluate(fit.x)
+        status = "converged" if np.max(abs(state["residual"])) <= tolerance else str(fit.message)
+    else:
+        # The existing price preconditioners do not depend on full marginal
+        # residual coordinates. New kernels can use the neutral operator.
+        try:
+            linear_preconditioner = problem.preconditioner() if preconditioner == "sparse" else None
+        except RuntimeError as exc:
+            raise ValueError("singular continuation preconditioner; try preconditioner='none'") from exc
+        for iteration in range(max_iterations+1):
+            residual = state["residual"]
+            norm = float(np.linalg.norm(residual))
+            if np.max(abs(residual)) <= tolerance:
+                status = "converged"
+                break
+            if iteration == max_iterations:
+                break
+
+            def matvec(direction):
+                nonlocal products
+                length = np.linalg.norm(direction)
+                if length == 0:
+                    return np.zeros_like(direction)
+                products += 1
+                step = 1e-6*max(1., float(np.linalg.norm(x)))/length
+                return (problem.evaluate(x+step*direction)["residual"]-
+                        problem.evaluate(x-step*direction)["residual"])/(2*step)
+
+            operator = LinearOperator((problem.size, problem.size), matvec=matvec, dtype=float)
+            forcing = min(.05, max(1e-6, .5*np.sqrt(norm)))
+            try:
+                direction, info, error = preconditioned_lgmres(operator, -residual, linear_preconditioner,
+                    method="gmres", side="right", rtol=forcing, atol=0., inner_m=min(80, problem.size), maxiter=20)
+            except (ValueError, FloatingPointError, RuntimeError) as exc:
+                history.append(dict(iteration=iteration, residual_max_abs=float(np.max(abs(residual))),
+                                    linear_probe_error=str(exc), step_length=0.))
+                status = "linear_probe_failed"
+                break
+            entry = dict(iteration=iteration, residual_max_abs=float(np.max(abs(residual))),
+                         linear_residual_norm=error, krylov_status=info, step_length=0.)
+            history.append(entry)
+            if not np.isfinite(direction).all() or error > forcing*norm*(1+1e-8):
+                status = "linear_solve_failed"
+                break
+            for backtrack in range(17):
+                step_length = .5**backtrack
+                try:
+                    trial = problem.evaluate(x+step_length*direction)
+                except (ValueError, FloatingPointError, RuntimeError):
+                    continue
+                if np.linalg.norm(trial["residual"]) <= (1-1e-4*step_length)*norm:
+                    x, state = x+step_length*direction, trial
+                    entry["step_length"] = step_length
+                    break
+            else:
+                status = "line_search_failed"
+                break
+    return state, status, products, history
+
+
+def solve_hank_nonlinear_continuation(policy: Any, *, distribution: np.ndarray | None = None,
+        aggregate_state: np.ndarray | None = None, lag_q: float = 1., horizon: int = 4,
+        branch_depth: int = 2, quadrature_order: int = 2, tolerance: float = 1e-8,
+        max_iterations: int = 30, method: str = "krylov", preconditioner: str = "auto",
+        max_nodes: int = 4096, max_workspace_bytes: int = 1_073_741_824) -> HANKNonlinearCorrection:
+    """Solve a conditional nonlinear equilibrium from an actual observed state.
+
+    Innovations are integrated by Gauss-Hermite quadrature for ``branch_depth``
+    future dates, then set to their conditional mean until the local stochastic
+    terminal boundary. ``lag_q`` is the actual preceding quote, never inferred
+    from an off-equilibrium mean. ``converged`` here certifies finite equations
+    only; use :func:`correct_hank_stochastic_state` for refinement criteria.
+    """
+    if not np.isfinite(tolerance) or not 0 < tolerance <= 1e-6:
+        raise ValueError("tolerance must lie in (0,1e-6]")
+    _integer(max_iterations, "max_iterations")
+    if method not in ("krylov", "hybr") or preconditioner not in ("auto", "sparse", "none"):
+        raise ValueError("invalid method or preconditioner")
+    required = ("basis", "aggregate_feedback", "transition", "rho", "shock_std", "_kernel", "_forecast", "converged")
+    if not all(hasattr(policy, name) for name in required) or not policy.converged:
+        raise ValueError("a solved stochastic HANK policy is required")
+    kernel = policy._kernel
+    names = _state_names(kernel)
+    aggregate = np.zeros(len(names)) if aggregate_state is None else _array(aggregate_state, "aggregate_state", (len(names),))
+    d = kernel.d if distribution is None else distribution
+    tree = _scenario_tree(aggregate[names.index("monetary_shock")], policy.rho, policy.shock_std,
+                          horizon, branch_depth, quadrature_order, max_nodes)
+    problem = _ContinuationProblem(policy, tree, d, aggregate, lag_q, max_workspace_bytes)
+    if preconditioner == "auto":
+        preconditioner = "sparse" if kernel.model in ("one_asset", "two_asset_consol") else "none"
+    if preconditioner == "sparse" and kernel.model not in ("one_asset", "two_asset_consol"):
+        raise ValueError("this kernel has no sparse continuation preconditioner; use 'auto' or 'none'")
+    state, status, products, history = _numerical_solve(problem, tolerance, max_iterations,
+                                                      method, preconditioner, max_workspace_bytes)
+    checks = [kernel.household_checks(d, h, v, expected) for d, h, v, expected in zip(
+        state["distributions"], state["household"], state["prices"], state["expected"])]
+    paths = pd.DataFrame(state["rows"], index=problem.nodes.index)
+    all_mass = np.asarray([*state["distributions"], *state["post"]])
+    mass_error = float(np.max(abs(all_mass.reshape(len(all_mass), -1).sum(axis=1)-1)))
+    budget = max(check["budget_error"] for check in checks)
+    exit_mass = max(check["grid_exit_mass"] for check in checks)
+    residual = max(float(np.max(abs(state["residual"]))), float(abs(paths.goods_mkt).max()))
+    terminal_error = float(np.max(abs(state["residual"][problem.nu*problem.N:])))
+    compression = max(float(np.sum(abs(state["post"][i]-policy.basis.decode(
+        state["terminal"][problem.leaf_index[i]], check_positive=False)))) for i in problem.leaves)
+    terminal_min = min(float(policy.basis.decode(z, check_positive=False).min()) for z in state["terminal"])
+    converged = bool(status == "converged" and residual <= tolerance and budget < 1e-8
+                     and mass_error < 1e-10 and all_mass.min() >= -1e-12 and exit_mass < 1e-10)
+    diagnostics = dict(optimizer_method=method, optimizer_message=status, evaluations=problem.evaluations,
+        preconditioner=preconditioner if method == "krylov" else "not_used",
+        jacobian_vector_products=products, history=history, market_residual_max_abs=residual,
+        terminal_consistency_error=terminal_error, terminal_compression_l1=compression,
+        initial_compression_l1=float(np.sum(abs(problem.initial_distribution-policy.basis.decode(
+            policy.basis.project(problem.initial_distribution-policy.basis.center), check_positive=False)))),
+        terminal_minimum_reconstructed_mass=terminal_min, mass_error=mass_error,
+        minimum_mass=float(all_mass.min()), household_budget_error=budget, policy_grid_exit_mass=exit_mass,
+        euler_kkt_max=max(check["euler_kkt_max"] for check in checks),
+        euler_kkt_mean_max=max(check["euler_kkt_mean"] for check in checks),
+        upper_grid_mass=max(check["upper_grid_mass"] for check in checks), tolerance=tolerance,
+        horizon=horizon, branch_depth=branch_depth, quadrature_order=quadrature_order, nodes=problem.N,
+        estimated_workspace_bytes=problem.estimated_bytes, dense_jacobian_assembled=method == "hybr",
+        inherited_q=float(lag_q), phillips_continuation=state["continuations"],
+        equation_converged=converged, horizon_converged=None, branching_converged=None,
+        quadrature_order_converged=None, minimum_expected_marginal=float(np.min(state["expected"])),
+        global_accuracy_certified=False, household_grid_accuracy_certified=False)
+    metadata = dict(scope="state-conditioned nonlinear finite stochastic equilibrium with local terminal policy",
+        model=kernel.model, terminal_policy_order=1, stochastic_tail_solved=True,
+        aggregate_state_names=names, rho=policy.rho, shock_std=policy.shock_std,
+        expectation_scope="finite quadrature branches, conditional-mean continuation, local stochastic boundary",
+        validation_scope="equations, compression, household-grid errors and finite-tail sensitivity are separate")
+    policies = {key: np.asarray([h[key] for h in state["household"]])
+                for key in state["household"][0] if key != "m"}
+    result = HANKStochasticTreeResult(problem.nodes, paths, state["distributions"], policies,
+                                     state["terminal"], converged, diagnostics.copy(), metadata)
+    return HANKNonlinearCorrection(result, state["aggregate_states"], state["coordinates"],
+        np.asarray(state["post"]), np.asarray(state["expected"]),
+        np.asarray([h["m"] for h in state["household"]]), pd.DataFrame(state["prices"], index=problem.nodes.index),
+        _next_state(kernel, state["prices"][0], state["aggregate_states"][0], policy.rho),
+        converged, diagnostics)
+
+
+def _difference(left, right):
+    controls = float(np.max(abs(left.aggregate_coordinates[0]-right.aggregate_coordinates[0])))
+    a, b = left.expected_marginals[0], right.expected_marginals[0]
+    marginal = float(np.max(abs(a-b)/np.maximum(np.maximum(abs(a), abs(b)), 1e-12)))
+    distribution = float(np.sum(abs(left.post_distributions[0]-right.post_distributions[0])))
+    return dict(aggregate_controls_max_abs=controls, expected_marginal_relative_max_abs=marginal,
+                next_distribution_l1=distribution, maximum=max(controls, marginal, distribution))
+
+
+def _refinements(values, name, minimum):
+    if not isinstance(values, (tuple, list)) or len(values) < 2:
+        raise ValueError(f"{name} requires at least two increasing levels")
+    levels = tuple(_integer(v, name, minimum) for v in values)
+    if any(b <= a for a, b in zip(levels, levels[1:])):
+        raise ValueError(f"{name} must be strictly increasing")
+    return levels
+
+
+def correct_hank_stochastic_state(policy: Any, distribution: np.ndarray | None = None,
+        aggregate_state: np.ndarray | None = None, *, lag_q: float = 1.,
+        horizons: tuple[int, ...] = (4, 8, 16, 32, 64), branch_depths: tuple[int, ...] = (1, 2, 3, 4),
+        horizon_tolerance: float = 1e-6, branching_tolerance: float = 1e-6,
+        raise_on_failure: bool = True, **solver_options: Any) -> HANKNonlinearCorrection:
+    """Refine a conditional solve until both horizon and branching criteria pass.
+
+    At each candidate, compare the immediately smaller horizon at the same
+    branch depth, and the immediately smaller branch depth at the same horizon.
+    All compared finite equilibria must converge. The metric is the maximum of
+    root log-control changes, relative expected-marginal changes, and next-D L1.
+    Passing is an empirical sensitivity check, not a mathematical error bound.
+    Quadrature order is fixed during refinement and is not certified by this
+    check; compare orders separately using the finite-tree solver.
+    Failed evidence is retained in the result (also attached to the exception).
+    """
+    hs = _refinements(horizons, "horizons", 2)
+    ds = _refinements(branch_depths, "branch_depths", 0)
+    if ds[-1] >= hs[-2]:
+        raise ValueError("at least two horizons must exceed every branch depth")
+    if any(not np.isfinite(v) or v <= 0 for v in (horizon_tolerance, branching_tolerance)):
+        raise ValueError("refinement tolerances must be positive and finite")
+    forbidden = {"horizon", "branch_depth", "distribution", "aggregate_state", "lag_q"}.intersection(solver_options)
+    if forbidden:
+        raise ValueError(f"use adaptive options rather than {sorted(forbidden)}")
+    cache: dict[tuple[int, int], HANKNonlinearCorrection] = {}
+    records: list[dict[str, Any]] = []
+    candidate = None
+    for ib in range(1, len(ds)):
+        depth = ds[ib]
+        valid_horizons = tuple(h for h in hs if h > depth)
+        for ih in range(1, len(valid_horizons)):
+            horizon = valid_horizons[ih]
+            # Only three corners are needed: same-depth shorter horizon and
+            # same-horizon narrower tree. Cache shared solves across refinements.
+            for h, b in ((horizon, depth), (valid_horizons[ih-1], depth), (horizon, ds[ib-1])):
+                if (h, b) not in cache:
+                    solved = solve_hank_nonlinear_continuation(policy, distribution=distribution,
+                        aggregate_state=aggregate_state, lag_q=lag_q, horizon=h,
+                        branch_depth=b, **solver_options)
+                    cache[h, b] = solved
+                    records.append(dict(horizon=h, branch_depth=b, equation_converged=solved.converged,
+                        market_residual_max_abs=solved.diagnostics["market_residual_max_abs"],
+                        evaluations=solved.diagnostics["evaluations"],
+                        optimizer_message=solved.diagnostics["optimizer_message"]))
+            result = candidate = cache[horizon, depth]
+            shorter, narrower = cache[valid_horizons[ih-1], depth], cache[horizon, ds[ib-1]]
+            hd, bd = _difference(shorter, result), _difference(narrower, result)
+            hp = bool(result.converged and shorter.converged and hd["maximum"] <= horizon_tolerance)
+            bp = bool(result.converged and narrower.converged and bd["maximum"] <= branching_tolerance)
+            result.diagnostics.update(horizon_converged=hp, branching_converged=bp,
+                horizon_difference=hd, branching_difference=bd, refinement_history=records.copy(),
+                horizon_tolerance=horizon_tolerance, branching_tolerance=branching_tolerance)
+            for record in records:
+                if (record["horizon"], record["branch_depth"]) == (horizon, depth):
+                    record.update(horizon_converged=hp, branching_converged=bp,
+                                  horizon_difference=hd, branching_difference=bd)
+            if hp and bp:
+                result.diagnostics["refinement_history"] = records.copy()
+                result.diagnostics["total_evaluations"] = sum(r["evaluations"] for r in records)
+                result.diagnostics["adaptive_status"] = "converged"
+                return result
+            if hp and not bp and ib < len(ds)-1:
+                # A longer conditional-mean tail cannot supply missing early
+                # shock branches. Refine branching once the horizon has passed.
+                break
+    assert candidate is not None
+    candidate.converged = False
+    candidate.diagnostics.update(refinement_history=records, adaptive_status="refinement_limits_exhausted",
+        total_evaluations=sum(r["evaluations"] for r in records))
+    if raise_on_failure:
+        raise HANKContinuationAccuracyError("nonlinear continuation failed horizon, branching, or equation criteria", candidate)
+    return candidate
+
+
+def simulate_hank_nonlinear(policy: Any, innovations: np.ndarray, *,
+        initial_distribution: np.ndarray | None = None, initial_aggregate_state: np.ndarray | None = None,
+        initial_q: float = 1., keep_trees: bool = False, raise_on_failure: bool = True,
+        **correction_options: Any) -> HANKNonlinearSimulation:
+    """Re-solve at each observation, without revealing later realized shocks.
+
+    ``initial_aggregate_state`` is the conditional state before the first new
+    innovation. On failed refinement, raise with evidence, or stop before using
+    the failed action when ``raise_on_failure=False``. No failed action is
+    silently transported. Defaults require both refinement tests at each date.
+    """
+    eps = _array(innovations, "innovations")
+    if eps.ndim != 1 or not len(eps):
+        raise ValueError("innovations must be a nonempty vector")
+    kernel, names = policy._kernel, _state_names(policy._kernel)
+    shock_index = names.index("monetary_shock")
+    aggregate = np.zeros(len(names)) if initial_aggregate_state is None else _array(
+        initial_aggregate_state, "initial_aggregate_state", (len(names),))
+    d = kernel.d.copy() if initial_distribution is None else _array(initial_distribution, "initial_distribution", kernel.d.shape)
+    q = initial_q
+    distributions, states, rows, expected, price_rows, retained = [d.copy()], [], [], [], [], []
+    checks: list[dict[str, Any]] = []
+    household: dict[str, list[np.ndarray]] = {}
+    failed: dict[str, Any] | None = None
+    for period, innovation in enumerate(eps):
+        observed = aggregate.copy()
+        observed[shock_index] += innovation
+        result = correct_hank_stochastic_state(policy, d, observed, lag_q=q,
+                                               raise_on_failure=raise_on_failure, **correction_options)
+        if not result.converged:
+            failed = dict(period=period, diagnostics=result.diagnostics)
+            if keep_trees:
+                retained.append(result)
+            break
+        states.append(np.r_[policy.basis.project(d-policy.basis.center), observed])
+        rows.append(result.tree.paths.iloc[0].to_dict())
+        price_rows.append(result.prices.iloc[0].to_dict())
+        expected.append(result.expected_marginals[0].copy())
+        for name, values in result.tree.policies.items():
+            household.setdefault(name, []).append(values[0].copy())
+        checks.append(result.diagnostics.copy())
+        if keep_trees:
+            retained.append(result)
+        d, aggregate = result.post_distributions[0].copy(), result.next_aggregate_state.copy()
+        q = float(result.prices.iloc[0]["q"])
+        distributions.append(d.copy())
+    maxima = {name: max((c[name] for c in checks), default=None) for name in (
+        "market_residual_max_abs", "euler_kkt_max", "euler_kkt_mean_max", "household_budget_error",
+        "mass_error", "policy_grid_exit_mass", "terminal_compression_l1", "upper_grid_mass")}
+    criteria = checks + ([failed["diagnostics"]] if failed is not None else [])
+    diagnostics = dict(scope="nonanticipative receding-horizon nonlinear stochastic equilibrium with local tails",
+        completed_periods=len(rows), requested_periods=len(eps), failed_correction=failed,
+        period_diagnostics=checks, **maxima,
+        equation_converged=all(c["equation_converged"] for c in criteria),
+        horizon_converged=all(c["horizon_converged"] is True for c in criteria),
+        branching_converged=all(c["branching_converged"] is True for c in criteria),
+        quadrature_order_converged=None,
+        global_accuracy_certified=False, household_grid_accuracy_certified=False,
+        error_decomposition=dict(aggregate="market_residual_max_abs", household_grid="euler_kkt_max",
+            compression="terminal_compression_l1", finite_tail="period_diagnostics.horizon_difference",
+            branching="period_diagnostics.branching_difference"))
+    return HANKNonlinearSimulation(pd.DataFrame(rows), np.asarray(states).reshape(-1, policy.basis.rank+len(names)), np.asarray(distributions),
+        {name: np.asarray(values) for name, values in household.items()}, np.asarray(expected).reshape(-1, len(kernel.m)),
+        pd.DataFrame(price_rows), failed is None, diagnostics, retained)
