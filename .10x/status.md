@@ -1,3 +1,3 @@
 # Status
 
-M1-M3 implemented with focused checks. M4 in progress; M5-M6 pending.
+M1-M4 implemented with 39 focused tests passed. M5 reference model in progress; M6 pending.

@@ -23,6 +23,8 @@ from .backtest import BacktestResult, backtest_portfolio, walk_forward_weights, 
 from .allocation import (CovarianceResult, PortfolioAllocationResult, estimate_covariance,
                          equal_weight, optimize_portfolio, efficient_frontier)
 from .technical import technical_indicators, momentum_weights, StrategyComparisonResult, compare_strategies
+from .fundamentals import (fundamentals_asof, fundamental_ratios, ValuationResult,
+                           discounted_cash_flow, dividend_discount, valuation_sensitivity)
 from ._results import (
     CCAPMResult,
     FamaMacBethResult,
@@ -64,4 +66,6 @@ __all__ = [
     "CovarianceResult", "PortfolioAllocationResult", "estimate_covariance",
     "equal_weight", "optimize_portfolio", "efficient_frontier",
     "technical_indicators", "momentum_weights", "StrategyComparisonResult", "compare_strategies",
+    "fundamentals_asof", "fundamental_ratios", "ValuationResult", "discounted_cash_flow",
+    "dividend_discount", "valuation_sensitivity",
 ]
