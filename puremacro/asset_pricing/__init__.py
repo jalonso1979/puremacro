@@ -20,6 +20,8 @@ from .sdf import hj_distance, sdf_gmm
 from .ccapm import ccapm
 from .macro_data import fred_consumption_growth, fred_risk_free
 from .backtest import BacktestResult, backtest_portfolio, walk_forward_weights, replay_backtest
+from .allocation import (CovarianceResult, PortfolioAllocationResult, estimate_covariance,
+                         equal_weight, optimize_portfolio, efficient_frontier)
 from ._results import (
     CCAPMResult,
     FamaMacBethResult,
@@ -58,4 +60,6 @@ __all__ = [
     "backtest_portfolio",
     "walk_forward_weights",
     "replay_backtest",
+    "CovarianceResult", "PortfolioAllocationResult", "estimate_covariance",
+    "equal_weight", "optimize_portfolio", "efficient_frontier",
 ]
