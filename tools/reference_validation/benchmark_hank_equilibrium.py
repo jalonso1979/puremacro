@@ -1,0 +1,203 @@
+"""Measure dense versus tangent HANK solves, retaining accuracy and failed runs.
+
+Run from the repository root with PYTHONPATH=. and explicit BLAS limits, e.g.:
+  OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python \
+    tools/reference_validation/benchmark_hank_equilibrium.py --output /tmp/hank-benchmark
+
+On macOS 15+ the runner also sets and verifies Accelerate's per-thread BLAS
+mode through BLASSetThreading/BLASGetThreading, restoring it on exit. The
+record distinguishes that verification from environment-only requests and
+identifies NumPy/SciPy BLAS backends. No threading policy changes at runtime
+inside the puremacro package.
+
+Calibration is timed separately. Cold timings include constructing a fresh
+workspace; warm timings reuse its sparse factor and an explicit nearby solution.
+Reference and optimized solves alternate order across repetitions. This is a
+backend comparison on identical grids, not a grid-accuracy study or a hardware
+independent performance guarantee. No timing threshold is a test gate.
+"""
+from __future__ import annotations
+
+import argparse
+from contextlib import contextmanager
+from datetime import datetime, timezone
+import hashlib
+import json
+import os
+from pathlib import Path
+import platform
+from statistics import median
+from time import perf_counter
+
+import numpy as np
+import pandas as pd
+import scipy
+
+from puremacro.models import (HANKEquilibriumWorkspace, calibrate_one_asset_hank,
+                              monetary_scenario_tree, solve_hank_scenario_tree)
+
+ROOT = Path(__file__).resolve().parents[2]
+SOURCES = ["puremacro/models/hank_equilibrium.py", "puremacro/models/_hank_tangent.py",
+           "puremacro/models/hank_scenario_tree.py", "puremacro/models/one_asset_hank.py",
+           "puremacro/dsge/stacked_newton.py", "tools/reference_validation/benchmark_hank_equilibrium.py"]
+CASES = dict(medium=dict(n_a=240, n_e=7, a_max=150., horizon=48),
+             fine=dict(n_a=480, n_e=31, a_max=600., horizon=48),
+             long=dict(n_a=240, n_e=7, a_max=150., horizon=96))
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def save(record, out):
+    tmp = out / "record.tmp"
+    tmp.write_text(json.dumps(record, indent=2, allow_nan=False) + "\n")
+    tmp.replace(out / "record.json")
+
+
+def timed(fn):
+    start = perf_counter()
+    result = fn()
+    return result, perf_counter() - start
+
+
+def details(result, seconds):
+    return dict(seconds=seconds, converged=result.converged, diagnostics=result.diagnostics)
+
+
+def linear_algebra_build(module):
+    try:
+        config = module.show_config(mode="dicts")
+    except TypeError:
+        return {"available": False}
+    # Keep numerical-backend identity, not build-machine filesystem paths.
+    return {key: {k: value for k, value in info.items()
+                  if k in ("name", "version", "openblas configuration")}
+            for key, info in config.get("Build Dependencies", {}).items() if key in ("blas", "lapack")}
+
+
+@contextmanager
+def blas_threading():
+    if platform.system() != "Darwin":
+        yield {"status": "environment_requests_only"}
+        return
+    import ctypes
+
+    try:
+        lib = ctypes.CDLL("/System/Library/Frameworks/Accelerate.framework/Accelerate")
+        setter, getter = lib.BLASSetThreading, lib.BLASGetThreading
+    except (OSError, AttributeError):
+        yield {"status": "Accelerate_thread_API_unavailable", "minimum_macos_for_API": "15.0"}
+        return
+    setter.argtypes, setter.restype = [ctypes.c_uint], ctypes.c_int
+    getter.argtypes, getter.restype = [], ctypes.c_uint
+    previous = int(getter())
+    # Apple's thread_api.h: MULTI_THREADED=0, SINGLE_THREADED=1.
+    # https://developer.apple.com/documentation/accelerate/blassetthreading(_:)
+    try:
+        status = int(setter(1))
+        active = int(getter())
+        if status != 0 or active != 1:
+            raise RuntimeError("Accelerate refused verified single-thread BLAS mode")
+        yield {"status": "verified_single_thread", "api": "BLASSetThreading/BLASGetThreading",
+               "scope": "calling thread", "previous": previous, "active": active}
+    finally:
+        setter(previous)
+
+
+def _run(out, names, repeats, control):
+    if out.exists():
+        raise ValueError("output directory already exists; use a new directory to preserve earlier evidence")
+    out.mkdir(parents=True)
+    record = dict(schema_version=1, completed=False, started_utc=datetime.now(timezone.utc).isoformat(),
+                  scope="same-grid finite-history solver comparison, not discretization or stochastic-tail accuracy",
+                  python=platform.python_version(), platform=platform.platform(), machine=platform.machine(),
+                  numpy=np.__version__, scipy=scipy.__version__, pandas=pd.__version__,
+                  blas_threads={k: os.environ.get(k) for k in (
+                      "OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "VECLIB_MAXIMUM_THREADS")},
+                  blas_control=control, numpy_linear_algebra=linear_algebra_build(np),
+                  scipy_linear_algebra=linear_algebra_build(scipy),
+                  source_sha256={name: sha(ROOT / name) for name in SOURCES},
+                  repeats=repeats, tolerance=1e-8, warm_shock_multiplier=1.02, cases=[])
+    save(record, out)
+    for name in names:
+        spec = CASES[name]
+        case = dict(name=name, specification=spec, runs=[], completed=False)
+        record["cases"].append(case)
+        save(record, out)
+        print(f"{name}: calibrating {spec}", flush=True)
+        ss, seconds = timed(lambda: calibrate_one_asset_hank(**{k: spec[k] for k in ("n_a", "n_e", "a_max")}))
+        case.update(calibration_seconds=seconds, calibration=ss.calibration,
+                    steady_state_diagnostics=ss.diagnostics, steady_state_converged=ss.converged)
+        tree = monetary_scenario_tree(horizon=spec["horizon"], innovations=(-.005, .005), probabilities=(.3, .7))
+        case["nodes"] = len(tree)
+        save(record, out)
+        for repeat in range(repeats):
+            print(f"{name}: repetition {repeat + 1}/{repeats}", flush=True)
+            order = ("reference", "optimized") if repeat % 2 == 0 else ("optimized", "reference")
+            results, timings = {}, {}
+            workspace = None
+            for method in order:
+                if method == "reference":
+                    results[method], timings[method] = timed(lambda: solve_hank_scenario_tree(ss, tree))
+                else:
+                    start = perf_counter()
+                    workspace = HANKEquilibriumWorkspace(ss, tree)
+                    results[method] = workspace.solve()
+                    timings[method] = perf_counter() - start
+            reference, optimized = results["reference"], results["optimized"]
+            assert workspace is not None
+            shocks = tree.monetary_shock * record["warm_shock_multiplier"]
+            warm, seconds = timed(lambda: workspace.solve(monetary_shocks=shocks, initial=optimized))
+            # Compare the warm answer with a solve starting at the steady state;
+            # this control reuses the factor, so it is not called a cold timing.
+            control, control_seconds = timed(lambda: workspace.solve(monetary_shocks=shocks))
+            item = dict(repeat=repeat, order=list(order),
+                        reference=details(reference, timings["reference"]),
+                        optimized=details(optimized, timings["optimized"]), warm=details(warm, seconds),
+                        nearby_control=details(control, control_seconds),
+                        path_difference_max_abs=float(np.max(np.abs(reference.paths.to_numpy() - optimized.paths.to_numpy()))),
+                        household_difference_max_abs={k: float(np.max(np.abs(getattr(reference, k) - getattr(optimized, k))))
+                            for k in ("policy_a", "policy_c", "policy_n", "distributions")},
+                        warm_path_difference_max_abs=float(np.max(np.abs(warm.paths.to_numpy() - control.paths.to_numpy()))))
+            case["runs"].append(item)
+            if repeat == 0:
+                files = {}
+                for method, result in {**results, "warm": warm, "nearby_control": control}.items():
+                    path = out / f"{name}_{method}.csv"
+                    result.to_frame().to_csv(path, float_format="%.17g")
+                    files[path.name] = sha(path)
+                case["artifact_sha256"] = files
+            save(record, out)
+        case["all_converged"] = bool(ss.converged and all(r[m]["converged"] for r in case["runs"]
+                                     for m in ("reference", "optimized", "warm", "nearby_control")))
+        case["median_seconds"] = {m: median(r[m]["seconds"] for r in case["runs"])
+                                  for m in ("reference", "optimized", "warm", "nearby_control")}
+        case["cold_speed_ratio"] = case["median_seconds"]["reference"] / case["median_seconds"]["optimized"]
+        case["completed"] = True
+        save(record, out)
+        print(f"{name}: {case['median_seconds']}, all_converged={case['all_converged']}", flush=True)
+    record["completed"] = True
+    record["finished_utc"] = datetime.now(timezone.utc).isoformat()
+    save(record, out)
+    return record
+
+
+def run(out, names, repeats):
+    with blas_threading() as control:
+        return _run(out, names, repeats, control)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--cases", nargs="+", choices=list(CASES), default=list(CASES))
+    parser.add_argument("--repeats", type=int, default=3)
+    args = parser.parse_args()
+    if args.repeats < 1:
+        parser.error("--repeats must be positive")
+    run(args.output, args.cases, args.repeats)
+
+
+if __name__ == "__main__":
+    main()

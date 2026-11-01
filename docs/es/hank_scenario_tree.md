@@ -117,3 +117,9 @@ No existe aquí una referencia estocástica independiente de los autores, un
 equilibrio estocástico estacionario general, un certificado de bienestar
 infinito ni un modelo de dos activos. La demostración reducida anterior de
 riesgo agregado permanece sin cambios.
+
+Para soluciones repetidas o árboles mayores, el
+[espacio de trabajo optimizado](hank_optimized.md) usa tangentes analíticas
+del hogar y de la distribución con precondicionamiento disperso. Resuelve las
+mismas ecuaciones y conserva los supuestos terminales y de valoración; este
+solver denso sigue disponible como comparación numérica.

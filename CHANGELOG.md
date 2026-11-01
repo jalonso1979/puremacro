@@ -13,6 +13,13 @@ but not published; their additions are included in 6.0.1, published on
 
 Development version after 6.0.1; not a published distribution.
 
+- `HANKEquilibriumWorkspace` and `solve_hank_equilibrium`: matrix-free
+  Newton-GMRES solves the coupled one-asset finite-history household and market
+  equations with analytic EGM/distribution tangents, a reusable sparse
+  preconditioner and explicit warm starts. Numerical failures retain the last
+  feasible iterate; the dense reference remains unchanged. This extends the
+  computational backend, not the model's terminal or stochastic closure.
+  [Guide](docs/hank_optimized.md).
 - Observed ENIGH 2022 household policy studies retain source hashes, survey
   weights, zero-spending exclusions and household-level welfare. Explicit
   budget-neutral compensation supports signed per-household transfers.

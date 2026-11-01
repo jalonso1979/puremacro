@@ -29,6 +29,15 @@ The package was significantly extended in **Phase 5** (April–early-May 2026, c
   household equations; specifies risk-neutral nominal firm valuation. Its
   deterministic reduction is benchmarked separately; it is not a stationary
   stochastic equilibrium or a general higher-order aggregate-risk solver.
+- `models/hank_equilibrium.py`, `models/_hank_tangent.py`: reusable matrix-free
+  Newton-GMRES backend for the same one-asset finite-history equilibrium.
+  Analytic EGM and distribution-transport tangents include binding household
+  budgets and moving lottery weights. A sparse local-household preconditioner
+  is an approximation only inside Krylov solves; the residual remains fully
+  coupled. Owns input copies, checks warm-start identity and retains numerical
+  failures. Uses the shared `dsge.stacked_newton.preconditioned_lgmres` adapter.
+  No stationary stochastic tail or two-asset claim; the dense reference and
+  its frozen evidence remain separate.
 - `study/`: explicit fixed-lag LP/recursive-VAR study specifications and separate
   model-scenario records. Depends on existing estimators, `reports` and the
   `runtime.store` frame codec. ZIP/NPZ/JSON archives retain inputs, checksums and
@@ -532,6 +541,7 @@ Dynare fixtures under `tests/fixtures/dynare_issue_177/`.
 | `trade/household`, `trade/distributional` | **Stable** | Solver-independent household demand systems (fixed baskets, Cobb-Douglas, Stone-Geary LES, CES) with an exact expenditure function, Hicksian demand, analytic Slutsky matrices, LES calibration from Engel targets and exact EV/CV; group incidence at supplied prices and incomes (partial equilibrium by design). Bridges accept consistent-accounting results only. |
 | `trade/compensation`, `trade/adjustment`, `trade/incidence_transition`, `study/robust` | **Experimental** | Explicitly financed conditional household studies, convex supplier adjustment, finite-path CEV and complete-state policy comparisons. Independent equations, accounting and a discrete sourcing oracle establish numerical behavior; no empirical elasticities, causal effects or national GE closure are inferred. |
 | `models/hank_scenario_tree` | **Experimental** | Finite aggregate histories with conditional household expectations and distributions. Deterministic reduction, alternative optimizers, node accounting and retained grid/horizon studies bound the evidence. Firm valuation and terminal marginal values are explicit assumptions; no stationary stochastic or two-asset claim. |
+| `models/hank_equilibrium` | **Experimental** | Analytic current-branch household and distribution JVPs, sparse preconditioning and damped Newton-GMRES for the same finite-history equations. Same-grid comparisons and directional derivatives check the numerical backend; speed is hardware/case dependent and does not establish grid or stationary stochastic accuracy. |
 | `trade/continuation` | **Experimental** | Audited parameter continuation (`continue_parameter`, `sigma_path`), exact-target multistart (`try_starts`) and the fold helpers (`solve_fold_continuation`, `solve_fold_continuation_step`). A path tool with recorded stages and failures, not a uniqueness, branch or existence result. |
 | `trade/stability` | **Experimental** | Reduced local-stability diagnostic (`reduced_stability`): Schur-complement Jacobian of a relative-factor-price tatonnement on a converged equilibrium, by central finite differences of the residual evaluator. Evidence about one adjustment process, never a uniqueness certificate. |
 | `trade/mrio` | **Stable** | Native MRIO tables with provenance (`MRIOTable`, checksummed `SourceRecord`s), label-driven readers for OECD ICIO 2023, Eurostat FIGARO and EXIOBASE 3.8.2, the balanced-table contract (`regularize_table`) and exact `P M P^T` sector/region aggregation with the ISIC-section concordance. No GTAP reader. |
