@@ -2147,6 +2147,7 @@
       "DMPState",
       "FakeNewsResult",
       "FiscalTransferResult",
+      "HANKScenarioTreeResult",
       "MonetaryTransmissionResult",
       "MonetaryTransmissionSimulator",
       "NonlinearHANKResult",
@@ -2160,11 +2161,18 @@
       "dmp_irf",
       "dmp_steady_state",
       "fake_news_algorithm",
+      "monetary_scenario_tree",
       "simulate_targeted_transfer",
+      "solve_hank_scenario_tree",
       "solve_hank_sequence_space",
       "solve_nonlinear_transition",
       "solve_one_asset_hank",
       "solve_two_asset_hank_sequence_space"
+    ],
+    "puremacro.models.hank_scenario_tree": [
+      "HANKScenarioTreeResult",
+      "monetary_scenario_tree",
+      "solve_hank_scenario_tree"
     ],
     "puremacro.models.hank_sequence_space": [
       "FakeNewsResult",
@@ -3289,18 +3297,24 @@
       "CounterfactualGrid",
       "PolicyStudioCell",
       "PolicyStudioResult",
+      "RobustPolicyComparison",
       "ScenarioResult",
       "ScenarioSpec",
       "StudyComparison",
       "StudyResult",
       "StudySpec",
       "VariableSpec",
+      "compare_policy_payoffs",
       "compare_studies",
       "load_study",
       "record_scenario",
       "run_policy_studio",
       "run_study",
       "save_study"
+    ],
+    "puremacro.study.robust": [
+      "RobustPolicyComparison",
+      "compare_policy_payoffs"
     ],
     "puremacro.study.studio": [
       "CounterfactualGrid",
@@ -3386,6 +3400,7 @@
       "CESNewtonError",
       "CaliendoParroModel",
       "CaliendoParroResult",
+      "CompensationPlan",
       "Concordance",
       "CondensedEquilibriumResult",
       "CondensedMeasuresResult",
@@ -3416,6 +3431,7 @@
       "HouseholdDemandResult",
       "HouseholdDomainError",
       "HouseholdGroups",
+      "HouseholdIncidencePath",
       "HouseholdPreferences",
       "HouseholdWelfareResult",
       "MRIOAccountingReport",
@@ -3432,6 +3448,7 @@
       "RawFlowCertificate",
       "ScenarioBatchResult",
       "SourceRecord",
+      "SourcingAdjustmentResult",
       "StabilityError",
       "StabilityResult",
       "SupernumeraryFitResult",
@@ -3445,6 +3462,7 @@
       "WelfareDecompositionResult",
       "WelfarePayoffMatrixResult",
       "aggregate_mrio",
+      "balanced_compensation",
       "baqaee_farhi_decomposition",
       "build_initial_guess",
       "build_strategic_tariffs",
@@ -3498,6 +3516,7 @@
       "get_memory_usage",
       "household",
       "household_expenditure_from_calibration",
+      "household_incidence_path",
       "household_prices_from_result",
       "identify_source",
       "mrio",
@@ -3532,6 +3551,7 @@
       "solve_multilateral_nash_tariffs",
       "solve_multilateral_ppp",
       "solve_policy_equilibrium",
+      "solve_sourcing_adjustment",
       "solve_trade_equilibrium",
       "solve_trade_equilibrium_gpu",
       "solve_trade_equilibrium_mlx",
@@ -3550,6 +3570,10 @@
       "TradeEquilibriumResult",
       "WelfarePayoffMatrixResult"
     ],
+    "puremacro.trade.adjustment": [
+      "SourcingAdjustmentResult",
+      "solve_sourcing_adjustment"
+    ],
     "puremacro.trade.calibration": [
       "calibrate_trade_model"
     ],
@@ -3561,6 +3585,10 @@
       "certify_ces_equilibrium",
       "continue_tariff_homotopy",
       "solve_ces_block_newton"
+    ],
+    "puremacro.trade.compensation": [
+      "CompensationPlan",
+      "balanced_compensation"
     ],
     "puremacro.trade.condensed": [
       "BalancedIOTable",
@@ -3885,6 +3913,10 @@
       "fit_supernumerary_share",
       "household_expenditure_from_calibration",
       "household_prices_from_result"
+    ],
+    "puremacro.trade.incidence_transition": [
+      "HouseholdIncidencePath",
+      "household_incidence_path"
     ],
     "puremacro.trade.mrio": [
       "CONCORDANCES",
@@ -6888,6 +6920,18 @@
       "v",
       "w"
     ],
+    "puremacro.models.hank_scenario_tree.HANKScenarioTreeResult": [
+      "converged",
+      "diagnostics",
+      "distributions",
+      "metadata",
+      "nodes",
+      "paths",
+      "policy_a",
+      "policy_c",
+      "policy_n",
+      "steady_state"
+    ],
     "puremacro.models.hank_sequence_space.FakeNewsResult": [
       "expectation_vectors",
       "fake_news",
@@ -8176,6 +8220,13 @@
       "shock_size",
       "variables"
     ],
+    "puremacro.study.robust.RobustPolicyComparison": [
+      "dominance",
+      "metadata",
+      "payoffs",
+      "regrets",
+      "summary"
+    ],
     "puremacro.study.studio.CounterfactualGrid": [
       "axes",
       "fixed_params"
@@ -8357,6 +8408,12 @@
       "summary_df",
       "welfare_metric"
     ],
+    "puremacro.trade.adjustment.SourcingAdjustmentResult": [
+      "accounts",
+      "diagnostics",
+      "metadata",
+      "quantities"
+    ],
     "puremacro.trade.caliendo_parro.CaliendoParroResult": [
       "P_hat",
       "P_index_hat",
@@ -8399,6 +8456,11 @@
       "sigma_origins",
       "sigma_sectors",
       "sigma_va_materials"
+    ],
+    "puremacro.trade.compensation.CompensationPlan": [
+      "households",
+      "ledger",
+      "metadata"
     ],
     "puremacro.trade.condensed._results.CondensedEquilibriumResult": [
       "arclength_path",
@@ -8959,6 +9021,12 @@
       "upper_bound_hit",
       "weighted_rmse",
       "weighted_rmse_unconstrained"
+    ],
+    "puremacro.trade.incidence_transition.HouseholdIncidencePath": [
+      "households",
+      "metadata",
+      "periods",
+      "utility"
     ],
     "puremacro.trade.mrio.Concordance": [
       "coarse_codes",

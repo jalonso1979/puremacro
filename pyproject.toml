@@ -159,7 +159,7 @@ include = ["puremacro*"]
 "puremacro.datasets" = ["data/*.csv", "data/*.json"]
 "puremacro.validation.goldens" = ["*.json"]
 # The bundled OECD ICIO table (G20 + ROW, ISIC Rev.4 sections) and its terms.
-"puremacro.trade" = ["_datafiles/*.npz", "_datafiles/SOURCES.md"]
+"puremacro.trade" = ["_datafiles/*.npz", "_datafiles/*.json", "_datafiles/SOURCES.md"]
 # *.npz: the SW07 posterior fixture the dsge_estimation replication cases read
 # (through 4.3.0 it was read from tests/fixtures, so the cases failed in a wheel).
 "puremacro.replication.data" = ["*.csv", "*.npz", "*.json"]

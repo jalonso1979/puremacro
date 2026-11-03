@@ -1,9 +1,31 @@
 # Third-party data bundled with `puremacro.trade`
 
 puremacro's own code is MIT-licensed (see `LICENSE` at the repository root).
-**That licence does not cover the data in this directory.** The table here is
-an adaptation of OECD data, redistributed under the OECD's terms. If you publish
-results computed from it, cite the OECD, not puremacro.
+**That licence does not cover the data in this directory.** The input-output
+table is adapted from OECD data; the household sample comes from INEGI.
+Retain the relevant publisher's attribution and terms when sharing results.
+
+## `enigh2022_household_policy.npz` and `.json`
+
+Fuente: INEGI. Encuesta Nacional de Ingresos y Gastos de los Hogares (ENIGH)
+2022 nueva serie, tabla `concentradohogar`.
+[Survey](https://www.inegi.org.mx/programas/enigh/nc/2022/),
+[source archive](https://www.inegi.org.mx/contenidos/programas/enigh/nc/2022/microdatos/enigh2022_ns_concentradohogar_csv.zip),
+[INEGI free-use terms](https://www.inegi.org.mx/inegi/terminos.html).
+
+PureMacro retains `factor`, `ing_cor`, `gasto_mon`, `alimentos`, `tot_integ`,
+`est_dis`, and `upm` for all 90,102 source rows, in CSV order. No household
+identifier, imputation, sampling or monetary rescaling is added. Source archive,
+source CSV and packaged payload SHA-256 hashes are in the adjacent manifest.
+Money is quarterly MXN at August 2022 prices. `alimentos` includes food,
+beverages and tobacco. The policy example declares a positive-monetary-spending
+domain: 69 zero-spending rows remain in the source payload and exclusion record.
+
+These transformations and policy analyses are PureMacro's work, not INEGI's.
+INEGI does not endorse the analysis. Its free-use terms permit copying,
+extraction and adaptation with source attribution and retained metadata.
+Regenerate with `tools/reference_validation/build_enigh_policy_inputs.py` and
+the original archive. The example authenticates the payload before use.
 
 ---
 

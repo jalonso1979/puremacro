@@ -43,6 +43,9 @@ from puremacro.models.trade_policy import (
     TradePolicySimulationResult,
     TradePolicySimulator,
 )
+from puremacro.models.hank_scenario_tree import (
+    HANKScenarioTreeResult, monetary_scenario_tree, solve_hank_scenario_tree,
+)
 
 __all__ = [
     "DMPParameters",
@@ -67,4 +70,5 @@ __all__ = [
     "MonetaryTransmissionResult",
     "TradePolicySimulator",
     "TradePolicySimulationResult",
+    "HANKScenarioTreeResult", "monetary_scenario_tree", "solve_hank_scenario_tree",
 ]

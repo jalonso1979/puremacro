@@ -11,6 +11,7 @@ from .studio import (
     PolicyStudioResult,
     run_policy_studio,
 )
+from .robust import RobustPolicyComparison, compare_policy_payoffs
 
 __all__ = [
     "VariableSpec", "StudySpec", "StudyResult", "StudyComparison",
@@ -20,4 +21,5 @@ __all__ = [
     "PolicyStudioCell",
     "PolicyStudioResult",
     "run_policy_studio",
+    "RobustPolicyComparison", "compare_policy_payoffs",
 ]

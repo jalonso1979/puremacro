@@ -31,6 +31,9 @@ from ._results import (
     WelfarePayoffMatrixResult,
 )
 from .calibration import calibrate_trade_model
+from .compensation import CompensationPlan, balanced_compensation
+from .adjustment import SourcingAdjustmentResult, solve_sourcing_adjustment
+from .incidence_transition import HouseholdIncidencePath, household_incidence_path
 from .equilibrium import (
     compute_equilibrium_residuals,
     evaluate_equilibrium_residuals,
@@ -366,4 +369,7 @@ __all__: list[str] = [
     "NetworkMacroDecompositionResult",
     "baqaee_farhi_decomposition",
     "solve_exact_ces_network_prices",
+    "CompensationPlan", "balanced_compensation",
+    "SourcingAdjustmentResult", "solve_sourcing_adjustment",
+    "HouseholdIncidencePath", "household_incidence_path",
 ]

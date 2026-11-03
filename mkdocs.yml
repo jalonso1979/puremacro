@@ -57,6 +57,7 @@ nav:
       - Arellano original-code replication: arellano_replication.md
       - Reproducible studies and scenarios: studies.md
       - Runnable workflow templates: study_workflows.md
+      - Observed household policy studies: household_policy_studies.md
       - Auditing solved results: result_audits.md
       - Path audits and bounded refinement: result_audits_extended.md
       - Workload scaling: performance_scaling.md
@@ -101,6 +102,7 @@ nav:
           - Empirical-to-structural estimation: structural_bridge.md
           - Sequence-Space HANK: models.md
           - Published one-asset HANK equilibrium: hank_equilibrium.md
+          - Finite-tree aggregate-risk HANK: hank_scenario_tree.md
           - Non-Linear HANK Transitions: hank_nonlinear.md
           - Editable HANK equations and panels: hank_model_closure.md
           - Nonlinear HANK & 2nd-Order Aggregate Risk: hank_ssj_and_aggregate_risk.md
@@ -146,6 +148,7 @@ nav:
           - Reduced local stability (experimental): trade_stability.md
           - Household preferences and exact welfare: trade_household.md
           - Distributional household incidence: trade_distributional.md
+          - Conditional dynamic sourcing: trade_adjustment.md
           - Exact CES block Newton: trade_ces_newton.md
           - Condensed one-factor Leontief model: trade_condensed.md
           - Native MRIO tables: trade_mrio.md
@@ -175,6 +178,7 @@ nav:
       - Replicación del código original de Arellano: es/arellano_replication.md
       - Estudios y escenarios reproducibles: es/studies.md
       - Plantillas ejecutables: es/study_workflows.md
+      - Estudios de política con hogares observados: es/household_policy_studies.md
       - Auditoría de resultados resueltos: es/result_audits.md
       - Auditoría de trayectorias y refinamiento acotado: es/result_audits_extended.md
       - Escalamiento de cargas de trabajo: es/performance_scaling.md
@@ -219,6 +223,7 @@ nav:
           - Estimación empírica-estructural: es/structural_bridge.md
           - HANK en el espacio de secuencias: es/models.md
           - Equilibrio HANK publicado de un activo: es/hank_equilibrium.md
+          - HANK con riesgo agregado en árbol finito: es/hank_scenario_tree.md
           - Transiciones no lineales en HANK: es/hank_nonlinear.md
           - Ecuaciones HANK editables y paneles: es/hank_model_closure.md
           - HANK no lineal y riesgo agregado de 2.º orden: es/hank_ssj_and_aggregate_risk.md
@@ -264,6 +269,7 @@ nav:
           - Estabilidad local reducida (experimental): es/trade_stability.md
           - Preferencias del hogar y bienestar exacto: es/trade_household.md
           - Incidencia distributiva en los hogares: es/trade_distributional.md
+          - Abastecimiento dinámico condicionado: es/trade_adjustment.md
           - Newton por bloques exacto para CES: es/trade_ces_newton.md
           - Modelo de Leontief condensado con un factor: es/trade_condensed.md
           - Tablas MRIO nativas: es/trade_mrio.md

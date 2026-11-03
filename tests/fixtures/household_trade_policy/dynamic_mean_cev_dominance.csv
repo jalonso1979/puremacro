@@ -1,0 +1,3 @@
+policy,bottom_40_income,equal_per_household
+bottom_40_income,False,False
+equal_per_household,True,False

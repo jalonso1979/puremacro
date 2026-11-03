@@ -1,0 +1,3 @@
+policy,worst_payoff,best_payoff,maximum_regret,undominated,maximin,minimax_regret
+bottom_40_income,453.11062419440873,614.3557451443546,0.0,True,True,True
+equal_per_household,-140.41078466467548,17.155546251392504,597.2001988929621,False,False,False

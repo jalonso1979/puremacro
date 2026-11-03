@@ -1,0 +1,5 @@
+state,horizon,extended_horizon,maximum_first_window_cost_change,tolerance,passed
+tariff=0.1;adjustment=0,12,24,0.0,0.0001,True
+tariff=0.1;adjustment=2,12,24,8.426769504410458e-06,0.0001,True
+tariff=0.25;adjustment=0,12,24,0.0,0.0001,True
+tariff=0.25;adjustment=2,12,24,4.2771460024626506e-05,0.0001,True
