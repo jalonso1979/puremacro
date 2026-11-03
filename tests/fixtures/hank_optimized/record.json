@@ -1,0 +1,2214 @@
+{
+  "schema_version": 1,
+  "completed": true,
+  "started_utc": "2026-11-01T17:50:55.457877+00:00",
+  "scope": "same-grid finite-history solver comparison, not discretization or stochastic-tail accuracy",
+  "python": "3.11.17",
+  "platform": "macOS-27.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "numpy": "2.4.6",
+  "scipy": "1.17.1",
+  "pandas": "3.1.0",
+  "blas_threads": {
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1"
+  },
+  "blas_control": {
+    "status": "verified_single_thread",
+    "api": "BLASSetThreading/BLASGetThreading",
+    "scope": "calling thread",
+    "previous": 0,
+    "active": 1
+  },
+  "numpy_linear_algebra": {
+    "blas": {
+      "name": "accelerate",
+      "version": "unknown",
+      "openblas configuration": "unknown"
+    },
+    "lapack": {
+      "name": "accelerate",
+      "version": "unknown",
+      "openblas configuration": "unknown"
+    }
+  },
+  "scipy_linear_algebra": {
+    "blas": {
+      "name": "Accelerate",
+      "version": "unknown",
+      "openblas configuration": "unknown"
+    },
+    "lapack": {
+      "name": "Accelerate",
+      "version": "unknown",
+      "openblas configuration": "unknown"
+    }
+  },
+  "source_sha256": {
+    "puremacro/models/hank_equilibrium.py": "6c2a8fe69118d26d6fc61d643ddb9e40879f1cc2c75f497da54f7d71d1e423fe",
+    "puremacro/models/_hank_tangent.py": "549ca9cf5969ec80e6d112ea793fbc69ad9fb838150a884ea92dfc8e5e21635d",
+    "puremacro/models/hank_scenario_tree.py": "baa00a390f76ce67783686b2a21d7a637ebd7ce40ec535c7c9e19e6de6e2db48",
+    "puremacro/models/one_asset_hank.py": "969d1915e30c36b4bce73a8e04cc37b200f3b74db8f39a13de8d43686c82fe64",
+    "puremacro/dsge/stacked_newton.py": "27bbca2e3172eac23a9741a6bc78d73e1a44c10f0ce97ab839058b6e1a64c814",
+    "tools/reference_validation/benchmark_hank_equilibrium.py": "c9ac0ddcb1d4562228c32aff09ea2fc75a7326a53088c6c09548d3c24476a548"
+  },
+  "repeats": 3,
+  "tolerance": 1e-08,
+  "warm_shock_multiplier": 1.02,
+  "cases": [
+    {
+      "name": "medium",
+      "specification": {
+        "n_a": 240,
+        "n_e": 7,
+        "a_max": 150.0,
+        "horizon": 48
+      },
+      "runs": [
+        {
+          "repeat": 0,
+          "order": [
+            "reference",
+            "optimized"
+          ],
+          "reference": {
+            "seconds": 19.039848957996583,
+            "converged": true,
+            "diagnostics": {
+              "mass_error": 6.661338147750939e-16,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 5.1833537462186996e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.000219554257673623,
+              "euler_kkt_max_node_mean": 5.869389364791913e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.3520073062173803,
+              "minimum_saving": 0.0,
+              "market_residual_max_abs": 2.8509150590402474e-10,
+              "optimizer_success": true,
+              "optimizer_message": "The solution converged.",
+              "optimizer_method": "Powell hybrid",
+              "evaluations": 591,
+              "tolerance": 1e-08
+            }
+          },
+          "optimized": {
+            "seconds": 1.1821273749810643,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 5,
+              "jacobian_vector_products": 50,
+              "newton_iterations": 4,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.03213614502282702,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.02060251216949383,
+                  "forcing": 0.1,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 0.00529710290135732,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.000763100760896455,
+                  "forcing": 0.07162290739122582,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 0.0002620836452420505,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 4.593596811300045e-06,
+                  "forcing": 0.013759386434689012,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 3,
+                  "residual_max_abs": 1.626413931532511e-06,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.25455737668807e-09,
+                  "forcing": 0.0010849770535778054,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": false,
+              "preconditioner_factor_nnz": 1606,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 40954880,
+              "market_residual_max_abs": 6.002007779670748e-10,
+              "mass_error": 6.661338147750939e-16,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 4.427014310692812e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021955425773490786,
+              "euler_kkt_max_node_mean": 5.869389229852294e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.35200730629179167,
+              "minimum_saving": 0.0
+            }
+          },
+          "warm": {
+            "seconds": 1.0267250829783734,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 4,
+              "jacobian_vector_products": 45,
+              "newton_iterations": 3,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.0006401650566179029,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.0001071751004701455,
+                  "forcing": 0.033059013424902715,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 2.584828452611987e-05,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.343776259973956e-07,
+                  "forcing": 0.005179036849472907,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 6.580799905009371e-08,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 3.126127840675251e-11,
+                  "forcing": 0.0002434920752620861,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": true,
+              "preconditioner_factor_nnz": 1606,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 40954880,
+              "market_residual_max_abs": 2.835691690684407e-10,
+              "mass_error": 6.661338147750939e-16,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 5.218048215738236e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021956026797091552,
+              "euler_kkt_max_node_mean": 5.829198968389419e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.35194128318873497,
+              "minimum_saving": 0.0
+            }
+          },
+          "nearby_control": {
+            "seconds": 1.1640239999978803,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 5,
+              "jacobian_vector_products": 50,
+              "newton_iterations": 4,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.032783741691310375,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.02098541563636691,
+                  "forcing": 0.1,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 0.005397651868122466,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.0007793706170851978,
+                  "forcing": 0.0722667380228004,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 0.000266847139203108,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 4.702346485223155e-06,
+                  "forcing": 0.013904081843811375,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 3,
+                  "residual_max_abs": 1.6645967022554942e-06,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.309250718763976e-09,
+                  "forcing": 0.0010982791261537914,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": true,
+              "preconditioner_factor_nnz": 1606,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 40954880,
+              "market_residual_max_abs": 6.092193416407099e-10,
+              "mass_error": 6.661338147750939e-16,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 4.984901380566953e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021956026802875595,
+              "euler_kkt_max_node_mean": 5.829198844388316e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.3519412832636106,
+              "minimum_saving": 0.0
+            }
+          },
+          "path_difference_max_abs": 8.307916576910657e-10,
+          "household_difference_max_abs": {
+            "policy_a": 1.71588396824518e-08,
+            "policy_c": 2.727154058135284e-10,
+            "policy_n": 7.586389294544915e-10,
+            "distributions": 2.528698084258707e-09
+          },
+          "warm_path_difference_max_abs": 8.409520857455277e-10
+        },
+        {
+          "repeat": 1,
+          "order": [
+            "optimized",
+            "reference"
+          ],
+          "reference": {
+            "seconds": 19.38198283300153,
+            "converged": true,
+            "diagnostics": {
+              "mass_error": 6.661338147750939e-16,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 5.1833537462186996e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.000219554257673623,
+              "euler_kkt_max_node_mean": 5.869389364791913e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.3520073062173803,
+              "minimum_saving": 0.0,
+              "market_residual_max_abs": 2.8509150590402474e-10,
+              "optimizer_success": true,
+              "optimizer_message": "The solution converged.",
+              "optimizer_method": "Powell hybrid",
+              "evaluations": 591,
+              "tolerance": 1e-08
+            }
+          },
+          "optimized": {
+            "seconds": 1.1803540409891866,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 5,
+              "jacobian_vector_products": 50,
+              "newton_iterations": 4,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.03213614502282702,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.02060251216949383,
+                  "forcing": 0.1,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 0.00529710290135732,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.000763100760896455,
+                  "forcing": 0.07162290739122582,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 0.0002620836452420505,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 4.593596811300045e-06,
+                  "forcing": 0.013759386434689012,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 3,
+                  "residual_max_abs": 1.626413931532511e-06,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.25455737668807e-09,
+                  "forcing": 0.0010849770535778054,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": false,
+              "preconditioner_factor_nnz": 1606,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 40954880,
+              "market_residual_max_abs": 6.002007779670748e-10,
+              "mass_error": 6.661338147750939e-16,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 4.427014310692812e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021955425773490786,
+              "euler_kkt_max_node_mean": 5.869389229852294e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.35200730629179167,
+              "minimum_saving": 0.0
+            }
+          },
+          "warm": {
+            "seconds": 1.0494564170076046,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 4,
+              "jacobian_vector_products": 45,
+              "newton_iterations": 3,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.0006401650566179029,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.0001071751004701455,
+                  "forcing": 0.033059013424902715,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 2.584828452611987e-05,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.343776259973956e-07,
+                  "forcing": 0.005179036849472907,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 6.580799905009371e-08,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 3.126127840675251e-11,
+                  "forcing": 0.0002434920752620861,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": true,
+              "preconditioner_factor_nnz": 1606,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 40954880,
+              "market_residual_max_abs": 2.835691690684407e-10,
+              "mass_error": 6.661338147750939e-16,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 5.218048215738236e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021956026797091552,
+              "euler_kkt_max_node_mean": 5.829198968389419e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.35194128318873497,
+              "minimum_saving": 0.0
+            }
+          },
+          "nearby_control": {
+            "seconds": 1.1777777079842053,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 5,
+              "jacobian_vector_products": 50,
+              "newton_iterations": 4,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.032783741691310375,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.02098541563636691,
+                  "forcing": 0.1,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 0.005397651868122466,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.0007793706170851978,
+                  "forcing": 0.0722667380228004,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 0.000266847139203108,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 4.702346485223155e-06,
+                  "forcing": 0.013904081843811375,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 3,
+                  "residual_max_abs": 1.6645967022554942e-06,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.309250718763976e-09,
+                  "forcing": 0.0010982791261537914,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": true,
+              "preconditioner_factor_nnz": 1606,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 40954880,
+              "market_residual_max_abs": 6.092193416407099e-10,
+              "mass_error": 6.661338147750939e-16,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 4.984901380566953e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021956026802875595,
+              "euler_kkt_max_node_mean": 5.829198844388316e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.3519412832636106,
+              "minimum_saving": 0.0
+            }
+          },
+          "path_difference_max_abs": 8.307916576910657e-10,
+          "household_difference_max_abs": {
+            "policy_a": 1.71588396824518e-08,
+            "policy_c": 2.727154058135284e-10,
+            "policy_n": 7.586389294544915e-10,
+            "distributions": 2.528698084258707e-09
+          },
+          "warm_path_difference_max_abs": 8.409520857455277e-10
+        },
+        {
+          "repeat": 2,
+          "order": [
+            "reference",
+            "optimized"
+          ],
+          "reference": {
+            "seconds": 19.390432166983373,
+            "converged": true,
+            "diagnostics": {
+              "mass_error": 6.661338147750939e-16,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 5.1833537462186996e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.000219554257673623,
+              "euler_kkt_max_node_mean": 5.869389364791913e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.3520073062173803,
+              "minimum_saving": 0.0,
+              "market_residual_max_abs": 2.8509150590402474e-10,
+              "optimizer_success": true,
+              "optimizer_message": "The solution converged.",
+              "optimizer_method": "Powell hybrid",
+              "evaluations": 591,
+              "tolerance": 1e-08
+            }
+          },
+          "optimized": {
+            "seconds": 1.16569837499992,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 5,
+              "jacobian_vector_products": 50,
+              "newton_iterations": 4,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.03213614502282702,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.02060251216949383,
+                  "forcing": 0.1,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 0.00529710290135732,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.000763100760896455,
+                  "forcing": 0.07162290739122582,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 0.0002620836452420505,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 4.593596811300045e-06,
+                  "forcing": 0.013759386434689012,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 3,
+                  "residual_max_abs": 1.626413931532511e-06,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.25455737668807e-09,
+                  "forcing": 0.0010849770535778054,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": false,
+              "preconditioner_factor_nnz": 1606,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 40954880,
+              "market_residual_max_abs": 6.002007779670748e-10,
+              "mass_error": 6.661338147750939e-16,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 4.427014310692812e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021955425773490786,
+              "euler_kkt_max_node_mean": 5.869389229852294e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.35200730629179167,
+              "minimum_saving": 0.0
+            }
+          },
+          "warm": {
+            "seconds": 1.0225514589983504,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 4,
+              "jacobian_vector_products": 45,
+              "newton_iterations": 3,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.0006401650566179029,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.0001071751004701455,
+                  "forcing": 0.033059013424902715,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 2.584828452611987e-05,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.343776259973956e-07,
+                  "forcing": 0.005179036849472907,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 6.580799905009371e-08,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 3.126127840675251e-11,
+                  "forcing": 0.0002434920752620861,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": true,
+              "preconditioner_factor_nnz": 1606,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 40954880,
+              "market_residual_max_abs": 2.835691690684407e-10,
+              "mass_error": 6.661338147750939e-16,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 5.218048215738236e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021956026797091552,
+              "euler_kkt_max_node_mean": 5.829198968389419e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.35194128318873497,
+              "minimum_saving": 0.0
+            }
+          },
+          "nearby_control": {
+            "seconds": 1.1792875829851255,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 5,
+              "jacobian_vector_products": 50,
+              "newton_iterations": 4,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.032783741691310375,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.02098541563636691,
+                  "forcing": 0.1,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 0.005397651868122466,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.0007793706170851978,
+                  "forcing": 0.0722667380228004,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 0.000266847139203108,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 4.702346485223155e-06,
+                  "forcing": 0.013904081843811375,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 3,
+                  "residual_max_abs": 1.6645967022554942e-06,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.309250718763976e-09,
+                  "forcing": 0.0010982791261537914,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": true,
+              "preconditioner_factor_nnz": 1606,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 40954880,
+              "market_residual_max_abs": 6.092193416407099e-10,
+              "mass_error": 6.661338147750939e-16,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 4.984901380566953e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021956026802875595,
+              "euler_kkt_max_node_mean": 5.829198844388316e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.3519412832636106,
+              "minimum_saving": 0.0
+            }
+          },
+          "path_difference_max_abs": 8.307916576910657e-10,
+          "household_difference_max_abs": {
+            "policy_a": 1.71588396824518e-08,
+            "policy_c": 2.727154058135284e-10,
+            "policy_n": 7.586389294544915e-10,
+            "distributions": 2.528698084258707e-09
+          },
+          "warm_path_difference_max_abs": 8.409520857455277e-10
+        }
+      ],
+      "completed": true,
+      "calibration_seconds": 1.7620970830030274,
+      "calibration": {
+        "r": 0.005,
+        "rstar": 0.005,
+        "B": 5.6,
+        "eis": 0.5,
+        "frisch": 0.5,
+        "rho_e": 0.966,
+        "sigma_e": 0.5,
+        "mu": 1.2,
+        "kappa": 0.1,
+        "phi": 1.5,
+        "Y": 1.0,
+        "Z": 1.0,
+        "w": 0.8333333333333334,
+        "beta": 0.9822363793201451,
+        "vphi": 0.7864751758554601
+      },
+      "steady_state_diagnostics": {
+        "egm_iterations": 636,
+        "policy_fixed_point_error": 9.947598300641403e-13,
+        "distribution_error": 1.119777556270185e-17,
+        "market_residual_max_abs": 2.8324720346972754e-10,
+        "upper_grid_mass": 0.0,
+        "calibration_evaluations": 11
+      },
+      "steady_state_converged": true,
+      "nodes": 95,
+      "artifact_sha256": {
+        "medium_reference.csv": "7586ab16d870f4a62adec580e6505acfc984d26b47f64f1420a17ee1ff952846",
+        "medium_optimized.csv": "9afe9794af58781da9efd145ffcd8ca24c3769b47d6c3142e5e56919c8b392c4",
+        "medium_warm.csv": "2f492eb7e90020aedc84c2d3c23b70c836667fd2cce63936147366e517c82cd8",
+        "medium_nearby_control.csv": "4af7a397fc3d02dccb7de7e434ea4ad6ab1b67b310267332c308decd53072851"
+      },
+      "all_converged": true,
+      "median_seconds": {
+        "reference": 19.38198283300153,
+        "optimized": 1.1803540409891866,
+        "warm": 1.0267250829783734,
+        "nearby_control": 1.1777777079842053
+      },
+      "cold_speed_ratio": 16.420482465378445
+    },
+    {
+      "name": "fine",
+      "specification": {
+        "n_a": 480,
+        "n_e": 31,
+        "a_max": 600.0,
+        "horizon": 48
+      },
+      "runs": [
+        {
+          "repeat": 0,
+          "order": [
+            "reference",
+            "optimized"
+          ],
+          "reference": {
+            "seconds": 58.93610970900045,
+            "converged": true,
+            "diagnostics": {
+              "mass_error": 5.995204332975845e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 5.232300709321423e-29,
+              "household_budget_error": 2.1871393585115584e-13,
+              "policy_grid_exit_mass": 2.1981697755929924e-29,
+              "euler_kkt_max_relative": 0.006078382011125248,
+              "euler_kkt_max_node_mean": 1.803581218554803e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.11123227971574383,
+              "minimum_saving": 0.0,
+              "market_residual_max_abs": 2.5550903900257646e-10,
+              "optimizer_success": true,
+              "optimizer_message": "The solution converged.",
+              "optimizer_method": "Powell hybrid",
+              "evaluations": 298,
+              "tolerance": 1e-08
+            }
+          },
+          "optimized": {
+            "seconds": 6.014279291994171,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 5,
+              "jacobian_vector_products": 51,
+              "newton_iterations": 4,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.03234341782726524,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.019085526537458774,
+                  "forcing": 0.1,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 0.004665279013012835,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.000742224733459632,
+                  "forcing": 0.0686166430977178,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 0.00026186270907757603,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 5.231316606892106e-06,
+                  "forcing": 0.013567447350053831,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 3,
+                  "residual_max_abs": 1.5824954964216431e-06,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.438747896774568e-09,
+                  "forcing": 0.0011502490083593515,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": false,
+              "preconditioner_factor_nnz": 1606,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 361978880,
+              "market_residual_max_abs": 6.852198808360299e-10,
+              "mass_error": 5.995204332975845e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 5.232300636078375e-29,
+              "household_budget_error": 2.195327253318169e-13,
+              "policy_grid_exit_mass": 2.1981697620021643e-29,
+              "euler_kkt_max_relative": 0.006078381978671423,
+              "euler_kkt_max_node_mean": 1.8035810940022838e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.1112322797324922,
+              "minimum_saving": 0.0
+            }
+          },
+          "warm": {
+            "seconds": 5.097959957987769,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 4,
+              "jacobian_vector_products": 45,
+              "newton_iterations": 3,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.0006448776039285065,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.00010733498980460866,
+                  "forcing": 0.03328294315489862,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 2.589632727101332e-05,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.402107420032979e-07,
+                  "forcing": 0.005181694229881397,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 6.103029281945282e-08,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 3.939243719426683e-11,
+                  "forcing": 0.0002453539090253049,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": true,
+              "preconditioner_factor_nnz": 1606,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 361978880,
+              "market_residual_max_abs": 2.544002870641165e-10,
+              "mass_error": 5.773159728050814e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 5.33091314895246e-29,
+              "household_budget_error": 2.167502288763501e-13,
+              "policy_grid_exit_mass": 2.237921446463172e-29,
+              "euler_kkt_max_relative": 0.00614160752025034,
+              "euler_kkt_max_node_mean": 1.8447627138851404e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.11121307762183305,
+              "minimum_saving": 0.0
+            }
+          },
+          "nearby_control": {
+            "seconds": 5.93270633299835,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 5,
+              "jacobian_vector_products": 51,
+              "newton_iterations": 4,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.03299547510469303,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.01949412715464583,
+                  "forcing": 0.1,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 0.004762806872098402,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.000758648540501273,
+                  "forcing": 0.06932639590567473,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 0.0002671354648153823,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 5.317938972904694e-06,
+                  "forcing": 0.013715831916245374,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 3,
+                  "residual_max_abs": 1.1489907101314145e-06,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.424862010518314e-09,
+                  "forcing": 0.0011616328694814399,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": true,
+              "preconditioner_factor_nnz": 1606,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 361978880,
+              "market_residual_max_abs": 6.290648002504895e-10,
+              "mass_error": 5.995204332975845e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 5.330913072918144e-29,
+              "household_budget_error": 2.1250015636020692e-13,
+              "policy_grid_exit_mass": 2.2379214294786313e-29,
+              "euler_kkt_max_relative": 0.006141607720257352,
+              "euler_kkt_max_node_mean": 1.8447627647213669e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.11121307758343303,
+              "minimum_saving": 0.0
+            }
+          },
+          "path_difference_max_abs": 9.621670127302195e-10,
+          "household_difference_max_abs": {
+            "policy_a": 6.738093816238688e-08,
+            "policy_c": 8.932330430866386e-10,
+            "policy_n": 9.618588148185836e-10,
+            "distributions": 2.3050448563766146e-09
+          },
+          "warm_path_difference_max_abs": 1.3482569505285369e-09
+        },
+        {
+          "repeat": 1,
+          "order": [
+            "optimized",
+            "reference"
+          ],
+          "reference": {
+            "seconds": 58.32999841700075,
+            "converged": true,
+            "diagnostics": {
+              "mass_error": 5.995204332975845e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 5.232300709321423e-29,
+              "household_budget_error": 2.1871393585115584e-13,
+              "policy_grid_exit_mass": 2.1981697755929924e-29,
+              "euler_kkt_max_relative": 0.006078382011125248,
+              "euler_kkt_max_node_mean": 1.803581218554803e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.11123227971574383,
+              "minimum_saving": 0.0,
+              "market_residual_max_abs": 2.5550903900257646e-10,
+              "optimizer_success": true,
+              "optimizer_message": "The solution converged.",
+              "optimizer_method": "Powell hybrid",
+              "evaluations": 298,
+              "tolerance": 1e-08
+            }
+          },
+          "optimized": {
+            "seconds": 6.006563708011527,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 5,
+              "jacobian_vector_products": 51,
+              "newton_iterations": 4,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.03234341782726524,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.019085526537458774,
+                  "forcing": 0.1,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 0.004665279013012835,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.000742224733459632,
+                  "forcing": 0.0686166430977178,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 0.00026186270907757603,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 5.231316606892106e-06,
+                  "forcing": 0.013567447350053831,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 3,
+                  "residual_max_abs": 1.5824954964216431e-06,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.438747896774568e-09,
+                  "forcing": 0.0011502490083593515,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": false,
+              "preconditioner_factor_nnz": 1606,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 361978880,
+              "market_residual_max_abs": 6.852198808360299e-10,
+              "mass_error": 5.995204332975845e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 5.232300636078375e-29,
+              "household_budget_error": 2.195327253318169e-13,
+              "policy_grid_exit_mass": 2.1981697620021643e-29,
+              "euler_kkt_max_relative": 0.006078381978671423,
+              "euler_kkt_max_node_mean": 1.8035810940022838e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.1112322797324922,
+              "minimum_saving": 0.0
+            }
+          },
+          "warm": {
+            "seconds": 5.139510208013235,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 4,
+              "jacobian_vector_products": 45,
+              "newton_iterations": 3,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.0006448776039285065,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.00010733498980460866,
+                  "forcing": 0.03328294315489862,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 2.589632727101332e-05,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.402107420032979e-07,
+                  "forcing": 0.005181694229881397,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 6.103029281945282e-08,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 3.939243719426683e-11,
+                  "forcing": 0.0002453539090253049,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": true,
+              "preconditioner_factor_nnz": 1606,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 361978880,
+              "market_residual_max_abs": 2.544002870641165e-10,
+              "mass_error": 5.773159728050814e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 5.33091314895246e-29,
+              "household_budget_error": 2.167502288763501e-13,
+              "policy_grid_exit_mass": 2.237921446463172e-29,
+              "euler_kkt_max_relative": 0.00614160752025034,
+              "euler_kkt_max_node_mean": 1.8447627138851404e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.11121307762183305,
+              "minimum_saving": 0.0
+            }
+          },
+          "nearby_control": {
+            "seconds": 5.922310417023255,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 5,
+              "jacobian_vector_products": 51,
+              "newton_iterations": 4,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.03299547510469303,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.01949412715464583,
+                  "forcing": 0.1,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 0.004762806872098402,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.000758648540501273,
+                  "forcing": 0.06932639590567473,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 0.0002671354648153823,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 5.317938972904694e-06,
+                  "forcing": 0.013715831916245374,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 3,
+                  "residual_max_abs": 1.1489907101314145e-06,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.424862010518314e-09,
+                  "forcing": 0.0011616328694814399,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": true,
+              "preconditioner_factor_nnz": 1606,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 361978880,
+              "market_residual_max_abs": 6.290648002504895e-10,
+              "mass_error": 5.995204332975845e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 5.330913072918144e-29,
+              "household_budget_error": 2.1250015636020692e-13,
+              "policy_grid_exit_mass": 2.2379214294786313e-29,
+              "euler_kkt_max_relative": 0.006141607720257352,
+              "euler_kkt_max_node_mean": 1.8447627647213669e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.11121307758343303,
+              "minimum_saving": 0.0
+            }
+          },
+          "path_difference_max_abs": 9.621670127302195e-10,
+          "household_difference_max_abs": {
+            "policy_a": 6.738093816238688e-08,
+            "policy_c": 8.932330430866386e-10,
+            "policy_n": 9.618588148185836e-10,
+            "distributions": 2.3050448563766146e-09
+          },
+          "warm_path_difference_max_abs": 1.3482569505285369e-09
+        },
+        {
+          "repeat": 2,
+          "order": [
+            "reference",
+            "optimized"
+          ],
+          "reference": {
+            "seconds": 58.77560941601405,
+            "converged": true,
+            "diagnostics": {
+              "mass_error": 5.995204332975845e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 5.232300709321423e-29,
+              "household_budget_error": 2.1871393585115584e-13,
+              "policy_grid_exit_mass": 2.1981697755929924e-29,
+              "euler_kkt_max_relative": 0.006078382011125248,
+              "euler_kkt_max_node_mean": 1.803581218554803e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.11123227971574383,
+              "minimum_saving": 0.0,
+              "market_residual_max_abs": 2.5550903900257646e-10,
+              "optimizer_success": true,
+              "optimizer_message": "The solution converged.",
+              "optimizer_method": "Powell hybrid",
+              "evaluations": 298,
+              "tolerance": 1e-08
+            }
+          },
+          "optimized": {
+            "seconds": 5.982736457983265,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 5,
+              "jacobian_vector_products": 51,
+              "newton_iterations": 4,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.03234341782726524,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.019085526537458774,
+                  "forcing": 0.1,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 0.004665279013012835,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.000742224733459632,
+                  "forcing": 0.0686166430977178,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 0.00026186270907757603,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 5.231316606892106e-06,
+                  "forcing": 0.013567447350053831,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 3,
+                  "residual_max_abs": 1.5824954964216431e-06,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.438747896774568e-09,
+                  "forcing": 0.0011502490083593515,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": false,
+              "preconditioner_factor_nnz": 1606,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 361978880,
+              "market_residual_max_abs": 6.852198808360299e-10,
+              "mass_error": 5.995204332975845e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 5.232300636078375e-29,
+              "household_budget_error": 2.195327253318169e-13,
+              "policy_grid_exit_mass": 2.1981697620021643e-29,
+              "euler_kkt_max_relative": 0.006078381978671423,
+              "euler_kkt_max_node_mean": 1.8035810940022838e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.1112322797324922,
+              "minimum_saving": 0.0
+            }
+          },
+          "warm": {
+            "seconds": 5.28815162499086,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 4,
+              "jacobian_vector_products": 45,
+              "newton_iterations": 3,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.0006448776039285065,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.00010733498980460866,
+                  "forcing": 0.03328294315489862,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 2.589632727101332e-05,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.402107420032979e-07,
+                  "forcing": 0.005181694229881397,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 6.103029281945282e-08,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 3.939243719426683e-11,
+                  "forcing": 0.0002453539090253049,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": true,
+              "preconditioner_factor_nnz": 1606,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 361978880,
+              "market_residual_max_abs": 2.544002870641165e-10,
+              "mass_error": 5.773159728050814e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 5.33091314895246e-29,
+              "household_budget_error": 2.167502288763501e-13,
+              "policy_grid_exit_mass": 2.237921446463172e-29,
+              "euler_kkt_max_relative": 0.00614160752025034,
+              "euler_kkt_max_node_mean": 1.8447627138851404e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.11121307762183305,
+              "minimum_saving": 0.0
+            }
+          },
+          "nearby_control": {
+            "seconds": 6.054296500020428,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 5,
+              "jacobian_vector_products": 51,
+              "newton_iterations": 4,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.03299547510469303,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.01949412715464583,
+                  "forcing": 0.1,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 0.004762806872098402,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.000758648540501273,
+                  "forcing": 0.06932639590567473,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 0.0002671354648153823,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 5.317938972904694e-06,
+                  "forcing": 0.013715831916245374,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 3,
+                  "residual_max_abs": 1.1489907101314145e-06,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.424862010518314e-09,
+                  "forcing": 0.0011616328694814399,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": true,
+              "preconditioner_factor_nnz": 1606,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 361978880,
+              "market_residual_max_abs": 6.290648002504895e-10,
+              "mass_error": 5.995204332975845e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 5.330913072918144e-29,
+              "household_budget_error": 2.1250015636020692e-13,
+              "policy_grid_exit_mass": 2.2379214294786313e-29,
+              "euler_kkt_max_relative": 0.006141607720257352,
+              "euler_kkt_max_node_mean": 1.8447627647213669e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.11121307758343303,
+              "minimum_saving": 0.0
+            }
+          },
+          "path_difference_max_abs": 9.621670127302195e-10,
+          "household_difference_max_abs": {
+            "policy_a": 6.738093816238688e-08,
+            "policy_c": 8.932330430866386e-10,
+            "policy_n": 9.618588148185836e-10,
+            "distributions": 2.3050448563766146e-09
+          },
+          "warm_path_difference_max_abs": 1.3482569505285369e-09
+        }
+      ],
+      "completed": true,
+      "calibration_seconds": 15.401454290986294,
+      "calibration": {
+        "r": 0.005,
+        "rstar": 0.005,
+        "B": 5.6,
+        "eis": 0.5,
+        "frisch": 0.5,
+        "rho_e": 0.966,
+        "sigma_e": 0.5,
+        "mu": 1.2,
+        "kappa": 0.1,
+        "phi": 1.5,
+        "Y": 1.0,
+        "Z": 1.0,
+        "w": 0.8333333333333334,
+        "beta": 0.982140676648941,
+        "vphi": 0.7864771788566532
+      },
+      "steady_state_diagnostics": {
+        "egm_iterations": 778,
+        "policy_fixed_point_error": 9.094947017729282e-13,
+        "distribution_error": 1.0487439443589312e-16,
+        "market_residual_max_abs": 2.53855603205011e-10,
+        "upper_grid_mass": 1.92041850128658e-29,
+        "calibration_evaluations": 11
+      },
+      "steady_state_converged": true,
+      "nodes": 95,
+      "artifact_sha256": {
+        "fine_reference.csv": "f2136d986acd7ea7f4b632ffe10dafc417ee086e827e0edd0bdfd2a69e8400ef",
+        "fine_optimized.csv": "6820f1dc5cb804244e185a44679398cb7e054b5fe9158060be3aeebd4f3b9c01",
+        "fine_warm.csv": "29e276ff38c56233fe6dd26a3d1d81b48f6f1f627f5273a44fbab291dc1690e3",
+        "fine_nearby_control.csv": "7b1d276b50d7a5cdef3fc2f86ff8668e488605e62448265ba408c7f0f7aa4dc4"
+      },
+      "all_converged": true,
+      "median_seconds": {
+        "reference": 58.77560941601405,
+        "optimized": 6.006563708011527,
+        "warm": 5.139510208013235,
+        "nearby_control": 5.93270633299835
+      },
+      "cold_speed_ratio": 9.78523033687621
+    },
+    {
+      "name": "long",
+      "specification": {
+        "n_a": 240,
+        "n_e": 7,
+        "a_max": 150.0,
+        "horizon": 96
+      },
+      "runs": [
+        {
+          "repeat": 0,
+          "order": [
+            "reference",
+            "optimized"
+          ],
+          "reference": {
+            "seconds": 75.71842870800174,
+            "converged": true,
+            "diagnostics": {
+              "mass_error": 1.3322676295501878e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 5.184741524999481e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021955577396436373,
+              "euler_kkt_max_node_mean": 5.869338277502024e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.3520073262256079,
+              "minimum_saving": 0.0,
+              "market_residual_max_abs": 2.850910556755201e-10,
+              "optimizer_success": true,
+              "optimizer_message": "The solution converged.",
+              "optimizer_method": "Powell hybrid",
+              "evaluations": 1166,
+              "tolerance": 1e-08
+            }
+          },
+          "optimized": {
+            "seconds": 3.609157917002449,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 5,
+              "jacobian_vector_products": 82,
+              "newton_iterations": 4,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.032136145024065144,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.018176713834503495,
+                  "forcing": 0.1,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 0.003284804326974644,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.00103706622370336,
+                  "forcing": 0.06737487236991202,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 0.0002907960717877245,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 1.3465591402910153e-05,
+                  "forcing": 0.016162212502802593,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 3,
+                  "residual_max_abs": 4.169490981809076e-06,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 1.6931232591625702e-08,
+                  "forcing": 0.0018454556377668558,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": false,
+              "preconditioner_factor_nnz": 3238,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 82340864,
+              "market_residual_max_abs": 2.7671092084347038e-09,
+              "mass_error": 1.3322676295501878e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 5.2791104820926193e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021955577387202632,
+              "euler_kkt_max_node_mean": 5.869338486331211e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.3520073274409787,
+              "minimum_saving": 0.0
+            }
+          },
+          "warm": {
+            "seconds": 3.0995670839911327,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 4,
+              "jacobian_vector_products": 71,
+              "newton_iterations": 3,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.0006401649147127486,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.0001107825426911449,
+                  "forcing": 0.034154740526395375,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 2.6271983903036755e-05,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.3352658781807896e-07,
+                  "forcing": 0.005265588714957586,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 3.6465253039352774e-08,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 5.2060747937951145e-11,
+                  "forcing": 0.00024219454605338742,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": true,
+              "preconditioner_factor_nnz": 3238,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 82340864,
+              "market_residual_max_abs": 2.8507601017486745e-10,
+              "mass_error": 1.1102230246251565e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 5.530298441414061e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021956181670837027,
+              "euler_kkt_max_node_mean": 5.829128829534914e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.3519413035512444,
+              "minimum_saving": 0.0
+            }
+          },
+          "nearby_control": {
+            "seconds": 3.623665417020675,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 5,
+              "jacobian_vector_products": 82,
+              "newton_iterations": 4,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.03278374169257603,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.01854885166980113,
+                  "forcing": 0.1,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 0.0033538334585374585,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.001060614683173998,
+                  "forcing": 0.06806073364726291,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 0.0002967779449871699,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 1.378046013548348e-05,
+                  "forcing": 0.01634625841297331,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 3,
+                  "residual_max_abs": 4.280490690788952e-06,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 1.7350510643242803e-08,
+                  "forcing": 0.0018674631332155891,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": true,
+              "preconditioner_factor_nnz": 3238,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 82340864,
+              "market_residual_max_abs": 2.83109624632516e-09,
+              "mass_error": 1.3322676295501878e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 5.582340145693365e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021956181662504423,
+              "euler_kkt_max_node_mean": 5.829129198122432e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.351941304816564,
+              "minimum_saving": 0.0
+            }
+          },
+          "path_difference_max_abs": 9.068853779048425e-09,
+          "household_difference_max_abs": {
+            "policy_a": 1.7689941955723043e-07,
+            "policy_c": 3.423075711772583e-09,
+            "policy_n": 7.951172387166139e-09,
+            "distributions": 3.8484310252440146e-08
+          },
+          "warm_path_difference_max_abs": 9.252106525359238e-09
+        },
+        {
+          "repeat": 1,
+          "order": [
+            "optimized",
+            "reference"
+          ],
+          "reference": {
+            "seconds": 76.84855995798716,
+            "converged": true,
+            "diagnostics": {
+              "mass_error": 1.3322676295501878e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 5.184741524999481e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021955577396436373,
+              "euler_kkt_max_node_mean": 5.869338277502024e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.3520073262256079,
+              "minimum_saving": 0.0,
+              "market_residual_max_abs": 2.850910556755201e-10,
+              "optimizer_success": true,
+              "optimizer_message": "The solution converged.",
+              "optimizer_method": "Powell hybrid",
+              "evaluations": 1166,
+              "tolerance": 1e-08
+            }
+          },
+          "optimized": {
+            "seconds": 3.5393807500076946,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 5,
+              "jacobian_vector_products": 82,
+              "newton_iterations": 4,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.032136145024065144,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.018176713834503495,
+                  "forcing": 0.1,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 0.003284804326974644,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.00103706622370336,
+                  "forcing": 0.06737487236991202,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 0.0002907960717877245,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 1.3465591402910153e-05,
+                  "forcing": 0.016162212502802593,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 3,
+                  "residual_max_abs": 4.169490981809076e-06,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 1.6931232591625702e-08,
+                  "forcing": 0.0018454556377668558,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": false,
+              "preconditioner_factor_nnz": 3238,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 82340864,
+              "market_residual_max_abs": 2.7671092084347038e-09,
+              "mass_error": 1.3322676295501878e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 5.2791104820926193e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021955577387202632,
+              "euler_kkt_max_node_mean": 5.869338486331211e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.3520073274409787,
+              "minimum_saving": 0.0
+            }
+          },
+          "warm": {
+            "seconds": 3.067881249997299,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 4,
+              "jacobian_vector_products": 71,
+              "newton_iterations": 3,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.0006401649147127486,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.0001107825426911449,
+                  "forcing": 0.034154740526395375,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 2.6271983903036755e-05,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.3352658781807896e-07,
+                  "forcing": 0.005265588714957586,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 3.6465253039352774e-08,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 5.2060747937951145e-11,
+                  "forcing": 0.00024219454605338742,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": true,
+              "preconditioner_factor_nnz": 3238,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 82340864,
+              "market_residual_max_abs": 2.8507601017486745e-10,
+              "mass_error": 1.1102230246251565e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 5.530298441414061e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021956181670837027,
+              "euler_kkt_max_node_mean": 5.829128829534914e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.3519413035512444,
+              "minimum_saving": 0.0
+            }
+          },
+          "nearby_control": {
+            "seconds": 3.5221045420039445,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 5,
+              "jacobian_vector_products": 82,
+              "newton_iterations": 4,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.03278374169257603,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.01854885166980113,
+                  "forcing": 0.1,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 0.0033538334585374585,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.001060614683173998,
+                  "forcing": 0.06806073364726291,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 0.0002967779449871699,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 1.378046013548348e-05,
+                  "forcing": 0.01634625841297331,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 3,
+                  "residual_max_abs": 4.280490690788952e-06,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 1.7350510643242803e-08,
+                  "forcing": 0.0018674631332155891,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": true,
+              "preconditioner_factor_nnz": 3238,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 82340864,
+              "market_residual_max_abs": 2.83109624632516e-09,
+              "mass_error": 1.3322676295501878e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 5.582340145693365e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021956181662504423,
+              "euler_kkt_max_node_mean": 5.829129198122432e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.351941304816564,
+              "minimum_saving": 0.0
+            }
+          },
+          "path_difference_max_abs": 9.068853779048425e-09,
+          "household_difference_max_abs": {
+            "policy_a": 1.7689941955723043e-07,
+            "policy_c": 3.423075711772583e-09,
+            "policy_n": 7.951172387166139e-09,
+            "distributions": 3.8484310252440146e-08
+          },
+          "warm_path_difference_max_abs": 9.252106525359238e-09
+        },
+        {
+          "repeat": 2,
+          "order": [
+            "reference",
+            "optimized"
+          ],
+          "reference": {
+            "seconds": 76.71002762499847,
+            "converged": true,
+            "diagnostics": {
+              "mass_error": 1.3322676295501878e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 5.184741524999481e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021955577396436373,
+              "euler_kkt_max_node_mean": 5.869338277502024e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.3520073262256079,
+              "minimum_saving": 0.0,
+              "market_residual_max_abs": 2.850910556755201e-10,
+              "optimizer_success": true,
+              "optimizer_message": "The solution converged.",
+              "optimizer_method": "Powell hybrid",
+              "evaluations": 1166,
+              "tolerance": 1e-08
+            }
+          },
+          "optimized": {
+            "seconds": 3.6488169159856625,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 5,
+              "jacobian_vector_products": 82,
+              "newton_iterations": 4,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.032136145024065144,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.018176713834503495,
+                  "forcing": 0.1,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 0.003284804326974644,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.00103706622370336,
+                  "forcing": 0.06737487236991202,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 0.0002907960717877245,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 1.3465591402910153e-05,
+                  "forcing": 0.016162212502802593,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 3,
+                  "residual_max_abs": 4.169490981809076e-06,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 1.6931232591625702e-08,
+                  "forcing": 0.0018454556377668558,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": false,
+              "preconditioner_factor_nnz": 3238,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 82340864,
+              "market_residual_max_abs": 2.7671092084347038e-09,
+              "mass_error": 1.3322676295501878e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 5.2791104820926193e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021955577387202632,
+              "euler_kkt_max_node_mean": 5.869338486331211e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.3520073274409787,
+              "minimum_saving": 0.0
+            }
+          },
+          "warm": {
+            "seconds": 3.152557167020859,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 4,
+              "jacobian_vector_products": 71,
+              "newton_iterations": 3,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.0006401649147127486,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.0001107825426911449,
+                  "forcing": 0.034154740526395375,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 2.6271983903036755e-05,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 2.3352658781807896e-07,
+                  "forcing": 0.005265588714957586,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 3.6465253039352774e-08,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 5.2060747937951145e-11,
+                  "forcing": 0.00024219454605338742,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": true,
+              "preconditioner_factor_nnz": 3238,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 82340864,
+              "market_residual_max_abs": 2.8507601017486745e-10,
+              "mass_error": 1.1102230246251565e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 5.530298441414061e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021956181670837027,
+              "euler_kkt_max_node_mean": 5.829128829534914e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.3519413035512444,
+              "minimum_saving": 0.0
+            }
+          },
+          "nearby_control": {
+            "seconds": 3.838790291978512,
+            "converged": true,
+            "diagnostics": {
+              "optimizer_method": "analytic Newton-GMRES",
+              "optimizer_success": true,
+              "optimizer_message": "converged",
+              "evaluations": 5,
+              "jacobian_vector_products": 82,
+              "newton_iterations": 4,
+              "rejected_trials": 0,
+              "history": [
+                {
+                  "iteration": 0,
+                  "residual_max_abs": 0.03278374169257603,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.01854885166980113,
+                  "forcing": 0.1,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 1,
+                  "residual_max_abs": 0.0033538334585374585,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 0.001060614683173998,
+                  "forcing": 0.06806073364726291,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 2,
+                  "residual_max_abs": 0.0002967779449871699,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 1.378046013548348e-05,
+                  "forcing": 0.01634625841297331,
+                  "step_length": 1.0
+                },
+                {
+                  "iteration": 3,
+                  "residual_max_abs": 4.280490690788952e-06,
+                  "krylov_status": 0,
+                  "linear_residual_norm": 1.7350510643242803e-08,
+                  "forcing": 0.0018674631332155891,
+                  "step_length": 1.0
+                }
+              ],
+              "preconditioner": "sparse",
+              "preconditioner_reused": true,
+              "preconditioner_factor_nnz": 3238,
+              "dense_jacobian_assembled": false,
+              "tolerance": 1e-08,
+              "estimated_workspace_bytes": 82340864,
+              "market_residual_max_abs": 2.83109624632516e-09,
+              "mass_error": 1.3322676295501878e-15,
+              "minimum_mass": 0.0,
+              "upper_grid_mass": 0.0,
+              "household_budget_error": 5.582340145693365e-14,
+              "policy_grid_exit_mass": 0.0,
+              "euler_kkt_max_relative": 0.00021956181662504423,
+              "euler_kkt_max_node_mean": 5.829129198122432e-06,
+              "euler_scope": "linear interpolation at continuous policies; grid exits reported separately",
+              "minimum_consumption": 0.351941304816564,
+              "minimum_saving": 0.0
+            }
+          },
+          "path_difference_max_abs": 9.068853779048425e-09,
+          "household_difference_max_abs": {
+            "policy_a": 1.7689941955723043e-07,
+            "policy_c": 3.423075711772583e-09,
+            "policy_n": 7.951172387166139e-09,
+            "distributions": 3.8484310252440146e-08
+          },
+          "warm_path_difference_max_abs": 9.252106525359238e-09
+        }
+      ],
+      "completed": true,
+      "calibration_seconds": 1.736363749980228,
+      "calibration": {
+        "r": 0.005,
+        "rstar": 0.005,
+        "B": 5.6,
+        "eis": 0.5,
+        "frisch": 0.5,
+        "rho_e": 0.966,
+        "sigma_e": 0.5,
+        "mu": 1.2,
+        "kappa": 0.1,
+        "phi": 1.5,
+        "Y": 1.0,
+        "Z": 1.0,
+        "w": 0.8333333333333334,
+        "beta": 0.9822363793201451,
+        "vphi": 0.7864751758554601
+      },
+      "steady_state_diagnostics": {
+        "egm_iterations": 636,
+        "policy_fixed_point_error": 9.947598300641403e-13,
+        "distribution_error": 1.119777556270185e-17,
+        "market_residual_max_abs": 2.8324720346972754e-10,
+        "upper_grid_mass": 0.0,
+        "calibration_evaluations": 11
+      },
+      "steady_state_converged": true,
+      "nodes": 191,
+      "artifact_sha256": {
+        "long_reference.csv": "4f308c290397e06daf0f3ae377806ee717c2bd1d9067f75281530420ec11b5bf",
+        "long_optimized.csv": "b0e31c35478c020598513dc54f21948eebda11b6078066d99ba14a66de4da426",
+        "long_warm.csv": "a122b0908b08d5beca1004b423d5f087453808601e421c924da045082ebce697",
+        "long_nearby_control.csv": "8622997a07ba85417ebf0755ab127419f9376e124af40c2ffcf9606c95a69481"
+      },
+      "all_converged": true,
+      "median_seconds": {
+        "reference": 76.71002762499847,
+        "optimized": 3.609157917002449,
+        "warm": 3.0995670839911327,
+        "nearby_control": 3.623665417020675
+      },
+      "cold_speed_ratio": 21.25427298806289
+    }
+  ],
+  "finished_utc": "2026-11-01T18:00:30.272165+00:00"
+}

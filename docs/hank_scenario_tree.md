@@ -115,3 +115,9 @@ not establish horizon or grid accuracy. There is
 no independent stochastic author-code reference, general stationary
 aggregate-risk equilibrium, infinite-horizon welfare certificate or two-asset
 claim. The older reduced aggregate-risk demonstration remains unchanged.
+
+For repeated or larger finite-history solves, the
+[optimized equilibrium workspace](hank_optimized.md) uses analytic household
+and distribution tangents with sparse preconditioning. It solves these same
+equations and retains their terminal and valuation assumptions; the dense
+solver documented here remains the numerical comparison.

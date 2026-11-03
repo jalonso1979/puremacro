@@ -2147,6 +2147,7 @@
       "DMPState",
       "FakeNewsResult",
       "FiscalTransferResult",
+      "HANKEquilibriumWorkspace",
       "HANKScenarioTreeResult",
       "MonetaryTransmissionResult",
       "MonetaryTransmissionSimulator",
@@ -2163,11 +2164,16 @@
       "fake_news_algorithm",
       "monetary_scenario_tree",
       "simulate_targeted_transfer",
+      "solve_hank_equilibrium",
       "solve_hank_scenario_tree",
       "solve_hank_sequence_space",
       "solve_nonlinear_transition",
       "solve_one_asset_hank",
       "solve_two_asset_hank_sequence_space"
+    ],
+    "puremacro.models.hank_equilibrium": [
+      "HANKEquilibriumWorkspace",
+      "solve_hank_equilibrium"
     ],
     "puremacro.models.hank_scenario_tree": [
       "HANKScenarioTreeResult",
