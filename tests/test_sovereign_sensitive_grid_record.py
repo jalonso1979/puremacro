@@ -149,3 +149,34 @@ def test_extension_retains_each_historical_case_and_its_source_hashes(tmp_path, 
         assert retained == case
     assert not result['scenarios'][name]['comparisons']['initial_final_asset_refinement']['passed']
     assert result['scenarios'][name]['comparisons']['final_asset_refinement']['passed']
+
+
+def test_frozen_extended_ladder_retains_history_and_recomputes_every_verdict():
+    from tools.reference_validation.check_sovereign_sensitive_grids import source_hashes
+
+    folder = Path(__file__).parent / 'fixtures/sovereign_brief'
+    initial_path = folder / 'sensitive_grid_initial.json'
+    initial = json.loads(initial_path.read_text(encoding='utf-8'))
+    frozen = json.loads((folder / 'sensitive_grid_convergence.json').read_text(encoding='utf-8'))
+    assert frozen['initial_record_sha256'] == hashlib.sha256(initial_path.read_bytes()).hexdigest()
+    validate_prior_sources(frozen['source_sha256'], source_hashes())
+    checked = assess(deepcopy(frozen))
+    assert (checked['passed'], checked['status']) == (frozen['passed'], frozen['status'])
+    for name, scenario in checked['scenarios'].items():
+        saved = frozen['scenarios'][name]
+        assert scenario['passed'] == saved['passed']
+        assert not scenario['comparisons']['initial_final_asset_refinement']['passed']
+        assert scenario['comparisons']['initial_final_income_refinement']['passed']
+        for key, old in initial['scenarios'][name]['cases'].items():
+            retained = deepcopy(scenario['cases'][key])
+            assert retained.pop('source_sha256') == initial['source_sha256']
+            assert retained == old
+        for key in ('25601x641', '25601x1281'):
+            assert scenario['cases'][key]['source_sha256'] == frozen['source_sha256']
+        for label, comparison in scenario['comparisons'].items():
+            assert comparison['passed'] == saved['comparisons'][label]['passed']
+            for moment, values in comparison['moments'].items():
+                expected = saved['comparisons'][label]['moments'][moment]
+                assert values['status'] == expected['status']
+                for key in ('change', 'ci95', 'absolute_change_bound', 'tolerance'):
+                    assert values[key] == pytest.approx(expected[key], abs=1e-12, rel=0)
