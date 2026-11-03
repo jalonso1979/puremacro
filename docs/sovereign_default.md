@@ -14,7 +14,7 @@ see the [original-code comparison and grid evidence](arellano_replication.md).
 For illustrative comparative statics on this validated model, see the
 [sovereign-risk policy brief](brief_sovereign_risk.md).
 
-The 6.1 development source adds [separate small-grid references](sovereign_extensions_validation.md)
+PureMacro 6.1.0 adds [separate small-grid references](sovereign_extensions_validation.md)
 for the long-term smoothed operator, restructuring and the collateral planner.
 Published extension moments and their economic grid convergence remain open.
 `dq_db` differentiates the fitted price interpolant, not the entire equilibrium.

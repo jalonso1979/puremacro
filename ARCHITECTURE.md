@@ -813,7 +813,7 @@ offline test could notice. `openpyxl` is needed only by the ONS
 workbook reader and is lazy-imported there, so the Pyodide import
 contract is unchanged. Reference: `docs/real_time_data.md`.
 
-### Source registry and survey microdata (unreleased)
+### Source registry and survey microdata
 
 `puremacro.fetch.registry` is one table of every reachable source
 (`SourceInfo`: id, kind, provider, lazy `module:attribute` loader,

@@ -14,7 +14,7 @@ véase la [comparación con el código original y las mallas](arellano_replicati
 Para una estática comparativa ilustrativa con este modelo validado, consulte el
 [informe de política sobre riesgo soberano](brief_sovereign_risk.md).
 
-El código de desarrollo 6.1 agrega [referencias independientes en mallas pequeñas](sovereign_extensions_validation.md)
+PureMacro 6.1.0 agrega [referencias independientes en mallas pequeñas](sovereign_extensions_validation.md)
 para el operador suavizado de largo plazo, la reestructuración y el planificador
 con colateral. Los momentos publicados de las extensiones y su convergencia
 económica de malla siguen pendientes.

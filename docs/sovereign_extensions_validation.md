@@ -2,7 +2,7 @@
 
 # Sovereign extensions: independently checked equations
 
-The 6.1 development source adds independent small-grid checks for long-term
+PureMacro 6.1.0 adds independent small-grid checks for long-term
 debt, restructuring and the collateral planner. These complement the completed
 [short-term Arellano study](arellano_replication.md); they do not replicate
 published long-term or Mendoza empirical moments.

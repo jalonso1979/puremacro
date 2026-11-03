@@ -2,7 +2,7 @@
 
 # Extensiones soberanas: ecuaciones contrastadas independientemente
 
-El código de desarrollo 6.1 incorpora referencias independientes en mallas
+PureMacro 6.1.0 incorpora referencias independientes en mallas
 pequeñas para deuda larga, reestructuración y el planificador con colateral.
 Complementan el [estudio Arellano de corto plazo](arellano_replication.md);
 no replican momentos empíricos publicados de deuda larga o Mendoza.

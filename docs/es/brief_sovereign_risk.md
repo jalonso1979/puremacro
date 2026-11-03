@@ -156,8 +156,8 @@ El solucionador público acepta las mismas coordenadas mediante
 
 ## Ejecútelo usted mismo
 
-Este ejemplo requiere el código de desarrollo 6.1; 6.0.1 es la distribución
-publicada más reciente. Desde un checkout de desarrollo, instálelo y ejecute un escenario. En
+Este ejemplo se incluye en PureMacro 6.1.0. Instálelo con `pip install puremacro`
+(o desde el código fuente) y ejecute un escenario. En
 la estación de trabajo del mantenedor, la resolución con θ = 0,15 tardó unos
 14 minutos, más unos segundos de medición, medidos bajo carga en una
 máquina compartida (cargas medias 5/13/27); el barrido congelado completo, siete

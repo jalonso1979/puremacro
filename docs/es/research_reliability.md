@@ -3,12 +3,11 @@
 El orden acordado es **fiabilidad y replicaciones**, después **modelos y
 aplicaciones de política**, y finalmente **docencia y facilidad de uso**.
 
-## Correcciones publicadas y desarrollo actual
+## Correcciones publicadas y versión actual
 
-La versión **6.0.1** se publicó en PyPI el 2026-10-29 e incluye las correcciones
-siguientes. **6.1.0** está en desarrollo; las adiciones aún no publicadas
-requieren el código fuente. Las etiquetas 5.8.0, 5.9.0 y 6.0.0 no se publicaron.
-Consulte la [hoja de ruta y política de API](1.0_path.md).
+La versión **6.1.0** se publicó en PyPI el 2026-11-03 y sucede a la versión 6.0.1
+(publicada el 2026-10-29), incorporando las correcciones siguientes. Las etiquetas 5.8.0, 5.9.0 y 6.0.0
+no se publicaron. Consulte la [hoja de ruta y política de API](1.0_path.md).
 
 Los adaptadores conservan ecuaciones y cargas del modelo suministrado.
 DSGE usa sensibilidades de Kalman; DAG usa diferencias centrales de Whittle

@@ -14,11 +14,10 @@ paquete.
 
 ## 1. Instalación
 
-Necesita Python 3.11 o posterior. El ejemplo pertenece al código de desarrollo
-6.1; la distribución publicada más reciente es 6.0.1. Desde un checkout de desarrollo:
+Necesita Python 3.11 o posterior. El ejemplo se incluye en PureMacro 6.1.0:
 
 ```bash
-python -m pip install .
+python -m pip install puremacro
 ```
 
 ## 2. Ejecución

@@ -12,11 +12,10 @@ Nothing needs to be downloaded besides the package.
 
 ## 1. Install
 
-You need Python 3.11 or later. This example is in the 6.1 development source;
-6.0.1 is the latest published distribution. From a development checkout:
+You need Python 3.11 or later. This example is included in PureMacro 6.1.0:
 
 ```bash
-python -m pip install .
+python -m pip install puremacro
 ```
 
 ## 2. Run

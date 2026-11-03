@@ -3,11 +3,10 @@
 The agreed order is **research reliability and replications**, then **economic
 models and policy applications**, then **teaching and usability**.
 
-## Published corrections and current development
+## Published corrections and current release
 
-Version **6.0.1** was published to PyPI on 2026-10-29 and includes the
-corrections below. Version **6.1.0** is under development; additions marked
-unreleased require a source checkout. The 5.8.0, 5.9.0 and 6.0.0 source tags
+Version **6.1.0** was published to PyPI on 2026-11-03 and succeeds version 6.0.1
+(published 2026-10-29), incorporating the corrections below. The 5.8.0, 5.9.0 and 6.0.0 source tags
 were not published. See the [current roadmap and API policy](1.0_path.md).
 
 Native model adapters now preserve the supplied equations and loadings.

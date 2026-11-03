@@ -145,8 +145,8 @@ The public solver accepts the same coordinates through
 
 ## Run it yourself
 
-This example requires the 6.1 development source; 6.0.1 is the latest published
-distribution. From a development checkout, install it and run a scenario. On the
+This example is included in PureMacro 6.1.0. Install it with `pip install puremacro`
+(or from a source checkout) and run a scenario. On the
 maintainer's workstation the θ = 0.15 solve took about 14 minutes,
 plus seconds for the measurement, measured under load on a shared machine (load
 averages 5/13/27); the whole frozen sweep, seven scenarios on both grids, took
