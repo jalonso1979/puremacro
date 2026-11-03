@@ -15,8 +15,8 @@ mueve un solo parámetro respecto de ella.
 rasgos son la probabilidad de recuperar el acceso al mercado tras un impago
 (θ), la volatilidad del ingreso (σ_y) y la persistencia del ingreso (ρ_y). Los
 resultados son la deuda media (la deuda elegida en los trimestres de pago como
-porcentaje del ingreso trimestral medio, es decir, aproximadamente la cuarta
-parte de una razón deuda/PIB anual), el diferencial medio, la frecuencia de
+porcentaje del ingreso trimestral medio; divida entre cuatro para una razón
+aproximada respecto al PIB anual), el diferencial medio, la frecuencia de
 impago, la volatilidad de los diferenciales y el valor del
 acceso al mercado: la ganancia permanente de consumo, en porcentaje, que
 dejaría a una economía en autarquía financiera y sin coste de impago tan bien
@@ -99,8 +99,60 @@ no implican el resultado del estudio ampliado.
 
 ```bash
 python -m tools.reference_validation.check_sovereign_sensitive_grids --output grids_initial
-python -m tools.reference_validation.check_sovereign_sensitive_grids --extend-from tests/fixtures/sovereign_brief/sensitive_grid_initial.json --output grids_extended
+python -m tools.reference_validation.check_sovereign_sensitive_grids --extend-from grids_initial/sensitive_grid_convergence.json --output grids_extended
 ```
+
+Ambos comandos deben usar el mismo entorno. Para reutilizar el registro inicial
+incluido, las versiones de Python, las dependencias y el paquete deben coincidir
+con las registradas; la extensión también comprueba los hashes del código numérico.
+Los casos históricos conservan sus hashes originales cuando se usa el cambio
+verificado de procesamiento del ingreso por bloques.
+
+### Refinamiento no uniforme para reingreso alto
+
+Un estudio separado de θ = 0,5 conserva el soporte original de deuda [−0,15,
+0,33], la calibración, las semillas, la duración de las simulaciones y las
+tolerancias. De los intervalos de deuda, 5/16 cubren el ahorro linealmente y
+11/16 cubren el endeudamiento positivo de forma cuadrática, concentrando nodos
+cerca de cero. Un piloto exploratorio grueso motivó esta elección; se especificaron
+los cuatro casos grandes, 6.401/12.801 nodos de deuda cruzados con 641/1.281 estados
+de ingreso, antes de calcularlos. Es nuestro diseño de malla, sin ajuste a
+objetivos económicos. La sensibilidad a la ubicación de los nodos concuerda con
+el problema numérico descrito por
+[Hatchondo, Martinez y Sapriza (2010)](https://www.imf.org/-/media/websites/imf/imported-full-text-pdf/external/pubs/ft/wp/2010/_wp10100.pdf).
+
+Ambos refinamientos finales exigidos superan todas las tolerancias originales
+de 0,10:
+
+| Refinamiento para θ = 0,5 | Deuda | Diferencial medio | Impago | DE del diferencial | Veredicto |
+|---|---:|---:|---:|---:|---|
+| Deuda: 6.401 → 12.801, con 1.281 estados de ingreso | 0,002617 | 0,003020 | 0,013577 | 0,003414 | Superado |
+| Ingreso: 641 → 1.281, con 12.801 nodos de deuda | 0,020892 | 0,052384 | 0,057949 | 0,067375 | Superado |
+
+Las celdas muestran de nuevo el cambio medio emparejado absoluto más su
+semiamplitud del 95 %. Todas las soluciones convergieron con brecha de
+certificación exhaustiva nula; el mayor residuo exhaustivo de Bellman es inferior
+a `1e-14`. La malla no uniforme final da:
+
+| Escenario y malla | Deuda (% del ingreso trimestral medio) | Diferencial medio (%) | Impago (% anual) | DE del diferencial (pp) | Valor del acceso al mercado (%) |
+|---|---:|---:|---:|---:|---:|
+| θ = 0,5, no uniforme 12.801 × 1.281 | 2,3550 ± 0,0135 | 5,1604 ± 0,0073 | 4,9224 ± 0,0238 | 3,8115 ± 0,0058 | 0,0229 |
+
+![Refinamiento de los escenarios sensibles: desviación estándar del diferencial frente a nodos de deuda para mallas uniformes y no uniformes con theta = 0,5 y rho_y = 0,97](../assets/sovereign_sensitive_grids.es.svg)
+
+Estos intervalos describen incertidumbre de simulación. El criterio controla
+cambios entre las últimas mallas probadas de esta familia, no la distancia al
+límite infinitamente fino. Los registros uniformes, incluidos los fallos, se
+conservan junto al estudio en `tests/fixtures/sovereign_brief/`; todas las
+coordenadas no uniformes, hashes del código y momentos por semilla están en
+`curved_grid_convergence.json`.
+
+```bash
+python -m tools.reference_validation.check_sovereign_curved_grids --output grids_curved
+```
+
+El solucionador público acepta las mismas coordenadas mediante
+[`solve_sovereign_default(debt_grid=...)`](sovereign_default.md).
 
 ## Ejecútelo usted mismo
 
@@ -127,8 +179,9 @@ escenarios en una malla gruesa tardan minutos:
 python -m puremacro.examples.first_brief_sovereign --sweep --coarse --lang es
 ```
 
-La ejecución gruesa imprime una advertencia: sus cifras son solo orientativas
-y difieren de las cifras convergidas de esta página.
+La ejecución gruesa imprime una advertencia: sus cifras son solo orientativas.
+El ejemplo principal reproduce el barrido uniforme original; para mallas más
+finas de los escenarios sensibles, use los comandos de seguimiento anteriores.
 
 ## Supuestos y límites
 

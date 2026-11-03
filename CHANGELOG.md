@@ -125,8 +125,10 @@ Development version after 6.0.1; not a published distribution.
   short-term Arellano model. These are illustrative comparative statics of the
   public calibration, not a claim about any country. Every number is shown with
   its 95% interval across 16 seeds and its paired 3,201 -> 6,401 grid change.
-  The numbers come from a frozen converged sweep,
-  `tests/fixtures/sovereign_brief/sweep.json`.
+  The original frozen sweep, `tests/fixtures/sovereign_brief/sweep.json`,
+  retains two scenarios that fail its grid criterion; the brief reports their
+  further refinements separately. Quarterly-income debt ratios divide by four
+  when expressed relative to approximate annual GDP.
 - `puremacro.sovereign.ergodic_moments(result, *, periods=500_000,
   seeds=range(1979, 1995), burn=1_000)`: raw ergodic debt (% of mean quarterly
   income), mean spread,
@@ -138,7 +140,7 @@ Development version after 6.0.1; not a published distribution.
   consumption-equivalent value (in %) of market access at zero debt, compared
   with permanent autarky without a default cost.
 - Example `python -m puremacro.examples.first_brief_sovereign`:
-  `--scenario theta=0.15` (one scenario on the converged 6,401 x 641 grid),
+  `--scenario theta=0.15` (one scenario on the baseline's 6,401 x 641 grid),
   `--sweep --coarse` (all seven scenarios at 801 x 161 in minutes, with a
   coarse-grid caveat), `--output DIR`, `--lang en|es`, `--grid`, `--periods`,
   `--n-seeds`, `--from-record PATH`, and `--freeze PATH` for maintainers.

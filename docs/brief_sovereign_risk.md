@@ -14,7 +14,7 @@ How do three features of a borrowing economy change its sovereign risk? The
 features are the probability of regaining market access after a default
 (θ), the volatility of income (σ_y) and the persistence of income (ρ_y). The
 outcomes are average debt (the debt chosen in repayment quarters as a
-percentage of mean quarterly income, so roughly one quarter of a
+percentage of mean quarterly income; divide by four for an approximate
 debt-to-annual-GDP ratio), the mean spread, the frequency of default, the volatility of spreads, and the value of market access: the
 permanent consumption gain, in percent, that would make an economy in
 financial autarky with no default cost as well off as one that can borrow
@@ -93,8 +93,55 @@ under the same tolerances. Its outcome is not implied by these initial results.
 
 ```bash
 python -m tools.reference_validation.check_sovereign_sensitive_grids --output grids_initial
-python -m tools.reference_validation.check_sovereign_sensitive_grids --extend-from tests/fixtures/sovereign_brief/sensitive_grid_initial.json --output grids_extended
+python -m tools.reference_validation.check_sovereign_sensitive_grids --extend-from grids_initial/sensitive_grid_convergence.json --output grids_extended
 ```
+
+Both commands must use the same environment. To reuse the bundled initial
+record instead, its Python, dependency and package versions must match your
+environment; the extension also checks the numerical source hashes. Historical
+cases retain their original hashes when the verified income-batching change is used.
+
+### Nonuniform refinement for high reentry
+
+A separate study of θ = 0.5 keeps the original debt support [−0.15, 0.33]
+and the same calibration, seeds, simulation length and tolerances. Of the debt
+intervals, 5/16 cover saving linearly and 11/16 cover positive borrowing
+quadratically, concentrating nodes near zero debt. An exploratory coarse pilot
+motivated this choice; the four large cases, 6,401/12,801 debt nodes crossed
+with 641/1,281 income states, were specified before their computation. This is
+our grid design, not a fit to economic targets. The sensitivity to grid placement
+is consistent with the numerical concern described by
+[Hatchondo, Martinez and Sapriza (2010)](https://www.imf.org/-/media/websites/imf/imported-full-text-pdf/external/pubs/ft/wp/2010/_wp10100.pdf).
+
+Both required final refinements pass every unchanged 0.10 moment tolerance:
+
+| Refinement for θ = 0.5 | Debt | Mean spread | Default | Spread SD | Verdict |
+|---|---:|---:|---:|---:|---|
+| Debt: 6,401 → 12,801, with 1,281 income states | 0.002617 | 0.003020 | 0.013577 | 0.003414 | Passed |
+| Income: 641 → 1,281, with 12,801 debt nodes | 0.020892 | 0.052384 | 0.057949 | 0.067375 | Passed |
+
+Cells again report the absolute paired mean change plus its 95% half-width.
+Every solve converged with zero exhaustive-search certification gap; the largest
+exhaustive Bellman residual is below `1e-14`. The final nonuniform grid gives:
+
+| Scenario and grid | Debt (% of mean quarterly income) | Mean spread (%) | Default (% per year) | Spread SD (pp) | Value of market access (%) |
+|---|---:|---:|---:|---:|---:|
+| θ = 0.5, nonuniform 12,801 × 1,281 | 2.3550 ± 0.0135 | 5.1604 ± 0.0073 | 4.9224 ± 0.0238 | 3.8115 ± 0.0058 | 0.0229 |
+
+![Refinement of the sensitive scenarios: spread standard deviation against debt nodes for uniform and nonuniform grids at theta = 0.5 and rho_y = 0.97](assets/sovereign_sensitive_grids.en.svg)
+
+These intervals describe simulation uncertainty. The pass controls changes
+between the final tested grids in this family, not distance to the infinitely
+fine limit. The uniform-grid records, including failures, remain alongside this
+study in `tests/fixtures/sovereign_brief/`; all nonuniform coordinates, source
+hashes and per-seed moments are in `curved_grid_convergence.json`.
+
+```bash
+python -m tools.reference_validation.check_sovereign_curved_grids --output grids_curved
+```
+
+The public solver accepts the same coordinates through
+[`solve_sovereign_default(debt_grid=...)`](sovereign_default.md).
 
 ## Run it yourself
 
@@ -119,9 +166,10 @@ quick orientation, all seven scenarios on a coarse grid take minutes:
 python -m puremacro.examples.first_brief_sovereign --sweep --coarse
 ```
 
-The coarse run prints a caveat: its numbers are for orientation only and
-differ from the converged numbers on this page. Add `--lang es` for Spanish
-output.
+The coarse run prints a caveat: its numbers are for orientation only. The
+main example reproduces the original uniform-grid sweep; use the follow-up
+commands above for finer grids in the sensitive scenarios. Add `--lang es`
+for Spanish output.
 
 ## Assumptions and limits
 

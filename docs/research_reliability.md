@@ -45,10 +45,11 @@ the specific scope described in each notebook, not blanket economic validation.
 | Comparison | Result on the tested grids | What remains open |
 |---|---|---|
 | Arellano short-term deterministic equations | Matched-grid equations pass; archived Fortran and MATLAB moments reproduce; public simulation timing and zero-debt reentry are corrected; public-calibration grids converge at 6,401 × 641, and the public solver reaches that grid with a certified monotone search | Published-moment discrepancies and extension-specific economic convergence |
-| One-asset household block | SSJ authors' code matches policies and consumption within 5e-11; return Jacobians within 4e-4 | Finer-grid economic convergence, full published equilibrium and nonlinear transition references |
+| One-asset household block and published HANK equilibrium | Household policies and consumption match the SSJ authors' code within 5e-11; return Jacobians within 4e-4. The complete published equilibrium, both nonlinear shock signs and an extended asset/income/horizon ladder are independently checked; see the [HANK evidence](hank_equilibrium.md) | Household incidence with observed data and general higher-order aggregate risk |
 
-Both references are frozen with hashes and provenance in
-`tests/fixtures/research_reliability/`. Regeneration tools live in
+The original equation/block references are frozen with hashes and provenance in
+`tests/fixtures/research_reliability/`; the linked study guides locate the
+additional equilibrium and grid records. Regeneration tools live in
 `tools/reference_validation/`; the external SSJ package is not a runtime
 dependency. Matched-grid agreement does not prove discretization accuracy.
 
