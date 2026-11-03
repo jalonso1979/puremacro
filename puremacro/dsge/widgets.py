@@ -262,7 +262,12 @@ class InteractiveIRFResult:
 
     def summary(self) -> str:
         """Render publication-grade text summary of interactive exploration."""
-        status = "Determinate" if self.is_current else "No current solved result"
+        if self.is_current:
+            status = "Determinate"
+        elif (self.failure is not None and self.failure.category == "determinacy") or not getattr(self.model, "is_determinate", True):
+            status = "Indeterminate / Unstable"
+        else:
+            status = "No current solved result"
         lines = [
             "INTERACTIVE IMPULSE RESPONSE EXPLORATION",
             "=" * 72,
