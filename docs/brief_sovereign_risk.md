@@ -23,17 +23,24 @@ distribution.
 
 ## Answer
 
-In this illustrative model, starting from the public calibration and moving one parameter at a time from its low to its high value: a higher reentry probability (θ 0.15 → 0.5) lowers average debt from 6.808% of mean quarterly income to 2.374% of mean quarterly income; raises the mean spread from 1.860% to 5.127%; raises default frequency from 1.807% a year to 4.879% a year; and lowers the value of market access from 0.094% of consumption to 0.023% of consumption. A higher income volatility (σ_y 0.02 → 0.03) lowers average debt from 4.048% of mean quarterly income to 3.529% of mean quarterly income; raises the mean spread from 3.053% to 3.110%; raises default frequency from 2.933% a year to 2.989% a year; and lowers the value of market access from 0.053% of consumption to 0.035% of consumption. A higher income persistence (ρ_y 0.9 → 0.97) raises average debt from 2.521% of mean quarterly income to 5.996% of mean quarterly income; raises the mean spread from 2.398% to 3.434%; raises default frequency from 2.323% a year to 3.311% a year; and raises the value of market access from 0.036% of consumption to 0.066% of consumption. Each number is a mean over 16 simulated paths of 500,000 quarters; the table gives its 95% interval and its grid change.
+In this calibration, increasing the reentry probability from θ = 0.15 to 0.5
+lowers average debt and the value of market access, while raising the mean
+spread and default frequency. Increasing income persistence from ρ_y = 0.9 to
+0.97 raises all four quantities. The tables below retain the original sweep
+and show its finer-grid follow-up separately, with uncertainty across 16
+simulated paths of 500,000 quarters.
 
-The levels for θ = 0.5 and ρ_y = 0.97 (marked † in the table) are not grid-converged
-by the registered criterion; the directions of their effects are, since the grid
-changes are far smaller than the differences between scenarios.
+The † marks failed original grid comparisons for θ = 0.5 and ρ_y = 0.97;
+the follow-up below evaluates finer grids separately. The directions of these
+large comparative-static effects persist across the tested refinements. That
+does not establish convergence of their reported levels.
 
 The volatility effect is not monotone. At σ_y = 0.02 / 0.025 / 0.03 the mean spread is 3.053 / 3.114 / 3.110 % and default frequency 2.933 / 2.989 / 2.989 % a year: all of the rise comes between 0.02 and 0.025, and from 0.025 to 0.03 neither rises (paired baseline → σ_y = 0.03 change -0.0033 ± 0.0012 pp for the spread and -0.001 ± 0.011 pp for default, with 95% intervals). These effects are also of the order of the grid changes in the table, so this calibration says little about their sign.
 
-## Results
+## Original uniform-grid sweep
 
-The table reports, for each scenario on the 6,401 x 641 grid validated for the baseline, the
+This original table is retained from `tests/fixtures/sovereign_brief/sweep.json`.
+It reports, for each scenario on the 6,401 x 641 grid validated for the baseline, the
 mean across 16 simulated paths of 500,000 quarters (after a 1,000-quarter
 burn), ± the half-width of its 95% Student-t interval across paths. The
 number in parentheses, Δ, is the paired change from the 3,201 x 641 grid to
@@ -142,7 +149,6 @@ python -m tools.reference_validation.check_sovereign_curved_grids --output grids
 
 The public solver accepts the same coordinates through
 [`solve_sovereign_default(debt_grid=...)`](sovereign_default.md).
-
 ## Run it yourself
 
 This example requires the 6.1 development source; 6.0.1 is the latest published
