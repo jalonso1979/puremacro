@@ -1,0 +1,116 @@
+"""Compare fixed and nonlinear conditional policies on the retained held-out history.
+
+Use a new output directory. The training seed, held-out seed and the original
+1e-5 audit threshold remain unchanged. Failed refinements are saved, not hidden.
+Run with the four BLAS thread limits set to one and PYTHONPATH at this checkout.
+"""
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+import hashlib
+import json
+import os
+from pathlib import Path
+import platform
+from time import perf_counter
+
+import numpy as np
+import pandas as pd
+import scipy
+
+from puremacro.models import calibrate_one_asset_hank, solve_hank_stochastic_policy
+from puremacro.models.hank_nonlinear_continuation import simulate_hank_nonlinear
+
+ROOT = Path(__file__).resolve().parents[2]
+SOURCES = ("puremacro/models/hank_nonlinear_continuation.py", "puremacro/models/hank_recursive.py",
+    "puremacro/models/_hank_stochastic_tree.py", "puremacro/models/_hank_one_asset_recursive.py",
+    "puremacro/models/hank_equilibrium.py", "puremacro/models/one_asset_hank.py",
+    "puremacro/models/_hank_tangent.py", "puremacro/dsge/stacked_newton.py",
+    "tools/reference_validation/validate_hank_nonlinear_continuation.py")
+
+
+def _sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def run(output: Path):
+    if output.exists():
+        raise ValueError("use a new output directory; failed evidence is preserved")
+    output.mkdir(parents=True)
+    record = dict(schema_version=1, completed=False, started_utc=datetime.now(timezone.utc).isoformat(),
+        scope="nonlinear receding-horizon equilibrium with local stochastic tails; no global error bound",
+        python=platform.python_version(), platform=platform.platform(), numpy=np.__version__, scipy=scipy.__version__,
+        pandas=pd.__version__, source_sha256={name: _sha(ROOT/name) for name in SOURCES}, artifact_sha256={},
+        source_reference_sha256=_sha(ROOT/"tests/fixtures/hank_recursive/record.json"),
+        threads={name: os.environ.get(name) for name in
+            ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "VECLIB_MAXIMUM_THREADS")},
+        training_seed=1201, training_std=1e-7, training_periods=160,
+        held_out_seed=9917, held_out_std=1e-4, held_out_periods=48, original_audit_tolerance=1e-5,
+        numerical_tolerance=1e-8, horizon_tolerance=1e-6, branching_tolerance=1e-6,
+        horizons=[4, 8, 16, 32], branch_depths=[1, 2, 3, 4], quadrature_order=2,
+        specification=dict(n_a=80, n_e=3, a_max=150.), cases=[])
+
+    def save():
+        temporary = output/"record.tmp"
+        temporary.write_text(json.dumps(record, indent=2, allow_nan=False)+"\n")
+        temporary.replace(output/"record.json")
+
+    def frame(name, data):
+        path = output/(name+".csv")
+        data.to_csv(path, float_format="%.17g")
+        record["artifact_sha256"][path.name] = _sha(path)
+
+    for name in SOURCES:
+        snapshot = output/"sources"/(name+".txt")
+        snapshot.parent.mkdir(parents=True, exist_ok=True)
+        snapshot.write_bytes((ROOT/name).read_bytes())
+    save()
+    training = np.random.default_rng(1201).normal(0, 1e-7, 160)
+    held_out = np.random.default_rng(9917).normal(0, 1e-4, 48)
+    frame("training_innovations", pd.DataFrame(dict(innovation=training)))
+    frame("held_out_innovations", pd.DataFrame(dict(innovation=held_out)))
+    started = perf_counter()
+    ss = calibrate_one_asset_hank(**record["specification"])
+    full = solve_hank_stochastic_policy(ss, distribution_rank=None, rho=.7, shock_std=1e-4)
+    reduced = solve_hank_stochastic_policy(ss, distribution_rank=16, rho=.7, shock_std=1e-4,
+                                          snapshots=full.simulate(training).distributions)
+    record.update(setup_seconds=perf_counter()-started, calibration=ss.calibration,
+                  steady_state=ss.aggregates, steady_diagnostics=ss.diagnostics)
+    for name, policy in (("full", full), ("snapshots16", reduced)):
+        print(name, "fixed policy audit", flush=True)
+        case = dict(name=name, completed=False, rank=policy.basis.rank)
+        record["cases"].append(case)
+        start = perf_counter()
+        baseline = policy.audit(held_out, tolerance=1e-5)
+        case["fixed"] = dict(converged=baseline.converged, seconds=perf_counter()-start,
+                             diagnostics=baseline.diagnostics)
+        frame(name+"_fixed", baseline.paths)
+        save()
+        print(name, "nonanticipative nonlinear correction", flush=True)
+        start = perf_counter()
+        corrected = simulate_hank_nonlinear(policy, held_out, raise_on_failure=False,
+            horizons=tuple(record["horizons"]), branch_depths=tuple(record["branch_depths"]),
+            horizon_tolerance=record["horizon_tolerance"], branching_tolerance=record["branching_tolerance"],
+            tolerance=record["numerical_tolerance"])
+        case["nonlinear"] = dict(converged=corrected.converged, seconds=perf_counter()-start,
+                                 diagnostics=corrected.diagnostics)
+        frame(name+"_nonlinear", corrected.paths)
+        frame(name+"_prices", corrected.prices)
+        path = output/(name+"_nonlinear.npz")
+        np.savez_compressed(path, states=corrected.states, distributions=corrected.distributions,
+            expected_marginals=corrected.expected_marginals, **corrected.policies)
+        record["artifact_sha256"][path.name] = _sha(path)
+        case["completed"] = True
+        save()
+        print(name, corrected.converged, corrected.diagnostics["completed_periods"],
+              corrected.diagnostics["market_residual_max_abs"], case["nonlinear"]["seconds"], flush=True)
+    record.update(completed=True, finished_utc=datetime.now(timezone.utc).isoformat())
+    save()
+    return record
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output", required=True, type=Path)
+    run(parser.parse_args().output)

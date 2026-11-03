@@ -50,6 +50,24 @@ The package was significantly extended in **Phase 5** (April–early-May 2026, c
   prices and fiscal debt service. Both asset markets and independent goods
   accounting are checked. Uses cached household finite differences and
   differentiated bilinear transport; no productive-capital replication claim.
+- `models/hank_reduction.py`: distribution and marginal-value response bases,
+  with household derivatives applied directly to reduced directions before
+  ordered Schur decomposition. Full-grid household policies and transport
+  remain authoritative. Determinacy, projected equations, omitted household
+  equations and nonlinear audits have distinct diagnostics; insufficient
+  ranks fail explicitly. No full-grid two-asset derivative cache is built.
+- `models/hank_nonlinear_continuation.py`: conditional nonlinear trees and
+  nonanticipative receding-horizon simulation from actual distributions,
+  inherited rates, capital and quoted asset prices. Adaptive horizon and
+  branching comparisons retain failed corrections. A local first-order tail
+  remains; finite sensitivity checks do not certify global stochastic accuracy.
+- `models/hank_capital.py`: productive-capital closure with investment,
+  depreciation, installation costs and endogenous rental/holding returns.
+  Nominal bonds and capital markets clear jointly; independent fiscal, capital
+  and goods identities expose inherited-market inconsistencies. The production
+  and investment block matches pinned author-code references. Direct capital
+  ownership, flexible wages and the household portfolio mechanism differ from
+  the published equity/intermediary model, so this is not a full replication.
 - `study/`: explicit fixed-lag LP/recursive-VAR study specifications and separate
   model-scenario records. Depends on existing estimators, `reports` and the
   `runtime.store` frame codec. ZIP/NPZ/JSON archives retain inputs, checksums and

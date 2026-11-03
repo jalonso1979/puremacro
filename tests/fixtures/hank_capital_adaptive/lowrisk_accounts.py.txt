@@ -1,0 +1,23 @@
+import json,numpy as np
+from pathlib import Path
+from puremacro.models import calibrate_capital_hank
+ss=calibrate_capital_hank(n_a=15,n_b=15);p=ss.calibration;hh=ss._household
+r=Path('/tmp/puremacro-controls-capital-adaptive-refined15-lowrisk.json');record=json.loads(r.read_text());data=np.load('/tmp/puremacro-controls-capital-adaptive-refined15-lowrisk.npz')
+columns=data['price_columns'].tolist();prices=[dict(zip(columns,row)) for row in data['prices']]
+errors={};lastq=1.;lastK=p['K'];lasti=p['r']
+def check(name,value):errors[name]=max(errors.get(name,0.),float(np.max(abs(value))))
+for t,v in enumerate(prices):
+ d=data['distributions'][t];a,b,c,chi=[data[key][t] for key in ['a','b','c','chi']]
+ check('household_budget',c+a+b+chi-(1+v['r_a'])*hh.a_grid[:,None,None]-(1+v['r'])*hh.b_grid[None,:,None]-v['income']*hh.s_grid)
+ check('capital_asset_market',np.sum(d*a)-v['q']*v['Knext']);check('liquid_asset_market',np.sum(d*b)-p['B'])
+ check('inherited_capital_wealth',np.sum(d*hh.a_grid[:,None,None])-lastq*lastK)
+ check('quoted_lag_q',v['lag_q']-lastq);check('inherited_K',v['K']-lastK)
+ check('fiscal',v['tax']-(v['r']*p['B']+p['G']))
+ check('capital_transition',v['Knext']-((1-p['delta'])*v['K']+v['I']))
+ check('capital_payoff',(1+v['r_a'])*lastq*lastK-(v['rental']*v['K']-v['investment_goods']+v['q']*v['Knext']))
+ check('liquid_return',(1+v['r'])-(1+lasti)/(1+v['pi']))
+ check('goods',v['Y']-np.sum(d*(c+chi))-v['investment_goods']-v['adj']-p['G'])
+ check('state_log_capital',data['states'][t,-1]-np.log(v['K']/p['K']))
+ lastq,lastK,lasti=v['q'],v['Knext'],v['nominal']
+check('mass',data['distributions'].sum(axis=(1,2,3))-1)
+record['independent_accounts']=errors;record['independent_accounts_passed']=max(errors.values())<1e-8;record['case']='refined15_separately_declared_sigma_1e_minus5';r.write_text(json.dumps(record,indent=2));print(errors,record['independent_accounts_passed'])

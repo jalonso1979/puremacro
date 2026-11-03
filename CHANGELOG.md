@@ -27,6 +27,17 @@ Development version after 6.0.1; not a published distribution.
   a further debt refinement without relaxing its tolerances or rewriting the
   historical cases' source provenance.
 
+- Reduced household marginal-value controls join distribution compression, so
+  Jacobians and Schur systems are built directly in reduced coordinates.
+  Full-grid audits expose omitted equations and insufficient ranks. Conditional
+  nonlinear corrections re-solve after each observed shock and separately
+  check horizon and branching refinements. Productive-capital two-asset HANK
+  adds investment, installation costs and endogenous returns with independent
+  market/resource accounts and an author-code capital-block reference. These
+  remain local/finite-tree research solvers, with household grid errors reported
+  separately. [Reduction](docs/hank_reduction.md),
+  [continuation](docs/hank_nonlinear_continuation.md),
+  [capital](docs/hank_capital.md).
 - Solved local stochastic HANK policies with constraint- and market-moment-
   preserving distribution reduction, Schur determinacy checks and held-out
   full-distribution audits. Nonlinear finite trees can use that solved

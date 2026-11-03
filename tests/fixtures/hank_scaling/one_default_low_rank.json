@@ -1,0 +1,66 @@
+{
+  "name": "one_default_low_rank",
+  "settings": {
+    "model": "one",
+    "specification": {
+      "n_a": 500,
+      "n_e": 7,
+      "a_max": 150.0
+    },
+    "backend": "reduced",
+    "distribution_rank": 24,
+    "marginal_rank": 128
+  },
+  "completed": true,
+  "solved": false,
+  "artifact_sha256": {},
+  "memory_scope": "worker lifetime including imports, calibration, solve, audits and any sequence reference",
+  "blas_control": {
+    "status": "verified_single_thread",
+    "api": "BLASSetThreading/BLASGetThreading",
+    "scope": "calling thread",
+    "previous": 0,
+    "active": 1
+  },
+  "calibration_seconds": 4.7199607089860365,
+  "calibration": {
+    "r": 0.005,
+    "rstar": 0.005,
+    "B": 5.6,
+    "eis": 0.5,
+    "frisch": 0.5,
+    "rho_e": 0.966,
+    "sigma_e": 0.5,
+    "mu": 1.2,
+    "kappa": 0.1,
+    "phi": 1.5,
+    "Y": 1.0,
+    "Z": 1.0,
+    "w": 0.8333333333333334,
+    "beta": 0.9822435540884806,
+    "vphi": 0.7864334302570478
+  },
+  "steady_state": {
+    "A": 5.600000000284,
+    "C": 1.000000000005252,
+    "NE": 1.000000000004599,
+    "Div": 0.16666666666666663,
+    "Tax": 0.027999999999999997,
+    "Y": 1.0,
+    "pi": 0.0
+  },
+  "steady_diagnostics": {
+    "egm_iterations": 635,
+    "policy_fixed_point_error": 9.947598300641403e-13,
+    "distribution_error": 2.0816681711721685e-17,
+    "market_residual_max_abs": 2.8400037876963324e-10,
+    "upper_grid_mass": 0.0,
+    "calibration_evaluations": 11
+  },
+  "error": {
+    "type": "ValueError",
+    "message": "projected stochastic equilibrium fails determinacy: 25 stable roots for 26 states"
+  },
+  "worker_seconds": 5.665197791997343,
+  "peak_resident_bytes": 295813120
+}
