@@ -25,24 +25,18 @@ promediados sobre la distribución de largo plazo del ingreso.
 
 ## Respuesta
 
-En esta calibración, aumentar la probabilidad de reingreso de θ = 0,15 a 0,5
-reduce la deuda media y el valor del acceso al mercado, y aumenta el diferencial
-medio y la frecuencia de impago. Aumentar la persistencia del ingreso de
-ρ_y = 0,9 a 0,97 eleva las cuatro magnitudes. Las tablas conservan el barrido
-original y muestran por separado el seguimiento con mallas más finas, con
-incertidumbre entre 16 trayectorias simuladas de 500.000 trimestres.
+En este modelo ilustrativo, partiendo de la calibración pública y moviendo un parámetro cada vez de su valor bajo a su valor alto: una mayor probabilidad de reingreso (θ 0,15 → 0,5) baja la deuda media de 6,808 % del ingreso trimestral medio a 2,374 % del ingreso trimestral medio; sube el diferencial medio de 1,860 % a 5,127 %; sube la frecuencia de impago de 1,807 % anual a 4,879 % anual; y baja el valor del acceso al mercado de 0,094 % del consumo a 0,023 % del consumo. Una mayor volatilidad del ingreso (σ_y 0,02 → 0,03) baja la deuda media de 4,048 % del ingreso trimestral medio a 3,529 % del ingreso trimestral medio; sube el diferencial medio de 3,053 % a 3,110 %; sube la frecuencia de impago de 2,933 % anual a 2,989 % anual; y baja el valor del acceso al mercado de 0,053 % del consumo a 0,035 % del consumo. Una mayor persistencia del ingreso (ρ_y 0,9 → 0,97) sube la deuda media de 2,521 % del ingreso trimestral medio a 5,996 % del ingreso trimestral medio; sube el diferencial medio de 2,398 % a 3,434 %; sube la frecuencia de impago de 2,323 % anual a 3,311 % anual; y sube el valor del acceso al mercado de 0,036 % del consumo a 0,066 % del consumo. Cada número es una media sobre 16 trayectorias simuladas de 500.000 trimestres; la tabla da su intervalo del 95 % y su cambio de malla.
 
-La marca † indica comparaciones originales de malla que fallaron para θ = 0,5
-y ρ_y = 0,97; el estudio de seguimiento evalúa por separado mallas más finas.
-Las direcciones de estos efectos grandes entre escenarios persisten en los
-refinamientos probados. Eso no establece la convergencia de sus niveles.
+Los niveles para θ = 0,5 y ρ_y = 0,97 (marcados con † en la tabla) no están
+convergidos en la malla según el criterio registrado; las direcciones de sus
+efectos sí, porque los cambios de malla son mucho menores que las diferencias
+entre escenarios.
 
 El efecto de la volatilidad no es monótono. Con σ_y = 0,02 / 0,025 / 0,03 el diferencial medio es 3,053 / 3,114 / 3,110 % y la frecuencia de impago 2,933 / 2,989 / 2,989 % anual: toda la subida ocurre entre 0,02 y 0,025, y de 0,025 a 0,03 ninguno sube (cambio emparejado base → σ_y = 0,03 de -0,0033 ± 0,0012 pp en el diferencial y -0,001 ± 0,011 pp en el impago, con intervalos del 95 %). Estos efectos son además del orden de los cambios de malla de la tabla, de modo que esta calibración dice poco sobre su signo.
 
-## Barrido original con malla uniforme
+## Resultados
 
-Esta tabla original se conserva de `tests/fixtures/sovereign_brief/sweep.json`.
-Presenta, para cada escenario en la malla de 6.401 x 641 validada para la base,
+La tabla presenta, para cada escenario en la malla de 6.401 x 641 validada para la base,
 la media sobre 16 trayectorias simuladas de 500.000 trimestres (tras descartar
 1.000 trimestres iniciales), ± la semiamplitud de su intervalo t de Student del
 95 % entre trayectorias. La cifra entre paréntesis, Δ, es el cambio emparejado
@@ -159,6 +153,7 @@ python -m tools.reference_validation.check_sovereign_curved_grids --output grids
 
 El solucionador público acepta las mismas coordenadas mediante
 [`solve_sovereign_default(debt_grid=...)`](sovereign_default.md).
+
 ## Ejecútelo usted mismo
 
 Este ejemplo requiere el código de desarrollo 6.1; 6.0.1 es la distribución
