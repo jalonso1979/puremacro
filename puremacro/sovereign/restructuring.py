@@ -274,6 +274,7 @@ def evaluate_debt_restructuring(
         n_b=n_b,
         b_max=float(result.b_grid[-1]),
         b_min=float(result.b_grid[0]),
+        debt_grid=result.b_grid if result.metadata.get("debt_grid_supplied", False) else None,
         n_y=n_y,
         tol=float(result.metadata.get("tol", 1e-7)),
         max_iter=int(result.metadata.get("max_iter", 2000)),

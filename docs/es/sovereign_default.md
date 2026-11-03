@@ -4,17 +4,21 @@
 
 ## Alcance de la comprobación independiente
 
-La comparación independiente cubre deuda a corto plazo (`delta=1`, `kappa=0`),
-impago determinista (`sigma_eps=0`) y la penalización de producto de Arellano.
-Cálculos de Bellman separados coinciden en ecuaciones, precios y políticas en
-dos mallas. Aún no replica momentos de una calibración publicada. Consulte el
-[plan de fiabilidad](research_reliability.md).
+Para deuda a corto plazo (`delta=1`, `kappa=0`), impago determinista
+(`sigma_eps=0`) y la penalización de producto de Arellano, cálculos independientes
+contrastan ecuaciones, precios y políticas. Se reproducen el solucionador Fortran
+archivado y la medición MATLAB; la base pública también supera su criterio
+registrado de malla. No se afirma una reproducción exacta de la tabla publicada:
+véase la [comparación con el código original y las mallas](arellano_replication.md).
 
 Para una estática comparativa ilustrativa con este modelo validado, consulte el
 [informe de política sobre riesgo soberano](brief_sovereign_risk.md).
 
-La extensión de largo plazo suaviza la elección de deuda y necesita otra
-referencia. `dq_db` deriva el interpolante de precios, no todo el equilibrio.
+El código de desarrollo 6.1 agrega [referencias independientes en mallas pequeñas](sovereign_extensions_validation.md)
+para el operador suavizado de largo plazo, la reestructuración y el planificador
+con colateral. Los momentos publicados de las extensiones y su convergencia
+económica de malla siguen pendientes.
+`dq_db` deriva el interpolante de precios, no todo el equilibrio.
 La monotonicidad puede imponerse; la referencia independiente la desactiva.
 
 ## Convenciones de deuda e impago
@@ -43,6 +47,14 @@ heredada cero. Los diagnósticos del solucionador y `result.simulate()` usan est
 convención y comienzan con deuda cero. Las mallas generadas incluyen un nodo
 cero exacto: cuando permiten ahorro y deuda, reemplazan el nodo interior más
 cercano, conservando extremos y número de puntos. Estas mallas exigen `n_b >= 3`.
+
+La API de desarrollo 6.1 también acepta `debt_grid=coordenadas`: un vector
+finito y estrictamente creciente con al menos dos nodos y un cero exacto. Copia
+las coordenadas, conserva todos los nodos y sustituye `n_b`, `b_min` y `b_max`.
+Permite reducir el espaciamiento en regiones sensibles sin cambiar el soporte.
+La reestructuración de vencimientos conserva esas mallas; sus tangentes de
+precios usan derivadas PCHIP ponderadas por el espaciamiento y truncadas en cero.
+Las llamadas sin `debt_grid` conservan las mallas y los resultados existentes.
 
 | Parámetro | Significado | Caso de referencia |
 |---|---|---|

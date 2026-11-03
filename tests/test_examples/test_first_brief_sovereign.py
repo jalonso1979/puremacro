@@ -95,7 +95,12 @@ def test_build_record_schema_and_recomputation(tiny_record, tmp_path):
     assert record["grids"] == [[61, 11], [31, 11]]
     assert record["design"] == TINY_DESIGN and record["baseline"] == brief.BASELINE
     assert list(record["scenarios"]) == list(brief.SCENARIOS)
-    solver_kwargs = set(inspect.signature(solve_sovereign_default).parameters)
+    # Schema 1 describes the brief's generated grids with scalar parameters.
+    # The separate nonuniform study records and authenticates every explicit
+    # coordinate; debt_grid=None adds no information to this uniform record.
+    signature = inspect.signature(solve_sovereign_default)
+    assert signature.parameters["debt_grid"].default is None
+    solver_kwargs = set(signature.parameters) - {"debt_grid"}
     for name, scenario in record["scenarios"].items():
         assert scenario["overrides"] == brief.SCENARIOS[name]
         assert list(scenario["cases"]) == ["61x11", "31x11"]
