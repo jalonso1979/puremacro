@@ -378,9 +378,15 @@
       "BlockDAG",
       "BlockTridiagonalPreconditioner",
       "ConditionalForecastResult",
+      "DSGEAccuracyDashboard",
+      "DSGEComparison",
+      "DSGEFailure",
       "DSGEForecastResult",
       "DSGEPosteriorResult",
+      "DSGERun",
+      "DSGERunControl",
       "DSGEVARResult",
+      "DSGEWorkbench",
       "DiagnosticFinding",
       "DiscretionaryPolicyResult",
       "Dynare2ndDR",
@@ -554,6 +560,7 @@
       "shock_groups_decomposition",
       "smooth_model",
       "smoother",
+      "solution_accuracy",
       "solve_adaptive_time_iteration",
       "solve_announced_path",
       "solve_dynare_2nd_order",
@@ -916,6 +923,15 @@
       "TransitionResult",
       "solve_announced_path",
       "solve_transition"
+    ],
+    "puremacro.dsge.workbench": [
+      "DSGEAccuracyDashboard",
+      "DSGEComparison",
+      "DSGEFailure",
+      "DSGERun",
+      "DSGERunControl",
+      "DSGEWorkbench",
+      "solution_accuracy"
     ],
     "puremacro.dynpanel": [
       "GMMResult",
@@ -5752,6 +5768,15 @@
       "states",
       "variable_names"
     ],
+    "puremacro.dsge._workbench_accuracy.DSGEAccuracyDashboard": [
+      "_json"
+    ],
+    "puremacro.dsge._workbench_state.DSGEFailure": [
+      "category",
+      "exception_type",
+      "message",
+      "next_step"
+    ],
     "puremacro.dsge.bayesian.BayesianEstimationResult": [
       "acceptance_rate",
       "chains",
@@ -6469,13 +6494,19 @@
     ],
     "puremacro.dsge.widgets.InteractiveIRFResult": [
       "_cids",
+      "_current_frames",
       "_is_interactive_backend",
+      "accepted_parameters",
+      "apply_button",
+      "auto_solve",
       "axes",
       "baseline_lines",
       "baseline_model",
+      "failure",
       "fig",
       "horizon",
       "last_latency_ms",
+      "last_success_model",
       "lines",
       "model",
       "n_updates",
@@ -6483,13 +6514,25 @@
       "parameters",
       "qz_criterium",
       "reset_button",
+      "run_state",
       "shocks",
       "size",
       "slider_axes",
       "sliders",
+      "state_text",
       "status_text",
       "strict",
       "variables"
+    ],
+    "puremacro.dsge.workbench.DSGEComparison": [
+      "alignment",
+      "allow_experiment_change",
+      "baseline",
+      "candidate",
+      "table_name"
+    ],
+    "puremacro.dsge.workbench.DSGERun": [
+      "_json"
     ],
     "puremacro.dynpanel._results.GMMResult": [
       "ar1_p",

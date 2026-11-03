@@ -14,6 +14,7 @@ orden de la página y forman parte de las pruebas de documentación.
 
 | Su tarea | Guía | Interfaz principal |
 |---|---|---|
+| Guardar ejecuciones, inspeccionar precisión y comparar experimentos | [Espacio de trabajo DSGE](dsge_workbench.md) | `DSGEWorkbench`, `DSGERun`, `solution_accuracy` |
 | Declarar ecuaciones, revisar temporalidad, migrar un flujo `.mod` | [Modelos no lineales y comandos ordenados](dsge_nonlinear.md) | `read_mod`, `NonlinearModel`, `execute_mod_commands` |
 | Resolver un cambio determinista grande, un anuncio o una trayectoria restringida | [Transiciones y anuncios](dsge_transitions.md) | `solve_transition`, `solve_announced_path` |
 | Comparar órdenes locales, resolver una política estocástica o medir errores | [Políticas globales y precisión local](dsge_global.md) | `EquilibriumProblem`, `solve_time_iteration`, `audit_policy` |

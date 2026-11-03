@@ -14,6 +14,7 @@ in page order and are exercised by the documentation tests.
 
 | Your task | Guide | Main interface |
 |---|---|---|
+| Keep runs, inspect accuracy and compare experiments | [DSGE workbench](dsge_workbench.md) | `DSGEWorkbench`, `DSGERun`, `solution_accuracy` |
 | Declare equations, inspect timing, migrate a `.mod` workflow | [Nonlinear models and ordered commands](dsge_nonlinear.md) | `read_mod`, `NonlinearModel`, `execute_mod_commands` |
 | Solve a large deterministic change, news announcement, or constrained path | [Transitions and announcements](dsge_transitions.md) | `solve_transition`, `solve_announced_path` |
 | Compare local orders, solve a stochastic policy, or check approximation error | [Global policies and local accuracy](dsge_global.md) | `EquilibriumProblem`, `solve_time_iteration`, `audit_policy` |

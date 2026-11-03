@@ -27,6 +27,12 @@ Development version after 6.0.1; not a published distribution.
   a further debt refinement without relaxing its tolerances or rewriting the
   historical cases' source provenance.
 
+- DSGE workbench with immutable experiments, explicit `.mod` replay, Python/HTML
+  export, unit/timing-aware comparisons and separate accuracy evidence. The IRF
+  widget clears stale curves and exports after failed or unapplied edits, reports
+  actionable failures and supports batched changes with Apply mode. Deterministic
+  Krylov runs expose cooperative cancellation and accepted-path recovery.
+  [Guide](docs/dsge_workbench.md).
 - Reduced household marginal-value controls join distribution compression, so
   Jacobians and Schur systems are built directly in reduced coordinates.
   Full-grid audits expose omitted equations and insufficient ranks. Conditional

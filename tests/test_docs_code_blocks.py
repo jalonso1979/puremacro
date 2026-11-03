@@ -35,6 +35,8 @@ PAGES = [
     "docs/es/first_brief_tariffs.md",
     "docs/dsge_nonlinear.md",
     "docs/es/dsge_nonlinear.md",
+    "docs/dsge_workbench.md",
+    "docs/es/dsge_workbench.md",
     "docs/dsge_transitions.md",
     "docs/es/dsge_transitions.md",
     "docs/dsge_global.md",
