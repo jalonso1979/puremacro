@@ -49,6 +49,13 @@ from puremacro.models.hank_scenario_tree import (
 from puremacro.models.hank_equilibrium import (
     HANKEquilibriumWorkspace, solve_hank_equilibrium,
 )
+from puremacro.models.hank_recursive import (
+    HANKDistributionBasis, HANKStochasticResult, HANKStochasticTreeResult,
+    StochasticHANKPolicy, solve_hank_stochastic_policy, solve_hank_stochastic_tree,
+)
+from puremacro.models.hank_two_asset_equilibrium import (
+    TwoAssetHANKSteadyState, calibrate_two_asset_equilibrium,
+)
 
 __all__ = [
     "DMPParameters",
@@ -75,4 +82,7 @@ __all__ = [
     "TradePolicySimulationResult",
     "HANKScenarioTreeResult", "monetary_scenario_tree", "solve_hank_scenario_tree",
     "HANKEquilibriumWorkspace", "solve_hank_equilibrium",
+    "HANKDistributionBasis", "HANKStochasticResult", "HANKStochasticTreeResult",
+    "StochasticHANKPolicy", "solve_hank_stochastic_policy", "solve_hank_stochastic_tree",
+    "TwoAssetHANKSteadyState", "calibrate_two_asset_equilibrium",
 ]

@@ -38,6 +38,18 @@ The package was significantly extended in **Phase 5** (April–early-May 2026, c
   failures. Uses the shared `dsge.stacked_newton.preconditioned_lgmres` adapter.
   No stationary stochastic tail or two-asset claim; the dense reference and
   its frozen evidence remain separate.
+- `models/hank_recursive.py`, `models/_hank_one_asset_recursive.py`,
+  `models/_hank_stochastic_tree.py`: local rational-expectations policies via
+  constrained distribution projection and ordered Schur decomposition; full
+  household marginal values remain controls. Market-observable directions
+  survive compression. Nonlinear trees solve terminal distribution consistency
+  using this first-order policy, with matrix-free finite-difference products.
+  Held-out audits transport full distributions and retain approximation errors.
+- `models/hank_two_asset_equilibrium.py`: two-asset EGM coupled to nominal
+  liquid bonds and a fixed-supply real consol, flexible union hours, Rotemberg
+  prices and fiscal debt service. Both asset markets and independent goods
+  accounting are checked. Uses cached household finite differences and
+  differentiated bilinear transport; no productive-capital replication claim.
 - `study/`: explicit fixed-lag LP/recursive-VAR study specifications and separate
   model-scenario records. Depends on existing estimators, `reports` and the
   `runtime.store` frame codec. ZIP/NPZ/JSON archives retain inputs, checksums and
