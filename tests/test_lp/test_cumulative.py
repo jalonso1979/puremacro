@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from puremacro.lp import lp_iv
+from puremacro.lp import lp_iv, lp_state_dep_iv
 from puremacro.lp._common import check_regular_index, cumulative_windows
 
 
@@ -143,3 +143,43 @@ def test_cumulative_metadata(rz):
     assert "cumulative multiplier" in res.summary()
     plain = lp_iv(rz, horizons=[0], **KW)
     assert plain.is_cumulative is False and plain.method == "LP-IV"
+
+
+SKW = dict(state="slack_l", transition="threshold", threshold=0.5, **KW)
+STATE_COLS = ("beta_H", "se_H", "beta_L", "se_L", "first_stage_f_H", "first_stage_f_L",
+              "diff_HL", "se_diff_HL", "p_diff_HL", "n_eff_H", "n_eff_L")
+
+
+@pytest.mark.parametrize("transition", ["threshold", "logistic"])
+def test_state_dep_iv_h0_equals_default(rz, transition):
+    kw = {**SKW, "transition": transition, "threshold": 0.5}
+    a = lp_state_dep_iv(rz, horizons=[0], **kw)
+    b = lp_state_dep_iv(rz, horizons=[0], cumulative=True, **kw)
+    pd.testing.assert_frame_equal(pd.DataFrame(a), pd.DataFrame(b))
+
+
+def test_state_dep_iv_matches_manual_recipe(rz):
+    new = lp_state_dep_iv(rz, horizons=range(21), cumulative=True, **SKW)
+    for h in range(21):
+        d = rz.copy()
+        d["cumg_h"] = d["cumg"].shift(-h) - d["cumg"].shift(1)
+        old = lp_state_dep_iv(d, y="cumy", x="cumg_h", z="newsy", state="slack_l", horizons=[h],
+                              n_lags=0, controls=RZ_CTL, transition="threshold", threshold=0.5).iloc[0]
+        for col in STATE_COLS:
+            np.testing.assert_allclose(new.loc[h, col], old[col], rtol=1e-8, err_msg=f"h={h} {col}")
+
+
+def test_state_dep_iv_point_estimates_equal_masked_lp_iv(rz):
+    st = lp_state_dep_iv(rz, horizons=[0, 8, 16], cumulative=True, **SKW)
+    for regime, col in ((1.0, "beta_H"), (0.0, "beta_L")):
+        m = rz.copy()
+        m.loc[m["slack_l"] != regime, "newsy"] = np.nan
+        lin = lp_iv(m, horizons=[0, 8, 16], cumulative=True, **KW)
+        np.testing.assert_allclose(st[col].to_numpy(), lin["beta"].to_numpy(), rtol=1e-8)
+
+
+def test_state_dep_iv_guard_and_metadata(rz):
+    with pytest.raises(ValueError, match="lp_state_dep_iv: cumulative=True"):
+        lp_state_dep_iv(rz.drop(rz.index[100]), horizons=[8], cumulative=True, **SKW)
+    res = lp_state_dep_iv(rz, horizons=[8], cumulative=True, **SKW)
+    assert res.is_cumulative is True and res.method == "LP-state-dep-IV (cumulative)"

@@ -23,7 +23,7 @@ import pandas as pd
 from scipy.stats import norm
 
 from ..inference._ols_helpers import ols_hac, tsls_hac
-from ._common import resolve_lp_kwargs
+from ._common import check_regular_index, cumulative_windows, resolve_lp_kwargs
 from ._results import LPResult
 
 
@@ -502,6 +502,7 @@ def lp_state_dep_iv(
     alpha: float = 0.10,
     *,
     interact: str = "all",
+    cumulative: bool = False,
     lags: int | None = None,
     horizon: int | None = None,
     ci: float | None = None,
@@ -529,14 +530,14 @@ def lp_state_dep_iv(
     post-1947 sample, where the news instrument barely moves in slack
     states, it returns explosive coefficients.
 
-    **Cumulative (integral) multipliers.** With ``x`` dated ``t`` the
+    **Cumulative (integral) multipliers.** With ``cumulative=False`` the
     coefficient is a response to ``x_t``, not the multiplier
-    ``Σ_{j≤h} y_{t+j} / Σ_{j≤h} g_{t+j}``. To obtain Ramey-Zubairy's
-    one-step multiplier, pass as ``y`` a running sum of the outcome (its
-    long difference ``y_{t+h} - y_{t-1}`` is then the window sum), as ``x``
-    the window sum of the policy variable for that horizon, ``n_lags=0``
-    and pre-lagged level controls, one call per horizon — see
-    ``puremacro.examples.ramey_zubairy_2018_multipliers``.
+    ``Σ_{j≤h} y_{t+j} / Σ_{j≤h} g_{t+j}``. With ``cumulative=True`` the
+    function computes Ramey-Zubairy's one-step multiplier directly: the
+    outcome is the window sum ``Σ_{j=0..h} (y_{t+j} - y_{t-1})`` and the
+    endogenous regressors are ``F Σ_j x_{t+j}`` and ``(1-F) Σ_j x_{t+j}``,
+    instrumented by ``F z_t`` and ``(1-F) z_t`` as before. Lags of ``x``,
+    ``y`` and the controls remain lags of the original series.
 
     The transition weight ``F`` follows exactly the convention of
     :func:`lp_state_dep`: ``threshold`` is the cutoff on the **raw scale**
@@ -575,6 +576,13 @@ def lp_state_dep_iv(
         Significance level for confidence intervals (0.10 -> 90% CI).
     interact : {'all', 'intercept', 'none'}, default 'all'
         Which coefficients besides the shock's are regime-specific.
+    cumulative : bool, default False
+        If True, estimate the Ramey-Zubairy (2018) one-step state-dependent
+        multiplier: the outcome is ``Σ_{j=0..h} (y_{t+j} - y_{t-1})`` and the
+        policy regressor ``Σ_{j=0..h} x_{t+j}`` (split by ``F``), so ``beta_H``
+        and ``beta_L`` are cumulative responses of ``y`` per unit of
+        cumulative ``x``. Requires a regularly spaced index; ``h = 0``
+        coincides with the default.
     lags : int, optional
         Alias for n_lags.
     horizon : int, optional
@@ -618,16 +626,23 @@ def lp_state_dep_iv(
     extra = ("first_stage_f_H", "first_stage_f_L") + _DIFF_COLS
     s_mean, s_sd = _state_scale(df[state], func="lp_state_dep_iv", state_name=state)
     cutoff = s_mean if threshold is None else float(threshold)
+    if cumulative:
+        check_regular_index(df.index, "lp_state_dep_iv")
 
     rows = []
     for h in horizons:
         sub = df[list(dict.fromkeys([y, x, z, state] + ctl))].copy()
-        sub["__dy_h__"] = sub[y].shift(-h) - sub[y].shift(1)
+        # Lags come from the original x and y, before any window replaces them.
         for lag in range(1, n_lags + 1):
             sub[f"__{x}_L{lag}__"] = sub[x].shift(lag)
             sub[f"__{y}_L{lag}__"] = sub[y].shift(lag)
             for c in ctl:
                 sub[f"__{c}_L{lag}__"] = sub[c].shift(lag)
+        if cumulative:
+            sub["__dy_h__"], sub["__x_w__"] = cumulative_windows(sub[y], sub[x], h)
+        else:
+            sub["__dy_h__"] = sub[y].shift(-h) - sub[y].shift(1)
+            sub["__x_w__"] = sub[x]
         sub = sub.dropna()
         if sub.empty:
             rows.append(_nan_regime_row(h, extra))
@@ -637,7 +652,7 @@ def lp_state_dep_iv(
             sub[state].to_numpy(), transition, gamma, cutoff, s_sd,
             state_name=state, func="lp_state_dep_iv")
 
-        xv = sub[x].to_numpy(dtype=float)
+        xv = sub["__x_w__"].to_numpy(dtype=float)
         zv = sub[z].to_numpy(dtype=float)
         E = _regime_design(_controls_matrix(sub, x, y, ctl, n_lags), F, interact)
         x_H, x_L = F * xv, (1.0 - F) * xv
@@ -681,7 +696,8 @@ def lp_state_dep_iv(
     out_result.index = out_result["h"]
     out_result.y_name = str(y)
     out_result.x_name = str(x)
-    out_result.method = "LP-state-dep-IV"
+    out_result.method = "LP-state-dep-IV (cumulative)" if cumulative else "LP-state-dep-IV"
+    out_result.is_cumulative = bool(cumulative)
     out_result.ci_level = 1.0 - alpha
     return out_result
 
