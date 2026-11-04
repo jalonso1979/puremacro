@@ -5,7 +5,8 @@ import numpy as np, pandas as pd, pytest
 import puremacro.examples.first_brief_fiscal as fb
 
 
-STEP0_RZ_ROWS = [(7, 464), (15, 448), (19, 440), (20, 438)]   # Step 0 result, decision (d)
+# rows kept by RZ's war-exclusion rule on the bundled data: a row drops when its outcome window, shock or lagged controls touch 1941Q3-1945Q4
+RZ_RULE_ROWS = [(7, 464), (15, 448), (19, 440), (20, 438)]
 
 
 @pytest.fixture(scope="module")
@@ -41,7 +42,7 @@ def test_exclude_period_rejects_period_outside_sample():
         fb.exclude_period(fb.load_brief_data(), fb.parse_exclude("1700Q1:1701Q4"))
 
 
-@pytest.mark.parametrize(("h", "n"), STEP0_RZ_ROWS)   # (h, n) pairs for h = 7, 15, 19, 20 from the Step 0 result, decision (d)
+@pytest.mark.parametrize(("h", "n"), RZ_RULE_ROWS)   # (h, n): rows kept at h = 7, 15, 19, 20 under RZ's war-exclusion rule
 def test_exclusion_selects_rz_rows(h, n):
     from puremacro.examples.ramey_zubairy_2018_multipliers import RZ_CONTROLS
     from puremacro.lp._common import cumulative_windows
