@@ -10,6 +10,18 @@ purchases, both summed over the quarters t..t+h. The headline horizons are
 h = 7 and h = 15, Ramey and Zubairy's 2- and 4-year integrals. The paths
 run over h = 0..20, with 90% bands and HAC variances on h + 1 lags.
 
+Run it with::
+
+    python -m puremacro.examples.first_brief_fiscal [--exclude 1941Q3:1945Q4] [--output DIR] [--lang en|es]
+
+The command prints the headline table and its reading in English or
+Spanish, and writes into DIR (default ``fiscal_brief``) the tables
+``headline.md``, ``headline.csv`` and ``headline.tex``, the paths
+``paths.csv``, the figure ``multipliers.png``, the record ``headline.json``
+and ``manifest.json`` (data hash, specification, warnings, timings and
+environment). ``--exclude`` adds the experiment: the same estimates without
+a period, here World War II. :func:`run_brief` does the same from Python.
+
 Each sample gets four estimator calls (:func:`estimate`):
 
 - ``linear``: :func:`puremacro.lp.iv.lp_iv` with ``cumulative=True``. The
@@ -48,7 +60,9 @@ episode carries much of the variation that identifies the regime's
 multiplier.
 
 :func:`compute_brief` returns the record behind every table, JSON-ready,
-and the paths over h = 0..20.
+and the paths over h = 0..20. :func:`page_block` and :func:`summary_text`
+word the record in English or Spanish, and :func:`write_outputs` writes the
+files.
 
 Español
 -------
@@ -67,6 +81,19 @@ gobierno, ambos sumados en los trimestres t..t+h. Los horizontes
 principales son h = 7 y h = 15, las integrales a 2 y 4 años de Ramey y
 Zubairy. Las trayectorias cubren h = 0..20, con bandas al 90% y varianzas
 HAC con h + 1 rezagos.
+
+Ejecútelo con::
+
+    python -m puremacro.examples.first_brief_fiscal [--exclude 1941Q3:1945Q4] [--output DIR] [--lang en|es]
+
+El comando imprime la tabla principal y su lectura en inglés o en español,
+y escribe en DIR (por defecto ``fiscal_brief``) las tablas
+``headline.md``, ``headline.csv`` y ``headline.tex``, las trayectorias
+``paths.csv``, la figura ``multipliers.png``, el registro ``headline.json``
+y ``manifest.json`` (hash de los datos, especificación, advertencias,
+tiempos y entorno). ``--exclude`` añade el experimento: las mismas
+estimaciones sin un periodo, aquí la Segunda Guerra Mundial.
+:func:`run_brief` hace lo mismo desde Python.
 
 Cada muestra recibe cuatro llamadas a los estimadores (:func:`estimate`):
 
@@ -108,15 +135,24 @@ residuos al cuadrado y la fecha de ese trimestre. Una participación de al menos
 parte de la variación que identifica el multiplicador del régimen.
 
 :func:`compute_brief` devuelve el registro detrás de cada tabla, listo para
-JSON, y las trayectorias en h = 0..20.
+JSON, y las trayectorias en h = 0..20. :func:`page_block` y
+:func:`summary_text` redactan el registro en inglés o en español, y
+:func:`write_outputs` escribe los archivos.
 """
 from __future__ import annotations
 
+import argparse
+import copy
+import io
+import json
 import math
 import re
+import textwrap
+import time
 import warnings
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -127,13 +163,15 @@ from ..lp import LPResult
 from ..lp._common import check_regular_index, cumulative_windows
 from ..lp.iv import lp_iv
 from ..lp.state_dep import lp_state_dep_iv
+from ..reports import latex_escape
 from ._brief_record import environment, sha256, write_json_atomic
 from .ramey_zubairy_2018_multipliers import RZ_CONTROLS, load_rz_data
 
 __all__ = [
     "HORIZONS", "HEADLINE_HORIZONS", "ALPHA", "WWII", "DATA_FILE", "CITATION",
-    "CONCENTRATION_REPORT_SHARE", "parse_exclude", "load_brief_data", "exclude_period",
-    "estimate", "concentration", "compute_brief",
+    "CONCENTRATION_REPORT_SHARE", "DEFAULT_OUTPUT", "parse_exclude", "load_brief_data",
+    "exclude_period", "estimate", "concentration", "compute_brief", "page_block",
+    "summary_text", "write_outputs", "run_brief", "main",
 ]
 
 #: Horizons of the paths: the windows t..t+h for h = 0..20.
@@ -161,11 +199,43 @@ _RUNNING_SUMS = ("cumy", "cumg")    # summed before any masking
 #: Regime -> (suffix of its ``lp_state_dep_iv`` columns, its value of ``slack_l``).
 _REGIMES: dict[str, tuple[str, float]] = {"slack": ("H", 1.0), "no_slack": ("L", 0.0)}
 _EXCLUDE = re.compile(r"\s*([0-9]{4})Q([1-4])\s*:\s*([0-9]{4})Q([1-4])\s*", re.IGNORECASE)
+#: Why an excluded period is rejected, in each language; ``example`` is ``WWII``.
+_MESSAGES: dict[str, dict[str, str]] = {
+    "en": {
+        "format": "exclude must be START:END in quarters, for example {example}; got {text!r}",
+        "reversed": "exclude starts after it ends ({start} > {end}); write START:END, "
+                    "for example {example}",
+        "no_overlap": "the period {start}:{end} does not overlap the sample, {first} to {last}",
+    },
+    "es": {
+        "format": "exclude debe ser INICIO:FIN en trimestres, por ejemplo {example}; "
+                  "se recibió {text!r}",
+        "reversed": "exclude empieza después de terminar ({start} > {end}); escriba "
+                    "INICIO:FIN, por ejemplo {example}",
+        "no_overlap": "el periodo {start}:{end} no se solapa con la muestra, de {first} a {last}",
+    },
+}
 
 #: Warnings issued while computing the last brief, as ``"<sample>: <Category>:
 #: <message>"``, for the run's manifest. Every :func:`compute_brief` call
 #: replaces them.
 _LAST_WARNINGS: list[str] = []
+#: Wall seconds of the last :func:`compute_brief` call (``compute_seconds``),
+#: for the run's manifest; replaced at every call.
+_LAST_TIMINGS: dict[str, float] = {}
+
+
+class _ExcludeError(ValueError):
+    """A rejected excluded period: ``str()`` is the English message, :meth:`text` any language."""
+
+    def __init__(self, kind: str, **fields: Any) -> None:
+        self.kind = kind
+        self.fields = {"example": WWII, **fields}
+        super().__init__(self.text("en"))
+
+    def text(self, lang: str) -> str:
+        """The message in ``lang`` (``"en"`` or ``"es"``)."""
+        return _MESSAGES[lang][self.kind].format(**self.fields)
 
 
 def _data_path() -> Path:
@@ -190,12 +260,14 @@ def parse_exclude(text: str) -> tuple[pd.Period, pd.Period]:
     """
     match = _EXCLUDE.fullmatch(str(text))
     if match is None:
-        raise ValueError(f"exclude must be START:END in quarters, for example {WWII}; got {text!r}")
-    start = pd.Period(f"{match[1]}Q{match[2]}", freq="Q")
-    end = pd.Period(f"{match[3]}Q{match[4]}", freq="Q")
+        raise _ExcludeError("format", text=text)
+    try:
+        start = pd.Period(f"{match[1]}Q{match[2]}", freq="Q")
+        end = pd.Period(f"{match[3]}Q{match[4]}", freq="Q")
+    except ValueError:                       # a year pandas cannot place, such as 0000
+        raise _ExcludeError("format", text=text) from None
     if start > end:
-        raise ValueError(f"exclude starts after it ends ({start} > {end}); write START:END, "
-                         f"for example {WWII}")
+        raise _ExcludeError("reversed", start=start, end=end)
     return start, end
 
 
@@ -228,8 +300,8 @@ def exclude_period(df: pd.DataFrame, period: tuple[pd.Period, pd.Period]) -> pd.
     quarters = _quarters(df.index)
     inside = np.asarray((quarters >= start) & (quarters <= end))
     if not inside.any():
-        raise ValueError(f"the period {start}:{end} does not overlap the sample, "
-                         f"{quarters[0]} to {quarters[-1]}")
+        raise _ExcludeError("no_overlap", start=start, end=end, first=quarters[0],
+                            last=quarters[-1])
     out = df.copy().drop(columns=list(_RUNNING_SUMS), errors="ignore")
     out.loc[inside, list(_MASKED)] = np.nan
     for name in RZ_CONTROLS:                 # "{series}_l{k}" is series.shift(k)
@@ -392,8 +464,11 @@ def compute_brief(*, exclude: str | None = None) -> tuple[dict[str, Any], pd.Dat
 
     Warnings issued while a sample is computed are kept in
     ``_LAST_WARNINGS`` for the run's manifest, and re-issued once the sample
-    is done, or has failed.
+    is done, or has failed. The call's wall time is kept in ``_LAST_TIMINGS``.
     """
+    _LAST_WARNINGS.clear()
+    _LAST_TIMINGS.clear()
+    started = time.perf_counter()
     full = load_brief_data()
     frames = {"full": full}
     period = None
@@ -401,7 +476,6 @@ def compute_brief(*, exclude: str | None = None) -> tuple[dict[str, Any], pd.Dat
         period = parse_exclude(exclude)
         frames["experiment"] = exclude_period(full, period)
 
-    _LAST_WARNINGS.clear()
     fits: dict[str, dict[str, LPResult]] = {}
     concentrations: dict[str, dict[int, dict[str, dict[str, Any]]]] = {}
     for sample, frame in frames.items():
@@ -437,4 +511,691 @@ def compute_brief(*, exclude: str | None = None) -> tuple[dict[str, Any], pd.Dat
         },
     }
     paths = pd.concat([_paths(sample, fits[sample]) for sample in frames], ignore_index=True)
-    return _json_ready(record), paths
+    ready = _json_ready(record)
+    _LAST_TIMINGS["compute_seconds"] = time.perf_counter() - started
+    return ready, paths
+
+
+# ---------------------------------------------------------------------------
+# Outputs: readings, tables, figure, files and the command line
+# ---------------------------------------------------------------------------
+
+#: Where :func:`main` writes when ``--output`` is not given.
+DEFAULT_OUTPUT = Path("fiscal_brief")
+
+_ROWS = ("linear", "slack", "no_slack")
+_MARK = "\N{DAGGER}"                 # marks a weak cell, shown by its Anderson-Rubin set
+#: The reading template that words a weak cell's Anderson-Rubin set, by ``ar_set_type``.
+_SET_TEMPLATE = {"bounded": "weak", "unbounded_rays": "unbounded", "all_real": "unbounded",
+                 "empty": "empty"}
+
+#: The reading's sentences, word for word; :func:`_reading` applies the rule that picks them.
+#: Placeholders: ``R`` row, ``c1``/``c2`` the 2- and 4-year clauses, ``H`` horizon, ``m``
+#: estimate, ``lo``/``hi`` band, ``F`` effective F, ``c`` cutoff, ``a``/``b`` Anderson-Rubin
+#: bounds (the excluded period in ``exp_head``), ``d`` difference, ``p`` p-value or percent,
+#: ``D`` quarter, ``f`` full-sample estimate; a trailing 1 or 2 names the horizon.
+_READING: dict[str, dict[str, Any]] = {
+    "en": {
+        "rows": ("Linear", "Slack", "No slack"),
+        "horizons": ("2 years", "4 years"),
+        "units": ("Multipliers are dollars of GDP per dollar of government purchases, both "
+                  "cumulated over the horizon."),
+        "row": "{R}: {c1}; {c2}.",
+        "strong": "{m} at {H} (90% band {lo} to {hi})",
+        "weak": ("weak at {H} (effective F {F}, cutoff {c}), with a weak-instrument-robust 90% "
+                 "set of {a} to {b}"),
+        "unbounded": ("weak at {H} (effective F {F}, cutoff {c}), and its weak-instrument-robust "
+                      "90% set is unbounded: the data cannot bound it"),
+        "empty": ("weak at {H} (effective F {F}, cutoff {c}), and its weak-instrument-robust 90% "
+                  "set is empty"),
+        "diff": "With and without slack, the multipliers differ by {d} at {H} (p = {p}).",
+        "diff_no_one": ("The comparison of the multipliers with and without slack is not reliable "
+                        "at {H}, because a regime is weak there."),
+        "diff_no_both": ("The comparison of the multipliers with and without slack is not "
+                         "reliable at either horizon, because at least one regime is weak at "
+                         "each."),
+        "conc_both_same": ("{R}: one quarter, {D}, carries {p}% of the instrument's residual "
+                           "variation at both horizons."),
+        "conc_both": ("{R}: one quarter, {D}, carries {p1}% of the instrument's residual "
+                      "variation at {H1} and {p2}% at {H2}."),
+        "conc_two_dates": ("{R}: {D1} carries {p1}% of the instrument's residual variation at "
+                           "{H1}, and {D2} carries {p2}% at {H2}."),
+        "conc_one": ("{R}: one quarter, {D}, carries {p}% of the instrument's residual variation "
+                     "at {H}."),
+        "exp_head": ("Excluding {a}-{b}: every quarter whose window, shock or lags touch the "
+                     "period is dropped, as Ramey and Zubairy do for World War II."),
+        "cmp": "{R} at {H}: {m} here against {f} in the full sample.",
+        "cmp_weak_full": "{R} at {H}: {m} here, while the full-sample estimate is weak.",
+        "cmp_none": ("No estimate clears the cutoff in this sample, so none is compared with the "
+                     "full sample."),
+        "three_step": ("Ramey and Zubairy's Table 3 values without World War II are three-step "
+                       "estimates (summed impulse responses); the brief's are one-step, so the "
+                       "two need not match."),
+    },
+    "es": {
+        "rows": ("Lineal", "Con holgura", "Sin holgura"),
+        "horizons": ("2 años", "4 años"),
+        "units": ("Los multiplicadores son dólares de PIB por dólar de compras del gobierno, "
+                  "ambos acumulados en el horizonte."),
+        "row": "{R}: {c1}; {c2}.",
+        "strong": "{m} a {H} (banda al 90%: {lo} a {hi})",
+        "weak": ("débil a {H} (F efectiva {F}, umbral {c}), con un conjunto al 90% robusto a "
+                 "instrumentos débiles de {a} a {b}"),
+        "unbounded": ("débil a {H} (F efectiva {F}, umbral {c}), y su conjunto al 90% robusto a "
+                      "instrumentos débiles no está acotado: los datos no pueden acotarlo"),
+        "empty": ("débil a {H} (F efectiva {F}, umbral {c}), y su conjunto al 90% robusto a "
+                  "instrumentos débiles está vacío"),
+        "diff": "Con y sin holgura, los multiplicadores difieren en {d} a {H} (p = {p}).",
+        "diff_no_one": ("La comparación de los multiplicadores con y sin holgura no es fiable a "
+                        "{H}, porque un régimen es débil ahí."),
+        "diff_no_both": ("La comparación de los multiplicadores con y sin holgura no es fiable en "
+                         "ninguno de los dos horizontes, porque en cada uno al menos un régimen "
+                         "es débil."),
+        "conc_both_same": ("{R}: un solo trimestre, {D}, concentra el {p}% de la variación "
+                           "residual del instrumento en ambos horizontes."),
+        "conc_both": ("{R}: un solo trimestre, {D}, concentra el {p1}% de la variación residual "
+                      "del instrumento a {H1} y el {p2}% a {H2}."),
+        "conc_two_dates": ("{R}: {D1} concentra el {p1}% de la variación residual del "
+                           "instrumento a {H1}, y {D2} el {p2}% a {H2}."),
+        "conc_one": ("{R}: un solo trimestre, {D}, concentra el {p}% de la variación residual "
+                     "del instrumento a {H}."),
+        "exp_head": ("Excluyendo {a}-{b}: se descarta todo trimestre cuya ventana, choque o "
+                     "rezagos tocan el periodo, como hacen Ramey y Zubairy con la Segunda Guerra "
+                     "Mundial."),
+        "cmp": "{R} a {H}: {m} aquí frente a {f} en la muestra completa.",
+        "cmp_weak_full": ("{R} a {H}: {m} aquí, mientras que la estimación de la muestra completa "
+                          "es débil."),
+        "cmp_none": ("Ninguna estimación supera el umbral en esta muestra, así que ninguna se "
+                     "compara con la muestra completa."),
+        "three_step": ("Los valores sin la Segunda Guerra Mundial de la Tabla 3 de Ramey y "
+                       "Zubairy son estimaciones en tres pasos (respuestas al impulso sumadas); "
+                       "las del informe son de un paso, así que no tienen por qué coincidir."),
+    },
+}
+
+#: Every other line, label and message of the outputs, in each language.
+_TEXT: dict[str, dict[str, str]] = {
+    "en": {
+        "title": ("Fiscal policy brief: the US government spending multiplier at two and four "
+                  "years, with and without slack"),
+        "source": "Data and specification: {citation}",
+        "full": "Full sample, {start}-{end}",
+        "experiment": "Experiment: excluding {a}-{b}",
+        "multiplier": "Multiplier",
+        "horizon": "{H} (h = {h})",
+        "f_eff": "Effective F",
+        "difference": "Slack minus no slack",
+        "not_reliable": "not reliable",
+        "empty_set": "empty set",
+        "table_note": ("Estimate [90% band]. The difference is reported only where neither "
+                       "regime is weak."),
+        "weak_note": ("effective F below {c}: the Anderson-Rubin set is shown instead of the "
+                      "estimate."),
+        "no_experiment": ("No experiment was run. To exclude World War II as Ramey and Zubairy "
+                          "do, run `python -m puremacro.examples.first_brief_fiscal --exclude "
+                          "{period}`."),
+        "written": "Outputs written to {path}",
+        "fig_title": "Cumulative government spending multipliers by horizon, with 90% bands",
+        "fig_x": "Horizon h (quarters)",
+        "fig_y": "Cumulative multiplier",
+        "fig_strong": "estimate, effective F of at least {c}",
+        "fig_weak": "weak: effective F below {c}",
+        "fig_band": "90% band",
+        "fig_off": "weak estimate beyond the axis",
+    },
+    "es": {
+        "title": ("Informe de política fiscal: el multiplicador del gasto público de EE.UU. a dos "
+                  "y cuatro años, con y sin holgura"),
+        "source": "Datos y especificación: {citation}",
+        "full": "Muestra completa, {start}-{end}",
+        "experiment": "Experimento: excluyendo {a}-{b}",
+        "multiplier": "Multiplicador",
+        "horizon": "{H} (h = {h})",
+        "f_eff": "F efectiva",
+        "difference": "Con holgura menos sin holgura",
+        "not_reliable": "no fiable",
+        "empty_set": "conjunto vacío",
+        "table_note": ("Estimación [banda al 90%]. La diferencia solo se informa donde ningún "
+                       "régimen es débil."),
+        "weak_note": ("F efectiva por debajo de {c}: se muestra el conjunto de Anderson-Rubin en "
+                      "lugar de la estimación."),
+        "no_experiment": ("No se ejecutó ningún experimento. Para excluir la Segunda Guerra "
+                          "Mundial como hacen Ramey y Zubairy, ejecute `python -m "
+                          "puremacro.examples.first_brief_fiscal --exclude {period}`."),
+        "written": "Resultados escritos en {path}",
+        "fig_title": ("Multiplicadores acumulados del gasto público por horizonte, con bandas "
+                      "al 90%"),
+        "fig_x": "Horizonte h (trimestres)",
+        "fig_y": "Multiplicador acumulado",
+        "fig_strong": "estimación, F efectiva de al menos {c}",
+        "fig_weak": "débil: F efectiva por debajo de {c}",
+        "fig_band": "banda al 90%",
+        "fig_off": "estimación débil fuera del eje",
+    },
+}
+
+
+def _text(lang: str) -> dict[str, str]:
+    """The output strings in ``lang``; raises ``ValueError`` unless it is ``"en"`` or ``"es"``."""
+    if lang not in _TEXT:
+        raise ValueError(f"lang must be 'en' or 'es', got {lang!r}")
+    return _TEXT[lang]
+
+
+def _fmt(value: float | None, digits: int = 2) -> str:
+    """``value`` to ``digits`` decimals, with a decimal point in both languages; ``n/a`` if missing."""
+    if value is None or not math.isfinite(value):
+        return "n/a"
+    return f"{value:.{digits}f}"
+
+
+def _horizons(record: dict[str, Any], lang: str) -> list[tuple[str, str, int]]:
+    """``(record key, label, h)`` of the headline horizons, in order."""
+    hs = [int(h) for h in record["specification"]["headline_horizons"]]
+    labels = _READING[lang]["horizons"]
+    if len(hs) != len(labels):
+        raise ValueError(f"the brief words two headline horizons; the record has {hs}")
+    return [(str(h), label, h) for h, label in zip(hs, labels)]
+
+
+def _sections(record: dict[str, Any], lang: str) -> list[tuple[str, str]]:
+    """``(sample, heading)`` for the full sample and, when it was run, the experiment."""
+    t = _TEXT[lang]
+    full = record["full"]
+    out = [("full", t["full"].format(start=full["start"], end=full["end"]))]
+    if record["experiment"] is not None:
+        start, end = record["experiment"]["exclude"]
+        out.append(("experiment", t["experiment"].format(a=start, b=end)))
+    return out
+
+
+def _no_experiment(lang: str) -> str:
+    return _TEXT[lang]["no_experiment"].format(period=WWII)
+
+
+def _set_template(cell: dict[str, Any]) -> str:
+    """The template that words a weak cell's Anderson-Rubin set: bounded, unbounded or empty."""
+    kind = cell["ar_set_type"]
+    if kind not in _SET_TEMPLATE:
+        raise ValueError(f"unknown Anderson-Rubin set type {kind!r}")
+    return _SET_TEMPLATE[kind]
+
+
+def _clause(cell: dict[str, Any], horizon: str, words: dict[str, Any], cutoff: str) -> str:
+    """A cell at one horizon: its estimate and band when strong, its Anderson-Rubin set when weak."""
+    if not cell["weak"]:
+        return words["strong"].format(m=_fmt(cell["multiplier"]), H=horizon,
+                                      lo=_fmt(cell["lo"]), hi=_fmt(cell["hi"]))
+    return words[_set_template(cell)].format(H=horizon, F=_fmt(cell["f_eff"], 1), c=cutoff,
+                                             a=_fmt(cell["ar_lo"]), b=_fmt(cell["ar_hi"]))
+
+
+def _set_phrase(cell: dict[str, Any], words: dict[str, Any]) -> str:
+    """A weak cell's Anderson-Rubin set as its clause words it, after the effective-F part."""
+    return words[_set_template(cell)].split("), ", 1)[1].format(a=_fmt(cell["ar_lo"]),
+                                                                 b=_fmt(cell["ar_hi"]))
+
+
+def _differences(sample: dict[str, Any], horizons: list[tuple[str, str, int]],
+                 words: dict[str, Any]) -> list[str]:
+    """The test of equal multipliers: quoted where both regimes are strong, else not reliable."""
+    tests = [(label, sample["horizons"][key]["difference"]) for key, label, _ in horizons]
+    if not any(test["reliable"] for _, test in tests):
+        return [words["diff_no_both"]]
+    return [words["diff"].format(d=_fmt(test["estimate"]), H=label, p=_fmt(test["p_value"]))
+            if test["reliable"] else words["diff_no_one"].format(H=label)
+            for label, test in tests]
+
+
+def _concentration(sample: dict[str, Any], name: str, row: str,
+                   horizons: list[tuple[str, str, int]], words: dict[str, Any]) -> list[str]:
+    """A regime's top quarter at each horizon where it carries at least the reporting share."""
+    found: list[tuple[str, str, int]] = []
+    for key, label, _ in horizons:
+        top = sample["horizons"][key]["concentration"][name]
+        if top["share"] is not None and top["share"] >= CONCENTRATION_REPORT_SHARE:
+            found.append((label, top["date"], round(100 * top["share"])))
+    if not found:
+        return []
+    if len(found) == 1:
+        label, date, pct = found[0]
+        return [words["conc_one"].format(R=row, D=date, p=pct, H=label)]
+    (h1, d1, p1), (h2, d2, p2) = found
+    if d1 != d2:
+        return [words["conc_two_dates"].format(R=row, D1=d1, p1=p1, H1=h1, D2=d2, p2=p2, H2=h2)]
+    if p1 == p2:
+        return [words["conc_both_same"].format(R=row, D=d1, p=p1)]
+    return [words["conc_both"].format(R=row, D=d1, p1=p1, H1=h1, p2=p2, H2=h2)]
+
+
+def _comparisons(record: dict[str, Any], horizons: list[tuple[str, str, int]],
+                 words: dict[str, Any]) -> list[str]:
+    """Each strong experiment cell against the same full-sample cell, or why there is none."""
+    out: list[str] = []
+    for name, row in zip(_ROWS, words["rows"]):
+        for key, label, _ in horizons:
+            cell = record["experiment"]["horizons"][key][name]
+            if cell["weak"]:
+                continue
+            full = record["full"]["horizons"][key][name]
+            here = _fmt(cell["multiplier"])
+            if not full["weak"]:
+                out.append(words["cmp"].format(R=row, H=label, m=here,
+                                               f=_fmt(full["multiplier"])))
+            else:   # against the full sample's Anderson-Rubin set, never its weak estimate
+                sentence = words["cmp_weak_full"].format(R=row, H=label, m=here)
+                out.append(f"{sentence[:-1]}, {_set_phrase(full, words)}.")
+    return out or [words["cmp_none"]]
+
+
+def _reading(record: dict[str, Any], sample_name: str, lang: str) -> str:
+    """The reading of one sample, sentence by sentence in the rule's order.
+
+    1. the excluded period (experiment only); 2. the units; 3. one sentence per row,
+    linear, slack and no slack, with a clause per headline horizon; 4. the test of equal
+    multipliers; 5. each regime's top quarter, when it carries at least
+    ``CONCENTRATION_REPORT_SHARE``; 6. the strong experiment cells against the full sample
+    and 7. the three-step note (experiment only).
+    """
+    words = _READING[lang]
+    sample = record[sample_name]
+    horizons = _horizons(record, lang)
+    cutoff = _fmt(record["specification"]["weak_cutoff"], 1)
+    parts: list[str] = []
+    if sample_name == "experiment":
+        start, end = sample["exclude"]
+        parts.append(words["exp_head"].format(a=start, b=end))
+    parts.append(words["units"])
+    for name, row in zip(_ROWS, words["rows"]):
+        c1, c2 = (_clause(sample["horizons"][key][name], label, words, cutoff)
+                  for key, label, _ in horizons)
+        parts.append(words["row"].format(R=row, c1=c1, c2=c2))
+    parts += _differences(sample, horizons, words)
+    for name, row in zip(_ROWS[1:], words["rows"][1:]):
+        parts += _concentration(sample, name, row, horizons, words)
+    if sample_name == "experiment":
+        parts += _comparisons(record, horizons, words)
+        parts.append(words["three_step"])
+    return " ".join(parts)
+
+
+def _entry(cell: dict[str, Any], t: dict[str, str], *, tex: bool = False) -> str:
+    """A table entry: estimate [band] when strong; the Anderson-Rubin set and the mark when weak."""
+    if not cell["weak"]:
+        return f"{_fmt(cell['multiplier'])} [{_fmt(cell['lo'])}, {_fmt(cell['hi'])}]"
+    _set_template(cell)                                   # rejects an unknown set type
+    a, b = _fmt(cell["ar_lo"]), _fmt(cell["ar_hi"])
+    if tex:
+        return {"bounded": f"[{a}, {b}]$^\\dagger$",
+                "unbounded_rays": f"$(-\\infty, {b}] \\cup [{a}, \\infty)^\\dagger$",
+                "all_real": "$(-\\infty, \\infty)^\\dagger$",
+                "empty": f"{latex_escape(t['empty_set'])}$^\\dagger$"}[cell["ar_set_type"]]
+    inf, cup = "\N{INFINITY}", "\N{UNION}"
+    return {"bounded": f"[{a}, {b}] {_MARK}",
+            "unbounded_rays": f"(-{inf}, {b}] {cup} [{a}, {inf}) {_MARK}",
+            "all_real": f"(-{inf}, {inf}) {_MARK}",
+            "empty": f"{t['empty_set']} {_MARK}"}[cell["ar_set_type"]]
+
+
+def _table(record: dict[str, Any], sample: dict[str, Any], lang: str, *,
+           tex: bool = False) -> tuple[list[str], list[list[str]], bool]:
+    """Header, rows and whether any cell is weak, for one sample's headline table."""
+    t, words = _TEXT[lang], _READING[lang]
+    esc = latex_escape if tex else str
+    horizons = _horizons(record, lang)
+    header = [esc(t["multiplier"])]
+    for _, label, h in horizons:
+        header += [esc(t["horizon"].format(H=label, h=h)), esc(t["f_eff"])]
+    rows: list[list[str]] = []
+    weak = False
+    for name, row in zip(_ROWS, words["rows"]):
+        line = [esc(row)]
+        for key, _, _ in horizons:
+            cell = sample["horizons"][key][name]
+            weak = weak or bool(cell["weak"])
+            line += [_entry(cell, t, tex=tex), _fmt(cell["f_eff"], 1)]
+        rows.append(line)
+    line = [esc(t["difference"])]
+    for key, _, _ in horizons:
+        test = sample["horizons"][key]["difference"]
+        line += [f"{_fmt(test['estimate'])} (p = {_fmt(test['p_value'])})" if test["reliable"]
+                 else esc(t["not_reliable"]), ""]
+    rows.append(line)
+    return header, rows, weak
+
+
+def _markdown_table(header: Sequence[str], rows: Sequence[Sequence[str]]) -> str:
+    lines = ["| " + " | ".join(header) + " |",
+             "|" + "|".join([":---"] + ["---:"] * (len(header) - 1)) + "|"]
+    lines += ["| " + " | ".join(row) + " |" for row in rows]
+    return "\n".join(lines)
+
+
+def _table_block(record: dict[str, Any], sample: dict[str, Any], lang: str) -> str:
+    """One sample's markdown table and its note; the weak-cell note only when a cell is weak."""
+    t = _TEXT[lang]
+    header, rows, weak = _table(record, sample, lang)
+    note = t["table_note"]
+    if weak:
+        cutoff = _fmt(record["specification"]["weak_cutoff"], 1)
+        note += f" {_MARK} " + t["weak_note"].format(c=cutoff)
+    return _markdown_table(header, rows) + "\n\n" + note
+
+
+def page_block(record: dict[str, Any],
+               block: Literal["headline", "headline_reading", "experiment", "experiment_reading"],
+               lang: str) -> str:
+    """One block of the brief's page, as the docs show it, in ``lang`` (``"en"`` or ``"es"``).
+
+    ``headline`` and ``experiment`` are a sample's markdown table and its note;
+    ``headline_reading`` and ``experiment_reading`` are its reading. A weak cell, with an
+    effective F below the record's ``weak_cutoff``, is shown by its weak-instrument-robust
+    Anderson-Rubin set and never by its estimate. Without an experiment in the record, both
+    experiment blocks say how to run one.
+    """
+    _text(lang)
+    if block == "headline":
+        return _table_block(record, record["full"], lang)
+    if block == "headline_reading":
+        return _reading(record, "full", lang)
+    if block in ("experiment", "experiment_reading"):
+        if record["experiment"] is None:
+            return _no_experiment(lang)
+        if block == "experiment":
+            return _table_block(record, record["experiment"], lang)
+        return _reading(record, "experiment", lang)
+    raise ValueError(f"block {block!r} must be 'headline', 'headline_reading', 'experiment' "
+                     "or 'experiment_reading'")
+
+
+def _wrap(paragraph: str) -> str:
+    """A paragraph filled to 100 columns for the terminal; tables and `code` stay unbroken."""
+    if paragraph.startswith("|"):
+        return paragraph
+    joined = re.sub(r"`[^`]*`", lambda code: code[0].replace(" ", "\0"), paragraph)
+    return textwrap.fill(joined, width=100, break_long_words=False,
+                         break_on_hyphens=False).replace("\0", " ")
+
+
+def summary_text(record: dict[str, Any], lang: str = "en") -> str:
+    """The plain-text summary :func:`main` prints: each sample's table and reading."""
+    t = _text(lang)
+    parts = [t["title"], t["source"].format(citation=record["data"]["citation"])]
+    for name, heading in _sections(record, lang):
+        parts += [heading, _table_block(record, record[name], lang), _reading(record, name, lang)]
+    if record["experiment"] is None:
+        parts.append(_no_experiment(lang))
+    return "\n\n".join(_wrap(p) for p in "\n\n".join(parts).split("\n\n")) + "\n"
+
+
+def _markdown_page(record: dict[str, Any], lang: str) -> str:
+    """``headline.md``: each sample's table and reading under its heading."""
+    t = _TEXT[lang]
+    parts = [f"# {t['title']}", t["source"].format(citation=record["data"]["citation"])]
+    for name, heading in _sections(record, lang):
+        parts += [f"## {heading}", _table_block(record, record[name], lang),
+                  _reading(record, name, lang)]
+    if record["experiment"] is None:
+        parts.append(_no_experiment(lang))
+    return "\n\n".join(parts) + "\n"
+
+
+_CSV_COLUMNS = ["sample", "h", "row", "label", "estimate", "se", "lo", "hi", "f_eff", "weak",
+                "ar_lo", "ar_hi", "ar_set_type", "n_eff", "top_quarter", "top_share", "p_value",
+                "reliable"]
+
+
+def _headline_frame(record: dict[str, Any], lang: str) -> pd.DataFrame:
+    """``headline.csv``: one row per sample, headline horizon and estimate, at full precision.
+
+    The rows ``linear``, ``slack`` and ``no_slack`` hold a cell (``estimate`` is its
+    multiplier), and ``difference`` the test of equal multipliers (slack minus no slack).
+    ``label`` is the row's name in ``lang``.
+    """
+    t, words = _TEXT[lang], _READING[lang]
+    rows: list[dict[str, Any]] = []
+    for sample_name, _ in _sections(record, lang):
+        for key, _, h in _horizons(record, lang):
+            cells = record[sample_name]["horizons"][key]
+            for name, label in zip(_ROWS, words["rows"]):
+                cell = cells[name]
+                top = cells["concentration"].get(name, {})
+                rows.append({"sample": sample_name, "h": h, "row": name, "label": label,
+                             "estimate": cell["multiplier"], "se": cell["se"], "lo": cell["lo"],
+                             "hi": cell["hi"], "f_eff": cell["f_eff"], "weak": cell["weak"],
+                             "ar_lo": cell["ar_lo"], "ar_hi": cell["ar_hi"],
+                             "ar_set_type": cell["ar_set_type"], "n_eff": cell.get("n_eff"),
+                             "top_quarter": top.get("date"), "top_share": top.get("share")})
+            test = cells["difference"]
+            rows.append({"sample": sample_name, "h": h, "row": "difference",
+                         "label": t["difference"], "estimate": test["estimate"],
+                         "se": test["se"], "p_value": test["p_value"],
+                         "reliable": test["reliable"]})
+    return pd.DataFrame(rows, columns=_CSV_COLUMNS)
+
+
+def _latex_table(record: dict[str, Any], sample: dict[str, Any], lang: str) -> str:
+    """One sample's headline table as a LaTeX ``tabular``, its notes in the last rows."""
+    t = _TEXT[lang]
+    header, rows, weak = _table(record, sample, lang, tex=True)
+    width = len(header)
+    lines = ["\\begin{tabular}{l" + "r" * (width - 1) + "}", " & ".join(header) + " \\\\",
+             "\\hline"]
+    lines += [" & ".join(row) + " \\\\" for row in rows]
+    notes = [latex_escape(t["table_note"])]
+    if weak:
+        cutoff = _fmt(record["specification"]["weak_cutoff"], 1)
+        notes.append("$^\\dagger$ " + latex_escape(t["weak_note"].format(c=cutoff)))
+    lines.append("\\hline")
+    lines += [f"\\multicolumn{{{width}}}{{l}}{{\\footnotesize {note}}} \\\\" for note in notes]
+    lines.append("\\end{tabular}")
+    return "\n".join(lines)
+
+
+def _latex_page(record: dict[str, Any], lang: str) -> str:
+    """``headline.tex``: a ``tabular`` per sample, each under a comment with its heading."""
+    t = _TEXT[lang]
+    lines = [f"% {t['title']}", f"% {t['source'].format(citation=record['data']['citation'])}"]
+    for name, heading in _sections(record, lang):
+        lines += ["", f"% {heading}", _latex_table(record, record[name], lang)]
+    return "\n".join(lines) + "\n"
+
+
+#: Categorical slots 1-3 of a palette checked for colour-vision deficiency, one per path.
+_COLORS = {"linear": "#2a78d6", "slack": "#eb6834", "no_slack": "#1baf7a"}
+_INK, _INK_2, _AXIS, _SURFACE, _SHADE = "#0b0b0b", "#52514e", "#c3c2b7", "#fcfcfb", "#ebeae4"
+_DASHES = (0, (3.5, 2.5))
+
+
+def _runs(mask: np.ndarray) -> list[tuple[int, int]]:
+    """``(start, stop)`` of each run of True in ``mask``."""
+    edges = np.flatnonzero(np.diff(np.concatenate([[0], mask.astype(int), [0]])))
+    return [(int(a), int(b)) for a, b in zip(edges[::2], edges[1::2])]
+
+
+def _y_range(est: np.ndarray, lo: np.ndarray, hi: np.ndarray,
+             strong: np.ndarray) -> tuple[float, float]:
+    """A panel's vertical range: 0, 1, every strong band and the weak estimates near them."""
+    core = np.concatenate([[0.0, 1.0], lo[strong], hi[strong]])
+    core = core[np.isfinite(core)]
+    bottom, top = float(core.min()), float(core.max())
+    reach = top - bottom
+    with np.errstate(invalid="ignore"):
+        near = est[~strong & (est >= bottom - reach) & (est <= top + reach)]
+    if near.size:
+        bottom, top = min(bottom, float(near.min())), max(top, float(near.max()))
+    pad = 0.08 * (top - bottom)
+    return bottom - pad, top + pad
+
+
+def _panel(ax: Any, frame: pd.DataFrame, name: str, title: str, cutoff: float,
+           ticks: list[int]) -> bool:
+    """One path and its band: solid where strong; dashed, hollow and shaded where weak.
+
+    A weak estimate beyond the vertical range is drawn as a triangle on that edge. Returns
+    whether there is one.
+    """
+    h = frame["h"].to_numpy(dtype=float)
+    est = frame[name].to_numpy(dtype=float)
+    lo = frame[f"{name}_lo"].to_numpy(dtype=float)
+    hi = frame[f"{name}_hi"].to_numpy(dtype=float)
+    with np.errstate(invalid="ignore"):
+        strong = frame[f"{name}_f"].to_numpy(dtype=float) >= cutoff     # a missing F is weak
+    color = _COLORS[name]
+    for start, stop in _runs(~strong):
+        ax.axvspan(h[start] - 0.5, h[stop - 1] + 0.5, color=_SHADE, lw=0, zorder=0)
+    ax.axhline(0.0, color=_INK_2, lw=0.8, zorder=1)
+    ax.axhline(1.0, color=_AXIS, lw=0.8, zorder=1)
+    ax.fill_between(h, lo, hi, color=color, alpha=0.2, lw=0, zorder=2)
+    ax.plot(h, est, color=color, lw=1.6, ls=_DASHES, zorder=3)
+    ax.plot(h, np.where(strong, est, np.nan), color=color, lw=1.6, zorder=4)
+    ax.plot(h[strong], est[strong], "o", color=color, ms=4, zorder=5)
+    ax.plot(h[~strong], est[~strong], "o", color=color, mfc=_SURFACE, ms=4, zorder=5)
+    bottom, top = _y_range(est, lo, hi, strong)
+    ax.set_ylim(bottom, top)
+    inset = 0.04 * (top - bottom)
+    with np.errstate(invalid="ignore"):
+        below, above = ~strong & (est < bottom), ~strong & (est > top)
+    ax.plot(h[below], np.full(int(below.sum()), bottom + inset), "v", color=color, ms=6, zorder=6)
+    ax.plot(h[above], np.full(int(above.sum()), top - inset), "^", color=color, ms=6, zorder=6)
+    ax.set_title(title, fontsize=10, color=_INK)
+    ax.set_xlim(h.min() - 0.5, h.max() + 0.5)
+    ax.set_xticks(ticks)
+    ax.tick_params(labelsize=8, colors=_INK_2)
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+    for side in ("left", "bottom"):
+        ax.spines[side].set_color(_AXIS)
+    return bool(below.any() or above.any())
+
+
+def _figure_png(record: dict[str, Any], paths: pd.DataFrame, lang: str) -> bytes:
+    """``multipliers.png``: linear, slack and no slack over h = 0..20, a row per sample."""
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from matplotlib.figure import Figure
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Patch
+
+    t, words = _TEXT[lang], _READING[lang]
+    cutoff = float(record["specification"]["weak_cutoff"])
+    sections = _sections(record, lang)
+    hs = sorted(int(h) for h in paths["h"].unique())
+    ticks = sorted({hs[0], *(h for _, _, h in _horizons(record, lang)), hs[-1]})
+    fig = Figure(figsize=(11.0, 1.0 + 3.1 * len(sections)), dpi=120, facecolor=_SURFACE,
+                 layout="constrained")
+    FigureCanvasAgg(fig)
+    off_axis = False
+    for subfig, (name, heading) in zip(fig.subfigures(len(sections), 1, squeeze=False)[:, 0],
+                                       sections):
+        subfig.set_facecolor(_SURFACE)
+        subfig.suptitle(heading, x=0.01, ha="left", fontsize=10.5, color=_INK)
+        frame = paths.loc[paths["sample"] == name].sort_values("h")
+        axes = subfig.subplots(1, len(_ROWS))
+        for ax, row, title in zip(axes, _ROWS, words["rows"]):
+            off_axis = _panel(ax, frame, row, title, cutoff, ticks) or off_axis
+            ax.set_xlabel(t["fig_x"], fontsize=8.5, color=_INK_2)
+        axes[0].set_ylabel(t["fig_y"], fontsize=8.5, color=_INK_2)
+    c = _fmt(cutoff, 1)
+    handles: list[Any] = [
+        Line2D([], [], color=_INK_2, lw=1.6, marker="o", ms=4),
+        (Patch(facecolor=_SHADE),
+         Line2D([], [], color=_INK_2, lw=1.6, ls=_DASHES, marker="o", ms=4, mfc=_SURFACE)),
+        Patch(facecolor=_INK_2, alpha=0.2),
+    ]
+    labels = [t["fig_strong"].format(c=c), t["fig_weak"].format(c=c), t["fig_band"]]
+    if off_axis:
+        handles.append(Line2D([], [], color=_INK_2, ls="none", marker="v", ms=6))
+        labels.append(t["fig_off"])
+    fig.legend(handles, labels, loc="outside lower center", ncols=len(handles), frameon=False,
+               fontsize=8.5, labelcolor=_INK_2)
+    fig.suptitle(t["fig_title"], fontsize=11.5, color=_INK)
+    buffer = io.BytesIO()
+    fig.savefig(buffer, format="png", facecolor=_SURFACE, metadata={"Software": None})
+    return buffer.getvalue()
+
+
+def write_outputs(record: dict[str, Any], paths: pd.DataFrame, output: str | Path, *,
+                  lang: str = "en") -> dict[str, Any]:
+    """Write the brief's files into ``output``, in ``lang``, and return the manifest.
+
+    Every file is rendered in memory first, so nothing is written when one cannot be. The
+    files are ``headline.md`` (tables and readings), ``headline.csv`` (the headline cells at
+    full precision), ``headline.tex``, ``paths.csv`` (h = 0..20), ``multipliers.png``,
+    ``headline.json`` (``record``) and ``manifest.json``. The manifest holds ``lang``,
+    ``puremacro_version``, ``data``, ``specification`` and ``experiment`` from the record,
+    the ``warnings`` and computing time of the last :func:`compute_brief` call with the
+    outputs' wall seconds (``timings``), ``environment``, and ``artifacts``: each other file's
+    SHA-256 and size. It records no absolute path.
+    """
+    started = time.perf_counter()
+    _text(lang)
+    json.dumps(record, allow_nan=False)            # JSON-ready, or nothing is written
+    texts = {"headline.md": _markdown_page(record, lang),
+             "headline.csv": _headline_frame(record, lang).to_csv(index=False),
+             "headline.tex": _latex_page(record, lang),
+             "paths.csv": paths.to_csv(index=False)}
+    content = {name: text.encode("utf-8") for name, text in texts.items()}
+    content["multipliers.png"] = _figure_png(record, paths, lang)
+
+    folder = Path(output)
+    folder.mkdir(parents=True, exist_ok=True)
+    for name, data in content.items():
+        (folder / name).write_bytes(data)
+    write_json_atomic(folder / "headline.json", record)
+    artifacts = {name: {"sha256": sha256(folder / name), "bytes": (folder / name).stat().st_size}
+                 for name in (*content, "headline.json")}
+    compute = _LAST_TIMINGS.get("compute_seconds")
+    manifest = {
+        "lang": lang,
+        "puremacro_version": record["puremacro_version"],
+        **copy.deepcopy({key: record[key] for key in ("data", "specification", "experiment")}),
+        "warnings": list(_LAST_WARNINGS),
+        "timings": {"compute_seconds": None if compute is None else round(compute, 3),
+                    "outputs_seconds": round(time.perf_counter() - started, 3)},
+        "environment": environment(),
+        "artifacts": artifacts,
+    }
+    write_json_atomic(folder / "manifest.json", manifest)
+    return manifest
+
+
+def run_brief(output: str | Path, *, exclude: str | None = None,
+              lang: str = "en") -> dict[str, Any]:
+    """Compute the brief (:func:`compute_brief`), then write its files (:func:`write_outputs`).
+
+    Nothing is created or written unless the computation succeeds. Returns
+    ``{"record", "paths", "manifest"}``.
+    """
+    _text(lang)
+    record, paths = compute_brief(exclude=exclude)
+    manifest = write_outputs(record, paths, output, lang=lang)
+    return {"record": record, "paths": paths, "manifest": manifest}
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """The command line: check the arguments, run the brief, print its summary in ``--lang``."""
+    parser = argparse.ArgumentParser(
+        prog="python -m puremacro.examples.first_brief_fiscal",
+        description=("Fiscal policy brief: the US government spending multiplier at two and "
+                     "four years, with and without slack, on Ramey and Zubairy's data."))
+    parser.add_argument("--exclude", metavar="START:END", default=None,
+                        help=("also estimate without this period, both quarters included, "
+                              f"by Ramey and Zubairy's rule (World War II: {WWII})"))
+    parser.add_argument("--output", metavar="DIR", type=Path, default=DEFAULT_OUTPUT,
+                        help=f"output directory (default {DEFAULT_OUTPUT})")
+    parser.add_argument("--lang", choices=("en", "es"), default="en",
+                        help="language of the outputs (default en)")
+    args = parser.parse_args(argv)
+    if args.exclude is not None:          # checked before anything is computed or written
+        try:
+            exclude_period(load_brief_data(), parse_exclude(args.exclude))
+        except _ExcludeError as exc:
+            parser.error(exc.text(args.lang))
+    study = run_brief(args.output, exclude=args.exclude, lang=args.lang)
+    print(summary_text(study["record"], args.lang))
+    print(_TEXT[args.lang]["written"].format(path=args.output))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
