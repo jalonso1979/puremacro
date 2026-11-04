@@ -14,40 +14,52 @@ both divided by trend potential GDP ``rgdp_pott6``, the military-news
 instrument scaled by lagged nominal potential; 4 lags of ``y``, ``g``,
 ``newsy`` as controls; full 1890-2015 sample incl. WWII):
 
-- **Linear cumulative multipliers** via :func:`puremacro.lp.iv.lp_iv`,
-  one call per horizon in RZ's *one-step* form: LHS is the h-quarter
-  forward window sum of ``y`` (a running sum fed to ``lp_iv`` so its
-  long difference IS the window), the endogenous regressor is the
-  matching window sum of ``g``, the instrument is ``newsy``. The
-  coefficient is the cumulative multiplier itself. Headline: ~0.67 at
-  2 years and ~0.71 at 4 years (RZ Table 1: 0.66 and 0.71).
-- **State dependence** via :func:`puremacro.lp.state_dep.lp_state_dep`
-  with RZ's slack indicator (lagged unemployment >= 6.5%,
-  ``transition="threshold"``): per-horizon high/low-state responses of
-  ``y`` and ``g`` to the news shock, multipliers as the ratio of
-  cumulated coefficients (their two-step ``sumrecy/sumrecg``).
-  Headline: slack-state multipliers are NOT above 1 — both states sit
-  in the 0.6-0.8 range, RZ's central negative finding vs
-  Auerbach-Gorodnichenko.
-- **The pedagogical core — per-horizon weak-IV diagnostics** via
-  :mod:`puremacro.inference.weak_iv`. The Olea-Pflueger (2013 JBES)
-  effective F of the news first stage is horizon- and state-specific:
-  strong in the slack state at short horizons (WWII lives there) but
-  *collapsing* below the 23.1 cutoff by h=20, and never strong in the
-  expansion state. The robust answer is Anderson-Rubin (1949)
-  inversion: ``anderson_rubin_test`` + ``msw_bands`` (Montiel
-  Olea-Stock-Watson 2021) give an honest 90% multiplier band that is
-  visibly wider than the conventional +/-1.645 SE band.
+- **Linear cumulative multipliers** via one
+  :func:`puremacro.lp.iv.lp_iv` call with ``cumulative=True``, RZ's
+  *one-step* form: the outcome is the sum of ``y`` over the window
+  t..t+h (net of ``y_{t-1}``), the endogenous regressor is the matching
+  window sum of ``g``, and the instrument is ``newsy``, so the
+  coefficient is the cumulative multiplier itself. RZ's "2-year" and
+  "4-year" integrals are the 8- and 16-quarter windows, h = 7 and
+  h = 15. Headline: 0.66 at 2 years and 0.71 at 4 years (RZ Table 1:
+  0.66 and 0.71).
+- **State dependence** via
+  :func:`puremacro.lp.state_dep.lp_state_dep_iv` with
+  ``cumulative=True``: RZ's one-step state-dependent multiplier, with
+  HAC standard errors, on their slack indicator (lagged unemployment
+  >= 6.5%, ``transition="threshold"``). Headline: slack-state
+  multipliers are NOT above 1 — 0.60 at 2 years and 0.68 at 4 years
+  with slack, 0.59 and 0.67 without, as in RZ Table 1 — RZ's central
+  negative finding vs Auerbach-Gorodnichenko.
+- **The pedagogical core — per-horizon weak-IV diagnostics**, all with
+  HAC statistics. The HAC first-stage F of the news instrument (with
+  one instrument, the Montiel Olea-Pflueger 2013 effective F: ``mop_f``
+  in the linear model, ``first_stage_f_H`` / ``first_stage_f_L`` by
+  state; cutoff 23.1) is horizon- and state-specific: in the slack
+  state it is weak on impact (h = 0, 1) and strong from h = 3 on (WWII
+  lives there), while without slack, and in the linear model, it never
+  clears the cutoff. The robust answer is the Anderson-Rubin (1949)
+  set, inverted with the same HAC variance as the bands
+  (``lp_iv(..., anderson_rubin=True)``). Without slack at 2 years
+  (F 7.3) the 90% set, 0.44 to 0.82, is 1.28 times as wide as the
+  conventional band, 0.45 to 0.74, and still excludes both 0 and 1.
 
-Simplifications vs the paper: HAC bandwidth is h+1 (RZ use
-``bw(auto)``); the AR/MSW comparison uses the slack-state subsample
-directly rather than the interacted system. The state-dependent LPs
-interact the constant and every control with the lagged state, as RZ do
-(``interact="all"``, the default of :func:`lp_state_dep`). Pooling them
-(``interact="none"``) is not innocuous: with the one-step
-:func:`lp_state_dep_iv` it erases the slack/no-slack gap once World War II
-is excluded, and returns explosive estimates on the post-1947 sample
-(GitHub issue #217).
+Simplifications vs the paper: every statistic is HAC with bandwidth
+h+1 (RZ use ``bw(auto)``), the effective F's and the Anderson-Rubin
+sets as well as the standard errors, so the weak-IV lesson rests on the
+same variance as the bands. The point estimates reproduce RZ's Table 1
+to two decimals; the standard errors and p-values do not. The state
+layer is RZ's one-step IV, so it carries standard errors and a test of
+equal multipliers (``p_diff_HL``). The weak-IV comparison runs
+:func:`lp_iv` on the quarters without slack (``newsy`` set to NaN in
+the others) rather than the interacted system: it gives the same
+estimate, with a slightly narrower conventional band. The
+state-dependent LPs interact the constant and every control with the
+lagged state, as RZ do (``interact="all"``, the default of
+:func:`lp_state_dep_iv`). Pooling them (``interact="none"``) is not
+innocuous: with the one-step :func:`lp_state_dep_iv` it erases the
+slack/no-slack gap once World War II is excluded, and returns
+explosive estimates on the post-1947 sample (GitHub issue #217).
 
 Run:
     python -m puremacro.examples.ramey_zubairy_2018_multipliers
@@ -69,22 +81,48 @@ potencial de tendencia; instrumento de noticias militares escalado por
 el potencial nominal rezagado; 4 rezagos de ``y``, ``g`` y ``newsy``
 como controles; muestra completa 1890-2015 incl. la 2GM):
 
-- **Multiplicadores acumulados lineales** con
-  :func:`puremacro.lp.iv.lp_iv` en la forma de *un paso* de RZ: el
-  coeficiente ES el multiplicador acumulado. Titular: ~0.67 a 2 años y
-  ~0.71 a 4 años (RZ Tabla 1: 0.66 y 0.71).
+- **Multiplicadores acumulados lineales** con una sola llamada a
+  :func:`puremacro.lp.iv.lp_iv` con ``cumulative=True``, en la forma de
+  *un paso* de RZ: el coeficiente ES el multiplicador acumulado. Las
+  integrales "a 2 años" y "a 4 años" de RZ son las ventanas de 8 y 16
+  trimestres, h = 7 y h = 15. Titular: 0.66 a 2 años y 0.71 a 4 años
+  (RZ Tabla 1: 0.66 y 0.71).
 - **Dependencia de estado** con
-  :func:`puremacro.lp.state_dep.lp_state_dep` y el indicador de holgura
-  de RZ (desempleo rezagado >= 6.5%): los multiplicadores en recesión
-  NO superan 1 — ambos estados quedan en 0.6-0.8, el hallazgo central
-  de RZ frente a Auerbach-Gorodnichenko.
+  :func:`puremacro.lp.state_dep.lp_state_dep_iv` y ``cumulative=True``:
+  el multiplicador de un paso de RZ por estado, con errores estándar
+  HAC, con el indicador de holgura de RZ (desempleo rezagado >= 6.5%):
+  los multiplicadores con holgura NO superan 1 — 0.60 a 2 años y 0.68
+  a 4 años con holgura, 0.59 y 0.67 sin ella, como en la Tabla 1 de
+  RZ —, el hallazgo central de RZ frente a Auerbach-Gorodnichenko.
 - **El núcleo pedagógico — diagnósticos de instrumentos débiles por
-  horizonte** con :mod:`puremacro.inference.weak_iv`: la F efectiva de
-  Olea-Pflueger *se derrumba* en el estado de holgura al crecer el
-  horizonte (y nunca es fuerte en expansión); la respuesta robusta es
-  la inversión de Anderson-Rubin (``anderson_rubin_test`` +
-  ``msw_bands``), cuya banda al 90% es visiblemente más ancha que la
-  banda convencional de +/-1.645 EE.
+  horizonte**, todos con estadísticos HAC: la F HAC de la primera etapa
+  (con un solo instrumento, la F efectiva de Montiel Olea-Pflueger;
+  umbral 23.1) es débil con holgura en el impacto (h = 0, 1) y fuerte
+  desde h = 3 (ahí vive la 2GM); sin holgura, y en el modelo lineal,
+  nunca supera el umbral. La respuesta robusta es el conjunto de
+  Anderson-Rubin, invertido con la misma varianza HAC que las bandas
+  (``lp_iv(..., anderson_rubin=True)``): sin holgura a 2 años (F 7.3),
+  el conjunto al 90%, de 0.44 a 0.82, mide 1.28 veces el ancho de la
+  banda convencional, de 0.45 a 0.74, y aun así excluye el 0 y el 1.
+
+Simplificaciones frente al artículo: todos los estadísticos son HAC
+con ancho de banda h+1 (RZ usan ``bw(auto)``), tanto las F efectivas y
+los conjuntos de Anderson-Rubin como los errores estándar, así que la
+lección sobre instrumentos débiles descansa en la misma varianza que
+las bandas. Las estimaciones puntuales reproducen la Tabla 1 de RZ a
+dos decimales; los errores estándar y los valores p no. La capa de
+estados es la IV de un paso de RZ, así que trae errores estándar y una
+prueba de multiplicadores iguales (``p_diff_HL``). La comparación
+robusta corre :func:`lp_iv` sobre los trimestres sin holgura
+(``newsy`` en NaN en los demás) en lugar del sistema interactuado: da
+la misma estimación, con una banda convencional algo más estrecha. Las
+LP dependientes del estado interactúan la constante y cada control con
+el estado rezagado, como RZ (``interact="all"``, el valor por omisión
+de :func:`lp_state_dep_iv`). Agruparlos (``interact="none"``) no es
+inocuo: con :func:`lp_state_dep_iv` de un paso borra la brecha entre
+holgura y no holgura una vez excluida la Segunda Guerra Mundial, y da
+estimaciones explosivas en la muestra posterior a 1947 (issue #217 de
+GitHub).
 
 Ejecución:
     python -m puremacro.examples.ramey_zubairy_2018_multipliers
@@ -96,21 +134,18 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from ..inference.weak_iv import (
-    anderson_rubin_test,
-    msw_bands,
-    olea_pflueger_f,
-)
 from ..lp.iv import lp_iv
-from ..lp.state_dep import lp_state_dep
+from ..lp.state_dep import lp_state_dep_iv
 from ..replication._data import load_csv
 
 
 _SLACK_THRESHOLD = 6.5   # RZ's fixed unemployment threshold (percent)
-_OP_CUTOFF = 23.1        # Olea-Pflueger 5%-worst-case-bias cutoff, k=1
+_OP_CUTOFF = 23.1        # Montiel Olea-Pflueger cutoff for one instrument (lp_iv's mop_cv_10)
 _N_LAGS = 4              # RZ's baseline lag order
-_CTL = [f"{v}_l{k}" for k in range(1, _N_LAGS + 1)
-        for v in ("y", "g", "newsy")]
+_HEADLINE = (7, 15)      # RZ's 2- and 4-year integrals: the windows t..t+7 and t..t+15
+RZ_CONTROLS: list[str] = [f"{v}_l{k}" for k in range(1, _N_LAGS + 1)
+                          for v in ("y", "g", "newsy")]
+_CTL = RZ_CONTROLS       # old private name; GitHub issue #217's reproduction imports it
 
 
 def load_rz_data() -> pd.DataFrame:
@@ -118,9 +153,11 @@ def load_rz_data() -> pd.DataFrame:
 
     Columns: ``y`` = rgdp / rgdp_pott6; ``g`` = (ngov/pgdp) / rgdp_pott6;
     ``newsy`` = news / (lagged rgdp_pott6 x lagged pgdp); ``slack_l`` =
-    1{unemp_{t-1} >= 6.5}; ``cumy`` / ``cumg`` running sums of y and g
-    (so an h-quarter forward long difference equals the window sum);
-    plus explicit lag-control columns ``{y,g,newsy}_l1..l4``.
+    1{unemp_{t-1} >= 6.5}, NaN where unemp_{t-1} is missing; ``cumy`` /
+    ``cumg`` running sums of y and g (so an h-quarter forward long
+    difference equals the window sum, the manual one-step recipe); plus
+    the lag-control columns ``RZ_CONTROLS`` = ``{y,g,newsy}_l1..l4``.
+    The quarterly index has no gaps, as ``cumulative=True`` requires.
     """
     d = load_csv("rz2018")
     d["date"] = pd.to_datetime(d["date"])
@@ -129,7 +166,10 @@ def load_rz_data() -> pd.DataFrame:
     y = d["rgdp"] / d["rgdp_pott6"]
     g = (d["ngov"] / d["pgdp"]) / d["rgdp_pott6"]
     newsy = d["news"] / (d["rgdp_pott6"].shift(1) * d["pgdp"].shift(1))
-    slack_l = (d["unemp"] >= _SLACK_THRESHOLD).astype(float).shift(1)
+    unemp = d["unemp"]
+    # A missing rate stays missing: the comparison alone would read it as 0.
+    slack_l = ((unemp >= _SLACK_THRESHOLD).astype(float)
+               .where(unemp.notna()).shift(1))
 
     df = pd.DataFrame({"y": y, "g": g, "newsy": newsy, "slack_l": slack_l})
     df = df.dropna(subset=["y", "g", "newsy"])   # contiguous from 1890Q1
@@ -141,121 +181,88 @@ def load_rz_data() -> pd.DataFrame:
     return df
 
 
-def _residualize(a: np.ndarray, X: np.ndarray) -> np.ndarray:
-    b, *_ = np.linalg.lstsq(X, a, rcond=None)
-    return a - X @ b
-
-
-def _window_frame(df: pd.DataFrame, h: int) -> pd.DataFrame:
-    """Attach the h-quarter forward window sum of g (``cumg_h``) and of
-    y (``dyw``) to a copy of ``df`` and drop unusable rows."""
-    out = df.copy()
-    out["cumg_h"] = df["cumg"].shift(-h) - df["cumg"].shift(1)
-    out["dyw"] = df["cumy"].shift(-h) - df["cumy"].shift(1)
-    return out.dropna(subset=["dyw", "cumg_h", "newsy", "slack_l"] + _CTL)
-
-
 def run_rz_replication(
     *,
     horizon: int = 20,
-    ar_horizon: int = 12,
+    ar_horizon: int = 7,
     alpha: float = 0.10,
 ) -> dict:
     """Run all three layers; return the headline objects.
 
     Returns a dict with the one-step linear multiplier path (``linear``:
-    DataFrame h/beta/se/lo/hi/first_stage_f, where ``beta`` IS the
-    cumulative multiplier), the state-dependent multiplier paths
-    (``m_slack``, ``m_expansion``: numpy arrays over h), the per-horizon
-    Olea-Pflueger effective F by state (``f_eff``: DataFrame), and the
-    conventional-vs-robust comparison at ``ar_horizon`` in the slack
-    state (``robust``: dict).
+    the :func:`lp_iv` result indexed by h, with Anderson-Rubin sets,
+    where ``beta`` IS the cumulative multiplier), the one-step
+    state-dependent result (``state_dep``: the :func:`lp_state_dep_iv`
+    result) and its multiplier paths (``m_slack``, ``m_expansion``: its
+    ``beta_H`` and ``beta_L`` as numpy arrays over h), the per-horizon
+    HAC effective F by state (``f_eff``: DataFrame with ``slack`` =
+    ``first_stage_f_H``, ``expansion`` = ``first_stage_f_L`` and
+    ``linear`` = ``mop_f``), and the conventional-vs-robust comparison
+    at ``ar_horizon`` in the expansion (no-slack) state (``robust``:
+    dict with ``h``, ``regime``, ``beta``, ``se``, ``conv_lo``,
+    ``conv_hi``, ``ar_lo``, ``ar_hi``, ``ar_set_type``, ``f_eff``).
     """
+    # Every call gets the full frame. The estimators skip the rows with a
+    # missing state or instrument themselves; dropping rows would leave a
+    # date gap, which cumulative=True rejects.
     df = load_rz_data()
     hs = list(range(horizon + 1))
 
-    # ---- 1. Linear cumulative multipliers: one-step LP-IV per horizon.
-    # lp_iv's LHS is cumy_{t+h} - cumy_{t-1} = sum_{j=0..h} y_{t+j}; the
-    # endogenous column cumg_h already holds sum_{j=0..h} g_{t+j}; with
-    # n_lags=0 the only controls are the explicit (predetermined) lag
-    # columns, exactly RZ's L(1/4).(newsy y g) list.
-    rows = []
-    for h in hs:
-        dfh = df.copy()
-        dfh["cumg_h"] = df["cumg"].shift(-h) - df["cumg"].shift(1)
-        r = lp_iv(dfh, y="cumy", x="cumg_h", z="newsy",
-                  horizons=[h], n_lags=0, controls=_CTL, alpha=alpha)
-        rows.append(r.iloc[0])
-    linear = pd.DataFrame(rows).reset_index(drop=True)
+    # ---- 1. Linear cumulative multipliers: RZ's one-step LP-IV. With
+    # cumulative=True the outcome is sum_{j=0..h} (y_{t+j} - y_{t-1}) and
+    # the endogenous regressor sum_{j=0..h} g_{t+j}; with n_lags=0 the only
+    # controls are the explicit (predetermined) lag columns, exactly RZ's
+    # L(1/4).(newsy y g) list, and y_{t-1} among them makes the coefficient
+    # equal to RZ's sum-of-y form.
+    linear = lp_iv(df, y="y", x="g", z="newsy", horizons=hs, n_lags=0,
+                   controls=RZ_CONTROLS, alpha=alpha, cumulative=True,
+                   anderson_rubin=True)
 
-    # ---- 2. State dependence: threshold LP on the slack indicator.
-    # Reduced-form responses of y and of g to the news shock by state;
-    # multipliers as ratios of cumulated coefficients (RZ's two-step).
-    sub = df.dropna(subset=["slack_l"])
-    ry = lp_state_dep(sub, y="y", x="newsy", state="slack_l",
-                      horizons=hs, n_lags=_N_LAGS,
-                      transition="threshold", threshold=0.0,
-                      controls=["g_l1"], alpha=alpha)
-    rg = lp_state_dep(sub, y="g", x="newsy", state="slack_l",
-                      horizons=hs, n_lags=_N_LAGS,
-                      transition="threshold", threshold=0.0,
-                      controls=["y_l1"], alpha=alpha)
-    m_slack = (ry["beta_H"].cumsum() / rg["beta_H"].cumsum()).to_numpy()
-    m_expansion = (ry["beta_L"].cumsum() / rg["beta_L"].cumsum()).to_numpy()
+    # ---- 2. State dependence: RZ's one-step state-dependent LP-IV on the
+    # lagged slack indicator (0/1, so threshold=0.5 splits it), every
+    # coefficient regime-specific as in RZ (interact="all").
+    state_dep = lp_state_dep_iv(df, y="y", x="g", z="newsy", state="slack_l",
+                                horizons=hs, n_lags=0, transition="threshold",
+                                threshold=0.5, controls=RZ_CONTROLS,
+                                alpha=alpha, interact="all", cumulative=True)
+    m_slack = state_dep["beta_H"].to_numpy()
+    m_expansion = state_dep["beta_L"].to_numpy()
 
-    # ---- 3. Per-horizon Olea-Pflueger effective F of the first stage,
-    # by state: residualize the window-sum of g and the instrument on
-    # the controls within each subsample, then F_eff.
-    f_rows = []
-    for h in hs:
-        dfh = _window_frame(df, h)
-        rec: dict = {"h": h}
-        for label, mask in [("slack", dfh["slack_l"] == 1.0),
-                            ("expansion", dfh["slack_l"] == 0.0),
-                            ("linear", dfh["slack_l"].notna())]:
-            s = dfh[mask]
-            X = np.column_stack(
-                [np.ones(len(s))] + [s[c].to_numpy() for c in _CTL])
-            xr = _residualize(s["cumg_h"].to_numpy(), X)
-            zr = _residualize(s["newsy"].to_numpy(), X)
-            rec[label] = olea_pflueger_f(xr, zr)
-        f_rows.append(rec)
-    f_eff = pd.DataFrame(f_rows)
+    # ---- 3. Per-horizon HAC effective F of the first stage (window sum
+    # of g on news | controls): each state's own first stage, and the
+    # linear model's Montiel Olea-Pflueger F.
+    f_eff = pd.DataFrame({
+        "h": hs,
+        "slack": state_dep["first_stage_f_H"].to_numpy(),
+        "expansion": state_dep["first_stage_f_L"].to_numpy(),
+        "linear": linear["mop_f"].to_numpy(),
+    })
 
-    # ---- 4. Robust answer at ar_horizon in the slack state:
-    # conventional 2SLS +/- z*se(HC0) band vs AR/MSW inversion band.
-    s = _window_frame(df, ar_horizon)
-    s = s[s["slack_l"] == 1.0]
-    W = np.column_stack([s[c].to_numpy() for c in _CTL])
-    yv = s["dyw"].to_numpy()
-    xv = s["cumg_h"].to_numpy()
-    zv = s["newsy"].to_numpy()
-    X1 = np.column_stack([np.ones(len(s)), W])
-    yr = _residualize(yv, X1)
-    xr = _residualize(xv, X1)
-    zr = _residualize(zv, X1)
-    beta_iv = float(zr @ yr) / float(zr @ xr)
-    u = yr - beta_iv * xr
-    se_iv = float(np.sqrt(np.sum((zr * u) ** 2)) / abs(zr @ xr))
-    from scipy.stats import norm
-    zc = float(norm.ppf(1 - alpha / 2))
-    grid = np.linspace(-3.0, 5.0, 801)
-    msw_lo, msw_hi = msw_bands(grid, yv, xv, zv, alpha=alpha, controls=W)
+    # ---- 4. Robust answer where the first stage is weak: the expansion
+    # (no-slack) state at ar_horizon. lp_iv on the expansion quarters
+    # alone (newsy NaN elsewhere, every row kept) reproduces beta_L and
+    # reports the conventional HAC band next to the HAC Anderson-Rubin set.
+    masked = df.copy()
+    masked.loc[masked["slack_l"] != 0.0, "newsy"] = np.nan
+    r = lp_iv(masked, y="y", x="g", z="newsy", horizons=[ar_horizon],
+              n_lags=0, controls=RZ_CONTROLS, alpha=alpha, cumulative=True,
+              anderson_rubin=True).loc[ar_horizon]
     robust = {
         "h": ar_horizon,
-        "n_slack": int(len(s)),
-        "beta_2sls": beta_iv,
-        "se_2sls": se_iv,
-        "conv_lo": beta_iv - zc * se_iv,
-        "conv_hi": beta_iv + zc * se_iv,
-        "msw_lo": msw_lo,
-        "msw_hi": msw_hi,
-        "ar_at_point": anderson_rubin_test(beta_iv, yv, xv, zv, controls=W),
-        "ar_at_zero": anderson_rubin_test(0.0, yv, xv, zv, controls=W),
+        "regime": "expansion",
+        "beta": float(r["beta"]),
+        "se": float(r["se"]),
+        "conv_lo": float(r["lo"]),
+        "conv_hi": float(r["hi"]),
+        "ar_lo": float(r["ar_lo"]),
+        "ar_hi": float(r["ar_hi"]),
+        "ar_set_type": str(r["ar_set_type"]),
+        "f_eff": float(r["mop_f"]),
     }
 
     return {
         "linear": linear,
+        "state_dep": state_dep,
         "m_slack": m_slack,
         "m_expansion": m_expansion,
         "f_eff": f_eff,
@@ -270,42 +277,50 @@ def run_rz_replication(
 def main() -> None:
     """Execute all layers, print the headline, assert RZ's signs/ranges."""
     out = run_rz_replication()
-    lin, feff, rob = out["linear"], out["f_eff"], out["robust"]
-    m2, m4 = float(lin.loc[8, "beta"]), float(lin.loc[16, "beta"])
-    ms4, me4 = float(out["m_slack"][16]), float(out["m_expansion"][16])
+    lin, st = out["linear"], out["state_dep"]
+    feff, rob = out["f_eff"], out["robust"]
+    h2, h4 = _HEADLINE
+    m2, m4 = float(lin.loc[h2, "beta"]), float(lin.loc[h4, "beta"])
+    ms4, me4 = float(out["m_slack"][h4]), float(out["m_expansion"][h4])
 
-    print("Ramey-Zubairy (2018 JPE) spending multipliers — LP-IV, news shocks")
+    print("Ramey-Zubairy (2018 JPE) spending multipliers — one-step LP-IV, "
+          "news shocks")
     print(f"  Sample: {out['sample_start'].date()}..{out['sample_end'].date()}"
           f" ({out['n_obs']} quarters), {_N_LAGS} lags, slack = "
-          f"unemp >= {_SLACK_THRESHOLD}%")
-    print(f"  Linear cumulative multiplier: 2yr {m2:+.3f} "
-          f"[90% {lin.loc[8, 'lo']:+.3f}, {lin.loc[8, 'hi']:+.3f}], "
-          f"4yr {m4:+.3f} "
-          f"[90% {lin.loc[16, 'lo']:+.3f}, {lin.loc[16, 'hi']:+.3f}]"
+          f"unemp(t-1) >= {_SLACK_THRESHOLD}%, expansion otherwise")
+    print(f"  Linear cumulative multiplier: 2yr (h={h2}) {m2:+.3f} "
+          f"[90% {lin.loc[h2, 'lo']:+.3f}, {lin.loc[h2, 'hi']:+.3f}], "
+          f"4yr (h={h4}) {m4:+.3f} "
+          f"[90% {lin.loc[h4, 'lo']:+.3f}, {lin.loc[h4, 'hi']:+.3f}]"
           f"   (RZ Table 1: 0.66, 0.71)")
-    print(f"  State-dependent 4yr multiplier: slack {ms4:+.3f}, "
-          f"expansion {me4:+.3f}  -> neither exceeds 1 (RZ's headline).")
-    print("  Olea-Pflueger effective F (first stage of the window-sum of g "
-          "on news | controls):")
-    for h in (4, 8, 12, 16, 20):
-        r = feff.loc[feff["h"] == h].iloc[0]
-        print(f"    h={h:2d}: slack {r['slack']:7.1f}   "
-              f"expansion {r['expansion']:6.1f}   linear {r['linear']:6.1f}"
-              f"   (OP 5% cutoff {_OP_CUTOFF})")
-    print(f"  -> F_eff COLLAPSES with the horizon in the slack state and is "
-          f"never strong in expansion: conventional bands are suspect.")
-    arp = rob["ar_at_point"]
-    print(f"  Robust answer at h={rob['h']} in slack (n={rob['n_slack']}): "
-          f"2SLS {rob['beta_2sls']:+.3f}")
-    print(f"    conventional 90% band  [{rob['conv_lo']:+.3f}, "
-          f"{rob['conv_hi']:+.3f}]  (width "
-          f"{rob['conv_hi'] - rob['conv_lo']:.3f})")
-    print(f"    AR/MSW  90% band       [{rob['msw_lo']:+.3f}, "
-          f"{rob['msw_hi']:+.3f}]  (width "
-          f"{rob['msw_hi'] - rob['msw_lo']:.3f})")
-    print(f"    AR test at the 2SLS point: F={arp.stat:.2f}, "
-          f"p={arp.p_value:.3f}; at beta=0: "
-          f"p={rob['ar_at_zero'].p_value:.3f}")
+    print("  State-dependent cumulative multiplier (one-step LP-IV):")
+    for h, label, rz in ((h2, "2yr", "0.60, 0.59"), (h4, "4yr", "0.68, 0.67")):
+        r = st.loc[h]
+        print(f"    {label} (h={h:2d}): slack {r['beta_H']:+.3f} "
+              f"[90% {r['lo_H']:+.3f}, {r['hi_H']:+.3f}], expansion "
+              f"{r['beta_L']:+.3f} [90% {r['lo_L']:+.3f}, {r['hi_L']:+.3f}]"
+              f"   (RZ Table 1: {rz})")
+    print(f"  -> at 4 years neither exceeds 1 (slack {ms4:+.3f}, expansion "
+          f"{me4:+.3f}): RZ's headline.")
+    print("  HAC effective F of the first stage (window sum of g on news | "
+          "controls):")
+    for h in (0, 1, 3, h2, h4, out["horizon"]):
+        f = feff.loc[feff["h"] == h].iloc[0]
+        print(f"    h={h:2d}: slack {f['slack']:7.1f}   "
+              f"expansion {f['expansion']:6.1f}   linear {f['linear']:6.1f}"
+              f"   (cutoff {_OP_CUTOFF})")
+    print("  -> weak on impact with slack, strong from h = 3, and never "
+          "strong without slack or in the linear model.")
+    conv_w = rob["conv_hi"] - rob["conv_lo"]
+    ar_w = rob["ar_hi"] - rob["ar_lo"]
+    print(f"  Robust answer at h={rob['h']} in {rob['regime']} (no slack), "
+          f"where F = {rob['f_eff']:.1f}: estimate {rob['beta']:+.3f}")
+    print(f"    conventional 90% HAC band   [{rob['conv_lo']:+.3f}, "
+          f"{rob['conv_hi']:+.3f}]  (width {conv_w:.3f})")
+    print(f"    Anderson-Rubin 90% HAC set  [{rob['ar_lo']:+.3f}, "
+          f"{rob['ar_hi']:+.3f}]  (width {ar_w:.3f}, {rob['ar_set_type']})")
+    print(f"  -> the robust set is {ar_w / conv_w:.2f} times as wide and "
+          f"still excludes both 0 and 1.")
 
     # Headline checks (loose: they must survive snapshot regeneration).
     if not (0.3 <= m2 <= 1.0 and 0.3 <= m4 <= 1.1):
@@ -316,24 +331,39 @@ def main() -> None:
         raise AssertionError(
             f"state-dependent 4yr multipliers off range: slack {ms4:+.3f}, "
             f"expansion {me4:+.3f}")
-    f_slack_short = float(feff.loc[feff["h"] <= 8, "slack"].max())
-    f_slack_long = float(feff.loc[feff["h"] == 20, "slack"].iloc[0])
-    if not (f_slack_short > _OP_CUTOFF > f_slack_long):
+    fh = feff.set_index("h")
+    f_impact = float(fh.loc[[0, 1], "slack"].max())
+    f_slack = float(fh.loc[3:, "slack"].min())
+    f_expansion = float(fh["expansion"].max())
+    f_linear = float(fh["linear"].max())
+    if not (f_impact < _OP_CUTOFF < f_slack and f_expansion < _OP_CUTOFF
+            and f_linear < _OP_CUTOFF):
         raise AssertionError(
-            f"expected the slack-state effective F to collapse across "
-            f"horizons (short {f_slack_short:.1f} > {_OP_CUTOFF} > "
-            f"long {f_slack_long:.1f})")
-    conv_w = rob["conv_hi"] - rob["conv_lo"]
-    msw_w = rob["msw_hi"] - rob["msw_lo"]
-    if not msw_w > 1.2 * conv_w:
+            f"expected the effective F to be weak on impact with slack "
+            f"(h <= 1: {f_impact:.1f}), strong from h = 3 (min {f_slack:.1f}),"
+            f" and never strong in expansion (max {f_expansion:.1f}) or in "
+            f"the linear model (max {f_linear:.1f}); cutoff {_OP_CUTOFF}")
+    if not (rob["f_eff"] < _OP_CUTOFF and rob["ar_set_type"] == "bounded"
+            and rob["conv_lo"] <= rob["beta"] <= rob["conv_hi"]
+            and rob["ar_lo"] <= rob["beta"] <= rob["ar_hi"]):
         raise AssertionError(
-            f"AR/MSW band ({msw_w:.3f}) should be clearly wider than the "
-            f"conventional band ({conv_w:.3f}) under a weak first stage")
+            f"expected a weak first stage (F {rob['f_eff']:.1f}) with a "
+            f"bounded Anderson-Rubin set ({rob['ar_set_type']}), both sets "
+            f"containing the estimate {rob['beta']:+.3f}")
+    if not ar_w > 1.2 * conv_w:
+        raise AssertionError(
+            f"Anderson-Rubin set ({ar_w:.3f}) should be clearly wider than "
+            f"the conventional band ({conv_w:.3f}) under a weak first stage")
+    if not (rob["ar_lo"] > 0.0 and rob["ar_hi"] < 1.0):
+        raise AssertionError(
+            f"the 90% Anderson-Rubin set [{rob['ar_lo']:+.3f}, "
+            f"{rob['ar_hi']:+.3f}] should exclude both 0 and 1")
 
     out_dir = Path(__file__).parent / "output"
     if out_dir.is_dir():
         import matplotlib.pyplot as plt
         hs = lin["h"].to_numpy()
+        xlab = "horizon h (quarters; dotted: 2 and 4 years)"
         fig, axes = plt.subplots(2, 2, figsize=(9.5, 6.6))
         ax = axes[0, 0]
         ax.plot(hs, lin["beta"], color="0.0", lw=1.2)
@@ -341,18 +371,24 @@ def main() -> None:
                         label="90% HAC band")
         ax.axhline(1.0, color="0.5", lw=0.6, ls="--")
         ax.axhline(0.0, color="0.5", lw=0.6)
+        for h in _HEADLINE:
+            ax.axvline(h, color="0.6", lw=0.6, ls=":")
         ax.set_title("Linear cumulative multiplier (one-step LP-IV)")
-        ax.set_xlabel("horizon (quarters)")
+        ax.set_xlabel(xlab)
         ax.legend(frameon=False, fontsize=8)
         ax = axes[0, 1]
+        ax.fill_between(hs, st["lo_H"], st["hi_H"], color="0.85", alpha=0.8,
+                        label="slack, 90% HAC band")
         ax.plot(hs, out["m_slack"], color="0.0", lw=1.2, label="slack")
         ax.plot(hs, out["m_expansion"], color="0.45", lw=1.2, ls="--",
                 label="expansion")
         ax.axhline(1.0, color="0.5", lw=0.6, ls="--")
         ax.axhline(0.0, color="0.5", lw=0.6)
+        for h in _HEADLINE:
+            ax.axvline(h, color="0.6", lw=0.6, ls=":")
         ax.set_ylim(-0.5, 2.0)
-        ax.set_title("State-dependent cumulative multiplier")
-        ax.set_xlabel("horizon (quarters)")
+        ax.set_title("State-dependent cumulative multiplier (one-step)")
+        ax.set_xlabel(xlab)
         ax.legend(frameon=False, fontsize=8)
         ax = axes[1, 0]
         ax.semilogy(feff["h"], feff["slack"], color="0.0", lw=1.2,
@@ -362,26 +398,27 @@ def main() -> None:
         ax.semilogy(feff["h"], feff["linear"], color="0.7", lw=1.0,
                     ls=":", label="linear")
         ax.axhline(_OP_CUTOFF, color="0.3", lw=0.8, ls="-.",
-                   label=f"OP cutoff {_OP_CUTOFF}")
-        ax.set_title("Olea-Pflueger effective F, per horizon")
-        ax.set_xlabel("horizon (quarters)")
+                   label=f"cutoff {_OP_CUTOFF}")
+        ax.set_title("HAC effective F of the first stage, per horizon")
+        ax.set_xlabel("horizon h (quarters)")
         ax.legend(frameon=False, fontsize=7)
         ax = axes[1, 1]
         for i, (lo, hi, lab) in enumerate([
-                (rob["conv_lo"], rob["conv_hi"], "conventional ±1.645 SE"),
-                (rob["msw_lo"], rob["msw_hi"], "AR / MSW inversion")]):
+                (rob["conv_lo"], rob["conv_hi"], "conventional ±1.645 HAC SE"),
+                (rob["ar_lo"], rob["ar_hi"], "Anderson-Rubin (HAC)")]):
             ax.plot([lo, hi], [i, i], lw=4,
                     color="0.55" if i == 0 else "0.0",
                     solid_capstyle="butt")
             ax.text(hi + 0.05, i, lab, va="center", fontsize=8)
-        ax.plot(rob["beta_2sls"], 0, marker="o", color="0.0", ms=4)
-        ax.plot(rob["beta_2sls"], 1, marker="o", color="0.0", ms=4)
+        ax.plot(rob["beta"], 0, marker="o", color="0.0", ms=4)
+        ax.plot(rob["beta"], 1, marker="o", color="0.0", ms=4)
         ax.axvline(0.0, color="0.5", lw=0.6)
         ax.axvline(1.0, color="0.5", lw=0.6, ls="--")
-        ax.set_xlim(-0.5, 2.6)
+        ax.set_xlim(-0.25, 1.75)
         ax.set_ylim(-0.8, 1.8)
         ax.set_yticks([])
-        ax.set_title(f"90% bands for the slack multiplier, h={rob['h']}")
+        ax.set_title(f"90% sets for the expansion multiplier, h={rob['h']} "
+                     f"(F {rob['f_eff']:.1f})")
         ax.set_xlabel("cumulative multiplier")
         fig.suptitle("Ramey-Zubairy (2018): multipliers, states, and "
                      "weak-IV honesty", fontsize=10)
