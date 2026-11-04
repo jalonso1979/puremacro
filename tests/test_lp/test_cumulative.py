@@ -183,3 +183,35 @@ def test_state_dep_iv_guard_and_metadata(rz):
         lp_state_dep_iv(rz.drop(rz.index[100]), horizons=[8], cumulative=True, **SKW)
     res = lp_state_dep_iv(rz, horizons=[8], cumulative=True, **SKW)
     assert res.is_cumulative is True and res.method == "LP-state-dep-IV (cumulative)"
+
+
+LAG_CTL = ["g_lag1", "g_lag2", "y_lag1", "y_lag2"]
+
+
+def _raw_lag_frame(rz, h):
+    d = rz.copy()
+    for k in (1, 2):
+        d[f"g_lag{k}"] = d["g"].shift(k)
+        d[f"y_lag{k}"] = d["y"].shift(k)
+    d["cumg_h"] = d["cumg"].shift(-h) - d["cumg"].shift(1)
+    return d
+
+
+@pytest.mark.parametrize("h", [0, 7, 15])
+def test_lp_iv_lags_come_from_the_original_series(rz, h):
+    new = lp_iv(rz, y="y", x="g", z="newsy", horizons=[h], n_lags=2, cumulative=True).iloc[0]
+    old = lp_iv(_raw_lag_frame(rz, h), y="cumy", x="cumg_h", z="newsy", horizons=[h],
+                n_lags=0, controls=LAG_CTL).iloc[0]
+    for col in ("beta", "se", "first_stage_f", "mop_f"):
+        np.testing.assert_allclose(new[col], old[col], rtol=1e-8, err_msg=f"h={h} {col}")
+
+
+@pytest.mark.parametrize("h", [0, 7, 15])
+def test_state_dep_iv_lags_come_from_the_original_series(rz, h):
+    st = dict(state="slack_l", transition="threshold", threshold=0.5)
+    new = lp_state_dep_iv(rz, y="y", x="g", z="newsy", horizons=[h], n_lags=2,
+                          cumulative=True, **st).iloc[0]
+    old = lp_state_dep_iv(_raw_lag_frame(rz, h), y="cumy", x="cumg_h", z="newsy", horizons=[h],
+                          n_lags=0, controls=LAG_CTL, **st).iloc[0]
+    for col in ("beta_H", "se_H", "beta_L", "se_L", "first_stage_f_H", "first_stage_f_L"):
+        np.testing.assert_allclose(new[col], old[col], rtol=1e-8, err_msg=f"h={h} {col}")
