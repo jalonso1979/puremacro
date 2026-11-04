@@ -81,6 +81,25 @@ def test_record_and_paths_shape(computed):
     assert json.loads(json.dumps(record)) == record                  # JSON-ready, no NaN or inf
 
 
+def test_record_matches_independent_measurements(computed):
+    # Full-sample values measured independently with the manual running-sum recipe:
+    # one estimator call per horizon, a running sum of y as the outcome, the window
+    # sum of g as the policy variable, n_lags=0 and the pre-lagged controls, without
+    # cumulative=True. The multipliers are recorded at full precision.
+    full = computed[0]["full"]["horizons"]
+    np.testing.assert_allclose(full["7"]["slack"]["multiplier"], 0.6028751048822653, rtol=1e-8)
+    np.testing.assert_allclose(full["7"]["no_slack"]["multiplier"], 0.5949443896394699, rtol=1e-8)
+    np.testing.assert_allclose(full["15"]["slack"]["multiplier"], 0.6819723644803134, rtol=1e-8)
+    np.testing.assert_allclose(full["15"]["no_slack"]["multiplier"], 0.6683477316895448, rtol=1e-8)
+    np.testing.assert_allclose(full["7"]["linear"]["multiplier"], 0.6637153416055578, rtol=1e-8)
+    np.testing.assert_allclose(full["15"]["linear"]["multiplier"], 0.7133618907912175, rtol=1e-8)
+    # effective F, measured independently to one decimal: slack strong, no slack and linear weak
+    np.testing.assert_allclose([full["7"]["slack"]["f_eff"], full["7"]["no_slack"]["f_eff"], full["7"]["linear"]["f_eff"]],
+                               [210.2, 7.3, 16.0], atol=0.051)
+    assert full["7"]["slack"]["n_eff"] == 180 and full["7"]["no_slack"]["n_eff"] == 313
+    assert computed[0]["experiment"]["horizons"]["15"]["slack"]["ar_set_type"] == "unbounded_rays"
+
+
 def test_default_run_has_no_experiment_and_keeps_estimator_warnings(monkeypatch):
     real = fb.estimate
 
