@@ -690,7 +690,7 @@ def lp_iv(
     res.y_name = str(y)
     res.x_name = str(x)
     res.method = "LP-IV (cumulative)" if cumulative else "LP-IV"
-    res.cumulative = bool(cumulative)
+    res.is_cumulative = bool(cumulative)
     res.ci_level = 1.0 - alpha
     return res
 

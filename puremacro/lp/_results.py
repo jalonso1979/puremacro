@@ -73,7 +73,7 @@ class LPResult(pd.DataFrame):
     """
 
     _metadata = [
-        "y_name", "x_name", "method", "ci_level", "cumulative",
+        "y_name", "x_name", "method", "ci_level", "is_cumulative",
         # la_lp / la_lp_iv lag specification (also mirrored in ``attrs``)
         "n_lags", "extra_lags", "control_lags",
         # smooth_lp estimation metadata (must survive pandas operations)
@@ -81,7 +81,7 @@ class LPResult(pd.DataFrame):
         "selection_criterion", "ci_type", "n_knots", "degree", "penalty_order", "gls",
     ]
 
-    cumulative: bool = False
+    is_cumulative: bool = False
 
     @property
     def _constructor(self):
@@ -257,7 +257,7 @@ class LPResult(pd.DataFrame):
         lines = [head]
         if info:
             lines.append("   ".join(info))
-        if getattr(self, "cumulative", False) is True:  # SpatialLPResult reuses the name for a frame
+        if self.is_cumulative:
             lines.append("estimand: cumulative multiplier (sum of y over sum of x, horizons 0..h)")
 
         if not labs:
