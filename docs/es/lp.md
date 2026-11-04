@@ -206,7 +206,7 @@ print(res_ols.attrs["extra_lags"], res_ols.attrs["p_aug"])
 
 La transmisión de la política económica puede variar según el régimen del ciclo (recesión frente a expansión):
 
-$$y_{t+h} - y_{t-1} = \alpha_h + F(s_t) \beta_h^H x_t + (1 - F(s_t)) \beta_h^L x_t + \text{controles} + \varepsilon_{t+h}$$
+$$y_{t+h} - y_{t-1} = \beta_h^H F(s_t) x_t + \beta_h^L (1 - F(s_t)) x_t + F(s_t)(\alpha_h^H + \Gamma_h^H w_t) + (1 - F(s_t))(\alpha_h^L + \Gamma_h^L w_t) + \varepsilon_{t+h}$$
 
 donde $F(s_t) \in [0, 1]$ es el peso del régimen alto:
 
@@ -214,6 +214,10 @@ donde $F(s_t) \in [0, 1]$ es el peso del régimen alto:
 - **Transición suave (`transition="logistic"`, por defecto)**: $F(s_t) = \frac{1}{1 + \exp(-\gamma (s_t - c) / \sigma_s)}$, con $\sigma_s$ la desviación típica muestral del estado, de modo que $\gamma$ es la velocidad de transición en desviaciones típicas de $s_t$.
 
 El corte $c$ es el argumento `threshold` **en la escala original de la variable de estado**: `threshold=6.5` sobre una tasa de desempleo en porcentaje significa 6,5 %. Por defecto (`threshold=None`) la partición se hace en la media muestral del estado. Un corte que deja todas las observaciones en un solo régimen lanza un `ValueError` que indica el rango del estado, en lugar de una regresión singular.
+
+Por defecto (`interact="all"`) la constante y todos los controles —los rezagos de `x`, `y` y de cada control, y los controles contemporáneos, apilados en $w_t$— se interactúan con $F(s_t)$: cada régimen tiene su propio intercepto y sus propios coeficientes de control, como en Ramey y Zubairy (2018, ec. 2); con un umbral, las estimaciones puntuales coinciden con una regresión por régimen. `interact="intercept"` deja interceptos por régimen y controles comunes; `interact="none"` agrupa ambos, como hacía la función antes de esta opción, y sesga $\beta^H$ y $\beta^L$ cuando el nivel del resultado, la media del choque o la dinámica de los controles difieren entre regímenes ([issue #217](https://github.com/jalonso1979/puremacro/issues/217)). Cada fila trae además `diff_HL`, `se_diff_HL` y `p_diff_HL` (prueba HAC de $\beta^H = \beta^L$) y los tamaños efectivos `n_eff_H`, `n_eff_L`.
+
+El estado entra tal como está fechado en `df`: Ramey–Zubairy y Auerbach–Gorodnichenko lo fechan en $t-1$, así que pase una columna rezagada. Como los rezagos se construyen desplazando filas, para excluir un periodo ponga `x` (o el instrumento) en `NaN` en lugar de borrar las filas.
 
 ```python
 from puremacro.lp import lp_state_dep
