@@ -39,8 +39,8 @@ but not published; their additions are included in 6.0.1, published on
 - The Ramey-Zubairy example: the headline is now at h = 7 and 15 (the 8- and
   16-quarter integrals), which reproduce Table 1. The state layer is one-step
   `lp_state_dep_iv`, with standard errors. Weak-IV diagnostics use the HAC
-  effective F and the HAC Anderson-Rubin set, which removes the non-HAC
-  helpers. Teaching assertions that did not hold under HAC statistics were
+  effective F and the HAC Anderson-Rubin set, so the example no longer uses
+  the non-HAC helpers of `inference.weak_iv`. Teaching assertions that did not hold under HAC statistics were
   replaced: the slack F does not collapse at long horizons (55.9 at h = 20),
   and the robust set is wider than the conventional band in the no-slack
   regime (1.28 times at h = 7), not in the slack regime (1.02). The figure is
