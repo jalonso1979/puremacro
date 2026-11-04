@@ -1634,7 +1634,7 @@ def spatial_lp(
     res.alpha = float(alpha)
     res.n_lags = int(n_lags)
     res.spillover = pd.DataFrame(spill_rows)
-    res.cumulative = cum_frame
+    res.cumulative = cum_frame  # type: ignore[assignment]  # frame here, bool on LPResult
     res.coef = coef
     res.coef_names = coef_names
     res.horizon_values = np.asarray(horizons, dtype=int)

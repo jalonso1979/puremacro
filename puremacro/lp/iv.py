@@ -19,7 +19,7 @@ from scipy.optimize import brentq, minimize_scalar
 from scipy.stats import chi2, ncx2, norm
 
 from ..inference._ols_helpers import ols_hac, tsls_hac
-from ._common import resolve_lp_kwargs
+from ._common import check_regular_index, cumulative_windows, resolve_lp_kwargs
 
 
 def mop_critical_values(
@@ -483,6 +483,7 @@ def lp_iv(
     *,
     anderson_rubin: bool = False,
     weak_iv_robust: bool = False,
+    cumulative: bool = False,
     lags: int | None = None,
     horizon: int | None = None,
     ci: float | None = None,
@@ -512,6 +513,15 @@ def lp_iv(
         confidence intervals (``ar_lo``, ``ar_hi``, ``ar_set_type``).
     weak_iv_robust : bool, default False
         Alias for ``anderson_rubin``.
+    cumulative : bool, default False
+        If False, the outcome is the long difference ``y_{t+h} - y_{t-1}`` and the
+        policy regressor is ``x_t``. If True, estimates the Ramey-Zubairy (2018)
+        integral multiplier: the outcome is ``sum_{j=0..h} (y_{t+j} - y_{t-1})`` and
+        the policy regressor is ``sum_{j=0..h} x_{t+j}``, so ``beta`` is the
+        cumulative response of ``y`` per unit of cumulative ``x`` over horizons
+        ``0..h``. With ``y_{t-1}`` among the controls the coefficient equals
+        Ramey-Zubairy's ``sum y_{t+j}`` form. Requires a regularly spaced index;
+        ``h = 0`` coincides with the default.
     lags : int, optional
         Alias for ``n_lags``. Standardized keyword.
     horizon : int, optional
@@ -543,16 +553,23 @@ def lp_iv(
     cv_10, cv_20 = mop_critical_values(k_z)
     z_crit = norm.ppf(1 - alpha / 2)
     do_ar = anderson_rubin or weak_iv_robust
+    if cumulative:
+        check_regular_index(df.index, "lp_iv")
 
     rows = []
     for h in horizons:
         sub = df[[y, x] + z_names + ctl].copy()
-        sub["dy_h"] = sub[y].shift(-h) - sub[y].shift(1)
+        # Lags come from the original x and y, before any window replaces them.
         for lag in range(1, n_lags + 1):
             sub[f"{x}_L{lag}"] = sub[x].shift(lag)
             sub[f"{y}_L{lag}"] = sub[y].shift(lag)
             for c in ctl:
                 sub[f"{c}_L{lag}"] = sub[c].shift(lag)
+        if cumulative:
+            sub["dy_h"], sub["__x_w__"] = cumulative_windows(sub[y], sub[x], h)
+        else:
+            sub["dy_h"] = sub[y].shift(-h) - sub[y].shift(1)
+            sub["__x_w__"] = sub[x]
         sub = sub.dropna()
         if sub.empty:
             row: dict[str, Any] = {
@@ -603,11 +620,11 @@ def lp_iv(
             W_mat = np.column_stack([W_ctl_mat, Z_mat])
 
         # First stage regression
-        fs = ols_hac(sub[x].values, W_mat, lags=h + 1)
+        fs = ols_hac(sub["__x_w__"].values, W_mat, lags=h + 1)
         x_hat = W_mat @ fs["beta"]
 
         # First-stage F & Montiel Olea & Pflueger effective F
-        mop_f = compute_mop_effective_f(sub[x].values, Z_mat, W_ctl_mat, lags=h + 1)
+        mop_f = compute_mop_effective_f(sub["__x_w__"].values, Z_mat, W_ctl_mat, lags=h + 1)
 
         if k_z == 1:
             first_stage_f = (
@@ -627,7 +644,7 @@ def lp_iv(
             X2.append(sub[c].values)
         X2_mat = np.column_stack(X2)
         X_actual = X2_mat.copy()
-        X_actual[:, 1] = sub[x].values
+        X_actual[:, 1] = sub["__x_w__"].values
         out = tsls_hac(sub["dy_h"].values, X_actual, X2_mat, lags=h + 1)
         beta_h = float(out["beta"][1])
         se_h = float(out["se"][1])
@@ -648,12 +665,12 @@ def lp_iv(
         if do_ar:
             if k_z == 1:
                 ar_lo, ar_hi, ar_kind = _compute_anderson_rubin_ci(
-                    sub["dy_h"].values, sub[x].values, W_mat, lags=h + 1, alpha=alpha
+                    sub["dy_h"].values, sub["__x_w__"].values, W_mat, lags=h + 1, alpha=alpha
                 )
             else:
                 ar_lo, ar_hi, ar_kind = _compute_anderson_rubin_multi(
                     sub["dy_h"].values,
-                    sub[x].values,
+                    sub["__x_w__"].values,
                     W_ctl_mat,
                     Z_mat,
                     lags=h + 1,
@@ -672,7 +689,8 @@ def lp_iv(
         res.index = res["h"]
     res.y_name = str(y)
     res.x_name = str(x)
-    res.method = "LP-IV"
+    res.method = "LP-IV (cumulative)" if cumulative else "LP-IV"
+    res.cumulative = bool(cumulative)
     res.ci_level = 1.0 - alpha
     return res
 

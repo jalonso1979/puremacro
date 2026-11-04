@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from puremacro.lp import lp_iv
 from puremacro.lp._common import check_regular_index, cumulative_windows
 
 
@@ -58,3 +59,86 @@ def test_tz_aware_index_is_measured_without_a_timezone_warning():
         check_regular_index(regular, "lp_iv")
         with pytest.raises(ValueError, match=r"1941-01-01.*1941-07-01"):
             check_regular_index(regular.delete(5), "lp_iv")
+
+
+RZ_CTL = [f"{v}_l{k}" for k in range(1, 5) for v in ("y", "g", "newsy")]
+KW = dict(y="y", x="g", z="newsy", n_lags=0, controls=RZ_CTL)
+
+
+@pytest.fixture(scope="module")
+def rz():
+    from puremacro.examples.ramey_zubairy_2018_multipliers import load_rz_data
+    return load_rz_data()          # no dropna: the index must stay regular
+
+
+def _manual_linear(rz, h, **extra):
+    d = rz.copy()
+    d["cumg_h"] = d["cumg"].shift(-h) - d["cumg"].shift(1)
+    return lp_iv(d, y="cumy", x="cumg_h", z="newsy", horizons=[h], n_lags=0,
+                 controls=RZ_CTL, **extra).iloc[0]
+
+
+def test_lp_iv_h0_equals_default(rz):
+    a = lp_iv(rz, horizons=[0], anderson_rubin=True, **KW)
+    b = lp_iv(rz, horizons=[0], anderson_rubin=True, cumulative=True, **KW)
+    pd.testing.assert_frame_equal(pd.DataFrame(a), pd.DataFrame(b))
+
+
+def test_lp_iv_matches_manual_recipe(rz):
+    # The manual recipe uses RZ's sum-of-y outcome, so this also pins the Frisch-Waugh
+    # equivalence with the keyword's sum of (y_{t+j} - y_{t-1}) form (y_l1 is a control).
+    new = lp_iv(rz, horizons=range(21), anderson_rubin=True, cumulative=True, **KW)
+    for h in range(21):
+        old = _manual_linear(rz, h, anderson_rubin=True)
+        for col in ("beta", "se", "first_stage_f", "mop_f"):
+            np.testing.assert_allclose(new.loc[h, col], old[col], rtol=1e-8, err_msg=f"h={h} {col}")
+        for col in ("ar_lo", "ar_hi"):
+            np.testing.assert_allclose(new.loc[h, col], old[col], rtol=1e-8, err_msg=f"h={h} {col}")
+        assert new.loc[h, "ar_set_type"] == old["ar_set_type"]
+
+
+def test_lp_iv_sparse_unsorted_horizons_match_full(rz):
+    full = lp_iv(rz, horizons=range(21), cumulative=True, **KW)
+    sparse = lp_iv(rz, horizons=[16, 8], cumulative=True, **KW)
+    for h in (8, 16):
+        np.testing.assert_allclose(sparse.loc[h, ["beta", "se", "mop_f"]].astype(float),
+                                   full.loc[h, ["beta", "se", "mop_f"]].astype(float), rtol=1e-12)
+
+
+def _synthetic(two_instruments=False, T=4000, seed=1979):
+    rng = np.random.default_rng(seed)
+    z1, z2, u = rng.standard_normal((3, T))
+    e = 0.8 * u + 0.6 * rng.standard_normal(T)          # endogeneity through u
+    g = np.zeros(T)
+    for t in range(1, T):
+        g[t] = 0.6 * g[t - 1] + z1[t] + (0.7 * z2[t] if two_instruments else 0.0) + u[t]
+    idx = pd.period_range("1000Q1", periods=T, freq="Q")
+    return pd.DataFrame({"y": 0.8 * g + e, "g": g, "z1": z1, "z2": z2}, index=idx)
+
+
+def test_lp_iv_recovers_known_multiplier():
+    res = lp_iv(_synthetic(), y="y", x="g", z="z1", horizons=[0, 4, 8], n_lags=2, cumulative=True)
+    assert (abs(res["beta"] - 0.8) < 3 * res["se"]).all()          # true multiplier 0.8 at every h
+
+
+def test_lp_iv_two_instruments():
+    res = lp_iv(_synthetic(True, seed=2), y="y", x="g", z=["z1", "z2"], horizons=[0, 8], n_lags=2,
+                cumulative=True, anderson_rubin=True)
+    assert (abs(res["beta"] - 0.8) < 3 * res["se"]).all() and (res["mop_f"] > res["mop_cv_10"]).all()
+    assert set(res["ar_set_type"]) <= {"bounded", "unbounded_rays", "all_real", "empty"}
+
+
+def test_lp_iv_rejects_gapped_index_only_when_cumulative(rz):
+    gapped = rz.drop(rz.index[100])
+    with pytest.raises(ValueError, match="lp_iv: cumulative=True"):
+        lp_iv(gapped, horizons=[8], cumulative=True, **KW)
+    lp_iv(gapped, horizons=[8], **KW)                                  # default path unchanged
+
+
+def test_cumulative_metadata(rz):
+    res = lp_iv(rz, horizons=[0, 8], cumulative=True, **KW)
+    assert res.cumulative is True and res.method == "LP-IV (cumulative)"
+    assert res.iloc[1:].cumulative is True
+    assert "cumulative multiplier" in res.summary()
+    plain = lp_iv(rz, horizons=[0], **KW)
+    assert plain.cumulative is False and plain.method == "LP-IV"
