@@ -144,9 +144,10 @@ def check_regular_index(index: pd.Index, func: str) -> None:
             fail(int(decreasing[0]))
         if pd.infer_freq(index) is not None:
             return
-        steps = np.diff(index.to_period("M").asi8)
+        naive = index.tz_localize(None) if index.tz is not None else index
+        steps = np.diff(naive.to_period("M").asi8)
         if int(pd.Series(steps).mode().iloc[0]) < 1:  # sub-monthly data: use days
-            steps = np.diff(index.to_period("D").asi8)
+            steps = np.diff(naive.to_period("D").asi8)
         modal = int(pd.Series(steps).mode().iloc[0])
         bad = np.flatnonzero(steps != modal)
     if bad.size:

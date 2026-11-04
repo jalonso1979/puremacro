@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -47,3 +49,12 @@ def test_period_gap_and_duplicates_raise():
         check_regular_index(pd.period_range("1940Q1", periods=8, freq="Q").delete(3), "f")
     with pytest.raises(ValueError):
         check_regular_index(pd.DatetimeIndex(["2000-01-01", "2000-04-01", "2000-04-01", "2000-07-01"]), "f")
+
+
+def test_tz_aware_index_is_measured_without_a_timezone_warning():
+    regular = pd.date_range("1940-01-01", periods=12, freq="QS", tz="UTC")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        check_regular_index(regular, "lp_iv")
+        with pytest.raises(ValueError, match=r"1941-01-01.*1941-07-01"):
+            check_regular_index(regular.delete(5), "lp_iv")
