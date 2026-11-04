@@ -11,6 +11,9 @@ from __future__ import annotations
 
 from typing import Iterable
 
+import numpy as np
+import pandas as pd
+
 
 def _is_int_like(v: object) -> bool:
     if isinstance(v, bool):
@@ -86,3 +89,65 @@ def resolve_lp_kwargs(
 
 
 __all__ = ["resolve_lp_kwargs"]
+
+
+def cumulative_windows(
+    y: pd.Series, x: pd.Series, h: int
+) -> tuple[pd.Series, pd.Series]:
+    """Window sums for cumulative (integral) multipliers.
+
+    Returns ``(Y_w, X_w)`` on the input index, where
+    ``Y_w[t] = sum_{j=0..h} (y[t+j] - y[t-1])`` and
+    ``X_w[t] = sum_{j=0..h} x[t+j]``.  Built by explicit shift-and-add so a
+    missing value inside a window makes exactly the rows touching it NaN
+    (``cumsum`` would skip it) and ``h = 0`` equals ``y.shift(0) - y.shift(1)``
+    bit for bit (``rolling`` would accumulate rounding error).
+    """
+    y_sum = sum(y.shift(-j) for j in range(h + 1))
+    x_sum = sum(x.shift(-j) for j in range(h + 1))
+    return y_sum - (h + 1) * y.shift(1), x_sum
+
+
+def _fmt_ts(ts: object) -> str:
+    if isinstance(ts, pd.Timestamp):
+        return str(ts.date()) if ts == ts.normalize() else str(ts)
+    return str(ts)
+
+
+def check_regular_index(index: pd.Index, func: str) -> None:
+    """Raise ``ValueError`` if a date or period index is irregularly spaced.
+
+    Window sums are built with positional shifts, so a skipped period would
+    silently be treated as adjacent.  Indexes that are not a
+    ``DatetimeIndex`` or ``PeriodIndex``, and indexes shorter than 3, are
+    not checked.  A non-increasing index (including duplicates) is reported
+    like a gap, naming the first offending pair.
+    """
+    if not isinstance(index, (pd.DatetimeIndex, pd.PeriodIndex)) or len(index) < 3:
+        return
+
+    def fail(i: int) -> None:
+        raise ValueError(
+            f"{func}: cumulative=True needs a regularly spaced index, but "
+            f"{_fmt_ts(index[i])} is followed by {_fmt_ts(index[i + 1])}; "
+            "to exclude a period, set y, x and the instrument to NaN there "
+            "and keep the rows"
+        )
+
+    if isinstance(index, pd.PeriodIndex):
+        steps = np.diff(index.asi8)
+        bad = np.flatnonzero(steps != 1)
+    else:
+        ts = index.asi8
+        decreasing = np.flatnonzero(np.diff(ts) <= 0)
+        if decreasing.size:
+            fail(int(decreasing[0]))
+        if pd.infer_freq(index) is not None:
+            return
+        steps = np.diff(index.to_period("M").asi8)
+        if int(pd.Series(steps).mode().iloc[0]) < 1:  # sub-monthly data: use days
+            steps = np.diff(index.to_period("D").asi8)
+        modal = int(pd.Series(steps).mode().iloc[0])
+        bad = np.flatnonzero(steps != modal)
+    if bad.size:
+        fail(int(bad[0]))
