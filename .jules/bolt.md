@@ -9,3 +9,6 @@
 ## 2023-10-25 - Row duplication in Pandas DataFrames
 **Learning:** Using `.iterrows()` with list comprehensions to duplicate rows in a Pandas DataFrame (e.g. for expanding annual to quarterly periods) is significantly slower than vectorized Pandas/NumPy operations. Expanding rows iteratively creates high object allocation overhead.
 **Action:** When uniformly expanding or duplicating pandas DataFrame rows N times (e.g., converting annual to quarterly data), use `df.iloc[np.repeat(np.arange(len(df)), N)].reset_index(drop=True)` for a highly performant vectorized approach instead of `iterrows()`.
+## 2023-10-25 - Memory reallocation in pandas concat over groupby
+**Learning:** Using `groupby` followed by `sort_values` on each group and then `pd.concat(groups)` is an anti-pattern when trying to sort within groups. It incurs a massive overhead due to the O(N_groups) python loop and the memory allocations required to build intermediate dataframes and concatenate them. It can be fully vectorized by globally sorting the dataframe by the grouping keys and then by the target column.
+**Action:** When sorting rows within groups in a Pandas DataFrame, do not use `pd.concat([g.sort_values(c) for _, g in df.groupby(keys)])`. Instead, use `df.sort_values(keys + [c])` for an identical result that is magnitudes faster.
