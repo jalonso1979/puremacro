@@ -39,11 +39,15 @@ instrument scaled by lagged nominal potential; 4 lags of ``y``, ``g``,
   Olea-Stock-Watson 2021) give an honest 90% multiplier band that is
   visibly wider than the conventional +/-1.645 SE band.
 
-Simplifications vs the paper: controls are not state-interacted in the
-state-dependent LPs (RZ interact every control with the lagged state);
-HAC bandwidth is h+1 (RZ use ``bw(auto)``); the AR/MSW comparison uses
-the slack-state subsample directly rather than the interacted system.
-Points move at the second decimal, not the headline.
+Simplifications vs the paper: HAC bandwidth is h+1 (RZ use
+``bw(auto)``); the AR/MSW comparison uses the slack-state subsample
+directly rather than the interacted system. The state-dependent LPs
+interact the constant and every control with the lagged state, as RZ do
+(``interact="all"``, the default of :func:`lp_state_dep`). Pooling them
+(``interact="none"``) is not innocuous: with the one-step
+:func:`lp_state_dep_iv` it erases the slack/no-slack gap once World War II
+is excluded, and returns explosive estimates on the post-1947 sample
+(GitHub issue #217).
 
 Run:
     python -m puremacro.examples.ramey_zubairy_2018_multipliers

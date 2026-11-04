@@ -9,6 +9,42 @@ additions are included in 5.4.2. Versions 5.8.0, 5.9.0 and 6.0.0 were tagged
 but not published; their additions are included in 6.0.1, published on
 2026-10-29. See the [release procedure](RELEASING.md).
 
+## Unreleased
+
+### Changed
+
+- `lp_state_dep` and `lp_state_dep_iv` take `interact={"all", "intercept",
+  "none"}`, default `"all"`: the constant and every control (lags and
+  contemporaneous controls) are interacted with the regime weight, as in
+  Ramey–Zubairy (2018, eq. 2) and the direct projections of
+  Auerbach–Gorodnichenko (2013). With a threshold transition the point
+  estimates equal one regression per regime. **Behaviour change:** 6.1.0 and
+  earlier pooled the intercept and the control coefficients across regimes;
+  `interact="none"` reproduces those results (relative difference below
+  1e-9 on the bundled Ramey–Zubairy snapshot). `lp_garch_state` inherits the
+  new default. ([#217](https://github.com/jalonso1979/puremacro/issues/217))
+- Both functions also return `diff_HL`, `se_diff_HL` and `p_diff_HL` (HAC test
+  of β_H = β_L) and the effective regime sizes `n_eff_H`, `n_eff_L`.
+
+### Fixed
+
+- Pooled controls biased the regime coefficients. On the bundled
+  Ramey–Zubairy snapshot, `lp_state_dep_iv` erased the slack/no-slack gap once
+  World War II is excluded (0.70/0.69 against 1.07/0.49 with everything
+  interacted) and returned explosive estimates on the post-1947 sample
+  (+2538 at 16 quarters).
+- `lp_state_dep_iv` no longer swallows estimation errors: a horizon that
+  cannot be estimated emits a `RuntimeWarning` naming the horizon and the
+  exception, and its row is NaN.
+- Docstrings: `lp_state_dep_iv` explains how to obtain Ramey–Zubairy's
+  integral multiplier instead of claiming to estimate it directly; both
+  functions state that the state is used as dated (Ramey–Zubairy and
+  Auerbach–Gorodnichenko date it at t−1), that the high regime is the one with
+  high values of the state, and that the index must be contiguous (blank the
+  shock or instrument instead of dropping rows). The Ramey–Zubairy example no
+  longer says that pooling moves results "at the second decimal", and
+  `docs/lp.md` / `docs/es/lp.md` document `interact` and the new columns.
+
 ## 6.1.0 (2026-11-03)
 
 **Reliability & Scale Release: Sovereign grid convergence (25,601x1,281), certified fast Arellano monotone solver, HANK with productive capital & matrix-free Newton-GMRES, DSGE solution workbench, and household trade adjustment.**
