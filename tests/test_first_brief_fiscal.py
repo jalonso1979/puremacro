@@ -362,3 +362,11 @@ def test_cli_prints_the_summary_and_writes_the_files(tmp_path, capsys):
     printed = capsys.readouterr().out
     assert "Con holgura" in printed and f"--exclude {fb.WWII}" in printed and str(out) in printed
     assert FILES <= {p.name for p in out.iterdir()}
+
+
+def test_manifest_records_the_experiment_definition_not_its_results(computed, tmp_path):
+    record, paths = computed
+    man = fb.write_outputs(record, paths, tmp_path / "experiment")
+    assert man["experiment"] == {"exclude": ["1941Q3", "1945Q4"]}            # results live in headline.json
+    full = paths[paths["sample"] == "full"]
+    assert fb.write_outputs({**record, "experiment": None}, full, tmp_path / "default")["experiment"] is None

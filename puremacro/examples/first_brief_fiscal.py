@@ -1122,10 +1122,11 @@ def write_outputs(record: dict[str, Any], paths: pd.DataFrame, output: str | Pat
     files are ``headline.md`` (tables and readings), ``headline.csv`` (the headline cells at
     full precision), ``headline.tex``, ``paths.csv`` (h = 0..20), ``multipliers.png``,
     ``headline.json`` (``record``) and ``manifest.json``. The manifest holds ``lang``,
-    ``puremacro_version``, ``data``, ``specification`` and ``experiment`` from the record,
-    the ``warnings`` and computing time of the last :func:`compute_brief` call with the
-    outputs' wall seconds (``timings``), ``environment``, and ``artifacts``: each other file's
-    SHA-256 and size. It records no absolute path.
+    ``puremacro_version``, ``data`` and ``specification`` from the record; ``experiment``,
+    what was run (``{"exclude": [START, END]}``, or None), while its results are in
+    ``headline.json``; the ``warnings`` and computing time of the last :func:`compute_brief`
+    call, with the outputs' wall seconds (``timings``); ``environment``; and ``artifacts``:
+    each other file's SHA-256 and size. It records no absolute path.
     """
     started = time.perf_counter()
     _text(lang)
@@ -1145,10 +1146,13 @@ def write_outputs(record: dict[str, Any], paths: pd.DataFrame, output: str | Pat
     artifacts = {name: {"sha256": sha256(folder / name), "bytes": (folder / name).stat().st_size}
                  for name in (*content, "headline.json")}
     compute = _LAST_TIMINGS.get("compute_seconds")
+    experiment = record["experiment"]
     manifest = {
         "lang": lang,
         "puremacro_version": record["puremacro_version"],
-        **copy.deepcopy({key: record[key] for key in ("data", "specification", "experiment")}),
+        **copy.deepcopy({key: record[key] for key in ("data", "specification")}),
+        # what was run, not its results, which are in headline.json
+        "experiment": None if experiment is None else {"exclude": list(experiment["exclude"])},
         "warnings": list(_LAST_WARNINGS),
         "timings": {"compute_seconds": None if compute is None else round(compute, 3),
                     "outputs_seconds": round(time.perf_counter() - started, 3)},
