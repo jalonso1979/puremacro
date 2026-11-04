@@ -238,6 +238,30 @@ res_regime.plot(title="Multiplicadores Fiscales según el Nivel de Desempleo")
 
 ---
 
+## Multiplicadores acumulados (cumulative=True)
+
+Ramey y Zubairy (2018) definen el multiplicador fiscal en el horizonte $h$ como una integral, $\sum_{j=0}^{h} y_{t+j} / \sum_{j=0}^{h} g_{t+j}$. Con `cumulative=True`, `lp_iv` y `lp_state_dep_iv` lo estiman en una sola llamada para toda la lista de horizontes. En el horizonte $h$ la variable de resultado es la suma de ventana $\sum_{j=0}^{h} y_{t+j}$ y el regresor endógeno es la suma de ventana $\sum_{j=0}^{h} x_{t+j}$. El instrumento permanece fechado en $t$. El coeficiente es el multiplicador integral, y el resultado lleva `is_cumulative=True` y "(cumulative)" en la etiqueta del método. En $h=0$ el resultado es idéntico bit a bit al de `cumulative=False`.
+
+El coeficiente coincide con la forma $\sum y_{t+j}$ de Ramey y Zubairy solo cuando $y_{t-1}$ está entre los controles, mediante `n_lags >= 1` o una columna de rezago explícita. Con `n_lags=0` y sin rezago de $y$, el estimando es distinto.
+
+Para excluir un periodo (por ejemplo la Segunda Guerra Mundial, como hacen Ramey y Zubairy), fije $y$, $x$ y el instrumento en NaN en ese periodo, conserve las filas y reconstruya las columnas de controles ya rezagadas. No elimine filas: las sumas de ventana exigen un índice temporal regular, así que un índice de fechas o periodos irregular produce un error. Los índices que no son fechas ni periodos (por ejemplo enteros) no se verifican.
+
+```python
+from puremacro.examples.ramey_zubairy_2018_multipliers import RZ_CONTROLS, load_rz_data
+from puremacro.lp import lp_iv, lp_state_dep_iv
+
+rz = load_rz_data()
+lin = lp_iv(rz, y="y", x="g", z="newsy", horizons=[7, 15], n_lags=0,
+            controls=RZ_CONTROLS, cumulative=True)
+st = lp_state_dep_iv(rz, y="y", x="g", z="newsy", state="slack_l", horizons=[7, 15],
+                     n_lags=0, controls=RZ_CONTROLS, transition="threshold",
+                     threshold=0.5, cumulative=True)
+print(lin[["beta", "lo", "hi", "mop_f"]].round(2))
+print(st[["beta_H", "beta_L", "first_stage_f_H", "first_stage_f_L", "p_diff_HL"]].round(2))
+```
+
+---
+
 ## 4. Proyecciones locales para paneles (`panel_lp` y `panel_lp_dk`)
 
 Estime proyecciones locales sobre paneles de datos con efectos fijos bidireccionales y errores estándar agrupados por unidad (`panel_lp`) o robustos a correlación espacial y temporal mediante Driscoll y Kraay (1998) (`panel_lp_dk`, o `panel_lp(..., cov_type="driscoll-kraay")`).
