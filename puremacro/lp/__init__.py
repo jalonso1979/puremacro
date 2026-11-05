@@ -26,6 +26,12 @@ from .distributional import (
     estimate_distributional_lp,
     estimate_quantile_lp,
 )
+from .counterfactual import (
+    OptimalPolicyPerturbationResult,
+    PolicyCounterfactualResult,
+    barnichon_mesters_opp,
+    mckay_wolf_counterfactual,
+)
 
 __all__ = [
     "lp_hac", "LPResult", "panel_lp", "panel_lp_dk", "lp_iv", "lp_iv_lewbel", "panel_lp_iv",
@@ -39,4 +45,8 @@ __all__ = [
     "bridge_hank_distributional_irf",
     "estimate_distributional_lp",
     "estimate_quantile_lp",
+    "PolicyCounterfactualResult",
+    "OptimalPolicyPerturbationResult",
+    "mckay_wolf_counterfactual",
+    "barnichon_mesters_opp",
 ]

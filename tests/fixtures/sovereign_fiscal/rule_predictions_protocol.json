@@ -1,0 +1,37 @@
+{
+  "registered": "2026-10-29, before any phase-2 (fiscal rule) solve; maintainer amendment after the phase-1 review",
+  "rule": "No threshold, tolerance or design entry may be changed after seeing results. A failed prediction is reported as found.",
+  "calibration": {"tau": 0.2, "psi": 1.0, "gamma_c": 2.0, "gamma_g": 2.0, "note": "illustrative, public sovereign parameters otherwise, not fitted"},
+  "units": "debt and thresholds in mean output per quarter (mean y = 1); annual-GDP ratios are a quarter of these",
+  "rules": {
+    "none": null,
+    "ceiling": {"debt_ceiling": 0.02},
+    "ceiling_escape": {"debt_ceiling": 0.02, "escape_below": 0.92},
+    "soft_ceiling": {"debt_ceiling": 0.02, "penalty": 0.05},
+    "deficit": {"deficit_limit": 0.005}
+  },
+  "policy_search": {"none": "monotone", "ceiling": "monotone", "ceiling_escape": "monotone", "soft_ceiling": "monotone", "deficit": "exhaustive"},
+  "design": {
+    "grid": {"n_b": 401, "n_y": 21, "label": "COARSE 401 x 21 grid: rules are compared only within this one grid; coarse moments differ from converged ones (e.g. spread SD)"},
+    "escape_cross_check_grids": [[401, 21], [801, 41]],
+    "seeds": [1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994],
+    "periods": 100000,
+    "burn": 1000,
+    "start": "zero debt, income node n_y // 2, common random numbers across rules"
+  },
+  "definitions": {
+    "binding_share_pct": "100 * share of repayment periods (after burn) on the NO-RULE model's paths in which the unconstrained choice violates the rule: b' > cap + 1e-12 (ceiling), b' - b > limit + 1e-12 (deficit)",
+    "binding_in_booms": "share of those binding periods with y > 1 (above mean output)",
+    "max_b_recession": "max over repayment states with y < 0.92 of the no-rule policy b'(b, y), over states visited on the no-rule paths after burn",
+    "penalty_output_equivalent": "penalty / (psi * g^-gamma_g) averaged over repayment periods of the soft_ceiling model's paths: quarterly output needed to offset the penalty at the marginal utility of spending",
+    "escape_vs_ceiling": "paired-seed change ceiling_escape - ceiling of each moment; |mean| + 95% Student-t half-width <= tolerance"
+  },
+  "tolerances": {"debt_pct": 0.1, "spread_mean_pct": 0.1, "annual_default_pct": 0.1, "spread_std_pp": 0.1, "spending_pct": 0.1, "corr_pb_y": 0.02},
+  "predictions": {
+    "escape_inert": "max_b_recession about 0.001, far below the 0.02 cap at both cross-check grids; ceiling_escape within tolerance of ceiling on every moment (lenders' prices bind before the rule in recessions)",
+    "ceiling_binding_share_pct": [19.0, 23.0],
+    "ceiling_binding_in_booms": 1.0,
+    "deficit_binding_share_pct": [1.0, 2.0],
+    "penalty_output_equivalent": "about 0.002 of quarterly output (0.05 utils at psi v'(g) = g^-2 ~ 25, g ~ 0.2)"
+  }
+}

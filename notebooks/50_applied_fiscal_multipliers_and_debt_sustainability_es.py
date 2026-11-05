@@ -58,6 +58,10 @@ from puremacro.var.estimate import estimate_var
 from puremacro.var.irf import irf as var_irf
 from puremacro.lp.la_lp import la_lp
 from puremacro.lp.iv import lp_iv
+from puremacro.sovereign import (
+    FiscalReactionFunction,
+    simulate_stochastic_dsa as run_sovereign_dsa,
+)
 
 # --- 1. Load Empirical Fiscal Panel and Narrative Tax Records ---------------
 # Load frozen quarterly US fiscal aggregates (taxes, spending, GDP, deflator)
@@ -199,6 +203,13 @@ print(f"Terminal median debt (quarter 20): baseline {np.median(dsa_base[:, -1]):
 
 assert dsa_base.shape == (1000, 21), f"Expected (1000, 21), got {dsa_base.shape}"
 assert 0.0 <= prob_breach <= 1.0, "Breach probability must lie in [0, 1]"
+
+# Motor de biblioteca de primera clase: puremacro.sovereign.simulate_stochastic_dsa devuelve StochasticDSAResult
+dsa_result = run_sovereign_dsa(
+    d0=0.65, horizon=20, n_sims=1000, seed=42,
+    fiscal_reaction=FiscalReactionFunction(beta_debt=0.03, pb_max=5.0),
+)
+assert dsa_result.paths.shape == (1000, 21) and 0.0 <= dsa_result.prob_breach <= 1.0
 
 # --- 4. Hero Figure: Multipliers & Sovereign DSA Dashboard -------------------
 fig, axes = _nbstyle.figura(2, 2, figsize=(11.0, 7.8))

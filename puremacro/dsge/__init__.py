@@ -196,8 +196,21 @@ from .hank_nonlinear import (
     solve_hank_aggregate_risk_order2,
     solve_hank_nonlinear_transition,
 )
+from .ssj_policy import (
+    SSJOSRResult,
+    SSJPolicyResult,
+    ssj_osr,
+    ssj_ramsey,
+    ssj_welfare_decomposition,
+)
+from .risky_steady_state import (
+    PrecautionaryOBCResult,
+    RiskySteadyStateResult,
+    solve_precautionary_obc,
+    solve_risky_steady_state,
+)
 from . import priors
-from . import marginal, mode, observation, smoother, news, hank_nonlinear
+from . import marginal, mode, observation, smoother, news, hank_nonlinear, ssj_policy, risky_steady_state
 from .workbench import (
     DSGEWorkbench, DSGERun, DSGEComparison, DSGEAccuracyDashboard,
     DSGEFailure, DSGERunControl, solution_accuracy,
@@ -295,6 +308,10 @@ __all__ = [
     "NonlinearHANKTransitionResult", "HANKAggregateRiskResult",
     "solve_hank_nonlinear_transition", "solve_hank_aggregate_risk_order2",
     "build_canonical_hank_dag", "hank_nonlinear",
+    # --- Track 1.3: Sequence-Space Optimal Policy & Risky Steady State ---
+    "SSJPolicyResult", "SSJOSRResult", "ssj_ramsey", "ssj_osr", "ssj_welfare_decomposition",
+    "RiskySteadyStateResult", "PrecautionaryOBCResult", "solve_risky_steady_state", "solve_precautionary_obc",
+    "ssj_policy", "risky_steady_state",
 ]
 from . import smets_wouters  # re-export for back-compat with 0.50.0 callers
 from . import gertler_karadi

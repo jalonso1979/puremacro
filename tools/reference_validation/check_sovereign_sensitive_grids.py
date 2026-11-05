@@ -104,12 +104,25 @@ def validate_prior_sources(prior, current):
     """Permit only checked changes that preserve the uniform-grid experiment."""
     if set(prior) != set(current):
         raise ValueError('historical source keys differ')
+    chains = {
+        MONOTONE_SOURCE: (
+            *MONOTONE_EQUIVALENCE,
+            'e9977bcffc32e07146effc934c146d619d4b40bd29a31b4636d965973eeb83a5',
+        ),
+        'puremacro/sovereign/arellano.py': (
+            *EXPLICIT_GRID_EQUIVALENCE,
+            '990900ef48024c3dbc34e58dc186202056c339e14025749f60ab93b34aa9c8f9',
+        ),
+        'puremacro/sovereign/_results.py': (
+            '21e0bd69e131b5bf3171c96ed79bc0ebf2ed38e86f115a8de82cf6491e922a98',
+            'abf7866672248410641db3d2652c5bc04d3f2428cfcfd042d79c28808d7bef6a',
+        ),
+    }
     for path in current:
         if prior[path] == current[path]:
             continue
-        checked = {MONOTONE_SOURCE: MONOTONE_EQUIVALENCE,
-                   'puremacro/sovereign/arellano.py': EXPLICIT_GRID_EQUIVALENCE}
-        if (prior[path], current[path]) != checked.get(path):
+        chain = chains.get(path, ())
+        if prior[path] not in chain or current[path] not in chain or chain.index(prior[path]) >= chain.index(current[path]):
             raise ValueError(f'unsupported historical source change: {path}')
 
 

@@ -11,6 +11,8 @@ but not published; their additions are included in 6.0.1, published on
 
 ## Unreleased
 
+Development changes after 6.1.0. Not a published distribution.
+
 ### Added
 
 - `cumulative=True` on `lp_iv` and `lp_state_dep_iv` estimates integral
@@ -47,6 +49,65 @@ but not published; their additions are included in 6.0.1, published on
   first-stage F statistics (`cond_f_H`, `cond_f_L`) and uses them for
   `first_stage_f_H` / `first_stage_f_L` when `transition="logistic"`.
   ([#217](https://github.com/jalonso1979/puremacro/issues/217))
+- Archived Arellano (2008) calibration: grid convergence established.
+  `check_arellano_grids --calibration archive` keeps the author's exclusion
+  timing, Fortran default-real literals and midpoint-refined 200-node grid.
+  Under the public ladder's pre-registered tolerances and precision rule, 797 to
+  6,369 debt nodes and 321/641 income states pass both final refinements. The
+  standard design left one bound unclassified (debt/output, income direction);
+  it is kept in the record. On converged grids spread volatility is about
+  2.9 pp against the published 6.36, and the trade-balance–spread correlation
+  about 0.82 against 0.43. Spread volatility still falls along the income
+  direction: extrapolation places its limit 0.07–0.14 pp lower. Nothing is
+  recalibrated. Record: `tests/fixtures/arellano_2008/archive_grid_convergence.json`;
+  [guide](docs/arellano_replication.md).
+- `puremacro.sovereign.FiscalRule` and `solve_fiscal_sovereign_default(rule=...)`:
+  debt ceilings, deficit limits, escape clauses and soft (penalty) rules,
+  priced by lenders. Ceilings, escapes and penalties use the certified
+  monotone search; deficit limits use the new `policy_search="exhaustive"`
+  (or `"dense"`). States a hard rule leaves without an admissible choice raise
+  `ValueError` naming them, or default for sure with `infeasible="default"`.
+- Predictions about the rules were registered before any rule solve
+  (`tests/fixtures/sovereign_fiscal/rule_predictions_protocol.json`) and
+  measured on a coarse 401 x 21 grid by
+  `tools/reference_validation/check_fiscal_rule_predictions.py`; the guide
+  reports each verdict, including the one that did not hold.
+- Debt-sustainability analysis (`puremacro.sovereign`):
+  `simulate_stochastic_dsa` (reduced-form debt fan charts with a
+  `FiscalReactionFunction`), `estimate_fiscal_reaction_function` and
+  `fit_stochastic_dsa_from_data` (Bohn-style reaction estimates feeding the
+  simulation), and `simulate_fiscal_dsa` / `compare_fiscal_rules_dsa`
+  (transitions of solved fiscal models from high initial debt, with common
+  random numbers across rules). `StochasticDSAResult` and
+  `FiscalReactionEstimateResult` follow the result-object conventions. The
+  structural trajectories are illustrative 401 × 21 calculations, not
+  grid-converged.
+- `calibrate_fiscal_sovereign_smm` (`SovereignSMMResult`): simulated method of
+  moments for the fiscal sovereign model through `structural.fit_structural`,
+  with `structural.ags_sensitivity` (`AGSSensitivityResult`) for
+  Andrews–Gentzkow–Shapiro sensitivity. Local inference is withheld, with a
+  warning, when the moment Jacobian is rank-deficient or a parameter sits on a
+  bound.
+- Sequence-space policy (`puremacro.dsge`): `ssj_ramsey`, `ssj_osr` and
+  `ssj_welfare_decomposition` (linear-quadratic Ramsey and optimal simple rules
+  on supplied sequence-space Jacobians); `solve_risky_steady_state` and
+  `solve_precautionary_obc` (Coeurdacier–Rey–Winant risky steady state and a
+  precautionary occasionally binding constraint).
+- Policy counterfactuals (`puremacro.lp`): `mckay_wolf_counterfactual` and
+  `barnichon_mesters_opp`, from estimated policy-shock impulse responses.
+- SVAR identification (`puremacro.var`): `svar_heteroskedastic`,
+  `svar_non_gaussian`, `svar_proxy` and `svar_sign_narrative` (`SVARResult`),
+  and `estimate_functional_var` (`FunctionalVARResult`) for yield curves and
+  distributions.
+- `puremacro.inference.estimate_giv` (`GIVResult`): granular instrumental
+  variables.
+- `puremacro.portfolio`: covariance shrinkage, mean-variance and target-return
+  optimization, efficient frontiers, hierarchical risk parity, Black–Litterman,
+  macro-quadrant classification and an all-weather allocation, factor
+  attribution, rebalancing backtests with transaction costs and Monte Carlo
+  wealth glidepaths.
+- Bilingual guides for these additions and showcase notebook 76
+  (`notebooks/76_bilingual_macro_showcase.py` and `_es.py`).
 
 ### Changed
 
@@ -109,6 +170,11 @@ but not published; their additions are included in 6.0.1, published on
   `docs/lp.md` / `docs/es/lp.md` document `interact` and the new columns.
 - The Ramey-Zubairy example no longer reads a missing unemployment rate as
   "no slack": `slack_l` stays NaN.
+- The SSJ guide example called `ssj_ramsey` with keywords it does not accept;
+  it now uses `target_weights` and `baseline_paths`.
+- The fiscal grid ladder's solution cache no longer tries to store the
+  non-array `FiscalSovereignResult.rule` field.
+- Python 3.11 floor typing in `ssj_ramsey` (Gate 8).
 
 ### Internal
 
@@ -126,6 +192,15 @@ but not published; their additions are included in 6.0.1, published on
 - Under `pytest -n`, workers hand the socket guard's blocked attempts to the
   controller, so the end-of-run summary still lists them
   (`tests/test_parallel_runs.py`).
+- `solve_sovereign_default` now calls a private Bellman core parameterized by
+  resources, a choice utility and an income-only flow. Results are
+  bit-identical to 6.0.1 (pinned against a verbatim copy of the 6.0.1 solver,
+  dense and monotone, short- and long-term debt). The independent
+  sovereign-extension record was regenerated: every check and number is
+  unchanged, only source hashes differ.
+- The monotone and exhaustive policy searches accept column and transition
+  penalties; without them every operation is unchanged. Income-column
+  batching in the monotone search passes the column penalty per batch.
 
 ## 6.1.0 (2026-11-03)
 

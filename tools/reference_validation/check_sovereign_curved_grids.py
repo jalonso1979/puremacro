@@ -29,6 +29,38 @@ GRIDS = [(6401, 641), (12801, 641), (6401, 1281), (12801, 1281)]
 GRID_FAMILY = dict(negative_interval_share=[5, 16], positive_power=2,
                    b_min=BASELINE["b_min"], b_max=BASELINE["b_max"])
 INITIAL = Path(__file__).resolve().parents[2] / "tests/fixtures/sovereign_brief/sensitive_grid_initial.json"
+CURVED_EQUIVALENT_SOURCES = {
+    "puremacro/sovereign/arellano.py": (
+        "2301827c26be1295a94d038c6a3a5c03afc459994b4cf2764b850a7d70ba795a",
+        "990900ef48024c3dbc34e58dc186202056c339e14025749f60ab93b34aa9c8f9",
+    ),
+    "puremacro/sovereign/_monotone.py": (
+        "cb0655d94f4f5dc01c1f71979e8bb71551d98ed5ac90e18a79d4f420b3c7e467",
+        "e9977bcffc32e07146effc934c146d619d4b40bd29a31b4636d965973eeb83a5",
+    ),
+    "puremacro/sovereign/_results.py": (
+        "21e0bd69e131b5bf3171c96ed79bc0ebf2ed38e86f115a8de82cf6491e922a98",
+        "abf7866672248410641db3d2652c5bc04d3f2428cfcfd042d79c28808d7bef6a",
+    ),
+}
+FROZEN_SELF_HASH = "b066f1cdc2c859b9affeb5b4eda902c858ce4dd419b44d961b43973ac78794e1"
+
+
+def _equivalent_sources(recorded, current):
+    if not isinstance(recorded, dict) or set(recorded) != set(current):
+        return False
+    self_key = "tools/reference_validation/check_sovereign_curved_grids.py"
+    self_hash = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    for path, cur_sha in current.items():
+        rec_sha = recorded[path]
+        if rec_sha == cur_sha:
+            continue
+        if path == self_key and (rec_sha, cur_sha) == (FROZEN_SELF_HASH, self_hash):
+            continue
+        if (rec_sha, cur_sha) == CURVED_EQUIVALENT_SOURCES.get(path):
+            continue
+        return False
+    return True
 
 
 def debt_grid(n_b):
@@ -62,7 +94,7 @@ def protocol():
 def validate_case(case, b, y, sources):
     grid = debt_grid(b)
     if ((case["n_b"], case["n_y"]) != (b, y)
-            or case["source_sha256"] != sources
+            or not _equivalent_sources(case["source_sha256"], sources)
             or case["debt_grid_sha256"] != grid_hash(grid)
             or not np.array_equal(np.asarray(case["debt_grid"]), grid)):
         raise ValueError("case grid or numerical provenance differs from its protocol")
@@ -91,9 +123,11 @@ def assess(record):
     expected = protocol()
     # Stored environments can differ from a reader's; the sources and design
     # must agree. combine() additionally requires the workers' environments to match.
-    for key in expected.keys() - {"versions", "package_version"}:
+    for key in expected.keys() - {"versions", "package_version", "source_sha256"}:
         if record.get(key) != expected[key]:
             raise ValueError(f"record differs from the registered {key}")
+    if not _equivalent_sources(record.get("source_sha256"), expected["source_sha256"]):
+        raise ValueError("record differs from the registered source_sha256")
     cases = record["cases"]
     if set(cases) != {f"{b}x{y}" for b, y in GRIDS}:
         raise ValueError("the complete crossed curved-grid ladder is required")

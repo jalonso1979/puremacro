@@ -1,6 +1,6 @@
 > 🇬🇧 [English](../sovereign_fiscal_rules.md) · 🇪🇸 Español
 
-# Bloque fiscal en un modelo de impago soberano
+# Bloque fiscal y reglas fiscales en un modelo de impago soberano
 
 `solve_fiscal_sovereign_default` añade gasto público al modelo de impago
 soberano de Arellano (2008) con deuda a corto plazo. Se grava una fracción fija
@@ -181,11 +181,170 @@ MPLBACKEND=Agg python -m tools.reference_validation.check_fiscal_grids --output 
 El registro congelado es `tests/fixtures/sovereign_fiscal/fiscal_grid_convergence.json`;
 las pruebas recalculan su veredicto a partir de los momentos por semilla.
 
+## Reglas fiscales
+
+`rule=FiscalRule(...)` restringe la deuda siguiente cuando se reembolsa. Los
+prestamistas conocen la regla, de modo que cambia los precios de equilibrio de
+los bonos además de las decisiones del gobierno.
+
+| Campo | Significado | Búsqueda |
+|---|---|---|
+| `debt_ceiling` | tope estricto `b' <= debt_ceiling` | `"monotone"` (certificada), `"exhaustive"`, `"dense"` |
+| `escape_below` | toda la regla se suspende cuando `y < escape_below` | la de la regla que suspende |
+| `penalty` | todos los componentes pasan a ser blandos: cada uno incumplido cuesta `penalty` útiles (los incumplimientos se suman) | como arriba |
+| `deficit_limit` | `b' - b <= deficit_limit` (nuevo endeudamiento neto; negativo exige reducir deuda) | solo `"exhaustive"` o `"dense"` |
+
+Los umbrales están en producto medio por trimestre, como la deuda: un tope de
+0,02 es el 2 % del producto de un trimestre, o el 0,5 % del producto anual;
+`escape_below=0.92` es un ingreso un 8 % inferior a su media (cerca de una
+desviación típica incondicional). Una elección en el tope, con tolerancia
+`1e-12`, cumple la regla. Un límite de déficit liga la elección a la deuda
+actual, lo que rompe la búsqueda monótona, así que con
+`policy_search="monotone"` produce `ValueError`; la búsqueda exhaustiva por
+bloques cuesta O(n_b² n_y) por iteración, por lo que conviene usar mallas
+gruesas como 401 × 21.
+
+Si una regla estricta deja un estado sin deuda admisible (por ejemplo
+`deficit_limit=-0.01` en los nodos de deuda más bajos), el solucionador falla
+antes de resolver y nombra hasta diez de esos estados; con
+`infeasible="default"` el gobierno incurre en impago seguro en ellos
+(`v_repay = -inf`, `default_prob = 1`).
+
+```python
+from puremacro.sovereign import FiscalRule, solve_fiscal_sovereign_default
+
+small = dict(tau=0.2, psi=1.0, n_b=101, n_y=11)
+rules = {
+    "ceiling": FiscalRule(debt_ceiling=0.02),
+    "ceiling_escape": FiscalRule(debt_ceiling=0.02, escape_below=0.92),
+    "soft_ceiling": FiscalRule(debt_ceiling=0.02, penalty=0.05),
+    "deficit": FiscalRule(deficit_limit=0.005),
+}
+for name, rule in rules.items():
+    search = "exhaustive" if rule.deficit_limit is not None else "monotone"
+    res = solve_fiscal_sovereign_default(**small, rule=rule, policy_search=search)
+    assert res.converged and res.rule is rule
+    print(name, res.metadata["policy_search"], round(float(res.policy_b.max()), 4))
+
+strict = FiscalRule(deficit_limit=-0.01)          # must cut debt by 1% of output each quarter
+try:
+    solve_fiscal_sovereign_default(**small, rule=strict, policy_search="exhaustive")
+except ValueError as err:
+    print(err)                                     # names the states with no admissible choice
+forced = solve_fiscal_sovereign_default(
+    **small, rule=FiscalRule(deficit_limit=-0.01, infeasible="default"), policy_search="exhaustive")
+print(forced.metadata["rule_infeasible_states"])  # those states now default for sure
+```
+
+### Predicciones registradas y resultado
+
+Antes de resolver ninguna regla se registraron las predicciones siguientes y
+sus definiciones en `tests/fixtures/sovereign_fiscal/rule_predictions_protocol.json`;
+`tools/reference_validation/check_fiscal_rule_predictions.py` las midió
+(registro: `rule_predictions_record.json`; 16 semillas emparejadas × 100.000
+trimestres). Las fracciones de activación se miden en las trayectorias **sin
+regla**: la fracción de trimestres de reembolso en que la elección sin
+restricción incumpliría la regla.
+
+Para regenerar el registro (cerca de un minuto; lee el protocolo y nunca lo modifica):
+
+```sh
+MPLBACKEND=Agg python -m tools.reference_validation.check_fiscal_rule_predictions --output /tmp/rule_predictions_record.json
+```
+
+| Predicción | Registrada | Resultado | Veredicto |
+|---|---|---|---|
+| Cláusula de escape inerte: mayor deuda elegida con `y < 0.92` | cerca de 0,001, muy por debajo de 0,02 | 0,00048 (401 × 21), 0,00060 (801 × 41); ningún momento cambia | se cumplió |
+| El tope de 0,02 se activa | 19–23 % de los trimestres de reembolso | 23,4 % | **no se cumplió** |
+| El tope solo se activa en auges (`y > 1`) | todos los trimestres activos | todos | se cumplió |
+| El límite de déficit de 0,005 se activa | 1–2 % | 1,7 % | se cumplió |
+| Equivalente en producto de `penalty=0.05` | cerca de 0,002 | 0,0020 | se informa (sin banda registrada) |
+
+La fracción de activación del tope quedó justo por encima de la banda
+registrada; se informa tal cual, y ningún umbral se cambió después.
+En la fila de la cláusula de escape, «se cumplió» es el criterio de la
+herramienta: la mayor deuda elegida con `y < 0.92` queda por debajo del tope de
+0,02 en ambas mallas, y todos los momentos superan la comparación emparejada con
+el tope simple. Los valores hallados, 0,00048 y 0,00060, son cerca de la mitad
+del «cerca de 0,001» del protocolo.
+
+**Por qué la cláusula de escape no hace nada aquí.** El riesgo de impago es
+máximo en las malas épocas, así que los precios de los prestamistas ya
+encarecen el endeudamiento en recesión: con ingreso inferior a 0,92 el gobierno
+sin restricción nunca elige más de 0,00048 del producto trimestral, la
+cuadragésima parte del tope. Con esos ingresos el precio del bono en el tope es
+prácticamente cero (como mucho el 0,13 % del precio sin riesgo), y lo máximo que
+el gobierno puede obtener endeudándose es 0,0011 del producto trimestral
+(401 × 21). La disciplina de mercado actúa antes que la regla, de modo que suspenderla en recesión no cambia nada: las filas con
+cláusula de escape coinciden con el tope simple en todas las semillas. El tope
+solo se activa en auges, cuando el gobierno se endeudaría más.
+
+**Escala de la penalización.** La penalización está en útiles. Dividida por la
+utilidad marginal del gasto, `psi g^(-gamma_g)`, promediada en los trimestres
+de reembolso del modelo con tope blando (`g` medio = 0,200), da su
+equivalente en producto: `penalty=0.05` cuesta cerca de 0,0020 del producto
+trimestral por incumplimiento. En las trayectorias simuladas, que parten de
+deuda cero, el gobierno nunca supera el tope a ese precio (0,0 % de los
+trimestres de reembolso), y con cualquier deuda actual `b <= 0.02` las reglas
+blanda y estricta eligen la misma deuda. Fuera de esas trayectorias difieren:
+en 503 estados de reembolso, todos con deuda actual de al menos 0,04776, el
+gobierno con regla blanda refinancia su deuda por encima del tope y paga la
+penalización en lugar de recortar de golpe hasta el tope. Las trayectorias que
+parten de deuda alta, como los gráficos de abanico de sostenibilidad, mostrarían
+esa diferencia.
+
+**MALLA GRUESA 401 × 21: compare reglas solo dentro de esta tabla.** Los
+momentos en malla gruesa difieren de los convergidos (la DE del diferencial sin
+regla es aquí 5,906 pp frente a 2,716 con 6.401 × 641).
+
+| Regla | Deuda/producto (%) | Diferencial medio (%) | Impago anual (%) | DE del diferencial (pp) |
+|---|---:|---:|---:|---:|
+| `none` | 1,057 | 3,912 | 3,744 | 5,906 |
+| `ceiling` | 0,796 | 3,726 | 3,569 | 5,698 |
+| `ceiling_escape` | 0,796 | 3,726 | 3,569 | 5,698 |
+| `soft_ceiling` | 0,796 | 3,726 | 3,569 | 5,698 |
+| `deficit` | 1,053 | 3,908 | 3,739 | 5,902 |
+
+El tope reduce la deuda media, y la menor deuda va acompañada de diferenciales y
+frecuencia de impago más bajos; el límite de déficit apenas se activa.
+
+### Trayectorias de sostenibilidad desde deuda elevada
+
+Las simulaciones ergódicas que parten de deuda cero nunca visitan los estados ($b \ge 0,04776$) donde divergen el tope blando y el tope estricto. `simulate_fiscal_dsa` y `compare_fiscal_rules_dsa` parten en cambio de una deuda inicial elevada (por defecto `b0 = 0.05` con producto de auge `y0 = 1.10`, donde el soberano reembolsa) y trazan la distribución de transición a 40 trimestres con números aleatorios comunes entre reglas.
+
+En la malla **401 × 21** (`1.000` trayectorias, `40` trimestres, `seed = 42`, `threshold = 0.02`):
+
+| Regla | Deuda elegida período 1 $b'_1$ | Gasto/producto período 1 (%) | Período 1 sobre 0,02 (%) | Trimestres reembolso sobre 0,02 (%) | Deuda mediana terminal (%) | $\text{DaR}_{95}$ terminal (%) | Impago acumulado (%) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `none` | 0,03960 | 18,99 | 100,0 | 46,74 | 0,816 | 4,225 | 30,50 |
+| `ceiling` | 0,01992 | 17,22 | 0,0 | 0,00 | 0,792 | 1,992 | 26,60 |
+| `ceiling_escape` | 0,01992 | 17,22 | 0,0 | 0,00 | 0,792 | 1,992 | 26,60 |
+| `soft_ceiling` | 0,03600 | 18,67 | 100,0 | 2,56 | 0,792 | 1,992 | 26,90 |
+| `deficit` | 0,03960 | 18,99 | 100,0 | 46,58 | 0,768 | 4,225 | 30,50 |
+
+Partiendo de $b_0 \approx 0,05$, el **tope estricto** (`ceiling`) fuerza un ajuste fiscal en un solo trimestre desde $b_0 = 0,04992$ hasta $b'_1 = 0,01992 \le 0,02$, comprimiendo el gasto público del primer período al $17,22\,\%$ del producto ($-1,77\text{ pp}$ por debajo de `none`). Bajo el **tope blando** (`soft_ceiling`, `penalty = 0.05`), el gobierno prefiere pagar la penalización de utilidad en el primer trimestre y elegir una deuda intermedia $b'_1 = 0,03600 > 0,02$, suavizando el gasto público del primer período en el $18,67\,\%$ del producto ($+1,45\text{ pp}$ por encima del tope estricto) antes de completar el desapalancamiento por debajo de $0,02$ en el segundo trimestre ($2,56\,\%$ de los trimestres de reembolso sobre el tope en total, con el mismo $\text{DaR}_{95}$ terminal de $1,992\,\%$ que el tope estricto).
+
+```python
+from puremacro.sovereign import compare_fiscal_rules_dsa, simulate_fiscal_dsa
+
+dsa_models = {
+    "none": solve_fiscal_sovereign_default(**small),
+    "ceiling": solve_fiscal_sovereign_default(**small, rule=rules["ceiling"]),
+    "soft_ceiling": solve_fiscal_sovereign_default(**small, rule=rules["soft_ceiling"]),
+}
+dsa_table = compare_fiscal_rules_dsa(dsa_models, b0=0.05, y0=1.10, horizon=20, n_sims=200, seed=42)
+assert dsa_table.loc[dsa_table["rule_name"] == "ceiling", "prob_breach_pct"].item() == 0.0
+assert dsa_table.loc[dsa_table["rule_name"] == "soft_ceiling", "first_period_above_threshold_pct"].item() == 100.0
+soft_dsa = simulate_fiscal_dsa(dsa_models["soft_ceiling"], b0=0.05, y0=1.10, horizon=20, n_sims=200, seed=42)
+print(dsa_table[["rule_name", "first_period_b_next", "first_period_g_pct", "dar_95_pct"]])
+```
+
 ## Límites
 
 - Economía de dotación: el producto no responde a impuestos ni al gasto.
 - Tasa impositiva fija: `tau` es un parámetro, no una decisión de política.
 - Solo deuda a corto plazo (`delta = 1`, `kappa = 0`).
+- Las reglas son plenamente creíbles y permanentes; el gobierno no puede renegociarlas.
 - La calibración es ilustrativa y los momentos describen este modelo con
   estos parámetros, no a ningún país.
 
