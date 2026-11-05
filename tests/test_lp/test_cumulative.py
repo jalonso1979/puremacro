@@ -215,3 +215,19 @@ def test_state_dep_iv_lags_come_from_the_original_series(rz, h):
                           n_lags=0, controls=LAG_CTL, **st).iloc[0]
     for col in ("beta_H", "se_H", "beta_L", "se_L", "first_stage_f_H", "first_stage_f_L"):
         np.testing.assert_allclose(new[col], old[col], rtol=1e-8, err_msg=f"h={h} {col}")
+
+
+def test_regular_index_check_is_silent_when_infer_freq_warns(monkeypatch):
+    real = pd.infer_freq
+
+    def noisy(*args, **kwargs):
+        warnings.warn("infer_freq will return a BaseOffset", FutureWarning, stacklevel=2)
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr("puremacro.lp._common.pd.infer_freq", noisy)
+    regular = pd.date_range("1940-01-01", periods=12, freq="QS")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        check_regular_index(regular, "lp_iv")
+        with pytest.raises(ValueError, match=r"1941-01-01.*1941-07-01"):
+            check_regular_index(regular.delete(5), "lp_iv")

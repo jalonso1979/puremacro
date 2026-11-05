@@ -9,6 +9,7 @@ silently producing all-NaN confidence bands.
 """
 from __future__ import annotations
 
+import warnings
 from typing import Iterable
 
 import numpy as np
@@ -142,7 +143,11 @@ def check_regular_index(index: pd.Index, func: str) -> None:
         decreasing = np.flatnonzero(np.diff(ts) <= 0)
         if decreasing.size:
             fail(int(decreasing[0]))
-        if pd.infer_freq(index) is not None:
+        # pandas >= 3.1 warns that infer_freq will return a BaseOffset; only None vs not-None is used here
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            inferred = pd.infer_freq(index)
+        if inferred is not None:
             return
         naive = index.tz_localize(None) if index.tz is not None else index
         steps = np.diff(naive.to_period("M").asi8)
