@@ -193,6 +193,26 @@ _CREDENTIAL_ENV_VARS = (
 )
 
 
+def pytest_sessionfinish(session):
+    """Hand this worker's socket-guard hits to the pytest-xdist controller.
+
+    Under ``pytest -n`` every worker records its own ``_SOCKET_GUARD_HITS``,
+    but only the controller prints the terminal summary. ``workeroutput``
+    exists only on a worker's config, and xdist sends it to the controller
+    after this hook has run (see ``pytest_testnodedown``).
+    """
+    workeroutput = getattr(session.config, "workeroutput", None)
+    if workeroutput is not None:
+        workeroutput["socket_guard_hits"] = [list(hit) for hit in _SOCKET_GUARD_HITS]
+
+
+@pytest.hookimpl(optionalhook=True)
+def pytest_testnodedown(node, error):
+    """On the pytest-xdist controller, keep what a finished worker blocked."""
+    hits = getattr(node, "workeroutput", None) or {}
+    _SOCKET_GUARD_HITS.extend(tuple(hit) for hit in hits.get("socket_guard_hits", ()))
+
+
 def pytest_terminal_summary(terminalreporter):
     if not _SOCKET_GUARD_HITS:
         return
@@ -203,6 +223,51 @@ def pytest_terminal_summary(terminalreporter):
             continue
         seen.add((nodeid, call, host))
         terminalreporter.write_line(f"{nodeid}  {call}  {host}")
+
+
+# ---------------------------------------------------------------------------
+# Parallel runs (pytest-xdist, as CI runs the suite)
+# ---------------------------------------------------------------------------
+import os
+
+#: The slowest test files, slowest first (local test times of 2026-11-05).
+#: CI runs ``pytest -n auto --dist loadfile --no-loadscope-reorder``: each
+#: file goes whole to one worker, in collection order, so a long file that is
+#: collected late sets the length of the whole run (test_vfi_krusell_smith.py
+#: alone takes about 13 minutes on a laptop). Inside a worker these files are
+#: moved to the front; only the order in which files start changes, and a
+#: serial run is untouched. tests/test_parallel_runs.py fails if one of them
+#: is renamed or removed.
+_HEAVY_FIRST = (
+    "tests/test_vfi/test_vfi_krusell_smith.py",
+    "tests/test_trade_tier5_adversarial_probing.py",
+    "tests/test_docs_code_blocks.py",
+    "tests/test_benchmarks/test_benchmark_continuous_vfi.py",
+    "tests/test_notebooks_trade_tutorials.py",
+    "tests/test_46_state_strikes_replicates.py",
+    "tests/test_spatial/test_models.py",
+    "tests/test_smc_inference.py",
+    "tests/test_m5_empirical_challenger2_icio.py",
+    "tests/test_gar/test_qar_skewt_fci.py",
+    "tests/replication/test_replication_cases.py",
+    "tests/e2e/test_v290_tier3_e2e.py",
+    "tests/test_e2e_upgrade.py",
+    "tests/test_vfi/test_vfi_huggett.py",
+    "tests/test_fix_MSAR_ms_var_em.py",
+    "tests/test_notebooks/test_m5_trade_tutorials_tier5_stress.py",
+)
+_HEAVY_RANK = {path: rank for rank, path in enumerate(_HEAVY_FIRST)}
+
+
+def _heavy_first_rank(nodeid: str) -> int:
+    """Position of the test's file in ``_HEAVY_FIRST``; every other file ties last."""
+    return _HEAVY_RANK.get(nodeid.split("::", 1)[0], len(_HEAVY_FIRST))
+
+
+def pytest_collection_modifyitems(config, items):
+    """Inside a pytest-xdist worker, start the slowest files first."""
+    if os.environ.get("PYTEST_XDIST_WORKER"):
+        items.sort(key=lambda item: _heavy_first_rank(item.nodeid))
 
 
 @pytest.fixture

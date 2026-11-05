@@ -85,6 +85,23 @@ but not published; their additions are included in 6.0.1, published on
 - The Ramey-Zubairy example no longer reads a missing unemployment rate as
   "no slack": `slack_l` stays NaN.
 
+### Internal
+
+- CI runs the test suite in parallel. Run serially, the suite took about 122
+  of the 128 minutes of the longest leg while the runner's other cores sat
+  idle. Each leg now runs
+  `pytest -n auto --dist loadfile --no-loadscope-reorder`, with one BLAS
+  thread per worker and the slowest test files started first
+  (`_HEAVY_FIRST` in `tests/conftest.py`). `pytest-xdist` joins the `dev`
+  extra; a plain `pytest` still runs serially.
+- mypy, the release gate and the strict docs build run in their own `checks`
+  job beside the test legs. A new commit on a pull request cancels that pull
+  request's CI run in progress; pushes to main and release runs are never
+  cancelled.
+- Under `pytest -n`, workers hand the socket guard's blocked attempts to the
+  controller, so the end-of-run summary still lists them
+  (`tests/test_parallel_runs.py`).
+
 ## 6.1.0 (2026-11-03)
 
 **Reliability & Scale Release: Sovereign grid convergence (25,601x1,281), certified fast Arellano monotone solver, HANK with productive capital & matrix-free Newton-GMRES, DSGE solution workbench, and household trade adjustment.**
