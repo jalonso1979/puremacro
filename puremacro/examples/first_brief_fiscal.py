@@ -147,6 +147,7 @@ import io
 import json
 import math
 import re
+import sys
 import textwrap
 import time
 import warnings
@@ -932,15 +933,25 @@ def _wrap(paragraph: str) -> str:
                          break_on_hyphens=False).replace("\0", " ")
 
 
+#: The terminal spelling of the signs of an unbounded set, which a legacy console code page
+#: such as cp1252 cannot encode; the written files keep the signs.
+_TERMINAL = str.maketrans({"\N{INFINITY}": "inf", "\N{UNION}": "U"})
+
+
 def summary_text(record: dict[str, Any], lang: str = "en") -> str:
-    """The plain-text summary :func:`main` prints: each sample's table and reading."""
+    """The plain-text summary :func:`main` prints: each sample's table and reading.
+
+    An unbounded set's infinity and union signs are spelled ``inf`` and ``U``, as in
+    ``(-inf, b] U [a, inf)``, so that any console can print them; the files keep the signs.
+    """
     t = _text(lang)
     parts = [t["title"], t["source"].format(citation=record["data"]["citation"])]
     for name, heading in _sections(record, lang):
         parts += [heading, _table_block(record, record[name], lang), _reading(record, name, lang)]
     if record["experiment"] is None:
         parts.append(_no_experiment(lang))
-    return "\n\n".join(_wrap(p) for p in "\n\n".join(parts).split("\n\n")) + "\n"
+    text = "\n\n".join(_wrap(p) for p in "\n\n".join(parts).split("\n\n")) + "\n"
+    return text.translate(_TERMINAL)
 
 
 def _markdown_page(record: dict[str, Any], lang: str) -> str:
@@ -1204,6 +1215,23 @@ def run_brief(output: str | Path, *, exclude: str | None = None,
     return {"record": record, "paths": paths, "manifest": manifest}
 
 
+def _echo(text: str) -> None:
+    """Print ``text``, replacing any character that stdout's encoding cannot encode.
+
+    The files are written before the summary is printed, so an unencodable character (in
+    an output path, say, on a cp1252 console) must not turn a finished run into an error.
+    """
+    encoding = getattr(sys.stdout, "encoding", None)
+    if encoding:
+        try:
+            text.encode(encoding)
+        except UnicodeEncodeError:
+            text = text.encode(encoding, errors="replace").decode(encoding)
+        except LookupError:      # not a codec Python knows: leave the text to the stream
+            pass
+    print(text)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """The command line: check the arguments, run the brief, print its summary in ``--lang``."""
     parser = argparse.ArgumentParser(
@@ -1224,8 +1252,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         except _ExcludeError as exc:
             parser.error(exc.text(args.lang))
     study = run_brief(args.output, exclude=args.exclude, lang=args.lang)
-    print(summary_text(study["record"], args.lang))
-    print(_TEXT[args.lang]["written"].format(path=args.output))
+    _echo(summary_text(study["record"], args.lang))
+    _echo(_TEXT[args.lang]["written"].format(path=args.output))
     return 0
 
 

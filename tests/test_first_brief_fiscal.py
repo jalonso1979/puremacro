@@ -1,5 +1,7 @@
 import copy
+import io
 import json
+import sys
 import warnings
 import numpy as np, pandas as pd, pytest
 import puremacro.examples.first_brief_fiscal as fb
@@ -362,6 +364,29 @@ def test_cli_prints_the_summary_and_writes_the_files(tmp_path, capsys):
     printed = capsys.readouterr().out
     assert "Con holgura" in printed and f"--exclude {fb.WWII}" in printed and str(out) in printed
     assert FILES <= {p.name for p in out.iterdir()}
+
+
+def test_cli_prints_the_experiment_on_a_cp1252_console(tmp_path, monkeypatch):
+    # Windows' cp1252 cannot encode the infinity and union signs of the experiment's unbounded
+    # set (slack at 4 years): the summary spells them inf and U, and the files keep the signs.
+    console = io.TextIOWrapper(io.BytesIO(), encoding="cp1252")
+    monkeypatch.setattr(sys, "stdout", console)
+    out = tmp_path / "out"
+    assert fb.main(["--exclude", fb.WWII, "--lang", "es", "--output", str(out)]) == 0
+    console.flush()
+    printed = console.buffer.getvalue().decode("cp1252")
+    assert "Experimento: excluyendo 1941Q3-1945Q4" in printed and str(out) in printed
+    assert "(-inf, " in printed and "] U [" in printed and ", inf) †" in printed
+    assert FILES <= {p.name for p in out.iterdir()}
+    assert "\N{INFINITY}" in (out / "headline.md").read_text(encoding="utf-8")
+
+
+def test_cli_output_replaces_what_the_console_cannot_encode(monkeypatch):
+    console = io.TextIOWrapper(io.BytesIO(), encoding="cp1252", newline="\n")
+    monkeypatch.setattr(sys, "stdout", console)
+    fb._echo("salida_\N{GREEK SMALL LETTER ALPHA} \N{INFINITY} año")    # e.g. an output path
+    console.flush()
+    assert console.buffer.getvalue().decode("cp1252") == "salida_? ? año\n"
 
 
 def test_manifest_records_the_experiment_definition_not_its_results(computed, tmp_path):
