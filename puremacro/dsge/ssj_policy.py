@@ -598,6 +598,7 @@ def ssj_ramsey(
     rhs = -g0
 
     # Solve H i* = rhs
+    i_opt: np.ndarray
     total_w = sum(weights.values())
     if total_w == 0.0 and lam_i > 0.0 and not incorporate_welfare_gradient:
         i_opt = np.zeros(T, dtype=np.float64)
