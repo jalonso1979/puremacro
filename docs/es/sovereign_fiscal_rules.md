@@ -246,6 +246,12 @@ trimestres). Las fracciones de activación se miden en las trayectorias **sin
 regla**: la fracción de trimestres de reembolso en que la elección sin
 restricción incumpliría la regla.
 
+Para regenerar el registro (cerca de un minuto; lee el protocolo y nunca lo modifica):
+
+```sh
+MPLBACKEND=Agg python -m tools.reference_validation.check_fiscal_rule_predictions --output /tmp/rule_predictions_record.json
+```
+
 | Predicción | Registrada | Resultado | Veredicto |
 |---|---|---|---|
 | Cláusula de escape inerte: mayor deuda elegida con `y < 0.92` | cerca de 0,001, muy por debajo de 0,02 | 0,00048 (401 × 21), 0,00060 (801 × 41); ningún momento cambia | se cumplió |

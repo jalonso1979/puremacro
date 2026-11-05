@@ -235,6 +235,12 @@ committed in `tests/fixtures/sovereign_fiscal/rule_predictions_protocol.json`;
 Binding shares are measured on the **no-rule** paths: the share of repayment
 quarters in which the unconstrained choice would break the rule.
 
+To regenerate the record (about a minute; it reads the protocol and never changes it):
+
+```sh
+MPLBACKEND=Agg python -m tools.reference_validation.check_fiscal_rule_predictions --output /tmp/rule_predictions_record.json
+```
+
 | Prediction | Registered | Found | Verdict |
 |---|---|---|---|
 | Escape clause inert: largest debt chosen with `y < 0.92` | about 0.001, far below 0.02 | 0.00048 (401 × 21), 0.00060 (801 × 41); every moment unchanged | held |
