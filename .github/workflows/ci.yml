@@ -10,6 +10,15 @@ on:
   # (inside a call, github.event_name is the caller's "push" of a tag).
   workflow_call:
 
+# A new commit on a pull request cancels that pull request's run still in
+# progress. Every other run (a push to main, the release call) gets a group of
+# its own, its run id, so it never cancels anything and is never cancelled.
+# This is the one event-specific condition, and a release call falls on the
+# safe side of it.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   PYTHONFAULTHANDLER: "1"
   PUREMACRO_LLM_MODE: "cache"
@@ -53,22 +62,12 @@ jobs:
       - name: Verify sovereign grid compatibility
         run: pytest tests/test_sovereign/test_monotone_search.py tests/test_sovereign/test_custom_debt_grid.py tests/test_sovereign/test_bit_identity.py tests/test_examples/test_first_brief_sovereign.py::test_build_record_schema_and_recomputation -q
 
-      # The 3.11 leg resolves NumPy 2.4 (NumPy 2.5 requires Python 3.12), whose
-      # stubs differ from 2.5's; v5.4.0 failed typing only there. Check both.
-      - name: Run static type checking (mypy)
-        if: matrix.os == 'ubuntu-latest' && (matrix.python-version == '3.11' || matrix.python-version == '3.12')
-        run: |
-          mypy puremacro --ignore-missing-imports
-          mypy puremacro --ignore-missing-imports --platform win32 --no-incremental
-
-      # On 3.11 (the requires-python floor) Gate 7 is the interpreter's own
-      # parser; on 3.12 it is the PEP 701 f-string scan. Running both keeps
-      # the scan honest against the real thing.
-      - name: Run pre-tag release gate verification
-        if: matrix.os == 'ubuntu-latest' && (matrix.python-version == '3.11' || matrix.python-version == '3.12')
-        run: |
-          python tools/release_check.py --no-tests
-
+      # -n auto: one pytest-xdist worker per core (4 on the Linux and Windows
+      # runners, 3 on macOS). --dist loadfile: each test file runs whole in
+      # one worker, so module state and fixtures behave as in a serial run.
+      # --no-loadscope-reorder: files start in collection order, and
+      # tests/conftest.py (_HEAVY_FIRST) puts the slowest files first. Run
+      # serially, one leg spent about 122 of its 128 minutes in this step.
       - name: Run pytest test suite
         env:
           # Shared runners are several times slower than the machines the
@@ -77,15 +76,63 @@ jobs:
           PUREMACRO_TIMING_SCALE: "10"
           PYTHONFAULTHANDLER: "1"
           PUREMACRO_LLM_MODE: "cache"
+          # One BLAS/OpenMP thread per worker: -n auto already starts one
+          # worker per core, and four workers running four BLAS threads each
+          # only compete for the same cores.
+          OMP_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+          VECLIB_MAXIMUM_THREADS: "1"
+          NUMEXPR_NUM_THREADS: "1"
         run: |
-          pytest --durations=10
+          pytest -n auto --dist loadfile --no-loadscope-reorder --durations=25
+
+  # Type checks, the release gate and the docs build run beside the test legs
+  # instead of inside the Ubuntu ones, where they added about 4 minutes to the
+  # longest leg.
+  checks:
+    name: Checks (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.11", "3.12" ]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,notebooks]"
+
+      # The 3.11 leg resolves NumPy 2.4 (NumPy 2.5 requires Python 3.12), whose
+      # stubs differ from 2.5's; v5.4.0 failed typing only there. Check both.
+      - name: Run static type checking (mypy)
+        run: |
+          mypy puremacro --ignore-missing-imports
+          mypy puremacro --ignore-missing-imports --platform win32 --no-incremental
+
+      # On 3.11 (the requires-python floor) Gate 7 is the interpreter's own
+      # parser; on 3.12 it is the PEP 701 f-string scan. Running both keeps
+      # the scan honest against the real thing.
+      - name: Run pre-tag release gate verification
+        run: |
+          python tools/release_check.py --no-tests
 
       # The docs site is built nowhere else: pages.yml deploys only the
       # JupyterLite playground. Without this step mkdocs.yml rots silently --
       # it accumulated five nav entries pointing at files that do not exist,
       # and `--strict` turns exactly that warning into a failure.
       - name: Build the documentation site (strict)
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        if: matrix.python-version == '3.12'
         run: |
           pip install mkdocs-material
           mkdocs build --strict --site-dir /tmp/site
