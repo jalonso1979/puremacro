@@ -2,11 +2,11 @@
 
 # puremacro examples gallery
 
-Generated: 2026-10-29T05:09:05Z
+Generated: 2026-11-05T00:48:27Z
 
 | Status | Count |
 |---|---|
-| PASS | 85 |
+| PASS | 86 |
 | SKIP | 8 |
 | FAIL | 1 |
 
@@ -21,7 +21,7 @@ Generated: 2026-10-29T05:09:05Z
 - **Last run:** 2026-10-19T00:01:39Z
 - **Figures:** none
 
-## PASS (85)
+## PASS (86)
 
 ### anderson_rubin_weak_iv_demo
 
@@ -253,9 +253,17 @@ Generated: 2026-10-29T05:09:05Z
 - **Figures:**
   - `../puremacro/examples/output/fetch_fred_demo.png`
 
+### first_brief_fiscal
+
+- **Description:** Fiscal policy brief: the US government spending multiplier at two and four years, with and without slack, on Ramey and Zubairy's historical data.
+- **Status:** PASS
+- **Runtime:** 1.705 s
+- **Last run:** 2026-11-05T00:48:27Z
+- **Figures:** none
+
 ### first_brief_tariffs
 
-- **Description:** Your first policy brief: a 10% US tariff on Chinese goods on the bundled OECD ICIO 2019 table, national EV with its price / factor-income / fiscal split, and synthetic household groups.
+- **Description:** Your first policy brief: a 10% US tariff across all modeled Chinese sectors on the bundled OECD ICIO 2019 table, national EV with its price / factor-income / fiscal split, and synthetic household g...
 - **Status:** PASS
 - **Runtime:** 6.051 s
 - **Last run:** 2026-10-29T05:09:05Z

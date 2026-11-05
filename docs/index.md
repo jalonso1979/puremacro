@@ -18,7 +18,7 @@ python -m pip install puremacro
 
 | Start with your task | First steps |
 |---|---|
-| **Analyze data** | Estimate a shock response with the [quickstart](quickstart.md), then explore [data sources](micro_data.md) and [research workflows](research_workflows.md). |
+| **Analyze data** | Estimate a government spending multiplier in the [fiscal brief](first_brief_fiscal.md), or a shock response with the [quickstart](quickstart.md); then explore [data sources](micro_data.md) and [research workflows](research_workflows.md). |
 | **Simulate policy** | Declare a household model with [dynamic programming](dp.md), study [monetary transmission](monetary_transmission.md), or build a [trade counterfactual](trade_accounting.md). |
 | **Write a policy brief** | Run a [tariff experiment on public data](first_brief_tariffs.md) and read national and household welfare effects. |
 | **Learn or teach** | Choose a [notebook learning path](notebooks.md) or use the [bilingual course and interactive labs](https://github.com/jalonso1979/puremacro/tree/main/curso). Use the pinned course edition below. |

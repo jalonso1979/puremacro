@@ -67,6 +67,18 @@ record = json.loads((output / 'headline.json').read_text(encoding='utf-8'))
 assert np.isfinite(record['national']['ev_pct_consumption'])
 assert (output / 'first_brief.png').stat().st_size > 1000
 print('PASS: bundled-data tariff brief, UTF-8 outputs and manifest', flush=True)
+from puremacro.examples.first_brief_fiscal import run_brief as run_fiscal_brief
+fiscal_output = Path('fiscal_brief')
+fiscal = run_fiscal_brief(fiscal_output, lang='es')
+fiscal_manifest = fiscal['manifest']
+assert fiscal_manifest['lang'] == 'es'
+for name, artifact in fiscal_manifest['artifacts'].items():
+    data = (fiscal_output / name).read_bytes()
+    assert hashlib.sha256(data).hexdigest() == artifact['sha256']
+    assert len(data) == artifact['bytes']
+assert np.isfinite(fiscal['record']['full']['horizons']['7']['linear']['multiplier'])
+assert (fiscal_output / 'multipliers.png').stat().st_size > 1000
+print('PASS: bundled-data fiscal brief, UTF-8 outputs and manifest', flush=True)
 print('Installed wheel:', package, flush=True)
 '''
 
