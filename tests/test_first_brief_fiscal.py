@@ -370,3 +370,45 @@ def test_manifest_records_the_experiment_definition_not_its_results(computed, tm
     assert man["experiment"] == {"exclude": ["1941Q3", "1945Q4"]}            # results live in headline.json
     full = paths[paths["sample"] == "full"]
     assert fb.write_outputs({**record, "experiment": None}, full, tmp_path / "default")["experiment"] is None
+
+
+def test_headline_csv_carries_no_point_estimate_for_weak_cells(computed, tmp_path):
+    record = copy.deepcopy(computed[0])
+    h7 = record["full"]["horizons"]["7"]              # a strong no-slack cell and a reliable test,
+    h7["no_slack"].update(weak=False, f_eff=30.0)     # so that every kind of row is checked
+    h7["difference"]["reliable"] = True
+    fb.write_outputs(record, computed[1], tmp_path)
+    table = pd.read_csv(tmp_path / "headline.csv")
+    point = ["estimate", "se", "lo", "hi"]
+    for sample in ("full", "experiment"):
+        for h, cells in record[sample]["horizons"].items():
+            rows = table[(table["sample"] == sample) & (table["h"] == int(h))].set_index("row")
+            for name in ("linear", "slack", "no_slack"):
+                cell, row = cells[name], rows.loc[name]
+                if cell["weak"]:                     # as in the md and tex tables: its set, not its estimate
+                    assert row[point].isna().all(), (sample, h, name)
+                    assert row[["ar_lo", "ar_hi", "ar_set_type", "f_eff"]].notna().all(), (sample, h, name)
+                else:
+                    np.testing.assert_allclose(row[point].to_numpy(dtype=float),
+                                               [cell["multiplier"], cell["se"], cell["lo"], cell["hi"]],
+                                               rtol=1e-12)
+            test, quoted = cells["difference"], rows.loc["difference", ["estimate", "se", "p_value"]]
+            if test["reliable"]:
+                np.testing.assert_allclose(quoted.to_numpy(dtype=float),
+                                           [test["estimate"], test["se"], test["p_value"]], rtol=1e-12)
+            else:
+                assert quoted.isna().all(), (sample, h)
+
+
+@pytest.mark.parametrize("lang", ["en", "es"])
+def test_a_set_that_could_not_be_computed_is_called_unavailable(computed, lang):
+    record = copy.deepcopy(computed[0])
+    record["full"]["horizons"]["7"]["no_slack"]["ar_lo"] = None                    # bounded, a bound missing
+    record["experiment"]["horizons"]["7"]["no_slack"].update(weak=False, f_eff=30.0)  # compared with it
+    unavailable = {"en": "and its weak-instrument-robust 90% set is not available",
+                   "es": "y su conjunto al 90% robusto a instrumentos débiles no está disponible"}[lang]
+    reading = fb.page_block(record, "headline_reading", lang)
+    assert unavailable in reading and "n/a" not in reading
+    assert f"{unavailable}." in fb.page_block(record, "experiment_reading", lang)
+    assert "| n/a † |" in fb.page_block(record, "headline", lang)
+    assert "n/a$^\\dagger$" in fb._latex_page(record, lang)

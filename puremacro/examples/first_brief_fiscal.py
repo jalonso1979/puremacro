@@ -525,15 +525,19 @@ DEFAULT_OUTPUT = Path("fiscal_brief")
 
 _ROWS = ("linear", "slack", "no_slack")
 _MARK = "\N{DAGGER}"                 # marks a weak cell, shown by its Anderson-Rubin set
-#: The reading template that words a weak cell's Anderson-Rubin set, by ``ar_set_type``.
-_SET_TEMPLATE = {"bounded": "weak", "unbounded_rays": "unbounded", "all_real": "unbounded",
-                 "empty": "empty"}
+#: How a weak cell's Anderson-Rubin set is worded, by ``ar_set_type``: the reading's
+#: ``set_<kind>`` sub-template.
+_SET_KIND = {"bounded": "bounded", "unbounded_rays": "unbounded", "all_real": "unbounded",
+             "empty": "empty"}
 
 #: The reading's sentences, word for word; :func:`_reading` applies the rule that picks them.
 #: Placeholders: ``R`` row, ``c1``/``c2`` the 2- and 4-year clauses, ``H`` horizon, ``m``
 #: estimate, ``lo``/``hi`` band, ``F`` effective F, ``c`` cutoff, ``a``/``b`` Anderson-Rubin
 #: bounds (the excluded period in ``exp_head``), ``d`` difference, ``p`` p-value or percent,
-#: ``D`` quarter, ``f`` full-sample estimate; a trailing 1 or 2 names the horizon.
+#: ``D`` quarter, ``f`` full-sample estimate, ``S`` a weak cell's set, worded by the filled
+#: ``set_<kind>`` sub-template; a trailing 1 or 2 names the horizon. A weak clause is
+#: ``weak`` with the set of its type: bounded, unbounded, empty or, when a bound it needs is
+#: missing, unavailable.
 _READING: dict[str, dict[str, Any]] = {
     "en": {
         "rows": ("Linear", "Slack", "No slack"),
@@ -542,12 +546,12 @@ _READING: dict[str, dict[str, Any]] = {
                   "cumulated over the horizon."),
         "row": "{R}: {c1}; {c2}.",
         "strong": "{m} at {H} (90% band {lo} to {hi})",
-        "weak": ("weak at {H} (effective F {F}, cutoff {c}), with a weak-instrument-robust 90% "
-                 "set of {a} to {b}"),
-        "unbounded": ("weak at {H} (effective F {F}, cutoff {c}), and its weak-instrument-robust "
-                      "90% set is unbounded: the data cannot bound it"),
-        "empty": ("weak at {H} (effective F {F}, cutoff {c}), and its weak-instrument-robust 90% "
-                  "set is empty"),
+        "weak": "weak at {H} (effective F {F}, cutoff {c}), {S}",
+        "set_bounded": "with a weak-instrument-robust 90% set of {a} to {b}",
+        "set_unbounded": ("and its weak-instrument-robust 90% set is unbounded: the data cannot "
+                          "bound it"),
+        "set_empty": "and its weak-instrument-robust 90% set is empty",
+        "set_unavailable": "and its weak-instrument-robust 90% set is not available",
         "diff": "With and without slack, the multipliers differ by {d} at {H} (p = {p}).",
         "diff_no_one": ("The comparison of the multipliers with and without slack is not reliable "
                         "at {H}, because a regime is weak there."),
@@ -565,7 +569,7 @@ _READING: dict[str, dict[str, Any]] = {
         "exp_head": ("Excluding {a}-{b}: every quarter whose window, shock or lags touch the "
                      "period is dropped, as Ramey and Zubairy do for World War II."),
         "cmp": "{R} at {H}: {m} here against {f} in the full sample.",
-        "cmp_weak_full": "{R} at {H}: {m} here, while the full-sample estimate is weak.",
+        "cmp_weak_full": "{R} at {H}: {m} here, while the full-sample estimate is weak, {S}.",
         "cmp_none": ("No estimate clears the cutoff in this sample, so none is compared with the "
                      "full sample."),
         "three_step": ("Ramey and Zubairy's Table 3 values without World War II are three-step "
@@ -579,12 +583,12 @@ _READING: dict[str, dict[str, Any]] = {
                   "ambos acumulados en el horizonte."),
         "row": "{R}: {c1}; {c2}.",
         "strong": "{m} a {H} (banda al 90%: {lo} a {hi})",
-        "weak": ("débil a {H} (F efectiva {F}, umbral {c}), con un conjunto al 90% robusto a "
-                 "instrumentos débiles de {a} a {b}"),
-        "unbounded": ("débil a {H} (F efectiva {F}, umbral {c}), y su conjunto al 90% robusto a "
-                      "instrumentos débiles no está acotado: los datos no pueden acotarlo"),
-        "empty": ("débil a {H} (F efectiva {F}, umbral {c}), y su conjunto al 90% robusto a "
-                  "instrumentos débiles está vacío"),
+        "weak": "débil a {H} (F efectiva {F}, umbral {c}), {S}",
+        "set_bounded": "con un conjunto al 90% robusto a instrumentos débiles de {a} a {b}",
+        "set_unbounded": ("y su conjunto al 90% robusto a instrumentos débiles no está acotado: "
+                          "los datos no pueden acotarlo"),
+        "set_empty": "y su conjunto al 90% robusto a instrumentos débiles está vacío",
+        "set_unavailable": "y su conjunto al 90% robusto a instrumentos débiles no está disponible",
         "diff": "Con y sin holgura, los multiplicadores difieren en {d} a {H} (p = {p}).",
         "diff_no_one": ("La comparación de los multiplicadores con y sin holgura no es fiable a "
                         "{H}, porque un régimen es débil ahí."),
@@ -604,7 +608,7 @@ _READING: dict[str, dict[str, Any]] = {
                      "Mundial."),
         "cmp": "{R} a {H}: {m} aquí frente a {f} en la muestra completa.",
         "cmp_weak_full": ("{R} a {H}: {m} aquí, mientras que la estimación de la muestra completa "
-                          "es débil."),
+                          "es débil, {S}."),
         "cmp_none": ("Ninguna estimación supera el umbral en esta muestra, así que ninguna se "
                      "compara con la muestra completa."),
         "three_step": ("Los valores sin la Segunda Guerra Mundial de la Tabla 3 de Ramey y "
@@ -713,12 +717,28 @@ def _no_experiment(lang: str) -> str:
     return _TEXT[lang]["no_experiment"].format(period=WWII)
 
 
-def _set_template(cell: dict[str, Any]) -> str:
-    """The template that words a weak cell's Anderson-Rubin set: bounded, unbounded or empty."""
+def _finite(value: float | None) -> bool:
+    return value is not None and math.isfinite(value)
+
+
+def _set_kind(cell: dict[str, Any]) -> str:
+    """How a weak cell's Anderson-Rubin set is worded: ``bounded``, ``unbounded`` or ``empty``.
+
+    ``unavailable`` when the set's type needs a bound that is missing, so that no ``n/a``
+    bound is ever quoted. Raises ``ValueError`` on an unknown ``ar_set_type``.
+    """
     kind = cell["ar_set_type"]
-    if kind not in _SET_TEMPLATE:
+    if kind not in _SET_KIND:
         raise ValueError(f"unknown Anderson-Rubin set type {kind!r}")
-    return _SET_TEMPLATE[kind]
+    if kind in ("bounded", "unbounded_rays") and not (_finite(cell["ar_lo"])
+                                                       and _finite(cell["ar_hi"])):
+        return "unavailable"
+    return _SET_KIND[kind]
+
+
+def _set_words(cell: dict[str, Any], words: dict[str, Any]) -> str:
+    """A weak cell's Anderson-Rubin set in words, by its kind (:func:`_set_kind`)."""
+    return words[f"set_{_set_kind(cell)}"].format(a=_fmt(cell["ar_lo"]), b=_fmt(cell["ar_hi"]))
 
 
 def _clause(cell: dict[str, Any], horizon: str, words: dict[str, Any], cutoff: str) -> str:
@@ -726,14 +746,8 @@ def _clause(cell: dict[str, Any], horizon: str, words: dict[str, Any], cutoff: s
     if not cell["weak"]:
         return words["strong"].format(m=_fmt(cell["multiplier"]), H=horizon,
                                       lo=_fmt(cell["lo"]), hi=_fmt(cell["hi"]))
-    return words[_set_template(cell)].format(H=horizon, F=_fmt(cell["f_eff"], 1), c=cutoff,
-                                             a=_fmt(cell["ar_lo"]), b=_fmt(cell["ar_hi"]))
-
-
-def _set_phrase(cell: dict[str, Any], words: dict[str, Any]) -> str:
-    """A weak cell's Anderson-Rubin set as its clause words it, after the effective-F part."""
-    return words[_set_template(cell)].split("), ", 1)[1].format(a=_fmt(cell["ar_lo"]),
-                                                                 b=_fmt(cell["ar_hi"]))
+    return words["weak"].format(H=horizon, F=_fmt(cell["f_eff"], 1), c=cutoff,
+                                S=_set_words(cell, words))
 
 
 def _differences(sample: dict[str, Any], horizons: list[tuple[str, str, int]],
@@ -783,8 +797,8 @@ def _comparisons(record: dict[str, Any], horizons: list[tuple[str, str, int]],
                 out.append(words["cmp"].format(R=row, H=label, m=here,
                                                f=_fmt(full["multiplier"])))
             else:   # against the full sample's Anderson-Rubin set, never its weak estimate
-                sentence = words["cmp_weak_full"].format(R=row, H=label, m=here)
-                out.append(f"{sentence[:-1]}, {_set_phrase(full, words)}.")
+                out.append(words["cmp_weak_full"].format(R=row, H=label, m=here,
+                                                         S=_set_words(full, words)))
     return out or [words["cmp_none"]]
 
 
@@ -823,7 +837,8 @@ def _entry(cell: dict[str, Any], t: dict[str, str], *, tex: bool = False) -> str
     """A table entry: estimate [band] when strong; the Anderson-Rubin set and the mark when weak."""
     if not cell["weak"]:
         return f"{_fmt(cell['multiplier'])} [{_fmt(cell['lo'])}, {_fmt(cell['hi'])}]"
-    _set_template(cell)                                   # rejects an unknown set type
+    if _set_kind(cell) == "unavailable":                  # also rejects an unknown set type
+        return "n/a$^\\dagger$" if tex else f"n/a {_MARK}"
     a, b = _fmt(cell["ar_lo"]), _fmt(cell["ar_hi"])
     if tex:
         return {"bounded": f"[{a}, {b}]$^\\dagger$",
@@ -946,11 +961,14 @@ _CSV_COLUMNS = ["sample", "h", "row", "label", "estimate", "se", "lo", "hi", "f_
 
 
 def _headline_frame(record: dict[str, Any], lang: str) -> pd.DataFrame:
-    """``headline.csv``: one row per sample, headline horizon and estimate, at full precision.
+    """``headline.csv``: the headline table's cells, one row per sample, horizon and estimate.
 
     The rows ``linear``, ``slack`` and ``no_slack`` hold a cell (``estimate`` is its
     multiplier), and ``difference`` the test of equal multipliers (slack minus no slack).
-    ``label`` is the row's name in ``lang``.
+    ``label`` is the row's name in ``lang``. Like the markdown and LaTeX tables, it shows a
+    weak cell by its Anderson-Rubin set and effective F only, leaving ``estimate``, ``se``,
+    ``lo`` and ``hi`` empty, and an unreliable difference without ``estimate``, ``se`` or
+    ``p_value``. Numbers are at full precision.
     """
     t, words = _TEXT[lang], _READING[lang]
     rows: list[dict[str, Any]] = []
@@ -960,17 +978,18 @@ def _headline_frame(record: dict[str, Any], lang: str) -> pd.DataFrame:
             for name, label in zip(_ROWS, words["rows"]):
                 cell = cells[name]
                 top = cells["concentration"].get(name, {})
-                rows.append({"sample": sample_name, "h": h, "row": name, "label": label,
-                             "estimate": cell["multiplier"], "se": cell["se"], "lo": cell["lo"],
-                             "hi": cell["hi"], "f_eff": cell["f_eff"], "weak": cell["weak"],
+                point = {} if cell["weak"] else {"estimate": cell["multiplier"], "se": cell["se"],
+                                                 "lo": cell["lo"], "hi": cell["hi"]}
+                rows.append({"sample": sample_name, "h": h, "row": name, "label": label, **point,
+                             "f_eff": cell["f_eff"], "weak": cell["weak"],
                              "ar_lo": cell["ar_lo"], "ar_hi": cell["ar_hi"],
                              "ar_set_type": cell["ar_set_type"], "n_eff": cell.get("n_eff"),
                              "top_quarter": top.get("date"), "top_share": top.get("share")})
             test = cells["difference"]
+            quoted = {} if not test["reliable"] else {"estimate": test["estimate"],
+                                                      "se": test["se"], "p_value": test["p_value"]}
             rows.append({"sample": sample_name, "h": h, "row": "difference",
-                         "label": t["difference"], "estimate": test["estimate"],
-                         "se": test["se"], "p_value": test["p_value"],
-                         "reliable": test["reliable"]})
+                         "label": t["difference"], **quoted, "reliable": test["reliable"]})
     return pd.DataFrame(rows, columns=_CSV_COLUMNS)
 
 
@@ -1121,7 +1140,16 @@ def write_outputs(record: dict[str, Any], paths: pd.DataFrame, output: str | Pat
     Every file is rendered in memory first, so nothing is written when one cannot be. The
     files are ``headline.md`` (tables and readings), ``headline.csv`` (the headline cells at
     full precision), ``headline.tex``, ``paths.csv`` (h = 0..20), ``multipliers.png``,
-    ``headline.json`` (``record``) and ``manifest.json``. The manifest holds ``lang``,
+    ``headline.json`` (``record``) and ``manifest.json``.
+
+    The three tables, ``headline.md``, ``headline.csv`` and ``headline.tex``, show the same
+    cells: a weak cell by its Anderson-Rubin set and effective F, never by its estimate,
+    standard error or band, and an unreliable difference without its estimate or p-value.
+    ``headline.json`` and ``paths.csv`` keep the complete raw data, for reproducibility and
+    the figure: every estimate, with the ``weak`` flags in the record and the effective F
+    of every path and horizon in ``paths.csv``.
+
+    The manifest holds ``lang``,
     ``puremacro_version``, ``data`` and ``specification`` from the record; ``experiment``,
     what was run (``{"exclude": [START, END]}``, or None), while its results are in
     ``headline.json``; the ``warnings`` and computing time of the last :func:`compute_brief`
