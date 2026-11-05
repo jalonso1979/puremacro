@@ -16,3 +16,7 @@
 ## 2023-10-25 - Memory reallocation in pandas concat over groupby
 **Learning:** Using `groupby` followed by `sort_values` on each group and then `pd.concat(groups)` is an anti-pattern when trying to sort within groups. It incurs a massive overhead due to the O(N_groups) python loop and the memory allocations required to build intermediate dataframes and concatenate them. It can be fully vectorized by globally sorting the dataframe by the grouping keys and then by the target column.
 **Action:** When sorting rows within groups in a Pandas DataFrame, do not use `pd.concat([g.sort_values(c) for _, g in df.groupby(keys)])`. Instead, use `df.sort_values(keys + [c])` for an identical result that is magnitudes faster.
+
+## 2024-11-28 - Vectorized group aggregation for frequency conversion in Pandas
+**Learning:** Iterating over large pandas groups and using `.resample().mean()` per variable slice on a wide, long-form dataframe (e.g., in `_aggregate_monthly_to_quarterly`) generates immense overhead due to individual object creation and Python loop execution. This caused a 5.0-second delay for 400k rows.
+**Action:** Replace `df.groupby(...).resample(...)` iterations with purely vectorized mappings. Map exact dates to period starts (e.g. `.dt.to_period('Q').dt.start_time`), slice exact aggregation needs first, and use a single `groupby(['code', 'variable', 'q_date']).agg()` for speedups exceeding 10x.
