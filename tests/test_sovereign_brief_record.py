@@ -193,15 +193,24 @@ _EQUIVALENT_LIBRARY_HASHES = {
     # tied choices across batch boundaries (test_monotone_search.py).
     'puremacro/sovereign/_monotone.py': (
         'fb04bb672f59c89ec40bd51179df3a249df09e0ddeb7cd9102d6288e7b251464',
-        'cb0655d94f4f5dc01c1f71979e8bb71551d98ed5ac90e18a79d4f420b3c7e467'),
+        'cb0655d94f4f5dc01c1f71979e8bb71551d98ed5ac90e18a79d4f420b3c7e467',
+        # Fiscal-rule column penalty, default None and sliced per income batch;
+        # without it every operation is unchanged (test_bit_identity.py).
+        'e9977bcffc32e07146effc934c146d619d4b40bd29a31b4636d965973eeb83a5'),
     'puremacro/sovereign/arellano.py': (
         'd434bded913776d47a740ca5e35ce3b7a8e7047d3efbafce89b09d5e5b2655a2',
         # Explicit debt grids are optional; unchanged default calls retain the
         # pinned original equilibrium, metadata and simulation bit for bit.
-        '2301827c26be1295a94d038c6a3a5c03afc459994b4cf2764b850a7d70ba795a'),
+        '2301827c26be1295a94d038c6a3a5c03afc459994b4cf2764b850a7d70ba795a',
+        # Private Bellman core with resource/utility/flow hooks for fiscal
+        # rules; brief scenarios stay bit-identical to the pinned 6.0.1 solver
+        # (test_brief_scenarios_bit_identical_to_legacy).
+        '990900ef48024c3dbc34e58dc186202056c339e14025749f60ab93b34aa9c8f9'),
     'puremacro/sovereign/_results.py': (
         'fc97e14a0e10a450f9e2cacf965cffc8f42a1acc5e6d1c18fae9cb61a1cec3db',
-        '21e0bd69e131b5bf3171c96ed79bc0ebf2ed38e86f115a8de82cf6491e922a98'),
+        '21e0bd69e131b5bf3171c96ed79bc0ebf2ed38e86f115a8de82cf6491e922a98',
+        # Adds FiscalSovereignResult.rule and the DSA result class only.
+        'abf7866672248410641db3d2652c5bc04d3f2428cfcfd042d79c28808d7bef6a'),
     'puremacro/sovereign/measurement.py': (
         '104c41d31181121ae543d9544c908726435bbaa15a3f605f4b2c071bb2957365',
         '3a3588d95722c08b8c4392852d5bc41420d20bde29f12e514d876228b38c90a3'),
@@ -212,7 +221,9 @@ def _provenance_problems(recorded: dict, current: dict) -> list[str]:
     problems = [f"{path}: record {recorded.get(path)} != current {current[path]}"
                 for path in _LIBRARY_SOURCES
                 if recorded.get(path) != current[path]
-                and (recorded.get(path), current[path]) != _EQUIVALENT_LIBRARY_HASHES.get(path)]
+                and not (path in _EQUIVALENT_LIBRARY_HASHES
+                         and recorded.get(path) == _EQUIVALENT_LIBRARY_HASHES[path][0]
+                         and current[path] in _EQUIVALENT_LIBRARY_HASHES[path][1:])]
     if recorded.get(_EXAMPLE) not in _EXAMPLE_HASHES:
         problems.append(f"{_EXAMPLE}: record hash {recorded.get(_EXAMPLE)} not in the allow-list")
     if current[_EXAMPLE] not in _EXAMPLE_HASHES:
