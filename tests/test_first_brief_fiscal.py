@@ -224,9 +224,9 @@ READINGS = {
         'either horizon, because at least one regime is weak at each. Slack: one quarter, 1961Q2, '
         "carries 41% of the instrument's residual variation at 2 years and 48% at 4 years. No slack: "
         "one quarter, 1950Q3, carries 49% of the instrument's residual variation at both horizons. No"
-        ' estimate clears the cutoff in this sample, so none is compared with the full sample. Ramey '
-        "and Zubairy's Table 3 values without World War II are three-step estimates (summed impulse "
-        "responses); the brief's are one-step, so the two need not match."
+        ' headline estimate clears the cutoff in this sample, so none is compared with the full '
+        "sample. Ramey and Zubairy's Table 3 values without World War II are three-step estimates "
+        "(summed impulse responses); the brief's are one-step, so the two need not match."
     ),
     ("experiment", "es"): (
         'Excluyendo 1941Q3-1945Q4: se descarta todo trimestre cuya ventana, choque o rezagos tocan el'
@@ -245,10 +245,10 @@ READINGS = {
         'débil. Con holgura: un solo trimestre, 1961Q2, concentra el 41% de la variación residual del'
         ' instrumento a 2 años y el 48% a 4 años. Sin holgura: un solo trimestre, 1950Q3, concentra '
         'el 49% de la variación residual del instrumento en ambos horizontes. Ninguna estimación '
-        'supera el umbral en esta muestra, así que ninguna se compara con la muestra completa. Los '
-        'valores sin la Segunda Guerra Mundial de la Tabla 3 de Ramey y Zubairy son estimaciones en '
-        'tres pasos (respuestas al impulso sumadas); las del informe son de un paso, así que no '
-        'tienen por qué coincidir.'
+        'principal supera el umbral en esta muestra, así que ninguna se compara con la muestra '
+        'completa. Los valores sin la Segunda Guerra Mundial de la Tabla 3 de Ramey y Zubairy son '
+        'estimaciones en tres pasos (respuestas al impulso sumadas); las del informe son de un paso, '
+        'así que no tienen por qué coincidir.'
     ),
 }
 

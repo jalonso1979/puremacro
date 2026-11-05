@@ -570,8 +570,8 @@ _READING: dict[str, dict[str, Any]] = {
                      "period is dropped, as Ramey and Zubairy do for World War II."),
         "cmp": "{R} at {H}: {m} here against {f} in the full sample.",
         "cmp_weak_full": "{R} at {H}: {m} here, while the full-sample estimate is weak, {S}.",
-        "cmp_none": ("No estimate clears the cutoff in this sample, so none is compared with the "
-                     "full sample."),
+        "cmp_none": ("No headline estimate clears the cutoff in this sample, so none is compared "
+                     "with the full sample."),
         "three_step": ("Ramey and Zubairy's Table 3 values without World War II are three-step "
                        "estimates (summed impulse responses); the brief's are one-step, so the "
                        "two need not match."),
@@ -609,8 +609,8 @@ _READING: dict[str, dict[str, Any]] = {
         "cmp": "{R} a {H}: {m} aquí frente a {f} en la muestra completa.",
         "cmp_weak_full": ("{R} a {H}: {m} aquí, mientras que la estimación de la muestra completa "
                           "es débil, {S}."),
-        "cmp_none": ("Ninguna estimación supera el umbral en esta muestra, así que ninguna se "
-                     "compara con la muestra completa."),
+        "cmp_none": ("Ninguna estimación principal supera el umbral en esta muestra, así que "
+                     "ninguna se compara con la muestra completa."),
         "three_step": ("Los valores sin la Segunda Guerra Mundial de la Tabla 3 de Ramey y "
                        "Zubairy son estimaciones en tres pasos (respuestas al impulso sumadas); "
                        "las del informe son de un paso, así que no tienen por qué coincidir."),
