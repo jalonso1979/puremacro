@@ -412,3 +412,63 @@ def test_a_set_that_could_not_be_computed_is_called_unavailable(computed, lang):
     assert f"{unavailable}." in fb.page_block(record, "experiment_reading", lang)
     assert "| n/a † |" in fb.page_block(record, "headline", lang)
     assert "n/a$^\\dagger$" in fb._latex_page(record, lang)
+
+
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+FIXTURE = ROOT / "tests" / "fixtures" / "first_brief_fiscal" / "headline.json"
+PAGE = {"en": ROOT / "docs" / "first_brief_fiscal.md", "es": ROOT / "docs" / "es" / "first_brief_fiscal.md"}
+NUM = ("multiplier", "se", "lo", "hi", "f_eff")
+
+
+@pytest.fixture(scope="module")
+def frozen():
+    return json.loads(FIXTURE.read_text(encoding="utf-8"))
+
+
+def _assert_sample_matches(new, old):
+    for h, cells in old["horizons"].items():
+        for name in ("linear", "slack", "no_slack"):
+            for k in NUM:
+                np.testing.assert_allclose(new["horizons"][h][name][k], cells[name][k], rtol=1e-8)
+            for k in ("ar_lo", "ar_hi"):
+                a, b = new["horizons"][h][name][k], cells[name][k]
+                assert (a is None and b is None) or np.isclose(a, b, rtol=1e-6)
+            assert new["horizons"][h][name]["weak"] == cells[name]["weak"]
+
+
+def test_default_run_reproduces_frozen_record(frozen):
+    record, _ = fb.compute_brief()
+    _assert_sample_matches(record["full"], frozen["full"])
+
+
+def test_experiment_reproduces_frozen_record(frozen, computed):
+    _assert_sample_matches(computed[0]["experiment"], frozen["experiment"])
+
+
+@pytest.mark.parametrize("lang", ["en", "es"])
+def test_pages_show_frozen_record(frozen, lang):
+    text = PAGE[lang].read_text(encoding="utf-8")
+    for block in ("headline", "headline_reading", "experiment", "experiment_reading"):
+        start, end = f"<!-- fiscal-brief:{block} -->", f"<!-- /fiscal-brief:{block} -->"
+        assert text.count(start) == 1 and text.count(end) == 1, block
+        assert text.split(start, 1)[1].split(end, 1)[0].strip() == fb.page_block(frozen, block, lang), block
+    image = f"assets/first_brief_fiscal/multipliers_{lang}.png"
+    assert (image if lang == "en" else f"../{image}") in text and (ROOT / "docs" / image).is_file()
+    assert fb.CITATION in text and "15 min" not in text
+
+
+def test_refresh_tool_rewrites_blocks_and_rejects_broken_markers(frozen, monkeypatch):
+    monkeypatch.syspath_prepend(str(ROOT))                          # tools/ is not installed
+    from tools.reference_validation.refresh_fiscal_brief import fill_blocks
+    text = PAGE["en"].read_text(encoding="utf-8")
+    assert fill_blocks(text, frozen, "en") == text                   # the committed page is current
+    start, end = "<!-- fiscal-brief:experiment -->", "<!-- /fiscal-brief:experiment -->"
+    missing = text.replace(start, "")
+    duplicate = text.replace(end, f"{end}\n{end}")
+    reversed_ = text.replace(start, "\0").replace(end, start).replace("\0", end)
+    for broken in (missing, duplicate, reversed_):
+        with pytest.raises(ValueError, match="experiment block"):
+            fill_blocks(broken, frozen, "en")
