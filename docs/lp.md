@@ -267,6 +267,16 @@ where $F(s_t) \in [0, 1]$ is the high-regime weight.
 
 The cutoff $c$ is the `threshold` argument **on the raw scale of the state variable**: `threshold=6.5` on an unemployment rate in percent means 6.5 %. The default `threshold=None` splits at the sample mean of the state (the standardized-zero convention of Auerbach-Gorodnichenko). A cutoff that leaves every observation in one regime raises a `ValueError` naming the state's range instead of a singular regression.
 
+### Which coefficients switch with the regime (`interact`)
+
+By default (`interact="all"`) the constant and every control — the `lags` lags of `x`, `y` and each control, plus the contemporaneous controls, stacked in $w_t$ — are interacted with $F(s_t)$, so each regime has its own intercept and control coefficients:
+
+$$y_{t+h} - y_{t-1} = \beta_h^H F(s_t) x_t + \beta_h^L (1 - F(s_t)) x_t + F(s_t)(\alpha_h^H + \Gamma_h^H w_t) + (1 - F(s_t))(\alpha_h^L + \Gamma_h^L w_t) + \varepsilon_{t,h}.$$
+
+This is the specification of Ramey & Zubairy (2018, eq. 2); with a threshold transition the point estimates equal one regression per regime. `interact="intercept"` keeps regime-specific intercepts with common control coefficients, and `interact="none"` pools both, which is how the function behaved before the option existed. Pooling is not innocuous: when outcome levels, shock means or control dynamics differ across regimes it biases $\beta^H$ and $\beta^L$ ([issue #217](https://github.com/jalonso1979/puremacro/issues/217)). Every row also carries `diff_HL`, `se_diff_HL` and `p_diff_HL` (a HAC test of $\beta^H = \beta^L$) and the effective regime sizes `n_eff_H`, `n_eff_L`.
+
+The state enters as dated in `df`. Ramey-Zubairy and Auerbach-Gorodnichenko date it at $t-1$, so pass a lagged column. Lags are built by shifting rows, so to exclude a period set `x` (or the instrument) to `NaN` there rather than dropping the rows.
+
 ```python
 from puremacro.lp import lp_state_dep
 
@@ -299,7 +309,7 @@ Following Ramey & Zubairy (2018, *JPE*), evaluating state-dependent government s
 $$\text{Endogenous: } [F(s_t) x_t, \; (1 - F(s_t)) x_t]$$
 $$\text{Instruments: } [F(s_t) z_t, \; (1 - F(s_t)) z_t]$$
 
-`lp_state_dep_iv` estimates both first-stage regressions, checks regime-specific instrument relevance via first-stage F statistics, and computes second-stage multipliers with HAC inference. `threshold` and `gamma` follow exactly the `lp_state_dep` conventions above:
+`lp_state_dep_iv` estimates both first-stage regressions, checks regime-specific instrument relevance via first-stage F statistics, and computes second-stage responses with HAC inference. `threshold`, `gamma` and `interact` follow exactly the `lp_state_dep` conventions above; with `interact="all"` and a threshold, `first_stage_f_H` and `first_stage_f_L` are the within-regime first-stage F statistics. The coefficient is the response to $x_t$: for Ramey-Zubairy's integral multiplier $\sum_{j \le h} y_{t+j} / \sum_{j \le h} g_{t+j}$, pass `cumulative=True` (see the next section and `puremacro.examples.ramey_zubairy_2018_multipliers`).
 
 ```python
 from puremacro.lp import lp_state_dep_iv
@@ -318,10 +328,34 @@ res_rz = lp_state_dep_iv(
 )
 
 # Inspect high-slack vs low-slack multipliers and first-stage F stats
-print(res_rz[["h", "beta_H", "first_stage_f_H", "beta_L", "first_stage_f_L"]])
+print(res_rz[["h", "beta_H", "first_stage_f_H", "beta_L", "first_stage_f_L", "p_diff_HL"]])
 
 # Export the multipliers table directly to LaTeX for your manuscript
 latex_table = res_rz.to_latex()
+```
+
+---
+
+## Cumulative multipliers (cumulative=True)
+
+Ramey and Zubairy (2018) define the fiscal multiplier at horizon $h$ as an integral, $\sum_{j=0}^{h} y_{t+j} / \sum_{j=0}^{h} g_{t+j}$. With `cumulative=True`, `lp_iv` and `lp_state_dep_iv` estimate it in one call per horizon list. At horizon $h$ the outcome is the window sum $\sum_{j=0}^{h} (y_{t+j} - y_{t-1})$ and the endogenous regressor is the window sum $\sum_{j=0}^{h} x_{t+j}$. The instrument stays dated at $t$. The coefficient is the integral multiplier, and results carry `is_cumulative=True` with "(cumulative)" in the method label. At $h=0$ the output is bit-identical to `cumulative=False`.
+
+The coefficient equals Ramey and Zubairy's $\sum y_{t+j}$ form only when $y_{t-1}$ is among the controls, through `n_lags >= 1` or an explicit lag column. With `n_lags=0` and no lag of $y$, the estimand differs.
+
+To exclude a period (for example World War II, as Ramey and Zubairy do), set $y$, $x$ and the instrument to NaN in that period, keep the rows, and rebuild any pre-lagged control columns. Do not drop rows: window sums need a regular time index, so an irregular date or period index raises an error. Indexes that are neither dates nor periods (for example integers) are not checked.
+
+```python
+from puremacro.examples.ramey_zubairy_2018_multipliers import RZ_CONTROLS, load_rz_data
+from puremacro.lp import lp_iv, lp_state_dep_iv
+
+rz = load_rz_data()
+lin = lp_iv(rz, y="y", x="g", z="newsy", horizons=[7, 15], n_lags=0,
+            controls=RZ_CONTROLS, cumulative=True)
+st = lp_state_dep_iv(rz, y="y", x="g", z="newsy", state="slack_l", horizons=[7, 15],
+                     n_lags=0, controls=RZ_CONTROLS, transition="threshold",
+                     threshold=0.5, cumulative=True)
+print(lin[["beta", "lo", "hi", "mop_f"]].round(2))
+print(st[["beta_H", "beta_L", "first_stage_f_H", "first_stage_f_L", "p_diff_HL"]].round(2))
 ```
 
 ---

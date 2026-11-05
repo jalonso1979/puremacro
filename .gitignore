@@ -50,6 +50,8 @@ data/processed/
 # Local review and study output, kept out of the public repository
 reviews/
 research_output/
+# Default output directory of the fiscal brief (cwd-relative)
+fiscal_brief/
 
 # Agent scratch
 .claude/

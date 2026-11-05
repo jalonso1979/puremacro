@@ -51,6 +51,7 @@ nav:
       - Overview: index.md
       - Quickstart: quickstart.md
       - Your first policy brief: first_brief_tariffs.md
+      - Your first fiscal brief: first_brief_fiscal.md
       - Tariff welfare validation: tariff_validation.md
       - Research workflows: research_workflows.md
       - Research reliability and next milestones: research_reliability.md
@@ -180,6 +181,7 @@ nav:
       - Inicio: es/index.md
       - Inicio rápido: es/quickstart.md
       - Su primer informe de política: es/first_brief_tariffs.md
+      - Su primer informe fiscal: es/first_brief_fiscal.md
       - Validación del bienestar arancelario: es/tariff_validation.md
       - Flujos de investigación: es/research_workflows.md
       - Fiabilidad de investigación y próximos hitos: es/research_reliability.md

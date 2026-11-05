@@ -15,6 +15,22 @@ Development changes after 6.1.0. Not a published distribution.
 
 ### Added
 
+- `cumulative=True` on `lp_iv` and `lp_state_dep_iv` estimates integral
+  multipliers directly: the outcome and the endogenous regressor become
+  window sums over `0..h`, the instrument stays dated at `t`. Results carry
+  the flag `is_cumulative` and "(cumulative)" method labels. Window sums need
+  a regular index, so an irregular date or period index raises an error.
+  ([#217](https://github.com/jalonso1979/puremacro/issues/217))
+- `python -m puremacro.examples.first_brief_fiscal [--lang es]` writes a
+  bilingual fiscal policy brief on the Ramey-Zubairy historical data, with
+  the pages `docs/first_brief_fiscal.md` and `docs/es/first_brief_fiscal.md`.
+  It reports linear and slack/no-slack cumulative spending multipliers at 2
+  and 4 years, quotes weak cells by Anderson-Rubin sets, runs the
+  experiment without WWII under the RZ rule and reports a concentration
+  diagnostic. The page numbers come from a frozen record, refreshed with
+  `tools/reference_validation/refresh_fiscal_brief.py` and checked by the tests.
+- `RZ_CONTROLS` is public in the Ramey-Zubairy example; `_CTL` stays as an
+  alias.
 - Archived Arellano (2008) calibration: grid convergence established.
   `check_arellano_grids --calibration archive` keeps the author's exclusion
   timing, Fortran default-real literals and midpoint-refined 200-node grid.
@@ -75,8 +91,60 @@ Development changes after 6.1.0. Not a published distribution.
 - Bilingual guides for these additions and showcase notebook 76
   (`notebooks/76_bilingual_macro_showcase.py` and `_es.py`).
 
+### Changed
+
+- `lp_state_dep` and `lp_state_dep_iv` take `interact={"all", "intercept",
+  "none"}`, default `"all"`: the constant and every control (lags and
+  contemporaneous controls) are interacted with the regime weight, as in
+  Ramey–Zubairy (2018, eq. 2) and the direct projections of
+  Auerbach–Gorodnichenko (2013). With a threshold transition the point
+  estimates equal one regression per regime. **Behaviour change:** 6.1.0 and
+  earlier pooled the intercept and the control coefficients across regimes;
+  `interact="none"` reproduces those results (relative difference below
+  1e-9 on the bundled Ramey–Zubairy snapshot). `lp_garch_state` inherits the
+  new default. ([#217](https://github.com/jalonso1979/puremacro/issues/217))
+- Both functions also return `diff_HL`, `se_diff_HL` and `p_diff_HL` (HAC test
+  of β_H = β_L) and the effective regime sizes `n_eff_H`, `n_eff_L`.
+- The Ramey-Zubairy example: the headline is now at h = 7 and 15 (the 8- and
+  16-quarter integrals), which reproduce Table 1. The state layer is one-step
+  `lp_state_dep_iv`, with standard errors. Weak-IV diagnostics use the HAC
+  effective F and the HAC Anderson-Rubin set, so the example no longer uses
+  the non-HAC helpers of `inference.weak_iv`. Teaching assertions that did not hold under HAC statistics were
+  replaced: the slack F does not collapse at long horizons (55.9 at h = 20),
+  and the robust set is wider than the conventional band in the no-slack
+  regime (1.28 times at h = 7), not in the slack regime (1.02). The figure is
+  regenerated. The linear and no-slack headlines, whose instrument is weak
+  (effective F 16.0 / 12.0 and 7.3 / 10.8), are reported with their
+  Anderson-Rubin 90% sets. **Compatibility:** scripts that read
+  `run_rz_replication()`'s output must be updated. The `robust` dict's keys
+  are now `h`, `regime`, `beta`, `se`, `conv_lo`, `conv_hi`, `ar_lo`, `ar_hi`,
+  `ar_set_type` and `f_eff`; `msw_lo`, `msw_hi`, `beta_2sls`, `se_2sls`,
+  `n_slack`, `ar_at_point` and `ar_at_zero` are gone. `ar_horizon` now
+  defaults to 7, in the no-slack regime (it was 12, in the slack regime).
+  `linear` is now an `LPResult` indexed by h. New keys: `state_dep` (the
+  `lp_state_dep_iv` result) and `expansion_iv` (`lp_iv` on the no-slack
+  quarters, with Anderson-Rubin sets).
+
 ### Fixed
 
+- Pooled controls biased the regime coefficients. On the bundled
+  Ramey–Zubairy snapshot, `lp_state_dep_iv` erased the slack/no-slack gap once
+  World War II is excluded (0.70/0.69 against 1.07/0.49 with everything
+  interacted) and returned explosive estimates on the post-1947 sample
+  (+2538 at 16 quarters).
+- `lp_state_dep_iv` no longer swallows estimation errors: a horizon that
+  cannot be estimated emits a `RuntimeWarning` naming the horizon and the
+  exception, and its row is NaN.
+- Docstrings: `lp_state_dep_iv` explains how to obtain Ramey–Zubairy's
+  integral multiplier instead of claiming to estimate it directly; both
+  functions state that the state is used as dated (Ramey–Zubairy and
+  Auerbach–Gorodnichenko date it at t−1), that the high regime is the one with
+  high values of the state, and that the index must be contiguous (blank the
+  shock or instrument instead of dropping rows). The Ramey–Zubairy example no
+  longer says that pooling moves results "at the second decimal", and
+  `docs/lp.md` / `docs/es/lp.md` document `interact` and the new columns.
+- The Ramey-Zubairy example no longer reads a missing unemployment rate as
+  "no slack": `slack_l` stays NaN.
 - The SSJ guide example called `ssj_ramsey` with keywords it does not accept;
   it now uses `target_weights` and `baseline_paths`.
 - The fiscal grid ladder's solution cache no longer tries to store the
@@ -85,6 +153,20 @@ Development changes after 6.1.0. Not a published distribution.
 
 ### Internal
 
+- CI runs the test suite in parallel. Run serially, the suite took about 122
+  of the 128 minutes of the longest leg while the runner's other cores sat
+  idle. Each leg now runs
+  `pytest -n auto --dist loadfile --no-loadscope-reorder`, with one BLAS
+  thread per worker and the slowest test files started first
+  (`_HEAVY_FIRST` in `tests/conftest.py`). `pytest-xdist` joins the `dev`
+  extra; a plain `pytest` still runs serially.
+- mypy, the release gate and the strict docs build run in their own `checks`
+  job beside the test legs. A new commit on a pull request cancels that pull
+  request's CI run in progress; pushes to main and release runs are never
+  cancelled.
+- Under `pytest -n`, workers hand the socket guard's blocked attempts to the
+  controller, so the end-of-run summary still lists them
+  (`tests/test_parallel_runs.py`).
 - `solve_sovereign_default` now calls a private Bellman core parameterized by
   resources, a choice utility and an income-only flow. Results are
   bit-identical to 6.0.1 (pinned against a verbatim copy of the 6.0.1 solver,
