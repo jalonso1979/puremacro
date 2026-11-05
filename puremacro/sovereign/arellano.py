@@ -17,13 +17,16 @@ for its choice probabilities and deterministic-optimality gap.
 """
 from __future__ import annotations
 
-from typing import Any, Callable, Mapping, NamedTuple
+from typing import TYPE_CHECKING, Any, Callable, Mapping, NamedTuple
 
 import numpy as np
 from scipy.stats import norm
 
 from puremacro.sovereign._monotone import exhaustive_maximize, maximize, min_candidate_consumption
 from puremacro.sovereign._results import SovereignDefaultResult
+
+if TYPE_CHECKING:
+    from puremacro.sovereign.rules import _CompiledRule
 
 __all__ = [
     "solve_sovereign_default",
@@ -178,6 +181,15 @@ class _CoreSolution(NamedTuple):
     q_rf: float
 
 
+def _finite_max_abs_diff(a: np.ndarray, b: np.ndarray, what: str) -> float:
+    """Largest |a - b| over finite entries, after checking both mark the same states -inf."""
+    if not np.array_equal(np.isneginf(a), np.isneginf(b)):
+        raise RuntimeError(f"Monotone policy search failed exhaustive certification ({what}): "
+                           "infeasible states differ")
+    finite = np.isfinite(a) & np.isfinite(b)
+    return float(np.max(np.abs(a[finite] - b[finite]), initial=0.0))
+
+
 def _solve_bellman(
     *,
     b_grid: np.ndarray,
@@ -200,6 +212,7 @@ def _solve_bellman(
     howard_steps: int,
     enforce_monotonicity: bool,
     policy_search: str,
+    rule: _CompiledRule | None = None,
 ) -> _CoreSolution:
     """Solve the sovereign Bellman equations and the bond-price schedule.
 
@@ -209,11 +222,29 @@ def _solve_bellman(
     ``None``) are added to the repayment and default values but do not depend
     on the choice. ``None`` flows leave every floating-point operation as in
     the original short-term/long-term solver.
+
+    ``policy_search`` is "dense", "monotone" (certified) or "exhaustive"
+    (blocked exhaustive search every iteration). A compiled fiscal ``rule``
+    subtracts its column penalty (all searches) and transition penalty
+    (dense and exhaustive) from the objective; states it leaves without a
+    candidate default for sure (``v_rep = -inf``, ``p_def = 1``). ``rule=None``
+    leaves every operation unchanged.
     """
     n_b = b_grid.shape[0]
     n_y = resources.shape[0]
     monotone = policy_search == "monotone"
+    exhaustive_search = policy_search == "exhaustive"
+    if exhaustive_search and delta < 0.999:
+        raise ValueError('policy_search="exhaustive" supports short-term debt only (delta=1, kappa=0)')
     u_func = choice_utility
+    column_penalty = None if rule is None else rule.column_penalty
+    transition_penalty = None if rule is None else rule.transition_penalty
+    forced = None if rule is None or not rule.infeasible.any() else rule.infeasible
+    if monotone and transition_penalty is not None:
+        raise ValueError('A deficit limit needs policy_search="exhaustive" or "dense"')
+    transition_full = None
+    if transition_penalty is not None and not exhaustive_search:
+        transition_full = np.stack([transition_penalty(0, n_b, j) for j in range(n_y)], axis=2)
 
     def with_flow(x: np.ndarray) -> np.ndarray:
         # Exact no-op when there is no flow term.
@@ -231,6 +262,8 @@ def _solve_bellman(
     # Initial repayment value
     c_init = np.maximum(1e-4, resources[None, :] - (delta + (1.0 - delta) * kappa) * b_grid[:, None])
     v_rep = with_flow(u_func(c_init)) / (1.0 - beta)
+    if forced is not None:
+        v_rep = np.where(forced, -np.inf, v_rep)
 
     # Grid broadcast tensors for vectorized policy search
     # b_cur: (n_b, 1, 1), b_next: (1, n_b, 1), y_cur: (1, 1, n_y)
@@ -265,6 +298,9 @@ def _solve_bellman(
             diff = np.clip((v_rep - v_def[None, :]) / sigma_eps, -60.0, 60.0)
             p_def = 1.0 / (1.0 + np.exp(diff))
             v_exp = sigma_eps * np.logaddexp(v_rep / sigma_eps, v_def[None, :] / sigma_eps)
+        if forced is not None:
+            p_def = np.where(forced, 1.0, p_def)
+            v_exp = np.where(forced, v_def[None, :], v_exp)
 
         # Expected continuation value EV = V @ P_trans.T of shape (n_b, n_y)
         ev = v_exp @ p_trans.T
@@ -273,7 +309,16 @@ def _solve_bellman(
             if min_candidate_consumption(b_grid, resources, q) <= 1e-6:
                 raise ValueError('Candidate consumption reaches the 1e-6 utility barrier, where '
                                  'utility is not concave; use policy_search="dense"')
-            v_rep_new, m_opt = maximize(b_grid, resources, q, ev, beta, u_func)
+            if column_penalty is None:
+                v_rep_new, m_opt = maximize(b_grid, resources, q, ev, beta, u_func)
+            else:
+                v_rep_new, m_opt = maximize(b_grid, resources, q, ev, beta, u_func, column_penalty=column_penalty)
+            v_rep_new = with_flow(v_rep_new)
+            c_opt = (resources[None, :] - 1.0 * b_grid[:, None]) + np.take_along_axis(q, m_opt, axis=0) * b_grid[m_opt]
+        elif exhaustive_search:
+            v_rep_new, m_opt = exhaustive_maximize(b_grid, resources, q, ev, beta, u_func,
+                                                   column_penalty=column_penalty,
+                                                   transition_penalty=transition_penalty)
             v_rep_new = with_flow(v_rep_new)
             c_opt = (resources[None, :] - 1.0 * b_grid[:, None]) + np.take_along_axis(q, m_opt, axis=0) * b_grid[m_opt]
         else:
@@ -284,6 +329,10 @@ def _solve_bellman(
 
             # Bellman objective
             w_tensor = u_func(c_tensor) + beta * ev[None, :, :]
+            if column_penalty is not None:
+                w_tensor = w_tensor - column_penalty[None, :, :]
+            if transition_full is not None:
+                w_tensor = w_tensor - transition_full
             m_opt = np.argmax(w_tensor, axis=1)
 
         if delta < 0.999:
@@ -295,7 +344,7 @@ def _solve_bellman(
             q_tomorrow = np.sum(prob_b * q[None, :, :], axis=1)
         else:
             # Short-term debt (Arellano 2008): delta = 1.0, retention = 0.0
-            if not monotone:
+            if not (monotone or exhaustive_search):
                 v_rep_new = with_flow(np.take_along_axis(w_tensor, m_opt[:, None, :], axis=1).squeeze(axis=1))
                 c_opt = np.take_along_axis(c_tensor, m_opt[:, None, :], axis=1).squeeze(axis=1)
             # Howard policy iteration steps for fast convergence
@@ -307,6 +356,8 @@ def _solve_bellman(
                 ev_h = v_exp_h @ p_trans.T
                 ev_opt = np.take_along_axis(ev_h, m_opt, axis=0)
                 v_rep_new = with_flow(u_func(c_opt) + beta * ev_opt)
+                if rule is not None:
+                    v_rep_new = v_rep_new - rule.chosen_penalty(m_opt)
             q_tomorrow = np.take_along_axis(q, m_opt, axis=0)
 
         # Update default value
@@ -324,7 +375,12 @@ def _solve_bellman(
         if enforce_monotonicity:
             q_target = np.minimum.accumulate(q_target, axis=0)
 
-        err_v = max(float(np.max(np.abs(v_rep_new - v_rep))), float(np.max(np.abs(v_def_new - v_def))))
+        if forced is None:
+            err_v = max(float(np.max(np.abs(v_rep_new - v_rep))), float(np.max(np.abs(v_def_new - v_def))))
+        else:
+            with np.errstate(invalid="ignore"):
+                step = np.where(np.isneginf(v_rep_new) & np.isneginf(v_rep), 0.0, v_rep_new - v_rep)
+            err_v = max(float(np.max(np.abs(step))), float(np.max(np.abs(v_def_new - v_def))))
         err_q = float(np.max(np.abs(q_target - q)))
         residual = max(err_v, err_q)
 
@@ -343,9 +399,12 @@ def _solve_bellman(
     else:
         p_def = 1.0 / (1.0 + np.exp(np.clip((v_rep-v_def[None, :])/sigma_eps, -60.0, 60.0)))
         v_exp = sigma_eps * np.logaddexp(v_rep/sigma_eps, v_def[None, :]/sigma_eps)
+    if forced is not None:
+        p_def = np.where(forced, 1.0, p_def)
+        v_exp = np.where(forced, v_def[None, :], v_exp)
 
     certification_gap = exhaustive_residual = None
-    if monotone:
+    if monotone and rule is None:
         # Certify the accelerator against every candidate at the returned prices.
         ev_final = v_exp @ p_trans.T
         accelerated, _ = maximize(b_grid, resources, q, ev_final, beta, u_func)
@@ -354,6 +413,15 @@ def _solve_bellman(
         if certification_gap > 1e-11:
             raise RuntimeError(f"Monotone policy search failed exhaustive certification: gap {certification_gap:.3e}")
         exhaustive_residual = float(np.max(np.abs(with_flow(exhaustive) - v_rep)))
+    elif monotone:
+        ev_final = v_exp @ p_trans.T
+        accelerated, _ = maximize(b_grid, resources, q, ev_final, beta, u_func, column_penalty=column_penalty)
+        exhaustive, _ = exhaustive_maximize(b_grid, resources, q, ev_final, beta, u_func,
+                                            column_penalty=column_penalty)
+        certification_gap = _finite_max_abs_diff(accelerated, exhaustive, "certification gap")
+        if certification_gap > 1e-11:
+            raise RuntimeError(f"Monotone policy search failed exhaustive certification: gap {certification_gap:.3e}")
+        exhaustive_residual = _finite_max_abs_diff(with_flow(exhaustive), v_rep, "exhaustive Bellman residual")
 
     return _CoreSolution(
         v_rep=v_rep, v_def=v_def, v_exp=v_exp, q=q, p_def=p_def, m_opt=m_opt,

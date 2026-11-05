@@ -24,6 +24,8 @@ def lp_garch_state(
     controls: Sequence[str] | None = None,
     alpha: float = 0.10,
     *,
+    interact: str = "all",
+    state_lag: int = 0,
     lags: int | None = None,
     horizon: int | None = None,
     ci: float | None = None,
@@ -36,9 +38,11 @@ def lp_garch_state(
     ``threshold`` is on the raw scale of the state (``None`` = sample mean
     of σ_t, i.e. high-volatility regime above average volatility) and
     ``gamma`` is the logistic speed in standard deviations of the state.
+    ``interact`` and ``state_lag`` are forwarded to :func:`lp_state_dep`.
 
     Returns an :class:`LPResult` indexed by ``h`` with columns
-    ``beta_H, se_H, lo_H, hi_H, beta_L, se_L, lo_L, hi_L``.
+    ``beta_H, se_H, lo_H, hi_H, beta_L, se_L, lo_L, hi_L`` plus regime
+    difference diagnostics.
     """
     horizons, n_lags, alpha = resolve_lp_kwargs(
         horizons, n_lags, alpha, lags=lags, horizon=horizon, ci=ci, name="lp_garch_state")
@@ -50,7 +54,8 @@ def lp_garch_state(
         sigma_col = "__sigma__"
     out = lp_state_dep(df, y=y, x=x, state=sigma_col, horizons=horizons,
                        n_lags=n_lags, transition=transition, gamma=gamma,
-                       threshold=threshold, controls=controls, alpha=alpha)
+                       threshold=threshold, controls=controls, alpha=alpha,
+                       interact=interact, state_lag=state_lag)
     res = LPResult(out)
     if "h" in res.columns:
         res.index = res["h"]

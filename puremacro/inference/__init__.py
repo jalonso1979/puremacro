@@ -8,7 +8,14 @@ from .bootstrap import residual_bootstrap as bootstrap_resample
 from .block_bootstrap import block_bootstrap
 from .moving_block import moving_block_bootstrap
 from .wild_bootstrap import wild_bootstrap, wild_bootstrap_var
-from .weak_iv import cragg_donald_f, kleibergen_paap_f, olea_pflueger_f, anderson_rubin_test, msw_bands
+from .weak_iv import (
+    cragg_donald_f,
+    kleibergen_paap_f,
+    olea_pflueger_f,
+    anderson_rubin_test,
+    msw_bands,
+    instrument_influence,
+)
 from .pesaran import pesaran_cd
 from .swamy import swamy_test
 from .hac_fixed_b import hac_fixed_b, llsw_critical_value
@@ -38,6 +45,7 @@ from .smc import AdaptiveTemperingSchedule, SMCResult, smc_sample
 from . import gmm as _gmm_module  # noqa: F401
 from .gmm import gmm
 from ._results import GMMFitResult
+from .giv import GIVResult, estimate_giv
 
 # quandt_andrews_supF is loaded lazily because quandt_andrews.py depends on
 # puremacro.tests.breaks, which can fail to resolve when the project root is
@@ -63,6 +71,7 @@ __all__ = [
     "olea_pflueger_f",
     "anderson_rubin_test",
     "msw_bands",
+    "instrument_influence",
     "pesaran_cd",
     "swamy_test",
     "hac_fixed_b",
@@ -94,4 +103,6 @@ __all__ = [
     "smc_sample",
     "gmm",
     "GMMFitResult",
+    "GIVResult",
+    "estimate_giv",
 ]

@@ -78,6 +78,8 @@ nav:
       - Econometric Engines:
           - VAR & FAVAR: var.md
           - Narrative Sign Restrictions SVAR: narrative_sign_svar.md
+          - SVAR Identification, Policy Counterfactuals & Bridges: svar_and_policy_counterfactuals.md
+          - Portfolio Analysis & Macro Allocation: portfolio_and_macro_allocation.md
           - BVAR with Stochastic Volatility: bvar_sv.md
           - Local Projections: lp.md
           - Smooth Local Projections: smooth_lp.md
@@ -119,7 +121,7 @@ nav:
           - Gertler-Karadi (2011) DSGE: gertler_karadi.md
           - Quantitative Sovereign Default & Sudden Stops: sovereign_default.md
           - Sovereign extension validation: sovereign_extensions_validation.md
-          - Fiscal Block in a Sovereign Default Model: sovereign_fiscal_rules.md
+          - Fiscal Block and Fiscal Rules in a Sovereign Default Model: sovereign_fiscal_rules.md
           - Sovereign-risk policy brief: brief_sovereign_risk.md
           - Climate Macro (DICE): climate.md
           - DSGE Sketchpad & Dynare: dsge_build.md
@@ -208,6 +210,8 @@ nav:
       - Motores econométricos:
           - VAR y FAVAR: es/var.md
           - SVAR con restricciones narrativas de signo: es/narrative_sign_svar.md
+          - Identificación SVAR, contrafactuales de política y puentes: es/svar_and_policy_counterfactuals.md
+          - Análisis de portafolios y asignación macro: es/portfolio_and_macro_allocation.md
           - BVAR con volatilidad estocástica: es/bvar_sv.md
           - Proyecciones locales: es/lp.md
           - Proyecciones locales suavizadas: es/smooth_lp.md
@@ -249,7 +253,7 @@ nav:
           - DSGE de Gertler-Karadi (2011): es/gertler_karadi.md
           - Default soberano cuantitativo y paradas repentinas: es/sovereign_default.md
           - Validación de extensiones soberanas: es/sovereign_extensions_validation.md
-          - Bloque fiscal en un modelo de impago soberano: es/sovereign_fiscal_rules.md
+          - Bloque fiscal y reglas fiscales en un modelo de impago soberano: es/sovereign_fiscal_rules.md
           - Informe de política sobre riesgo soberano: es/brief_sovereign_risk.md
           - Macroeconomía del clima (DICE): es/climate.md
           - Cuaderno de bocetos DSGE y Dynare: es/dsge_build.md

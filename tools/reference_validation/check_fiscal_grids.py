@@ -58,8 +58,9 @@ def _calibration() -> dict:
 
 
 def _array_fields() -> list[str]:
+    # ``rule`` is not an array; the ladder solves the rule-free calibration only.
     return [f.name for f in fields(FiscalSovereignResult)
-            if f.name != "metadata" and f.name not in _SCALARS]
+            if f.name not in ("metadata", "rule") and f.name not in _SCALARS]
 
 
 _SCALARS = ("spread_mean", "spread_y_corr", "bellman_residual", "converged", "maturity_param_delta",
@@ -78,6 +79,8 @@ def _diagnostics(result: FiscalSovereignResult, seconds: float) -> dict:
 
 
 def _save(result: FiscalSovereignResult, arrays_path: Path) -> None:
+    if result.rule is not None:
+        raise ValueError("The fiscal grid cache stores rule-free solutions only")
     arrays = {name: getattr(result, name) for name in _array_fields()}
     arrays |= {"meta_" + key: np.asarray(result.metadata[key]) for key in _META_ARRAYS}
     np.savez_compressed(arrays_path, **arrays)

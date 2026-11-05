@@ -14,11 +14,13 @@ certified monotone policy search.
 """
 from __future__ import annotations
 
+import dataclasses
 from typing import Any, Callable
 
 import numpy as np
 
 from puremacro.sovereign._results import FiscalSovereignResult
+from puremacro.sovereign.rules import FiscalRule, _compile_rule, _infeasible_message
 from puremacro.sovereign.arellano import (
     _compute_default_penalty,
     _compute_dq_db_dualarray,
@@ -65,6 +67,7 @@ def solve_fiscal_sovereign_default(
     recovery_rate: float = 0.0,
     howard_steps: int = 15,
     enforce_monotonicity: bool = False,
+    rule: FiscalRule | None = None,
 ) -> FiscalSovereignResult:
     r"""Solve a short-term sovereign default model with government spending in utility.
 
@@ -114,7 +117,7 @@ def solve_fiscal_sovereign_default(
         Debt and income grid sizes.
     sigma_eps : float, default 0.0
         Extreme-value taste-shock scale for the default choice.
-    policy_search : {"monotone", "dense"}, default "monotone"
+    policy_search : {"monotone", "dense", "exhaustive"}, default "monotone"
         "monotone" searches the debt choice in O(n_b log n_b) per income
         state using the concavity of ``psi v``; it returns the same values as
         "dense" and the same policies except at exact value ties between
@@ -122,11 +125,20 @@ def solve_fiscal_sovereign_default(
         exhaustive search at the returned prices certifies it: a gap above
         1e-11 raises RuntimeError. It raises ValueError if any candidate
         spending reaches the 1e-6 utility barrier; use "dense" there.
+        "exhaustive" runs the blocked exhaustive search every iteration
+        (O(n_b^2 n_y) work, O(128 n_b) memory); a deficit limit needs it
+        or "dense". Debt ceilings, escape clauses and penalties work with
+        all three.
     tol, max_iter, damping, recovery_rate, howard_steps, enforce_monotonicity
         Fixed-point controls, as in ``solve_sovereign_default``.
     private_consumption : bool, default True
         Include the flow ``u((1 - tau) y)``. It does not affect the debt
         choice, only the values (and so the default decision).
+    rule : FiscalRule, optional
+        A fiscal rule known to lenders (it changes the price schedule).
+        Thresholds are scaled by the stationary mean of ``y`` (one). States
+        where a hard rule leaves no candidate raise ValueError before
+        solving, or default for sure with ``infeasible="default"``.
 
     Returns
     -------
@@ -152,13 +164,23 @@ def solve_fiscal_sovereign_default(
         raise ValueError(f"r_star must be > 0; got {r_star}")
     if not np.isfinite(theta) or not 0.0 <= theta <= 1.0:
         raise ValueError(f"theta must be finite and in [0, 1]; got {theta}")
-    if policy_search not in ("dense", "monotone"):
-        raise ValueError(f'policy_search must be "dense" or "monotone"; got {policy_search!r}')
+    if policy_search not in ("dense", "monotone", "exhaustive"):
+        raise ValueError(f'policy_search must be "dense", "monotone" or "exhaustive"; got {policy_search!r}')
+    if rule is not None and not isinstance(rule, FiscalRule):
+        raise TypeError(f"rule must be a FiscalRule or None; got {type(rule).__name__}")
+    if rule is not None and rule.deficit_limit is not None and policy_search == "monotone":
+        raise ValueError('A deficit limit is not monotone-compatible; use policy_search="exhaustive" '
+                         '(or "dense" on small grids)')
 
     y_grid, p_trans, stat_dist = _discretize_endowment(n_y, rho_y, sigma_y, m=m_tauchen)
     y_def = _compute_default_penalty(y_grid, penalty_type=y_penalty_type, d0=d0, d1=d1,
                                      mean_y=float(stat_dist @ y_grid))
     b_grid, zero_idx = _make_debt_grid(b_min, b_max, n_b)
+    compiled = None
+    if rule is not None:
+        compiled = _compile_rule(rule, b_grid, y_grid, float(stat_dist @ y_grid))
+        if compiled.infeasible.any() and rule.infeasible == "raise":
+            raise ValueError(_infeasible_message(compiled, b_grid, y_grid))
 
     spending_utility = _crra_utility(gamma_g)
 
@@ -180,7 +202,7 @@ def solve_fiscal_sovereign_default(
         beta=beta, r_star=r_star, delta=1.0, kappa=0.0, sigma_eps=sigma_eps, theta=theta,
         tol=tol, max_iter=max_iter, damping=damping, recovery_rate=recovery_rate,
         howard_steps=howard_steps, enforce_monotonicity=enforce_monotonicity,
-        policy_search=policy_search,
+        policy_search=policy_search, rule=compiled,
     )
     q, m_opt = core.q, core.m_opt
     policy_b = b_grid[m_opt]
@@ -231,7 +253,8 @@ def solve_fiscal_sovereign_default(
         "psi": psi,
         "private_consumption": private_consumption,
         "resources": "tau * y",
-        "rule": None,
+        "rule": None if rule is None else dataclasses.asdict(rule),
+        "rule_infeasible_states": 0 if compiled is None else int(compiled.infeasible.sum()),
         "zero_index": zero_idx,
     }
 
@@ -267,6 +290,7 @@ def solve_fiscal_sovereign_default(
         gamma_c=gamma_c,
         gamma_g=gamma_g,
         private_consumption=private_consumption,
+        rule=rule,
         policy_index=m_opt,
         g_policy=g_policy,
         g_default=tau * y_def,

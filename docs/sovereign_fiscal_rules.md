@@ -1,6 +1,6 @@
 > 🇬🇧 English · 🇪🇸 [Español](es/sovereign_fiscal_rules.md)
 
-# Fiscal block in a sovereign default model
+# Fiscal block and fiscal rules in a sovereign default model
 
 `solve_fiscal_sovereign_default` adds government spending to the short-term
 Arellano (2008) sovereign default model. A fixed share of output is taxed,
@@ -175,11 +175,161 @@ MPLBACKEND=Agg python -m tools.reference_validation.check_fiscal_grids --output 
 The frozen record is `tests/fixtures/sovereign_fiscal/fiscal_grid_convergence.json`;
 the tests recompute its verdict from the per-seed moments.
 
+## Fiscal rules
+
+`rule=FiscalRule(...)` restricts next debt in repayment. Lenders know the rule,
+so it changes the equilibrium bond prices as well as the government's choices.
+
+| Field | Meaning | Search |
+|---|---|---|
+| `debt_ceiling` | hard cap `b' <= debt_ceiling` | `"monotone"` (certified), `"exhaustive"`, `"dense"` |
+| `escape_below` | the whole rule is suspended when `y < escape_below` | as the rule it suspends |
+| `penalty` | every component becomes soft: each violated one costs `penalty` utils (violations add up) | as above |
+| `deficit_limit` | `b' - b <= deficit_limit` (new net borrowing; negative means required debt reduction) | `"exhaustive"` or `"dense"` only |
+
+Thresholds are in mean output per quarter, like debt: a ceiling of 0.02 is 2%
+of one quarter's output, or 0.5% of annual output; `escape_below=0.92` is an
+income 8% below its mean (about one unconditional standard deviation). A choice
+at the cap up to a `1e-12` tolerance is compliant. A deficit limit links the
+choice to current debt, which breaks the monotone search, so it raises
+`ValueError` with `policy_search="monotone"`; the blocked exhaustive search costs
+O(n_b² n_y) per iteration, so use coarse grids such as 401 × 21.
+
+If a hard rule leaves a state with no admissible debt (for example
+`deficit_limit=-0.01` at the lowest debt nodes), the solver raises before
+solving and names up to ten such states; `infeasible="default"` instead makes
+the government default there for sure (`v_repay = -inf`, `default_prob = 1`).
+
+```python
+from puremacro.sovereign import FiscalRule, solve_fiscal_sovereign_default
+
+small = dict(tau=0.2, psi=1.0, n_b=101, n_y=11)
+rules = {
+    "ceiling": FiscalRule(debt_ceiling=0.02),
+    "ceiling_escape": FiscalRule(debt_ceiling=0.02, escape_below=0.92),
+    "soft_ceiling": FiscalRule(debt_ceiling=0.02, penalty=0.05),
+    "deficit": FiscalRule(deficit_limit=0.005),
+}
+for name, rule in rules.items():
+    search = "exhaustive" if rule.deficit_limit is not None else "monotone"
+    res = solve_fiscal_sovereign_default(**small, rule=rule, policy_search=search)
+    assert res.converged and res.rule is rule
+    print(name, res.metadata["policy_search"], round(float(res.policy_b.max()), 4))
+
+strict = FiscalRule(deficit_limit=-0.01)          # must cut debt by 1% of output each quarter
+try:
+    solve_fiscal_sovereign_default(**small, rule=strict, policy_search="exhaustive")
+except ValueError as err:
+    print(err)                                     # names the states with no admissible choice
+forced = solve_fiscal_sovereign_default(
+    **small, rule=FiscalRule(deficit_limit=-0.01, infeasible="default"), policy_search="exhaustive")
+print(forced.metadata["rule_infeasible_states"])  # those states now default for sure
+```
+
+### Registered predictions and what happened
+
+Before any rule was solved, the predictions below and their definitions were
+committed in `tests/fixtures/sovereign_fiscal/rule_predictions_protocol.json`;
+`tools/reference_validation/check_fiscal_rule_predictions.py` measured them
+(record: `rule_predictions_record.json`; 16 paired seeds × 100,000 quarters).
+Binding shares are measured on the **no-rule** paths: the share of repayment
+quarters in which the unconstrained choice would break the rule.
+
+To regenerate the record (about a minute; it reads the protocol and never changes it):
+
+```sh
+MPLBACKEND=Agg python -m tools.reference_validation.check_fiscal_rule_predictions --output /tmp/rule_predictions_record.json
+```
+
+| Prediction | Registered | Found | Verdict |
+|---|---|---|---|
+| Escape clause inert: largest debt chosen with `y < 0.92` | about 0.001, far below 0.02 | 0.00048 (401 × 21), 0.00060 (801 × 41); every moment unchanged | held |
+| Ceiling 0.02 binds | 19–23% of repayment quarters | 23.4% | **not held** |
+| Ceiling binds only in booms (`y > 1`) | all binding quarters | all | held |
+| Deficit limit 0.005 binds | 1–2% | 1.7% | held |
+| Output equivalent of `penalty=0.05` | about 0.002 | 0.0020 | reported (no band registered) |
+
+The ceiling's binding share came out just above the registered band; it is
+reported as found, and no threshold was changed afterwards.
+For the escape-clause row, "held" is the tool's criterion: the largest debt
+chosen with `y < 0.92` is below the 0.02 cap at both grids, and every moment
+passes the paired comparison with the plain ceiling. The values found, 0.00048
+and 0.00060, are about half the protocol's "about 0.001".
+
+**Why the escape clause does nothing here.** Default risk is highest in bad
+times, so lenders' prices already make borrowing in a recession expensive: with
+income below 0.92 the unconstrained government never chooses more than
+0.00048 of quarterly output, a fortieth of the cap. At those incomes the bond
+price at the cap is essentially zero (at most 0.13% of the risk-free price), and
+the most the government can raise by borrowing is 0.0011 of quarterly output
+(401 × 21). Market discipline binds before the rule does, so suspending the rule in recessions changes nothing —
+the escape-clause rows equal the plain ceiling on every seed. The ceiling binds
+only in booms, when the government would otherwise borrow more.
+
+**Penalty scale.** A penalty is in utils. Dividing it by the marginal utility
+of spending, `psi g^(-gamma_g)`, averaged over the soft-ceiling model's
+repayment quarters (mean `g` = 0.200), gives its output equivalent:
+`penalty=0.05` costs about 0.0020 of quarterly output per violation. On the
+simulated paths, which start from zero debt, the government never exceeds the
+cap at that price (0.0% of repayment quarters), and at every current debt
+`b <= 0.02` the soft and hard rules choose the same debt. Off those paths they
+differ: in 503 repayment states, all with current debt of at least 0.04776, the
+soft-rule government rolls its debt over above the cap and pays the penalty
+rather than cut back to the cap at once. Paths that start from high debt, such
+as debt-sustainability fan charts, would show that difference.
+
+**COARSE 401 × 21 grid — compare rules only within this table.** Coarse
+moments differ from converged ones (the no-rule spread SD is 5.906 pp here
+against 2.716 at 6,401 × 641 above).
+
+| Rule | Debt/output (%) | Mean spread (%) | Annual default (%) | Spread SD (pp) |
+|---|---:|---:|---:|---:|
+| `none` | 1.057 | 3.912 | 3.744 | 5.906 |
+| `ceiling` | 0.796 | 3.726 | 3.569 | 5.698 |
+| `ceiling_escape` | 0.796 | 3.726 | 3.569 | 5.698 |
+| `soft_ceiling` | 0.796 | 3.726 | 3.569 | 5.698 |
+| `deficit` | 1.053 | 3.908 | 3.739 | 5.902 |
+
+The ceiling lowers average debt, and lower spreads and default frequency
+accompany the lower debt; the deficit limit barely binds.
+
+### Debt-sustainability trajectories from high debt
+
+Ergodic simulations starting at zero debt never reach the states ($b \ge 0.04776$) where the soft ceiling and hard ceiling diverge. `simulate_fiscal_dsa` and `compare_fiscal_rules_dsa` instead start from an elevated initial debt state (default `b0 = 0.05` at boom output `y0 = 1.10`, where the sovereign is in good standing) and trace the 40-quarter transition distribution using common random numbers across rules.
+
+On the **401 × 21** grid (`1,000` paths, `40` quarters, `seed = 42`, `threshold = 0.02`):
+
+| Rule | Period-1 next debt $b'_1$ | Period-1 spending/output (%) | Period-1 above 0.02 (%) | Repay quarters above 0.02 (%) | Terminal median debt (%) | Terminal $\text{DaR}_{95}$ (%) | Cumulative default (%) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `none` | 0.03960 | 18.99 | 100.0 | 46.74 | 0.816 | 4.225 | 30.50 |
+| `ceiling` | 0.01992 | 17.22 | 0.0 | 0.00 | 0.792 | 1.992 | 26.60 |
+| `ceiling_escape` | 0.01992 | 17.22 | 0.0 | 0.00 | 0.792 | 1.992 | 26.60 |
+| `soft_ceiling` | 0.03600 | 18.67 | 100.0 | 2.56 | 0.792 | 1.992 | 26.90 |
+| `deficit` | 0.03960 | 18.99 | 100.0 | 46.58 | 0.768 | 4.225 | 30.50 |
+
+Starting from $b_0 \approx 0.05$, the **hard ceiling** (`ceiling`) forces a one-quarter fiscal contraction from $b_0 = 0.04992$ all the way down to $b'_1 = 0.01992 \le 0.02$, cutting first-period public spending to $17.22\%$ of output ($-1.77\text{ pp}$ below `none`). Under the **soft ceiling** (`soft_ceiling`, `penalty = 0.05`), the government instead pays the utility penalty in period 1 to choose an intermediate debt $b'_1 = 0.03600 > 0.02$, smoothing first-period public spending at $18.67\%$ of output ($+1.45\text{ pp}$ above the hard ceiling) before completing its deleveraging below the $0.02$ cap in period 2 (`2.56%` of repayment quarters above the cap overall, with the same $1.992\%$ terminal $\text{DaR}_{95}$ as the hard ceiling).
+
+```python
+from puremacro.sovereign import compare_fiscal_rules_dsa, simulate_fiscal_dsa
+
+dsa_models = {
+    "none": solve_fiscal_sovereign_default(**small),
+    "ceiling": solve_fiscal_sovereign_default(**small, rule=rules["ceiling"]),
+    "soft_ceiling": solve_fiscal_sovereign_default(**small, rule=rules["soft_ceiling"]),
+}
+dsa_table = compare_fiscal_rules_dsa(dsa_models, b0=0.05, y0=1.10, horizon=20, n_sims=200, seed=42)
+assert dsa_table.loc[dsa_table["rule_name"] == "ceiling", "prob_breach_pct"].item() == 0.0
+assert dsa_table.loc[dsa_table["rule_name"] == "soft_ceiling", "first_period_above_threshold_pct"].item() == 100.0
+soft_dsa = simulate_fiscal_dsa(dsa_models["soft_ceiling"], b0=0.05, y0=1.10, horizon=20, n_sims=200, seed=42)
+print(dsa_table[["rule_name", "first_period_b_next", "first_period_g_pct", "dar_95_pct"]])
+```
+
 ## Limits
 
 - Endowment economy: output does not respond to taxes or spending.
 - Fixed tax share: `tau` is a parameter, not a policy choice.
 - Short-term debt only (`delta = 1`, `kappa = 0`).
+- Rules are fully credible and permanent; the government cannot renegotiate them.
 - The calibration is illustrative and the moments describe this model at
   these parameters, not any country.
 

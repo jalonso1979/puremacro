@@ -1,10 +1,12 @@
 # Arellano: código original y sensibilidad a las mallas
 
-**Se reproduce el algoritmo archivado. Para la calibración pública de
-PureMacro, la convergencia de mallas queda establecida con 6.401 nodos de deuda
-y 641 estados de ingreso bajo tolerancias prerregistradas. Los momentos
-publicados no convergen con la malla: en mallas finas el mismo modelo produce
-cerca de la mitad de la volatilidad publicada del diferencial.** La comparación conserva las convenciones de cada
+**Se reproduce el algoritmo archivado. La convergencia de mallas queda
+establecida bajo tolerancias prerregistradas para ambas calibraciones: la
+pública de PureMacro con 6.401 nodos de deuda y 641 estados de ingreso, y la
+archivada de Arellano (2008), con el reingreso del autor, con 6.369 × 641. Los
+momentos publicados no convergen con la malla: en mallas convergidas el modelo
+archivado produce cerca de 2,9 puntos porcentuales de volatilidad del
+diferencial frente a los 6,36 publicados.** La comparación conserva las convenciones de cada
 modelo y no recalibra parámetros para acercarse a los objetivos publicados.
 
 ## Ejecutar localmente
@@ -65,7 +67,7 @@ sorteos originales y el script archivado examina candidatos a default 2:300,
 mientras el artículo describe 100 ventanas. No se afirma una reproducción
 exacta de la tabla publicada.
 
-## La calibración archivada no converge con la malla
+## La malla archivada de 200 × 21 no converge
 
 Las mallas de deuda son anidadas, con extremos fijos y cero exacto; las mallas
 de ingreso mantienen sus extremos logarítmicos. Los residuos independientes de
@@ -98,7 +100,9 @@ calibración pública, más abajo, muestra que los nodos de deuda importan igual
 de 801 a 6.401 nodos la volatilidad del diferencial cae otros 0,44 puntos
 porcentuales. Acercarse a un objetivo
 aislado no demuestra convergencia conjunta, y aquí no se reajusta ningún
-parámetro.
+parámetro. La escalera de la calibración archivada, más abajo, lleva esta
+calibración hasta 6.369 nodos de deuda y 641 estados de ingreso y establece su
+convergencia.
 
 Hatchondo, J. C., L. Martinez y H. Sapriza (2010), "Quantitative properties of
 sovereign default models: solution methods matter", *Review of Economic
@@ -271,6 +275,80 @@ El comando escribe el protocolo antes de resolver y guarda cada coordenada,
 semilla, hash de fuente, residuo de certificación y comparación. Una malla no
 uniforme por sí sola no demuestra convergencia; evalúe el registro completo.
 
+## Calibración archivada: convergencia de mallas establecida
+
+```sh
+MPLBACKEND=Agg python -m tools.reference_validation.check_arellano_grids --calibration archive \
+  --output /tmp/arellano-archive-grids --refinements 2 3 4 5 --income-states 321 641
+MPLBACKEND=Agg python -m tools.reference_validation.check_arellano_grids --calibration archive \
+  --output /tmp/arellano-archive-grids --refinements 2 3 4 5 --income-states 321 641 \
+  --periods 500000 --windows 1000
+```
+
+`--calibration archive` conserva todas las convenciones archivadas: los
+literales de precisión simple de Fortran, el producto en default
+`min(y, 10*.969)`, el reingreso del autor y su malla de 200 nodos refinada por
+inserción de puntos medios, de modo que los 797, 1.593, 3.185 y 6.369 nodos de
+deuda se anidan exactamente sobre el soporte original. Los refinamientos del
+ingreso usan probabilidades de Tauchen sobre los extremos logarítmicos
+archivados. Tolerancias, semillas, comparaciones emparejadas y regla de
+aprobación son las de la escalera pública, y el protocolo se escribe antes de
+resolver. Las ocho soluciones monótonas certificadas tardaron entre 47 segundos
+y 19 minutos cada una en la estación de trabajo probada. Todos los residuos de
+Bellman son inferiores a 3e-12 y los de precios a 1e-8; la verificación
+exhaustiva de las políticas aceleradas coincide.
+
+El caso de 797 × 321 del diseño estándar reproduce la fila del estudio de arriba
+(5,144; 3,321; 2,942; 3,098). Con ese diseño se aprobaron 23 de las 24
+comparaciones finales. En el refinamiento final del ingreso, la deuda/producto
+cambió −0,066 puntos porcentuales, dentro de su tolerancia de 0,10, pero su cota
+fue 0,122, de modo que la precisión muestral no permitía clasificarlo. La regla
+registrada volvió a simular las mismas soluciones verificadas con 500.000
+trimestres y 1.000 ventanas por semilla. Con ese diseño se aprueban todas las
+comparaciones:
+
+| Nodos de deuda × estados de ingreso | Deuda/producto (%) | Diferencial medio (%) | Default anual (%) | DE diferencial (pp) | Correlación: balanza comercial, diferencial |
+|---|---:|---:|---:|---:|---:|
+| 797 × 321 | 5,216 | 3,304 | 2,921 | 3,107 | 0,774 |
+| 1.593 × 321 | 5,222 | 3,278 | 2,902 | 3,008 | 0,806 |
+| 3.185 × 321 | 5,232 | 3,289 | 2,913 | 3,001 | 0,815 |
+| 6.369 × 321 | 5,230 | 3,290 | 2,915 | 2,984 | 0,821 |
+| 797 × 641 | 5,145 | 3,264 | 2,890 | 3,020 | 0,781 |
+| 1.593 × 641 | 5,166 | 3,243 | 2,874 | 2,949 | 0,809 |
+| 3.185 × 641 | 5,164 | 3,248 | 2,884 | 2,926 | 0,820 |
+| 6.369 × 641 | 5,174 | 3,245 | 2,881 | 2,922 | 0,824 |
+
+En el refinamiento final de la deuda, de 3.185 a 6.369 nodos con 641 estados,
+las mayores cotas son 0,021 pp para la deuda/producto, frente a 0,10, y 0,005
+para la correlación entre balanza comercial y diferencial, frente a 0,02. En el
+refinamiento final del ingreso, de 321 a 641 estados con 6.369 nodos, son
+0,069 pp para la deuda/producto y 0,067 pp para la volatilidad del diferencial.
+El registro congelado,
+`tests/fixtures/arellano_2008/archive_grid_convergence.json`, conserva cada
+semilla, momento, hash, residuo y comparación, junto con las comparaciones del
+diseño estándar que motivaron la nueva simulación. Una prueba recalcula ambas
+comparaciones finales a partir de él y verifica esta tabla.
+
+**Qué queda resuelto y qué no.** En mallas convergidas el modelo archivado
+genera una volatilidad del diferencial de cerca de 2,9 puntos porcentuales
+frente a los 6,36 publicados, y una correlación entre balanza comercial y
+diferencial de cerca de 0,82 frente a 0,43. La deuda/producto (5,2 % frente a
+5,95 %), el diferencial medio (3,2 % frente a 3,58 %) y la frecuencia anual de
+default (2,9 % frente a 3,00 %) cambian mucho menos. La volatilidad publicada
+del diferencial es, por tanto, una propiedad de la malla gruesa de 200 × 21, no
+del modelo con esta calibración. En la dirección de la deuda los cambios
+sucesivos se reducen rápido: con 641 estados la volatilidad del diferencial
+cambia −0,071, −0,023 y −0,004 pp por duplicación. La dirección del ingreso
+converge más despacio. Las filas del estudio con 797 nodos caen 0,247 y
+0,132 pp por duplicación del ingreso de 81 a 321 estados, y el cambio final de
+321 a 641 es −0,063 pp. Una extrapolación geométrica con esos cocientes, de 0,5
+a 0,7 por duplicación, sitúa el límite de la volatilidad del diferencial entre
+0,07 y 0,14 pp por debajo de 2,922, posiblemente fuera de su tolerancia;
+cítela como cerca de 2,8 a 2,9 pp. La extrapolación es un diagnóstico, no parte
+del criterio registrado. No se recalibra nada: un conjunto de parámetros que
+reprodujera los momentos publicados en mallas convergidas sería un resultado
+nuevo.
+
 ## Próxima decisión
 
 La calibración pública ya tiene un diseño numérico fijo: 6.401 nodos de deuda,
@@ -278,7 +356,8 @@ La calibración pública ya tiene un diseño numérico fijo: 6.401 nodos de deud
 Los experimentos de reingreso, volatilidad y persistencia del ingreso pueden
 partir de ese diseño, pero cada escenario requiere su propia comprobación de
 malla. Mantenga separadas la calibración
-archivada y la pública; la convergencia de la archivada no está establecida más
-allá de 797 puntos de deuda. Vencimientos y reestructuración requieren su propia
+archivada y la pública: cada una tiene su propio diseño convergido (6.401 × 641
+la pública, 6.369 × 641 la archivada) y los resultados de una no se trasladan a
+la otra. Vencimientos y reestructuración requieren su propia
 validación externa. Cualquier recalibración sería un resultado nuevo, no parte
 de esta validación.

@@ -626,4 +626,252 @@ def fit_structural(
                                max(0, degrees), j_pvalue, diagnostics, held_out, held_model)
 
 
-__all__ = ["MomentTargets", "StructuralFitResult", "fit_structural"]
+@dataclass(frozen=True)
+class AGSSensitivityResult:
+    """Andrews, Gentzkow & Shapiro (2017, QJE) local sensitivity measure for minimum-distance fits.
+
+    Parameters
+    ----------
+    lambda_matrix : np.ndarray
+        Raw AGS sensitivity matrix ``Lambda = -(G' W G)^{-1} G' W`` of shape ``(p, q)``.
+    dtheta_dm : np.ndarray
+        Local comparative-static matrix ``d(theta_hat)/d(m_hat') = (G' W G)^{-1} G' W = -Lambda``
+        of shape ``(p, q)`` (when ``G = dm(theta)/dtheta``).
+    standardized_sensitivity : np.ndarray
+        Unit-free standardized sensitivity ``Lambda_tilde_{j,k} = Lambda_{j,k} * SE(m_hat_k) / SE(theta_hat_j)``
+        of shape ``(p, q)``, measuring the shift in parameter ``j`` (in parameter SE units) per
+        1-SD change in empirical moment ``k``.
+    parameter_names : tuple[str, ...]
+        Names of the ``p`` structural parameters.
+    moment_labels : tuple[str, ...]
+        Labels of the ``q`` empirical target moments.
+    parameter_se : np.ndarray
+        Asymptotic standard errors of ``theta_hat``, shape ``(p,)``.
+    moment_se : np.ndarray
+        Empirical standard errors of ``m_hat``, shape ``(q,)``.
+    inference_valid : bool
+        Whether the underlying ``StructuralFitResult`` passed local regularity checks.
+    metadata : Mapping[str, Any]
+        Diagnostic metadata (condition number, weighting scheme, top identifying moments).
+    """
+
+    lambda_matrix: np.ndarray
+    dtheta_dm: np.ndarray
+    standardized_sensitivity: np.ndarray
+    parameter_names: tuple[str, ...]
+    moment_labels: tuple[str, ...]
+    parameter_se: np.ndarray
+    moment_se: np.ndarray
+    inference_valid: bool
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        for name in ("lambda_matrix", "dtheta_dm", "standardized_sensitivity", "parameter_se", "moment_se"):
+            object.__setattr__(self, name, _readonly(getattr(self, name)))
+        object.__setattr__(self, "metadata", _freeze(self.metadata))
+
+    def to_dataframe(self, *, standardized: bool = True) -> pd.DataFrame:
+        """Return the ``(p, q)`` sensitivity matrix as a labeled DataFrame.
+
+        Parameters
+        ----------
+        standardized : bool, default True
+            If True, returns ``standardized_sensitivity`` (in SD/SE units).
+            If False, returns raw ``lambda_matrix``.
+        """
+        mat = self.standardized_sensitivity if standardized else self.lambda_matrix
+        return pd.DataFrame(
+            mat,
+            index=pd.Index(self.parameter_names, name="parameter"),
+            columns=pd.Index(self.moment_labels, name="moment"),
+        )
+
+    def to_frame(self, *, standardized: bool = True) -> pd.DataFrame:
+        """Alias for :meth:`to_dataframe`."""
+        return self.to_dataframe(standardized=standardized)
+
+    def summary(self) -> str:
+        """Return a formatted ASCII summary of the AGS sensitivity matrix."""
+        lines = [
+            "==========================================================================",
+            "Andrews, Gentzkow & Shapiro (2017) Structural Sensitivity Analysis (Lambda)",
+            "==========================================================================",
+            f"Parameters (p): {len(self.parameter_names)} | Target Moments (q): {len(self.moment_labels)}",
+            f"Local Regularity (inference_valid): {self.inference_valid}",
+            "--------------------------------------------------------------------------",
+            "Standardized Sensitivity (SD shift in moment -> SE shift in parameter):",
+            self.to_dataframe(standardized=True).round(4).to_string(),
+            "--------------------------------------------------------------------------",
+            "Top Identifying Moment per Parameter (by |standardized_sensitivity|):",
+        ]
+        for j, pname in enumerate(self.parameter_names):
+            row = np.abs(self.standardized_sensitivity[j])
+            if np.all(np.isnan(row)):
+                raw_row = np.abs(self.lambda_matrix[j])
+                k_max = int(np.argmax(raw_row))
+                lines.append(
+                    f"  {pname:<18s} <- {self.moment_labels[k_max]} "
+                    f"(raw Lambda = {self.lambda_matrix[j, k_max]:+.4f})"
+                )
+            else:
+                k_max = int(np.nanargmax(row))
+                lines.append(
+                    f"  {pname:<18s} <- {self.moment_labels[k_max]} "
+                    f"(std Lambda = {self.standardized_sensitivity[j, k_max]:+.4f}, "
+                    f"raw = {self.lambda_matrix[j, k_max]:+.4f})"
+                )
+        lines.append("==========================================================================")
+        return "\n".join(lines)
+
+    def to_markdown(self, *, standardized: bool = True, **kwargs: Any) -> str:
+        """Export sensitivity table to GitHub-flavored Markdown."""
+        return df_to_markdown(self.to_dataframe(standardized=standardized).reset_index(), index=False, **kwargs)
+
+    def to_latex(self, *, standardized: bool = True, **kwargs: Any) -> str:
+        """Export sensitivity table to LaTeX booktabs format."""
+        return df_to_latex(self.to_dataframe(standardized=standardized).reset_index(), index=False, **kwargs)
+
+    def to_typst(self, *, standardized: bool = True, **kwargs: Any) -> str:
+        """Export sensitivity table to Typst table format."""
+        return df_to_typst(self.to_dataframe(standardized=standardized).reset_index(), index=False, **kwargs)
+
+    def plot(self, *, standardized: bool = True, ax: Any = None, cmap: str = "RdBu_r"):
+        """Plot a heatmap of the AGS sensitivity matrix ``Lambda``."""
+        import matplotlib.pyplot as plt
+
+        mat = self.standardized_sensitivity if standardized else self.lambda_matrix
+        if np.all(np.isnan(mat)):
+            mat = self.lambda_matrix
+            standardized = False
+        if ax is None:
+            fig, ax = plt.subplots(
+                figsize=(max(6.0, 1.2 * len(self.moment_labels)), max(3.8, 0.9 * len(self.parameter_names))),
+                 layout="constrained",
+            )
+        else:
+            fig = ax.figure
+        vmax = float(np.nanmax(np.abs(mat))) if np.any(np.isfinite(mat)) else 1.0
+        vmax = max(vmax, 1e-12)
+        im = ax.imshow(mat, cmap=cmap, vmin=-vmax, vmax=vmax, aspect="auto")
+        ax.set_xticks(np.arange(len(self.moment_labels)))
+        ax.set_xticklabels(self.moment_labels, rotation=30, ha="right")
+        ax.set_yticks(np.arange(len(self.parameter_names)))
+        ax.set_yticklabels(self.parameter_names)
+        for i in range(len(self.parameter_names)):
+            for k in range(len(self.moment_labels)):
+                val = mat[i, k]
+                if np.isfinite(val):
+                    ax.text(k, i, f"{val:+.2f}", ha="center", va="center", color="black", fontsize=9)
+        title = (
+            "AGS (2017) Standardized Sensitivity ($\\tilde{\\Lambda}$)"
+            if standardized
+            else "AGS (2017) Raw Sensitivity ($\\Lambda$)"
+        )
+        ax.set_title(title)
+        fig.colorbar(im, ax=ax, shrink=0.85)
+        return fig
+
+
+def ags_sensitivity(
+    fit: StructuralFitResult,
+    *,
+    weight: Any = None,
+    rank_rtol: float = 1e-10,
+) -> AGSSensitivityResult:
+    """Compute Andrews, Gentzkow & Shapiro (2017, QJE) sensitivity matrix ``Lambda``.
+
+    Given a minimum-distance estimator minimizing ``(m(theta) - m_hat)' W (m(theta) - m_hat)``
+    with model Jacobian ``G = dm(theta)/dtheta`` of shape ``(q, p)``, the AGS sensitivity
+    matrix is:
+
+        Lambda = -(G' W G)^{-1} G' W
+
+    and the standardized sensitivity matrix is:
+
+        Lambda_tilde_{j,k} = Lambda_{j,k} * SE(m_hat_k) / SE(theta_hat_j)
+
+    Parameters
+    ----------
+    fit : StructuralFitResult
+        Fitted structural minimum-distance result from :func:`fit_structural`.
+    weight : array_like or DataFrame, optional
+        Custom positive-definite weight matrix ``W`` if one was used in ``fit_structural``.
+        When ``None`` (default), uses the optimal weight matrix ``W = Cov(m_hat)^{-1}``.
+    rank_rtol : float, default 1e-10
+        Relative singular-value cutoff for pseudo-inversion of the weighted Jacobian.
+
+    Returns
+    -------
+    AGSSensitivityResult
+    """
+    if not isinstance(fit, StructuralFitResult):
+        raise ValueError("fit must be a StructuralFitResult")
+    G = np.asarray(fit.jacobian, dtype=float)
+    q, p = G.shape
+    scales, covariance_factor = _factor(fit.targets.covariance, "covariance")
+    if weight is None:
+        transform = solve_triangular(covariance_factor, np.diag(1.0 / scales), lower=True)
+    else:
+        w = _matrix(weight, fit.targets.labels, "weight")
+        weight_scale, weight_factor = _factor(w, "weight")
+        transform = weight_factor.T * weight_scale[None, :]
+
+    weighted_jac = transform @ G
+    u, singular, vt = np.linalg.svd(weighted_jac, full_matrices=False)
+    if len(singular) == 0 or singular[0] <= 0:
+        raise np.linalg.LinAlgError("ags_sensitivity: weighted Jacobian has zero singular values")
+    cutoff = rank_rtol * singular[0]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        inv_singular = np.where(singular > cutoff, 1.0 / singular, 0.0)
+    left_inverse = (vt.T * inv_singular) @ u.T
+    # d(theta_hat)/d(m_hat') = (G' W G)^{-1} G' W = left_inverse @ transform
+    dtheta_dm = left_inverse @ transform
+    lambda_matrix = -dtheta_dm
+
+    moment_se = np.sqrt(np.diag(fit.targets.covariance))
+    param_se = np.asarray(fit.standard_errors, dtype=float).copy()
+    if not np.all(np.isfinite(param_se)) or np.any(param_se <= 0):
+        # Compute local sandwich SE even if fit withheld SE due to boundary/stationarity
+        covariance_root = scales[:, None] * covariance_factor
+        loading = dtheta_dm @ covariance_root
+        local_cov = loading @ loading.T
+        local_se = np.sqrt(np.maximum(np.diag(local_cov), 0.0))
+        effective_se = np.where(np.isfinite(param_se) & (param_se > 0), param_se, local_se)
+    else:
+        effective_se = param_se
+
+    with np.errstate(divide="ignore", invalid="ignore"):
+        standardized = lambda_matrix * (moment_se[None, :] / effective_se[:, None])
+
+    top_moments = {}
+    for j, pname in enumerate(fit.parameter_names):
+        row = np.abs(standardized[j]) if np.any(np.isfinite(standardized[j])) else np.abs(lambda_matrix[j])
+        k_max = int(np.nanargmax(row))
+        top_moments[pname] = fit.targets.labels[k_max]
+
+    meta = {
+        "condition_number": float(fit.condition_number),
+        "identification_rank": int(fit.identification_rank),
+        "weighting": "optimal" if weight is None else "custom",
+        "top_identifying_moment": top_moments,
+    }
+    return AGSSensitivityResult(
+        lambda_matrix=lambda_matrix,
+        dtheta_dm=dtheta_dm,
+        standardized_sensitivity=standardized,
+        parameter_names=fit.parameter_names,
+        moment_labels=fit.targets.labels,
+        parameter_se=effective_se,
+        moment_se=moment_se,
+        inference_valid=bool(fit.inference_valid),
+        metadata=meta,
+    )
+
+
+__all__ = [
+    "AGSSensitivityResult",
+    "MomentTargets",
+    "StructuralFitResult",
+    "ags_sensitivity",
+    "fit_structural",
+]

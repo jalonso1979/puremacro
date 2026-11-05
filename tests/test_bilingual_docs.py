@@ -123,6 +123,8 @@ _USER_DOCS = [
     "asset_pricing.md",
     "investment_research.md",
     "investment_research_validation.md",
+    "svar_and_policy_counterfactuals.md",
+    "portfolio_and_macro_allocation.md",
 ]
 
 

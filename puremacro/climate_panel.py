@@ -53,13 +53,10 @@ def _harmonize_annual_to_quarterly(
         return _EMPTY.copy()
 
     if harmonization == "repeat":
+        # ⚡ Bolt: Vectorize group sorting to avoid O(N_groups) python loop and pd.concat allocation
         # Retain the original group/date ordering, including its precedence
         # for duplicate observations, but expand whole arrays instead of rows.
-        groups = [group.sort_values("date")
-                  for _, group in df_annual.groupby(["code", "variable"])]
-        if not groups:
-            return _EMPTY.copy()
-        df = pd.concat(groups, ignore_index=True).dropna(subset=["value"]).copy()
+        df = df_annual.dropna(subset=["code", "variable", "value"]).sort_values(["code", "variable", "date"]).reset_index(drop=True)
         if df.empty:
             return _EMPTY.copy()
 
