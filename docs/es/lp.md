@@ -240,7 +240,7 @@ res_regime.plot(title="Multiplicadores Fiscales según el Nivel de Desempleo")
 
 ## Multiplicadores acumulados (cumulative=True)
 
-Ramey y Zubairy (2018) definen el multiplicador fiscal en el horizonte $h$ como una integral, $\sum_{j=0}^{h} y_{t+j} / \sum_{j=0}^{h} g_{t+j}$. Con `cumulative=True`, `lp_iv` y `lp_state_dep_iv` lo estiman en una sola llamada para toda la lista de horizontes. En el horizonte $h$ la variable de resultado es la suma de ventana $\sum_{j=0}^{h} y_{t+j}$ y el regresor endógeno es la suma de ventana $\sum_{j=0}^{h} x_{t+j}$. El instrumento permanece fechado en $t$. El coeficiente es el multiplicador integral, y el resultado lleva `is_cumulative=True` y "(cumulative)" en la etiqueta del método. En $h=0$ el resultado es idéntico bit a bit al de `cumulative=False`.
+Ramey y Zubairy (2018) definen el multiplicador fiscal en el horizonte $h$ como una integral, $\sum_{j=0}^{h} y_{t+j} / \sum_{j=0}^{h} g_{t+j}$. Con `cumulative=True`, `lp_iv` y `lp_state_dep_iv` lo estiman en una sola llamada para toda la lista de horizontes. En el horizonte $h$ la variable de resultado es la suma de ventana $\sum_{j=0}^{h} (y_{t+j} - y_{t-1})$ y el regresor endógeno es la suma de ventana $\sum_{j=0}^{h} x_{t+j}$. El instrumento permanece fechado en $t$. El coeficiente es el multiplicador integral, y el resultado lleva `is_cumulative=True` y "(cumulative)" en la etiqueta del método. En $h=0$ el resultado es idéntico bit a bit al de `cumulative=False`.
 
 El coeficiente coincide con la forma $\sum y_{t+j}$ de Ramey y Zubairy solo cuando $y_{t-1}$ está entre los controles, mediante `n_lags >= 1` o una columna de rezago explícita. Con `n_lags=0` y sin rezago de $y$, el estimando es distinto.
 

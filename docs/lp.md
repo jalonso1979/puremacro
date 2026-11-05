@@ -338,7 +338,7 @@ latex_table = res_rz.to_latex()
 
 ## Cumulative multipliers (cumulative=True)
 
-Ramey and Zubairy (2018) define the fiscal multiplier at horizon $h$ as an integral, $\sum_{j=0}^{h} y_{t+j} / \sum_{j=0}^{h} g_{t+j}$. With `cumulative=True`, `lp_iv` and `lp_state_dep_iv` estimate it in one call per horizon list. At horizon $h$ the outcome is the window sum $\sum_{j=0}^{h} y_{t+j}$ and the endogenous regressor is the window sum $\sum_{j=0}^{h} x_{t+j}$. The instrument stays dated at $t$. The coefficient is the integral multiplier, and results carry `is_cumulative=True` with "(cumulative)" in the method label. At $h=0$ the output is bit-identical to `cumulative=False`.
+Ramey and Zubairy (2018) define the fiscal multiplier at horizon $h$ as an integral, $\sum_{j=0}^{h} y_{t+j} / \sum_{j=0}^{h} g_{t+j}$. With `cumulative=True`, `lp_iv` and `lp_state_dep_iv` estimate it in one call per horizon list. At horizon $h$ the outcome is the window sum $\sum_{j=0}^{h} (y_{t+j} - y_{t-1})$ and the endogenous regressor is the window sum $\sum_{j=0}^{h} x_{t+j}$. The instrument stays dated at $t$. The coefficient is the integral multiplier, and results carry `is_cumulative=True` with "(cumulative)" in the method label. At $h=0$ the output is bit-identical to `cumulative=False`.
 
 The coefficient equals Ramey and Zubairy's $\sum y_{t+j}$ form only when $y_{t-1}$ is among the controls, through `n_lags >= 1` or an explicit lag column. With `n_lags=0` and no lag of $y$, the estimand differs.
 
