@@ -9,7 +9,3 @@
 ## 2023-10-25 - Row duplication in Pandas DataFrames
 **Learning:** Using `.iterrows()` with list comprehensions to duplicate rows in a Pandas DataFrame (e.g. for expanding annual to quarterly periods) is significantly slower than vectorized Pandas/NumPy operations. Expanding rows iteratively creates high object allocation overhead.
 **Action:** When uniformly expanding or duplicating pandas DataFrame rows N times (e.g., converting annual to quarterly data), use `df.iloc[np.repeat(np.arange(len(df)), N)].reset_index(drop=True)` for a highly performant vectorized approach instead of `iterrows()`.
-
-## 2024-05-24 - Numpy loop replaced with sliding_window_view
-**Learning:** In threshold VECM, dynamically appending `np.concatenate` results to a list inside a python loop to construct a design matrix for lagged differences is inefficient and incurs high allocation overhead. Using numpy's `sliding_window_view` provides a direct, highly performant vectorized approach.
-**Action:** When gathering lags across a time dimension in Numpy loops, use vectorized slicing, reversing, and reshaping (e.g. `sliding_window_view(dY, window_shape=k_lags, axis=0)[:-1].transpose(0, 2, 1)[:, ::-1, :].reshape(len(dY) - k_lags, -1)`) to avoid list comprehension and `np.concatenate` allocations.
