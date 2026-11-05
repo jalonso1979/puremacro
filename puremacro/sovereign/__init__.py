@@ -22,6 +22,7 @@ from puremacro.sovereign.arellano import solve_sovereign_default
 from puremacro.sovereign.fiscal import solve_fiscal_sovereign_default
 from puremacro.sovereign.measurement import ergodic_moments, value_of_market_access
 from puremacro.sovereign.mendoza import solve_sudden_stop
+from puremacro.sovereign.rules import FiscalRule
 from puremacro.sovereign.restructuring import (
     decompose_spread_term_structure,
     evaluate_debt_restructuring,
@@ -30,6 +31,7 @@ from puremacro.sovereign.restructuring import (
 __all__ = [
     "SovereignDefaultResult",
     "FiscalSovereignResult",
+    "FiscalRule",
     "SuddenStopResult",
     "RestructuringResult",
     "solve_sovereign_default",

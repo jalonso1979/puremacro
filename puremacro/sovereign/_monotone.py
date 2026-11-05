@@ -32,34 +32,42 @@ def min_candidate_consumption(b_grid: np.ndarray, y_grid: np.ndarray, q: np.ndar
 
 
 def maximize(b_grid: np.ndarray, y_grid: np.ndarray, q: np.ndarray, ev: np.ndarray,
-             beta: float, u: Utility) -> tuple[np.ndarray, np.ndarray]:
+             beta: float, u: Utility, column_penalty: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
     """Repayment value and debt-index policy with bounded search workspace.
 
-    Income columns are independent conditional on ``ev``. Batching them keeps
-    divide-and-conquer candidate arrays small without changing arithmetic,
-    sorting, or tie-breaking within any income column.
+    ``column_penalty[m, j]`` (``inf`` for forbidden nodes) is subtracted from
+    the objective of choosing node ``m`` at income ``j``. It depends only on
+    the choice and income, so the Topkis ordering per income state still holds.
+
+    Income columns are independent conditional on ``ev`` (and on the penalty,
+    which is column-specific). Batching them keeps divide-and-conquer candidate
+    arrays small without changing arithmetic, sorting, or tie-breaking within
+    any income column.
     """
     n_b, n_y = q.shape
     block_income = 32
     if n_y <= block_income:
-        return _maximize_columns(b_grid, y_grid, q, ev, beta, u)
+        return _maximize_columns(b_grid, y_grid, q, ev, beta, u, column_penalty)
     value = np.empty((n_b, n_y))
     policy = np.empty((n_b, n_y), dtype=int)
     for first in range(0, n_y, block_income):
         stop = min(first + block_income, n_y)
         value[:, first:stop], policy[:, first:stop] = _maximize_columns(
-            b_grid, y_grid[first:stop], q[:, first:stop], ev[:, first:stop], beta, u)
+            b_grid, y_grid[first:stop], q[:, first:stop], ev[:, first:stop], beta, u,
+            None if column_penalty is None else column_penalty[:, first:stop])
     return value, policy
 
 
 def _maximize_columns(b_grid: np.ndarray, y_grid: np.ndarray, q: np.ndarray,
-                      ev: np.ndarray, beta: float, u: Utility) -> tuple[np.ndarray, np.ndarray]:
+                      ev: np.ndarray, beta: float, u: Utility,
+                      column_penalty: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
     """Original column-independent divide-and-conquer search."""
     n_b, n_y = q.shape
     order = np.argsort(-(q * b_grid[:, None]), axis=0, kind="stable")
     sorted_q = np.take_along_axis(q, order, axis=0)
     sorted_b = b_grid[order]
     sorted_ev = np.take_along_axis(ev, order, axis=0)
+    sorted_pen = None if column_penalty is None else np.take_along_axis(column_penalty, order, axis=0)
     value = np.empty((n_b, n_y))
     policy = np.empty((n_b, n_y), dtype=int)
     # Rows are ranked by wealth: rank r is debt index n_b - 1 - r.
@@ -76,6 +84,8 @@ def _maximize_columns(b_grid: np.ndarray, y_grid: np.ndarray, q: np.ndarray,
         debt = n_b - 1 - middle[owner // n_y]
         consumption = (y_grid[shock] - 1.0 * b_grid[debt]) + sorted_q[column, shock] * sorted_b[column, shock]
         objective = u(consumption) + beta * sorted_ev[column, shock]
+        if sorted_pen is not None:
+            objective = objective - sorted_pen[column, shock]
         best = np.maximum.reduceat(objective, starts)
         leftmost = np.minimum.reduceat(np.where(objective == best[owner], column, n_b), starts)
         best_col = leftmost.reshape(middle.size, n_y)
@@ -91,8 +101,16 @@ def _maximize_columns(b_grid: np.ndarray, y_grid: np.ndarray, q: np.ndarray,
 
 
 def exhaustive_maximize(b_grid: np.ndarray, y_grid: np.ndarray, q: np.ndarray, ev: np.ndarray,
-                        beta: float, u: Utility, block_rows: int = 128) -> tuple[np.ndarray, np.ndarray]:
-    """Dense argmax over all candidates, blocked to O(block_rows * n_b) memory."""
+                        beta: float, u: Utility, block_rows: int = 128, *,
+                        column_penalty: np.ndarray | None = None,
+                        transition_penalty: Callable[[int, int, int], np.ndarray] | None = None,
+                        ) -> tuple[np.ndarray, np.ndarray]:
+    """Dense argmax over all candidates, blocked to O(block_rows * n_b) memory.
+
+    ``column_penalty[m, j]`` and ``transition_penalty(first, last, j)[r, m]``
+    (cost of moving from debt row ``first + r`` to node ``m``) are subtracted
+    from the objective; ``inf`` forbids a candidate.
+    """
     n_b, n_y = q.shape
     value = np.empty((n_b, n_y))
     policy = np.empty((n_b, n_y), dtype=int)
@@ -102,6 +120,10 @@ def exhaustive_maximize(b_grid: np.ndarray, y_grid: np.ndarray, q: np.ndarray, e
         for first in range(0, n_b, block_rows):
             last = min(first + block_rows, n_b)
             objective = u((y_grid[j] - 1.0 * b_grid[first:last, None]) + proceeds[None, :]) + continuation
+            if column_penalty is not None:
+                objective = objective - column_penalty[None, :, j]
+            if transition_penalty is not None:
+                objective = objective - transition_penalty(first, last, j)
             policy[first:last, j] = objective.argmax(axis=1)
             value[first:last, j] = objective.max(axis=1)
     return value, policy
