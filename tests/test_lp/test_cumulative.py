@@ -81,7 +81,7 @@ def _manual_linear(rz, h, **extra):
 def test_lp_iv_h0_equals_default(rz):
     a = lp_iv(rz, horizons=[0], anderson_rubin=True, **KW)
     b = lp_iv(rz, horizons=[0], anderson_rubin=True, cumulative=True, **KW)
-    pd.testing.assert_frame_equal(pd.DataFrame(a), pd.DataFrame(b))
+    pd.testing.assert_frame_equal(pd.DataFrame(a), pd.DataFrame(b), check_exact=True)
 
 
 def test_lp_iv_matches_manual_recipe(rz):
@@ -155,7 +155,7 @@ def test_state_dep_iv_h0_equals_default(rz, transition):
     kw = {**SKW, "transition": transition, "threshold": 0.5}
     a = lp_state_dep_iv(rz, horizons=[0], **kw)
     b = lp_state_dep_iv(rz, horizons=[0], cumulative=True, **kw)
-    pd.testing.assert_frame_equal(pd.DataFrame(a), pd.DataFrame(b))
+    pd.testing.assert_frame_equal(pd.DataFrame(a), pd.DataFrame(b), check_exact=True)
 
 
 def test_state_dep_iv_matches_manual_recipe(rz):

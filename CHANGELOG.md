@@ -52,7 +52,17 @@ but not published; their additions are included in 6.0.1, published on
   replaced: the slack F does not collapse at long horizons (55.9 at h = 20),
   and the robust set is wider than the conventional band in the no-slack
   regime (1.28 times at h = 7), not in the slack regime (1.02). The figure is
-  regenerated.
+  regenerated. The linear and no-slack headlines, whose instrument is weak
+  (effective F 16.0 / 12.0 and 7.3 / 10.8), are reported with their
+  Anderson-Rubin 90% sets. **Compatibility:** scripts that read
+  `run_rz_replication()`'s output must be updated. The `robust` dict's keys
+  are now `h`, `regime`, `beta`, `se`, `conv_lo`, `conv_hi`, `ar_lo`, `ar_hi`,
+  `ar_set_type` and `f_eff`; `msw_lo`, `msw_hi`, `beta_2sls`, `se_2sls`,
+  `n_slack`, `ar_at_point` and `ar_at_zero` are gone. `ar_horizon` now
+  defaults to 7, in the no-slack regime (it was 12, in the slack regime).
+  `linear` is now an `LPResult` indexed by h. New keys: `state_dep` (the
+  `lp_state_dep_iv` result) and `expansion_iv` (`lp_iv` on the no-slack
+  quarters, with Anderson-Rubin sets).
 
 ### Fixed
 

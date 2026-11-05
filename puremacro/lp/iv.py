@@ -494,6 +494,10 @@ def lp_iv(
     ----------
     df : pd.DataFrame
         Dataset containing outcome, endogenous regressor, instrument(s), and controls.
+        Lags and windows are built by shifting rows. To exclude a period, set ``y``,
+        ``x`` and the instrument(s) to NaN there, keep the rows, and rebuild any
+        pre-lagged control columns. With ``cumulative=True`` the windows then drop
+        every row that reaches into the period.
     y : str
         Outcome variable name.
     x : str

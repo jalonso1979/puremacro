@@ -68,7 +68,7 @@ Fourteen scripts that together span the methods catalogue. Read in this order if
 | `lp_asymmetric_tenreyro` | 59 | Tenreyro-Thwaites (2016)-style asymmetric local projection on synthetic data. |
 | `lp_panel_dk` | 53 | Panel local projection of GDP on uncertainty with Driscoll-Kraay SE. |
 | `lp_smooth_demo` | 55 | Barnichon-Brownlees (2019) smoothed local projections on synthetic data. |
-| `ramey_zubairy_2018_multipliers` | 434 | Ramey-Zubairy (2018 JPE) spending multipliers on frozen 1889-2015 US data: one-step LP-IV cumulative multipliers ~0.66-0.71 at 2 and 4 years via `lp_iv(cumulative=True)`, the one-step slack-state (unemp >= 6.5) variant with standard errors via `lp_state_dep_iv(cumulative=True)`, and the weak-IV core — per-horizon HAC effective F, weak on impact with slack and never strong without it, answered with the HAC Anderson-Rubin set of `lp_iv(anderson_rubin=True)`. |
+| `ramey_zubairy_2018_multipliers` | 463 | Ramey-Zubairy (2018 JPE) spending multipliers on frozen 1889-2015 US data: one-step LP-IV cumulative multipliers ~0.66-0.71 at 2 and 4 years via `lp_iv(cumulative=True)`, on a weak instrument (F 16.0 and 12.0; Anderson-Rubin 90% sets 0.57-0.83 and 0.65-0.81), the one-step slack-state (unemp >= 6.5) variant with standard errors via `lp_state_dep_iv(cumulative=True)`, and the weak-IV core — per-horizon HAC effective F, weak on impact with slack and never strong without it, answered with the HAC Anderson-Rubin set of `lp_iv(anderson_rubin=True)`. |
 
 ### Regime / time-varying coefficients
 
