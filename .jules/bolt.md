@@ -9,3 +9,7 @@
 ## 2023-10-25 - Row duplication in Pandas DataFrames
 **Learning:** Using `.iterrows()` with list comprehensions to duplicate rows in a Pandas DataFrame (e.g. for expanding annual to quarterly periods) is significantly slower than vectorized Pandas/NumPy operations. Expanding rows iteratively creates high object allocation overhead.
 **Action:** When uniformly expanding or duplicating pandas DataFrame rows N times (e.g., converting annual to quarterly data), use `df.iloc[np.repeat(np.arange(len(df)), N)].reset_index(drop=True)` for a highly performant vectorized approach instead of `iterrows()`.
+
+## 2024-11-28 - Vectorized group aggregation for frequency conversion in Pandas
+**Learning:** Iterating over large pandas groups and using `.resample().mean()` per variable slice on a wide, long-form dataframe (e.g., in `_aggregate_monthly_to_quarterly`) generates immense overhead due to individual object creation and Python loop execution. This caused a 5.0-second delay for 400k rows.
+**Action:** Replace `df.groupby(...).resample(...)` iterations with purely vectorized mappings. Map exact dates to period starts (e.g. `.dt.to_period('Q').dt.start_time`), slice exact aggregation needs first, and use a single `groupby(['code', 'variable', 'q_date']).agg()` for speedups exceeding 10x.
