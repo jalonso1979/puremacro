@@ -23,6 +23,23 @@ from .gvar import (
 )
 from ._results import VarEstimateResult  # noqa: F401
 from ._gvar_null_bootstrap import GVARIndependentNullResult
+from .svar import (
+    SVARResult,
+    svar_heteroskedastic,
+    svar_non_gaussian,
+    svar_proxy,
+    svar_sign_narrative,
+)
+from .functional import (
+    FunctionalVARResult,
+    estimate_functional_var,
+)
+from puremacro.lp.counterfactual import (
+    OptimalPolicyPerturbationResult,
+    PolicyCounterfactualResult,
+    barnichon_mesters_opp,
+    mckay_wolf_counterfactual,
+)
 
 __all__ = [
     "GVARIndependentNullResult",
@@ -35,4 +52,15 @@ __all__ = [
     "gvar", "solve_gvar", "star_variables",
     "GVARResult", "CountryVARX", "GVARGIRFResult", "WeakExogeneityResult",
     "VarEstimateResult",
+    "SVARResult",
+    "svar_heteroskedastic",
+    "svar_non_gaussian",
+    "svar_proxy",
+    "svar_sign_narrative",
+    "FunctionalVARResult",
+    "estimate_functional_var",
+    "PolicyCounterfactualResult",
+    "OptimalPolicyPerturbationResult",
+    "mckay_wolf_counterfactual",
+    "barnichon_mesters_opp",
 ]

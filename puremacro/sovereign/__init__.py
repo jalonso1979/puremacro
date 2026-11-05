@@ -25,8 +25,11 @@ from puremacro.sovereign._results import (
 )
 from puremacro.sovereign.arellano import solve_sovereign_default
 from puremacro.sovereign.dsa import (
+    FiscalReactionEstimateResult,
     FiscalReactionFunction,
     compare_fiscal_rules_dsa,
+    estimate_fiscal_reaction_function,
+    fit_stochastic_dsa_from_data,
     simulate_fiscal_dsa,
     simulate_stochastic_dsa,
 )
@@ -38,6 +41,10 @@ from puremacro.sovereign.restructuring import (
     evaluate_debt_restructuring,
 )
 from puremacro.sovereign.rules import FiscalRule
+from puremacro.sovereign.smm import (
+    SovereignSMMResult,
+    calibrate_fiscal_sovereign_smm,
+)
 
 __all__ = [
     "SovereignDefaultResult",
@@ -57,4 +64,9 @@ __all__ = [
     "simulate_fiscal_dsa",
     "compare_fiscal_rules_dsa",
     "FiscalReactionFunction",
+    "FiscalReactionEstimateResult",
+    "estimate_fiscal_reaction_function",
+    "fit_stochastic_dsa_from_data",
+    "SovereignSMMResult",
+    "calibrate_fiscal_sovereign_smm",
 ]

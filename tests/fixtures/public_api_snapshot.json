@@ -446,11 +446,15 @@
       "PolicyAudit",
       "PolicyRefinementResult",
       "PolicyResult",
+      "PrecautionaryOBCResult",
       "Prior",
       "PriorPredictiveResult",
       "PrunedDSGESolution",
       "PrunedSimulationResult",
+      "RiskySteadyStateResult",
       "SSJDAGResult",
+      "SSJOSRResult",
+      "SSJPolicyResult",
       "SW07MarginalLikelihoodResult",
       "SW07PosteriorResult",
       "Scope",
@@ -556,6 +560,7 @@
       "refine_time_iteration",
       "resid",
       "residual_resample",
+      "risky_steady_state",
       "run_parity_suite",
       "shock_groups_decomposition",
       "smooth_model",
@@ -573,11 +578,17 @@
       "solve_nonlinear_occbin",
       "solve_occbin",
       "solve_perfect_foresight",
+      "solve_precautionary_obc",
       "solve_pruned_occbin",
+      "solve_risky_steady_state",
       "solve_stacked_newton_krylov",
       "solve_steady_state",
       "solve_time_iteration",
       "solve_transition",
+      "ssj_osr",
+      "ssj_policy",
+      "ssj_ramsey",
+      "ssj_welfare_decomposition",
       "steady",
       "stratified_resample",
       "sw07_laplace_mdd",
@@ -857,6 +868,12 @@
       "detrend_model",
       "ramsey_model"
     ],
+    "puremacro.dsge.risky_steady_state": [
+      "PrecautionaryOBCResult",
+      "RiskySteadyStateResult",
+      "solve_precautionary_obc",
+      "solve_risky_steady_state"
+    ],
     "puremacro.dsge.shock_groups": [
       "ShockDecompositionResult",
       "shock_groups_decomposition"
@@ -880,6 +897,13 @@
       "SSJDAGResult",
       "SimpleBlock",
       "SolvedBlock"
+    ],
+    "puremacro.dsge.ssj_policy": [
+      "SSJOSRResult",
+      "SSJPolicyResult",
+      "ssj_osr",
+      "ssj_ramsey",
+      "ssj_welfare_decomposition"
     ],
     "puremacro.dsge.stacked_newton": [
       "BlockTridiagonalPreconditioner",
@@ -1731,6 +1755,7 @@
     "puremacro.inference": [
       "ARTestResult",
       "AdaptiveTemperingSchedule",
+      "GIVResult",
       "GMMFitResult",
       "LewbelIVResult",
       "SIMEXResult",
@@ -1744,6 +1769,7 @@
       "durbin_watson",
       "effective_sample_size",
       "enumerate_specs",
+      "estimate_giv",
       "fdrcorrection",
       "gmm",
       "hac_fixed_b",
@@ -1784,6 +1810,10 @@
     ],
     "puremacro.inference.dk": [
       "driscoll_kraay"
+    ],
+    "puremacro.inference.giv": [
+      "GIVResult",
+      "estimate_giv"
     ],
     "puremacro.inference.gmm": [
       "gmm"
@@ -2038,7 +2068,10 @@
       "DistributionalLPResult",
       "LPDiDResult",
       "LPResult",
+      "OptimalPolicyPerturbationResult",
+      "PolicyCounterfactualResult",
       "SmoothLPResult",
+      "barnichon_mesters_opp",
       "bridge_hank_distributional_irf",
       "cce_panel_lp",
       "estimate_distributional_lp",
@@ -2056,6 +2089,7 @@
       "lp_smooth",
       "lp_state_dep",
       "lp_state_dep_iv",
+      "mckay_wolf_counterfactual",
       "mean_group_panel_lp",
       "panel_lp",
       "panel_lp_dk",
@@ -2076,6 +2110,12 @@
     ],
     "puremacro.lp.cce": [
       "cce_panel_lp"
+    ],
+    "puremacro.lp.counterfactual": [
+      "OptimalPolicyPerturbationResult",
+      "PolicyCounterfactualResult",
+      "barnichon_mesters_opp",
+      "mckay_wolf_counterfactual"
     ],
     "puremacro.lp.distributional": [
       "DistributionalBridgeResult",
@@ -2995,6 +3035,48 @@
       "snapshot",
       "to_base64"
     ],
+    "puremacro.portfolio": [
+      "AllocationResult",
+      "FactorAttributionResult",
+      "MacroRegimePortfolioResult",
+      "PortfolioBacktestResult",
+      "QUADRANTS",
+      "WealthSimulationResult",
+      "all_weather_portfolio",
+      "backtest_portfolio",
+      "black_litterman",
+      "classify_macro_quadrants",
+      "factor_attribution",
+      "hierarchical_risk_parity",
+      "markowitz_frontier",
+      "optimize_portfolio",
+      "shrink_covariance",
+      "simulate_wealth_glidepath"
+    ],
+    "puremacro.portfolio._results": [
+      "AllocationResult",
+      "FactorAttributionResult",
+      "MacroRegimePortfolioResult",
+      "PortfolioBacktestResult",
+      "WealthSimulationResult"
+    ],
+    "puremacro.portfolio.allocation": [
+      "black_litterman",
+      "hierarchical_risk_parity",
+      "markowitz_frontier",
+      "optimize_portfolio",
+      "shrink_covariance"
+    ],
+    "puremacro.portfolio.backtest": [
+      "backtest_portfolio",
+      "simulate_wealth_glidepath"
+    ],
+    "puremacro.portfolio.macro_regime": [
+      "QUADRANTS",
+      "all_weather_portfolio",
+      "classify_macro_quadrants",
+      "factor_attribution"
+    ],
     "puremacro.posterior": [
       "fan_chart_quantiles",
       "simulate_var_paths"
@@ -3199,14 +3281,24 @@
       "shapley_var"
     ],
     "puremacro.sovereign": [
+      "FiscalReactionEstimateResult",
+      "FiscalReactionFunction",
       "FiscalRule",
       "FiscalSovereignResult",
       "RestructuringResult",
       "SovereignDefaultResult",
+      "SovereignSMMResult",
+      "StochasticDSAResult",
       "SuddenStopResult",
+      "calibrate_fiscal_sovereign_smm",
+      "compare_fiscal_rules_dsa",
       "decompose_spread_term_structure",
       "ergodic_moments",
+      "estimate_fiscal_reaction_function",
       "evaluate_debt_restructuring",
+      "fit_stochastic_dsa_from_data",
+      "simulate_fiscal_dsa",
+      "simulate_stochastic_dsa",
       "solve_fiscal_sovereign_default",
       "solve_sovereign_default",
       "solve_sudden_stop",
@@ -3228,10 +3320,20 @@
       "FiscalSovereignResult",
       "RestructuringResult",
       "SovereignDefaultResult",
+      "StochasticDSAResult",
       "SuddenStopResult"
     ],
     "puremacro.sovereign.arellano": [
       "solve_sovereign_default"
+    ],
+    "puremacro.sovereign.dsa": [
+      "FiscalReactionEstimateResult",
+      "FiscalReactionFunction",
+      "compare_fiscal_rules_dsa",
+      "estimate_fiscal_reaction_function",
+      "fit_stochastic_dsa_from_data",
+      "simulate_fiscal_dsa",
+      "simulate_stochastic_dsa"
     ],
     "puremacro.sovereign.fiscal": [
       "solve_fiscal_sovereign_default"
@@ -3250,6 +3352,10 @@
     ],
     "puremacro.sovereign.rules": [
       "FiscalRule"
+    ],
+    "puremacro.sovereign.smm": [
+      "SovereignSMMResult",
+      "calibrate_fiscal_sovereign_smm"
     ],
     "puremacro.spatial": [
       "AllenArkolakisModel",
@@ -3358,14 +3464,18 @@
       "simulation_smoother"
     ],
     "puremacro.structural": [
+      "AGSSensitivityResult",
       "MomentTargets",
       "StructuralFitResult",
+      "ags_sensitivity",
       "fit_structural",
       "lp_moment_targets"
     ],
     "puremacro.structural.bridge": [
+      "AGSSensitivityResult",
       "MomentTargets",
       "StructuralFitResult",
+      "ags_sensitivity",
       "fit_structural"
     ],
     "puremacro.structural.lp": [
@@ -4183,14 +4293,20 @@
       "BVAR_SVResult",
       "CountryVARX",
       "FAVARResult",
+      "FunctionalVARResult",
       "GVARGIRFResult",
       "GVARIndependentNullResult",
       "GVARResult",
+      "OptimalPolicyPerturbationResult",
+      "PolicyCounterfactualResult",
+      "SVARResult",
       "VarEstimateResult",
       "WeakExogeneityResult",
+      "barnichon_mesters_opp",
       "bootstrap_bands",
       "bvar_sv",
       "companion",
+      "estimate_functional_var",
       "favar",
       "fevd",
       "fit_var",
@@ -4200,12 +4316,17 @@
       "irf",
       "is_stable",
       "lag_select",
+      "mckay_wolf_counterfactual",
       "minnesota_gibbs",
       "minnesota_posterior",
       "peak_distribution",
       "peak_summary",
       "solve_gvar",
-      "star_variables"
+      "star_variables",
+      "svar_heteroskedastic",
+      "svar_non_gaussian",
+      "svar_proxy",
+      "svar_sign_narrative"
     ],
     "puremacro.var.bvar": [
       "minnesota_gibbs",
@@ -4225,6 +4346,10 @@
     "puremacro.var.favar": [
       "FAVARResult",
       "favar"
+    ],
+    "puremacro.var.functional": [
+      "FunctionalVARResult",
+      "estimate_functional_var"
     ],
     "puremacro.var.gvar": [
       "CountryVARX",
@@ -4322,6 +4447,13 @@
     "puremacro.var.regime.tvecm": [
       "TVECMResult",
       "tvecm_fit"
+    ],
+    "puremacro.var.svar": [
+      "SVARResult",
+      "svar_heteroskedastic",
+      "svar_non_gaussian",
+      "svar_proxy",
+      "svar_sign_narrative"
     ],
     "puremacro.var.tvp": [
       "TVPVARResult",
@@ -6374,6 +6506,39 @@
       "policy_solution",
       "steady_state"
     ],
+    "puremacro.dsge.risky_steady_state.PrecautionaryOBCResult": [
+      "binding_mask",
+      "ce_binding_mask",
+      "converged",
+      "i_ce",
+      "i_floor",
+      "i_notional",
+      "i_policy",
+      "iterations",
+      "metadata",
+      "pi_ce",
+      "pi_policy",
+      "precautionary_i_bias",
+      "precautionary_pi_bias",
+      "precautionary_x_bias",
+      "residual",
+      "state_grid",
+      "x_ce",
+      "x_policy"
+    ],
+    "puremacro.dsge.risky_steady_state.RiskySteadyStateResult": [
+      "conditional_cov",
+      "converged",
+      "iterations",
+      "metadata",
+      "policy_gu",
+      "policy_gy",
+      "precautionary_shift",
+      "residual",
+      "state_names",
+      "y_det",
+      "y_rss"
+    ],
     "puremacro.dsge.smc.SMCResult": [
       "acceptance_rates",
       "data_n_obs",
@@ -6432,6 +6597,36 @@
       "name",
       "targets",
       "unknowns"
+    ],
+    "puremacro.dsge.ssj_policy.SSJOSRResult": [
+      "baseline_paths",
+      "beta",
+      "coefficient_vector",
+      "coefficients",
+      "converged",
+      "horizon",
+      "instrument_path",
+      "iterations",
+      "lags",
+      "loss_baseline",
+      "loss_naive",
+      "loss_optimal",
+      "metadata",
+      "target_paths",
+      "welfare_gain"
+    ],
+    "puremacro.dsge.ssj_policy.SSJPolicyResult": [
+      "baseline_paths",
+      "beta",
+      "distributional_gains",
+      "horizon",
+      "instrument_path",
+      "loss_baseline",
+      "loss_optimal",
+      "metadata",
+      "target_paths",
+      "timeless_instrument_path",
+      "welfare_gain"
     ],
     "puremacro.dsge.stacked_newton.HorizonComparison": [
       "long_horizon",
@@ -6710,6 +6905,30 @@
       "scale",
       "upper"
     ],
+    "puremacro.inference.giv.GIVResult": [
+      "ci_lower",
+      "ci_upper",
+      "effective_n_entities",
+      "entity_names",
+      "first_stage_coef",
+      "first_stage_f",
+      "granular_instrument",
+      "herfindahl",
+      "idiosyncratic_shocks",
+      "leave_one_out",
+      "metadata",
+      "multiplier",
+      "n_entities",
+      "n_factors",
+      "n_periods",
+      "ols_estimate",
+      "overid_j_stat",
+      "overid_pvalue",
+      "precision_weights",
+      "pvalue",
+      "se",
+      "tstat"
+    ],
     "puremacro.inference.proxy.CalibrationResult": [
       "alpha",
       "label",
@@ -6913,6 +7132,36 @@
       "last_run",
       "rate",
       "total"
+    ],
+    "puremacro.lp.counterfactual.OptimalPolicyPerturbationResult": [
+      "ar_pvalue",
+      "ar_stat",
+      "beta",
+      "horizon",
+      "loss_adjusted",
+      "loss_baseline",
+      "metadata",
+      "opp_gradient",
+      "opp_pvalue",
+      "opp_se",
+      "opp_tstat",
+      "optimal_adjustment",
+      "target_paths_baseline",
+      "target_paths_optimal"
+    ],
+    "puremacro.lp.counterfactual.PolicyCounterfactualResult": [
+      "baseline_instrument",
+      "baseline_target",
+      "ci_lower",
+      "ci_upper",
+      "counterfactual_instrument",
+      "counterfactual_target",
+      "horizon",
+      "metadata",
+      "ridge",
+      "rule_residual",
+      "rule_rmse",
+      "shock_weights"
     ],
     "puremacro.lp.distributional.DistributionalBridgeResult": [
       "bins",
@@ -7719,6 +7968,89 @@
       "source",
       "vintage"
     ],
+    "puremacro.portfolio._results.AllocationResult": [
+      "asset_names",
+      "cvar_95",
+      "diversification_ratio",
+      "effective_n_assets",
+      "expected_return",
+      "frontier_returns",
+      "frontier_vols",
+      "frontier_weights",
+      "metadata",
+      "method",
+      "risk_contributions",
+      "sharpe_ratio",
+      "volatility",
+      "weights"
+    ],
+    "puremacro.portfolio._results.FactorAttributionResult": [
+      "adj_r_squared",
+      "alpha",
+      "alpha_pvalue",
+      "alpha_se",
+      "alpha_tstat",
+      "beta_pvalues",
+      "beta_ses",
+      "beta_tstats",
+      "betas",
+      "factor_names",
+      "information_ratio",
+      "metadata",
+      "r_squared",
+      "return_contributions",
+      "rolling_betas",
+      "tracking_error"
+    ],
+    "puremacro.portfolio._results.MacroRegimePortfolioResult": [
+      "asset_names",
+      "expected_return",
+      "metadata",
+      "quadrant_returns",
+      "quadrant_vols",
+      "quadrant_weights",
+      "regime_labels",
+      "regime_shares",
+      "sharpe_ratio",
+      "volatility",
+      "weights"
+    ],
+    "puremacro.portfolio._results.PortfolioBacktestResult": [
+      "annualized_return",
+      "annualized_vol",
+      "asset_names",
+      "benchmark_equity",
+      "cagr",
+      "calmar_ratio",
+      "cvar_95",
+      "drawdown_series",
+      "equity_curve",
+      "max_drawdown",
+      "max_drawdown_duration",
+      "metadata",
+      "omega_ratio",
+      "portfolio_returns",
+      "sharpe_ratio",
+      "sortino_ratio",
+      "total_tc_paid",
+      "turnover_series",
+      "var_95",
+      "weight_history"
+    ],
+    "puremacro.portfolio._results.WealthSimulationResult": [
+      "annual_contribution",
+      "annual_withdrawal",
+      "cvar_5_terminal_wealth",
+      "horizon_years",
+      "initial_wealth",
+      "median_terminal_wealth",
+      "metadata",
+      "prob_double",
+      "prob_ruin",
+      "quantiles",
+      "safe_withdrawal_rate_95",
+      "wealth_paths"
+    ],
     "puremacro.regime_dates.Regime": [
       "end",
       "name",
@@ -8015,6 +8347,21 @@
       "v_star",
       "y_grid"
     ],
+    "puremacro.sovereign._results.StochasticDSAResult": [
+      "baseline_path",
+      "d0",
+      "dar_95",
+      "frequency",
+      "horizon",
+      "macro_paths",
+      "metadata",
+      "paths",
+      "prob_breach",
+      "prob_non_stabilizing",
+      "prob_terminal_breach",
+      "quantiles",
+      "threshold"
+    ],
     "puremacro.sovereign._results.SuddenStopResult": [
       "amplification_ratio",
       "asset_price_q",
@@ -8036,12 +8383,43 @@
       "policy_q_asset",
       "z_grid"
     ],
+    "puremacro.sovereign.dsa.FiscalReactionEstimateResult": [
+      "bohn_p_value_one_sided",
+      "bohn_solvency_holds",
+      "bohn_t_stat",
+      "fatigue_threshold",
+      "metadata",
+      "n_obs",
+      "p_values",
+      "params",
+      "r2",
+      "reaction_function",
+      "residual_std",
+      "se",
+      "t_stats"
+    ],
+    "puremacro.sovereign.dsa.FiscalReactionFunction": [
+      "alpha",
+      "beta_debt",
+      "fatigue_threshold",
+      "gamma_y",
+      "pb_max",
+      "pb_min",
+      "rho"
+    ],
     "puremacro.sovereign.rules.FiscalRule": [
       "debt_ceiling",
       "deficit_limit",
       "escape_below",
       "infeasible",
       "penalty"
+    ],
+    "puremacro.sovereign.smm.SovereignSMMResult": [
+      "fit",
+      "metadata",
+      "model",
+      "parameter_dict",
+      "sensitivity"
     ],
     "puremacro.spatial._lp_bootstrap.SpatialLPBootstrap": [
       "assume_stationary",
@@ -8341,6 +8719,17 @@
       "Z",
       "c",
       "d"
+    ],
+    "puremacro.structural.bridge.AGSSensitivityResult": [
+      "dtheta_dm",
+      "inference_valid",
+      "lambda_matrix",
+      "metadata",
+      "moment_labels",
+      "moment_se",
+      "parameter_names",
+      "parameter_se",
+      "standardized_sensitivity"
     ],
     "puremacro.structural.bridge.MomentTargets": [
       "covariance",
@@ -9616,6 +10005,21 @@
       "loadings",
       "variable_names"
     ],
+    "puremacro.var.functional.FunctionalVARResult": [
+      "A_list",
+      "Sigma",
+      "adding_up_max_error",
+      "bin_grid",
+      "dist_irf",
+      "gini_irf",
+      "horizon",
+      "macro_irf",
+      "macro_names",
+      "metadata",
+      "p",
+      "p90_p10_irf",
+      "top_share_irf"
+    ],
     "puremacro.var.gvar.CountryVARX": [
       "Lambda",
       "Phi",
@@ -9949,6 +10353,23 @@
       "n_low",
       "rss_total",
       "threshold"
+    ],
+    "puremacro.var.svar.SVARResult": [
+      "A_list",
+      "B0",
+      "Sigma",
+      "ci_lower",
+      "ci_upper",
+      "diagnostics",
+      "fevd",
+      "gk_lower",
+      "gk_upper",
+      "horizon",
+      "irf",
+      "metadata",
+      "method",
+      "structural_shocks",
+      "var_names"
     ],
     "puremacro.var.tvp.TVPVARResult": [
       "Q_draws",

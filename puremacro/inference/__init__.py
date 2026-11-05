@@ -38,6 +38,7 @@ from .smc import AdaptiveTemperingSchedule, SMCResult, smc_sample
 from . import gmm as _gmm_module  # noqa: F401
 from .gmm import gmm
 from ._results import GMMFitResult
+from .giv import GIVResult, estimate_giv
 
 # quandt_andrews_supF is loaded lazily because quandt_andrews.py depends on
 # puremacro.tests.breaks, which can fail to resolve when the project root is
@@ -94,4 +95,6 @@ __all__ = [
     "smc_sample",
     "gmm",
     "GMMFitResult",
+    "GIVResult",
+    "estimate_giv",
 ]

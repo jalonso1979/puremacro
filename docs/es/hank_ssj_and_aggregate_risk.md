@@ -101,6 +101,40 @@ Las matrices, momentos y curvaturas están prescritos. Duplicar la volatilidad
 cuadruplica una corrección cuadrática por construcción. No demuestra ahorro
 precautorio endógeno ni un efecto cuantitativo de política.
 
+## Política óptima en espacio de secuencias y estado estacionario riesgoso (`puremacro.dsge`)
+
+Para planificación óptima de Ramsey en espacio de secuencias (LQ), reglas simples
+óptimas (OSR) y puntos fijos de estado estacionario riesgoso (RSS) / límite inferior
+efectivo precautorio:
+
+```python
+import numpy as np
+from puremacro.dsge.ssj_policy import ssj_ramsey, ssj_osr, ssj_welfare_decomposition
+from puremacro.dsge.risky_steady_state import solve_risky_steady_state, solve_precautionary_obc
+
+# 1. Política óptima de Ramsey en espacio de secuencias (McKay & Wolf 2023)
+T = 16
+J_pi = -0.35 * np.triu(0.75 ** np.subtract.outer(np.arange(T), np.arange(T)).T)
+J_y = -0.60 * np.eye(T)
+ramsey = ssj_ramsey(
+    jacobians={"pi": J_pi, "y": J_y},
+    target_weights={"pi": 1.0, "y": 0.25},
+    baseline_paths={"pi": 0.8 ** np.arange(T), "y": -0.5 * (0.7 ** np.arange(T))},
+    instrument_weight=0.05,
+    beta=0.99,
+)
+print(ramsey.summary())
+
+# 2. Estado estacionario riesgoso (Coeurdacier, Rey & Winant 2011)
+rss = solve_risky_steady_state(
+    f_residual=lambda y_c, y_n, u: np.array([y_c[0] ** (-2.0) - (y_n[0] + u[0]) ** (-2.0) - (y_c[0] - 1.0)]),
+    y_det=np.array([1.0]),
+    shock_cov=np.array([[0.02 ** 2]]),
+    state_names=("consumption",),
+)
+print(rss.summary())
+```
+
 ```mermaid
 flowchart TD
     A[Research question] --> B[Household EGM and distribution]

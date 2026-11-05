@@ -77,6 +77,8 @@ nav:
       - Econometric Engines:
           - VAR & FAVAR: var.md
           - Narrative Sign Restrictions SVAR: narrative_sign_svar.md
+          - SVAR Identification, Policy Counterfactuals & Bridges: svar_and_policy_counterfactuals.md
+          - Portfolio Analysis & Macro Allocation: portfolio_and_macro_allocation.md
           - BVAR with Stochastic Volatility: bvar_sv.md
           - Local Projections: lp.md
           - Smooth Local Projections: smooth_lp.md
@@ -204,6 +206,8 @@ nav:
       - Motores econométricos:
           - VAR y FAVAR: es/var.md
           - SVAR con restricciones narrativas de signo: es/narrative_sign_svar.md
+          - Identificación SVAR, contrafactuales de política y puentes: es/svar_and_policy_counterfactuals.md
+          - Análisis de portafolios y asignación macro: es/portfolio_and_macro_allocation.md
           - BVAR con volatilidad estocástica: es/bvar_sv.md
           - Proyecciones locales: es/lp.md
           - Proyecciones locales suavizadas: es/smooth_lp.md

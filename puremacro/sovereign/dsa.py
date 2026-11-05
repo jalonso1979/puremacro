@@ -11,14 +11,20 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 import pandas as pd
 
+from scipy.stats import norm
+
+from puremacro.reports import df_to_latex, df_to_markdown, df_to_typst
 from puremacro.sovereign._fiscal_paths import simulate_paths
 from puremacro.sovereign._results import FiscalSovereignResult, StochasticDSAResult
 
 __all__ = [
+    "FiscalReactionEstimateResult",
     "FiscalReactionFunction",
-    "simulate_stochastic_dsa",
-    "simulate_fiscal_dsa",
     "compare_fiscal_rules_dsa",
+    "estimate_fiscal_reaction_function",
+    "fit_stochastic_dsa_from_data",
+    "simulate_fiscal_dsa",
+    "simulate_stochastic_dsa",
 ]
 
 
@@ -692,3 +698,453 @@ def compare_fiscal_rules_dsa(
             }
         )
     return pd.DataFrame(rows)
+
+
+def _newey_west_cov_ols(X: np.ndarray, resid: np.ndarray, hac_lags: int) -> np.ndarray:
+    """Compute Newey-West HAC covariance matrix for OLS estimator."""
+    T, k = X.shape
+    XtX_inv = np.linalg.pinv(X.T @ X)
+    scores = X * resid[:, None]
+    S = scores.T @ scores
+    max_lag = min(int(hac_lags), max(T - 1, 0))
+    for lag in range(1, max_lag + 1):
+        w = 1.0 - lag / (max_lag + 1.0)
+        gamma_l = scores[lag:].T @ scores[:-lag]
+        S = S + w * (gamma_l + gamma_l.T)
+    dof_scale = T / max(T - k, 1)
+    return dof_scale * (XtX_inv @ S @ XtX_inv)
+
+
+@dataclass(frozen=True)
+class FiscalReactionEstimateResult:
+    """Empirical Bohn (1998) / Ghosh et al. (2013) fiscal reaction function estimate.
+
+    Parameters
+    ----------
+    reaction_function : FiscalReactionFunction
+        Calibrated parametric :class:`FiscalReactionFunction` ready for DSA simulation.
+    params : Mapping[str, float]
+        Estimated regression coefficients (``alpha``, ``rho``, ``beta_debt``, and optional
+        ``beta_debt_sq``, ``beta_debt_cu``, ``gamma_y``).
+    se : Mapping[str, float]
+        Newey-West HAC standard errors for each coefficient.
+    t_stats : Mapping[str, float]
+        HAC t-statistics for each coefficient.
+    p_values : Mapping[str, float]
+        Two-sided asymptotic p-values for each coefficient.
+    bohn_t_stat : float
+        t-statistic on the linear debt feedback coefficient ``beta_debt``.
+    bohn_p_value_one_sided : float
+        One-sided p-value testing ``H0: beta_debt <= 0`` vs ``H1: beta_debt > 0``
+        (Bohn 1998 solvency condition).
+    bohn_solvency_holds : bool
+        True if ``beta_debt > 0`` and ``bohn_p_value_one_sided < 0.05``.
+    fatigue_threshold : float | None
+        Empirical fiscal-fatigue turning point ``d* > 0`` where ``d(pb)/d(debt) = 0``
+        from the cubic specification (if a positive root exists within plausible range).
+    r2 : float
+        In-sample R-squared of the fiscal reaction regression.
+    residual_std : float
+        Standard deviation of the primary balance innovation ``epsilon_t``.
+    n_obs : int
+        Effective sample size used in estimation.
+    metadata : Mapping[str, Any]
+        Additional diagnostic information.
+    """
+
+    reaction_function: FiscalReactionFunction
+    params: Mapping[str, float]
+    se: Mapping[str, float]
+    t_stats: Mapping[str, float]
+    p_values: Mapping[str, float]
+    bohn_t_stat: float
+    bohn_p_value_one_sided: float
+    bohn_solvency_holds: bool
+    fatigue_threshold: float | None
+    r2: float
+    residual_std: float
+    n_obs: int
+    metadata: Mapping[str, Any]
+
+    def to_dataframe(self) -> pd.DataFrame:
+        """Return parameter estimates and HAC inference as a DataFrame."""
+        rows = []
+        for name, val in self.params.items():
+            rows.append(
+                {
+                    "term": name,
+                    "coef": float(val),
+                    "se_hac": float(self.se[name]),
+                    "t_stat": float(self.t_stats[name]),
+                    "p_value": float(self.p_values[name]),
+                }
+            )
+        return pd.DataFrame(rows)
+
+    def to_frame(self) -> pd.DataFrame:
+        """Alias for :meth:`to_dataframe`."""
+        return self.to_dataframe()
+
+    def summary(self) -> str:
+        """Return a formatted ASCII summary of the empirical fiscal reaction function."""
+        df_str = self.to_dataframe().to_string(index=False, float_format=lambda x: f"{x:.4f}")
+        fat_str = f"{self.fatigue_threshold:.4f}" if self.fatigue_threshold is not None else "None"
+        lines = [
+            "==========================================================================",
+            "Empirical Fiscal Reaction Function (Bohn 1998 / Ghosh et al. 2013)",
+            "==========================================================================",
+            f"Observations (N): {self.n_obs} | R-squared: {self.r2:.4f} | Residual SD: {self.residual_std:.4f}",
+            f"Bohn Solvency Test (beta_debt > 0): t = {self.bohn_t_stat:.3f} "
+            f"(one-sided p = {self.bohn_p_value_one_sided:.4f}) -> Holds: {self.bohn_solvency_holds}",
+            f"Estimated Fiscal Fatigue Threshold (d*): {fat_str}",
+            "--------------------------------------------------------------------------",
+            df_str,
+            "==========================================================================",
+        ]
+        return "\n".join(lines)
+
+    def to_markdown(self, **kwargs: Any) -> str:
+        """Export regression table to GitHub-flavored Markdown."""
+        return df_to_markdown(self.to_dataframe(), index=False, **kwargs)
+
+    def to_latex(self, **kwargs: Any) -> str:
+        """Export regression table to LaTeX booktabs format."""
+        return df_to_latex(self.to_dataframe(), index=False, **kwargs)
+
+    def to_typst(self, **kwargs: Any) -> str:
+        """Export regression table to Typst format."""
+        return df_to_typst(self.to_dataframe(), index=False, **kwargs)
+
+    def plot(self, *, debt_range: tuple[float, float] = (0.20, 1.60), ax: Any = None):
+        """Plot the estimated marginal primary balance schedule as a function of debt."""
+        import matplotlib.pyplot as plt
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(7.5, 4.5), layout="constrained")
+        else:
+            fig = ax.figure
+        d_grid = np.linspace(debt_range[0], debt_range[1], 200)
+        b1 = self.params.get("beta_debt", 0.0)
+        b2 = self.params.get("beta_debt_sq", 0.0)
+        b3 = self.params.get("beta_debt_cu", 0.0)
+        alpha = self.params.get("alpha", 0.0)
+        pb_poly = alpha + b1 * d_grid + b2 * (d_grid ** 2) + b3 * (d_grid ** 3)
+        pb_rule = np.array([self.reaction_function.evaluate(float(d), alpha) for d in d_grid])
+        ax.plot(100.0 * d_grid, pb_poly, lw=2.2, color="#1f77b4", label="Estimated Polynomial Schedule")
+        ax.plot(100.0 * d_grid, pb_rule, lw=1.8, ls="--", color="#d62728", label="Piecewise Reaction Function")
+        if self.fatigue_threshold is not None:
+            ax.axvline(
+                100.0 * self.fatigue_threshold,
+                color="#2ca02c",
+                ls=":",
+                lw=1.6,
+                label=f"Fatigue Threshold ({100.0 * self.fatigue_threshold:.1f}%)",
+            )
+        ax.set_xlabel("Lagged Debt-to-GDP Ratio (%)")
+        ax.set_ylabel("Primary Balance Response (% of GDP)")
+        ax.set_title("Empirical Fiscal Reaction Function & Fiscal Fatigue")
+        ax.legend(frameon=False)
+        ax.grid(alpha=0.25)
+        return fig
+
+
+def estimate_fiscal_reaction_function(
+    df: pd.DataFrame,
+    *,
+    pb_col: str = "pb",
+    debt_col: str = "debt",
+    y_gap_col: str | None = None,
+    cubic_fatigue: bool = True,
+    hac_lags: int = 4,
+    pb_max: float | None = 5.0,
+    pb_min: float | None = None,
+) -> FiscalReactionEstimateResult:
+    """Estimate Bohn (1998) linear or Ghosh et al. (2013) cubic fiscal reaction function.
+
+    Estimates:
+        pb_t = alpha + rho * pb_{t-1} + beta_1 * d_{t-1}
+               [+ beta_2 * d_{t-1}^2 + beta_3 * d_{t-1}^3] [+ gamma_y * y_gap_t] + eps_t
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Time-series DataFrame containing primary balance and debt-to-GDP series.
+    pb_col : str, default "pb"
+        Column name for primary balance (% of GDP or ratio).
+    debt_col : str, default "debt"
+        Column name for debt-to-GDP ratio (e.g. ``0.60`` for 60% of GDP).
+    y_gap_col : str | None, default None
+        Optional column name for output gap.
+    cubic_fatigue : bool, default True
+        If True, includes quadratic and cubic lagged debt terms (Ghosh et al. 2013)
+        to estimate an empirical fiscal-fatigue threshold ``d*`` where ``d(pb)/d(debt) = 0``.
+    hac_lags : int, default 4
+        Newey-West HAC truncation lag.
+    pb_max : float | None, default 5.0
+        Primary balance ceiling passed to the returned :class:`FiscalReactionFunction`.
+    pb_min : float | None, default None
+        Primary balance floor passed to the returned :class:`FiscalReactionFunction`.
+
+    Returns
+    -------
+    FiscalReactionEstimateResult
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise ValueError("df must be a pandas DataFrame")
+    for col in (pb_col, debt_col):
+        if col not in df.columns:
+            raise ValueError(f"Column {col!r} not found in df")
+    if y_gap_col is not None and y_gap_col not in df.columns:
+        raise ValueError(f"Column {y_gap_col!r} not found in df")
+
+    work = pd.DataFrame(
+        {
+            "pb": pd.to_numeric(df[pb_col], errors="coerce"),
+            "pb_lag": pd.to_numeric(df[pb_col], errors="coerce").shift(1),
+            "d_lag": pd.to_numeric(df[debt_col], errors="coerce").shift(1),
+        }
+    )
+    if y_gap_col is not None:
+        work["y_gap"] = pd.to_numeric(df[y_gap_col], errors="coerce")
+    work = work.dropna()
+    if len(work) < 8:
+        raise ValueError("estimate_fiscal_reaction_function requires at least 8 valid time-series observations")
+
+    y = work["pb"].to_numpy(dtype=float)
+    d_lag = work["d_lag"].to_numpy(dtype=float)
+    pb_lag = work["pb_lag"].to_numpy(dtype=float)
+
+    # Fit linear Bohn specification first to get the baseline linear slope and Bohn solvency test
+    cols_lin = [np.ones_like(y), pb_lag, d_lag]
+    names_lin = ["alpha", "rho", "beta_debt"]
+    if y_gap_col is not None:
+        cols_lin.append(work["y_gap"].to_numpy(dtype=float))
+        names_lin.append("gamma_y")
+    X_lin = np.column_stack(cols_lin)
+    beta_lin, *_ = np.linalg.lstsq(X_lin, y, rcond=None)
+    resid_lin = y - X_lin @ beta_lin
+    cov_lin = _newey_west_cov_ols(X_lin, resid_lin, hac_lags=hac_lags)
+    se_lin = np.sqrt(np.maximum(np.diag(cov_lin), 1e-16))
+    bohn_idx = names_lin.index("beta_debt")
+    bohn_t = float(beta_lin[bohn_idx] / se_lin[bohn_idx])
+    bohn_p_one = float(1.0 - norm.cdf(bohn_t))
+
+    fatigue_threshold: float | None = None
+    if cubic_fatigue and len(work) >= 12:
+        cols_cub = [np.ones_like(y), pb_lag, d_lag, d_lag ** 2, d_lag ** 3]
+        names = ["alpha", "rho", "beta_debt", "beta_debt_sq", "beta_debt_cu"]
+        if y_gap_col is not None:
+            cols_cub.append(work["y_gap"].to_numpy(dtype=float))
+            names.append("gamma_y")
+        X = np.column_stack(cols_cub)
+        beta, *_ = np.linalg.lstsq(X, y, rcond=None)
+        resid = y - X @ beta
+        cov = _newey_west_cov_ols(X, resid, hac_lags=hac_lags)
+        se = np.sqrt(np.maximum(np.diag(cov), 1e-16))
+        # Solve d(pb)/dd = beta_1 + 2*beta_2*d + 3*beta_3*d^2 = 0 for local maximum (fatigue turning point)
+        b1, b2, b3 = float(beta[2]), float(beta[3]), float(beta[4])
+        d_min_obs = float(np.min(d_lag))
+        d_max_obs = float(np.max(d_lag))
+        if abs(b3) > 1e-10:
+            roots = np.roots([3.0 * b3, 2.0 * b2, b1])
+            real_roots = [
+                float(r.real)
+                for r in roots
+                if abs(r.imag) < 1e-7 and (2.0 * b2 + 6.0 * b3 * float(r.real) < 0.0)
+            ]
+            valid_roots = [r for r in real_roots if max(0.20, 0.5 * d_min_obs) <= r <= 2.5 * max(d_max_obs, 1.0)]
+            if valid_roots:
+                fatigue_threshold = float(min(valid_roots))
+        elif b2 < -1e-10 and b1 > 0:
+            cand = -b1 / (2.0 * b2)
+            if max(0.20, 0.5 * d_min_obs) <= cand <= 2.5 * max(d_max_obs, 1.0):
+                fatigue_threshold = float(cand)
+    else:
+        X = X_lin
+        names = names_lin
+        beta = beta_lin
+        resid = resid_lin
+        cov = cov_lin
+        se = se_lin
+
+    t_stats_arr = beta / se
+    p_vals_arr = 2.0 * (1.0 - norm.cdf(np.abs(t_stats_arr)))
+    tss = float(np.sum((y - np.mean(y)) ** 2))
+    rss = float(np.sum(resid ** 2))
+    r2 = float(1.0 - rss / max(tss, 1e-16))
+    resid_std = float(np.std(resid, ddof=len(names))) if len(y) > len(names) else float(np.std(resid))
+
+    params_dict = {k: float(v) for k, v in zip(names, beta)}
+    se_dict = {k: float(v) for k, v in zip(names, se)}
+    t_dict = {k: float(v) for k, v in zip(names, t_stats_arr)}
+    p_dict = {k: float(v) for k, v in zip(names, p_vals_arr)}
+
+    # Build the FiscalReactionFunction using the linear Bohn feedback + estimated fatigue threshold
+    rho_clamped = float(np.clip(beta_lin[1], -0.99, 0.99))
+    gamma_y_est = float(beta_lin[names_lin.index("gamma_y")]) if "gamma_y" in names_lin else 0.0
+    reaction_fn = FiscalReactionFunction(
+        alpha=float(beta_lin[0]),
+        rho=rho_clamped,
+        beta_debt=float(beta_lin[2]),
+        gamma_y=gamma_y_est,
+        pb_min=pb_min,
+        pb_max=pb_max,
+        fatigue_threshold=fatigue_threshold,
+    )
+    return FiscalReactionEstimateResult(
+        reaction_function=reaction_fn,
+        params=params_dict,
+        se=se_dict,
+        t_stats=t_dict,
+        p_values=p_dict,
+        bohn_t_stat=bohn_t,
+        bohn_p_value_one_sided=bohn_p_one,
+        bohn_solvency_holds=bool(beta_lin[2] > 0.0 and bohn_p_one < 0.05),
+        fatigue_threshold=fatigue_threshold,
+        r2=r2,
+        residual_std=resid_std,
+        n_obs=len(y),
+        metadata={
+            "cubic_fatigue": bool(cubic_fatigue),
+            "hac_lags": int(hac_lags),
+            "linear_beta_debt": float(beta_lin[2]),
+            "linear_se_beta_debt": float(se_lin[2]),
+        },
+    )
+
+
+def fit_stochastic_dsa_from_data(
+    df: pd.DataFrame,
+    *,
+    g_col: str = "g",
+    r_col: str = "r",
+    pb_col: str = "pb",
+    debt_col: str | None = "debt",
+    y_gap_col: str | None = None,
+    d0: float | None = None,
+    horizon: int = 20,
+    n_sims: int = 1000,
+    seed: int = 42,
+    threshold: float = 0.80,
+    use_bohn_reaction: bool = True,
+    cubic_fatigue: bool = True,
+    frequency: str = "quarterly",
+) -> StochasticDSAResult:
+    """Estimate a joint macro-fiscal VAR(1) and optional Bohn reaction function from data and run DSA.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Historical macro-fiscal DataFrame containing ``(g, r, pb)`` and optionally ``debt``.
+    g_col, r_col, pb_col : str
+        Column names for real GDP growth (%), real interest rate (%), and primary balance (% of GDP).
+    debt_col : str | None, default "debt"
+        Column name for historical debt-to-GDP ratio (used for initial debt ``d0`` if ``d0 is None``
+        and for estimating the Bohn fiscal reaction function when ``use_bohn_reaction=True``).
+    y_gap_col : str | None, default None
+        Optional output-gap column for the fiscal reaction function.
+    d0 : float | None, default None
+        Initial debt-to-GDP ratio. If ``None``, uses the last non-missing value of ``df[debt_col]``.
+    horizon : int, default 20
+        Projection horizon.
+    n_sims : int, default 1000
+        Number of Monte Carlo simulation paths.
+    seed : int, default 42
+        Random seed.
+    threshold : float, default 0.80
+        Debt distress threshold ratio.
+    use_bohn_reaction : bool, default True
+        If True and ``debt_col`` is present in ``df``, estimates :func:`estimate_fiscal_reaction_function`
+        and passes the resulting :class:`FiscalReactionFunction` into :func:`simulate_stochastic_dsa`.
+    cubic_fatigue : bool, default True
+        Whether to estimate cubic fiscal fatigue when ``use_bohn_reaction=True``.
+    frequency : str, default "quarterly"
+        Data frequency (``"quarterly"`` or ``"annual"``).
+
+    Returns
+    -------
+    StochasticDSAResult
+    """
+    for col in (g_col, r_col, pb_col):
+        if col not in df.columns:
+            raise ValueError(f"Column {col!r} not found in df")
+    sub = df[[g_col, r_col, pb_col]].apply(pd.to_numeric, errors="coerce").dropna()
+    if len(sub) < 8:
+        raise ValueError("fit_stochastic_dsa_from_data requires at least 8 complete (g, r, pb) observations")
+
+    Y_all = sub.to_numpy(dtype=float)
+    mu_hat = np.mean(Y_all, axis=0)
+    Y_dem = Y_all - mu_hat[None, :]
+    Y_curr = Y_dem[1:]
+    Y_lag = Y_dem[:-1]
+    # OLS VAR(1) companion matrix A_hat: Y_curr_t = A_hat @ Y_lag_t + u_t
+    A_hat_T, *_ = np.linalg.lstsq(Y_lag, Y_curr, rcond=None)
+    A_hat = A_hat_T.T
+    # Shrink eigenvalues inside unit circle if nearly non-stationary
+    eigvals = np.linalg.eigvals(A_hat)
+    max_eig = float(np.max(np.abs(eigvals)))
+    if max_eig >= 0.98:
+        A_hat = A_hat * (0.95 / max_eig)
+    U_hat = Y_curr - Y_lag @ A_hat.T
+    Sigma_hat = np.cov(U_hat, rowvar=False, ddof=1)
+    Sigma_hat = 0.5 * (Sigma_hat + Sigma_hat.T) + 1e-8 * np.eye(3)
+
+    if d0 is None:
+        if debt_col is not None and debt_col in df.columns:
+            valid_d = pd.to_numeric(df[debt_col], errors="coerce").dropna()
+            if len(valid_d) == 0:
+                raise ValueError("No valid observations in debt_col; specify d0 explicitly")
+            d0_val = float(valid_d.iloc[-1])
+        else:
+            raise ValueError("Provide d0 or a valid debt_col in df")
+    else:
+        d0_val = float(d0)
+
+    reaction_est: FiscalReactionEstimateResult | None = None
+    reaction_fn: FiscalReactionFunction | None = None
+    if use_bohn_reaction and debt_col is not None and debt_col in df.columns:
+        reaction_est = estimate_fiscal_reaction_function(
+            df,
+            pb_col=pb_col,
+            debt_col=debt_col,
+            y_gap_col=y_gap_col,
+            cubic_fatigue=cubic_fatigue,
+        )
+        reaction_fn = reaction_est.reaction_function
+
+    dsa_res = simulate_stochastic_dsa(
+        d0=d0_val,
+        horizon=horizon,
+        n_sims=n_sims,
+        mu=mu_hat,
+        A=A_hat,
+        cov=Sigma_hat,
+        fiscal_reaction=reaction_fn,
+        threshold=threshold,
+        seed=seed,
+        frequency=frequency,
+        store_macro_paths=True,
+    )
+    meta = dict(dsa_res.metadata)
+    meta["var_mu"] = mu_hat
+    meta["var_A"] = A_hat
+    meta["var_Sigma"] = Sigma_hat
+    meta["n_obs_var"] = len(sub)
+    if reaction_est is not None:
+        meta["fiscal_reaction_estimate"] = reaction_est
+    return StochasticDSAResult(
+        paths=dsa_res.paths,
+        baseline_path=dsa_res.baseline_path,
+        d0=dsa_res.d0,
+        threshold=dsa_res.threshold,
+        horizon=dsa_res.horizon,
+        frequency=dsa_res.frequency,
+        quantiles=dsa_res.quantiles,
+        prob_breach=dsa_res.prob_breach,
+        prob_terminal_breach=dsa_res.prob_terminal_breach,
+        prob_non_stabilizing=dsa_res.prob_non_stabilizing,
+        dar_95=dsa_res.dar_95,
+        macro_paths=dsa_res.macro_paths,
+        metadata=meta,
+    )
+
