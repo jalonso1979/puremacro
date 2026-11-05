@@ -96,10 +96,9 @@ def tvecm_fit(
     if k_lags == 0:
         Z = np.zeros((len(dY), 0))
     else:
-        rows = []
-        for t in range(k_lags, len(dY)):
-            rows.append(np.concatenate([dY[t - j - 1] for j in range(k_lags)]))
-        Z = np.array(rows)
+        from numpy.lib.stride_tricks import sliding_window_view
+        # ⚡ Bolt: Vectorized sliding window gathering avoids loop and np.concatenate allocation overhead
+        Z = sliding_window_view(dY, window_shape=k_lags, axis=0)[:-1, :, ::-1].transpose(0, 2, 1).reshape(-1, dY.shape[1] * k_lags)
 
     start = k_lags + delay  # need w_{t-d} and lagged dY
     # align: indep variables at index t use ec at t-delay+1 ... let's be careful:

@@ -24,7 +24,62 @@ The package was significantly extended in **Phase 5** (April–early-May 2026, c
   lagged selection, shocks and explicit assumptions. No data subscription,
   broker, taxonomy normalization or optional solver is a hidden dependency.
   Host import-contract checks do not substitute for actual Pyodide execution.
-
+- `trade/compensation.py`, `trade/incidence_transition.py`: explicit fiscal
+  ledgers and household-level CES/CRRA welfare over a declared finite price
+  path. Survey weights aggregate household welfare after evaluation. They do
+  not feed household demand back into equilibrium or identify behavior.
+- `trade/adjustment.py`: convex, conditional CES sourcing over a finite horizon
+  with quadratic input adjustment resources, direct accounts and reconstructed
+  KKT diagnostics. Delivered prices and unit output are exogenous; this is
+  separate from the dynamic MRIO equilibrium and has no labor reallocation.
+- `study/robust.py`: complete policy-by-state payoff matrices with explicit
+  comparability metadata, dominance, worst-case outcomes and minimax regret.
+  Failed/missing cells block ranking. Probabilities are optional caller inputs.
+- `models/hank_scenario_tree.py`: finite aggregate-shock histories with
+  conditional expected household marginal values, separate distributions per
+  history and endogenous wages/output/inflation. Reuses the published one-asset
+  household equations; specifies risk-neutral nominal firm valuation. Its
+  deterministic reduction is benchmarked separately; it is not a stationary
+  stochastic equilibrium or a general higher-order aggregate-risk solver.
+- `models/hank_equilibrium.py`, `models/_hank_tangent.py`: reusable matrix-free
+  Newton-GMRES backend for the same one-asset finite-history equilibrium.
+  Analytic EGM and distribution-transport tangents include binding household
+  budgets and moving lottery weights. A sparse local-household preconditioner
+  is an approximation only inside Krylov solves; the residual remains fully
+  coupled. Owns input copies, checks warm-start identity and retains numerical
+  failures. Uses the shared `dsge.stacked_newton.preconditioned_lgmres` adapter.
+  No stationary stochastic tail or two-asset claim; the dense reference and
+  its frozen evidence remain separate.
+- `models/hank_recursive.py`, `models/_hank_one_asset_recursive.py`,
+  `models/_hank_stochastic_tree.py`: local rational-expectations policies via
+  constrained distribution projection and ordered Schur decomposition; full
+  household marginal values remain controls. Market-observable directions
+  survive compression. Nonlinear trees solve terminal distribution consistency
+  using this first-order policy, with matrix-free finite-difference products.
+  Held-out audits transport full distributions and retain approximation errors.
+- `models/hank_two_asset_equilibrium.py`: two-asset EGM coupled to nominal
+  liquid bonds and a fixed-supply real consol, flexible union hours, Rotemberg
+  prices and fiscal debt service. Both asset markets and independent goods
+  accounting are checked. Uses cached household finite differences and
+  differentiated bilinear transport; no productive-capital replication claim.
+- `models/hank_reduction.py`: distribution and marginal-value response bases,
+  with household derivatives applied directly to reduced directions before
+  ordered Schur decomposition. Full-grid household policies and transport
+  remain authoritative. Determinacy, projected equations, omitted household
+  equations and nonlinear audits have distinct diagnostics; insufficient
+  ranks fail explicitly. No full-grid two-asset derivative cache is built.
+- `models/hank_nonlinear_continuation.py`: conditional nonlinear trees and
+  nonanticipative receding-horizon simulation from actual distributions,
+  inherited rates, capital and quoted asset prices. Adaptive horizon and
+  branching comparisons retain failed corrections. A local first-order tail
+  remains; finite sensitivity checks do not certify global stochastic accuracy.
+- `models/hank_capital.py`: productive-capital closure with investment,
+  depreciation, installation costs and endogenous rental/holding returns.
+  Nominal bonds and capital markets clear jointly; independent fiscal, capital
+  and goods identities expose inherited-market inconsistencies. The production
+  and investment block matches pinned author-code references. Direct capital
+  ownership, flexible wages and the household portfolio mechanism differ from
+  the published equity/intermediary model, so this is not a full replication.
 - `study/`: explicit fixed-lag LP/recursive-VAR study specifications and separate
   model-scenario records. Depends on existing estimators, `reports` and the
   `runtime.store` frame codec. ZIP/NPZ/JSON archives retain inputs, checksums and
@@ -77,6 +132,13 @@ The package was significantly extended in **Phase 5** (April–early-May 2026, c
   `_deterministic_execution.py` replays the supported ordered boundary/shock/
   setup/solver program with snapshots; `_mod_execution.py` retains stochastic
   invocations. Unsupported state changes fail compatibility preflight.
+- `dsge/workbench.py`: immutable JSON experiment snapshots and explicit `.mod`
+  replay around existing first-order/path engines. Separate accuracy evidence
+  reuses `validation.audit_result`; recorded HANK diagnostics retain their scope.
+  Cooperative controls use existing Krylov progress/checkpoint hooks. Widget
+  freshness is checked before exports; unapplied or failed edits cannot export
+  the last successful path as a current result. No new numerical solver or
+  background execution service is introduced.
 - `dsge/transitions.py`: finite-budget continuation in shocks, terminal values
   and parameters; open economic domains, residual scaling and explicit horizon
   comparisons. Announcements use dated information sets. Compiled model
@@ -526,6 +588,9 @@ Dynare fixtures under `tests/fixtures/dynare_issue_177/`.
 | `trade/policy_analytics`, `trade/plot` | **Stable** | Effective protection, welfare decomposition, supply-chain exposure and tariff incidence on explicit scenarios; matplotlib only inside the plot functions. |
 | `trade/ces_newton` | **Stable** | Exact block Newton for nested CES technology on the consistent accounting: `CESBlockJacobian`, damped `solve_ces_block_newton` accepting only after an independent flow certificate, and `continue_tariff_homotopy` with a certified stage ledger. The dense operator is guarded by `max_cells`. |
 | `trade/household`, `trade/distributional` | **Stable** | Solver-independent household demand systems (fixed baskets, Cobb-Douglas, Stone-Geary LES, CES) with an exact expenditure function, Hicksian demand, analytic Slutsky matrices, LES calibration from Engel targets and exact EV/CV; group incidence at supplied prices and incomes (partial equilibrium by design). Bridges accept consistent-accounting results only. |
+| `trade/compensation`, `trade/adjustment`, `trade/incidence_transition`, `study/robust` | **Experimental** | Explicitly financed conditional household studies, convex supplier adjustment, finite-path CEV and complete-state policy comparisons. Independent equations, accounting and a discrete sourcing oracle establish numerical behavior; no empirical elasticities, causal effects or national GE closure are inferred. |
+| `models/hank_scenario_tree` | **Experimental** | Finite aggregate histories with conditional household expectations and distributions. Deterministic reduction, alternative optimizers, node accounting and retained grid/horizon studies bound the evidence. Firm valuation and terminal marginal values are explicit assumptions; no stationary stochastic or two-asset claim. |
+| `models/hank_equilibrium` | **Experimental** | Analytic current-branch household and distribution JVPs, sparse preconditioning and damped Newton-GMRES for the same finite-history equations. Same-grid comparisons and directional derivatives check the numerical backend; speed is hardware/case dependent and does not establish grid or stationary stochastic accuracy. |
 | `trade/continuation` | **Experimental** | Audited parameter continuation (`continue_parameter`, `sigma_path`), exact-target multistart (`try_starts`) and the fold helpers (`solve_fold_continuation`, `solve_fold_continuation_step`). A path tool with recorded stages and failures, not a uniqueness, branch or existence result. |
 | `trade/stability` | **Experimental** | Reduced local-stability diagnostic (`reduced_stability`): Schur-complement Jacobian of a relative-factor-price tatonnement on a converged equilibrium, by central finite differences of the residual evaluator. Evidence about one adjustment process, never a uniqueness certificate. |
 | `trade/mrio` | **Stable** | Native MRIO tables with provenance (`MRIOTable`, checksummed `SourceRecord`s), label-driven readers for OECD ICIO 2023, Eurostat FIGARO and EXIOBASE 3.8.2, the balanced-table contract (`regularize_table`) and exact `P M P^T` sector/region aggregation with the ISIC-section concordance. No GTAP reader. |
@@ -760,7 +825,7 @@ offline test could notice. `openpyxl` is needed only by the ONS
 workbook reader and is lazy-imported there, so the Pyodide import
 contract is unchanged. Reference: `docs/real_time_data.md`.
 
-### Source registry and survey microdata (unreleased)
+### Source registry and survey microdata
 
 `puremacro.fetch.registry` is one table of every reachable source
 (`SourceInfo`: id, kind, provider, lazy `module:attribute` loader,

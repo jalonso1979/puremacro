@@ -1,0 +1,26 @@
+import json,time,signal,hashlib,numpy as np,os
+from pathlib import Path
+from puremacro.models import calibrate_capital_hank,solve_hank_reduced_policy
+import puremacro.models.hank_nonlinear_continuation as nc
+out=Path('/tmp/puremacro-controls-capital-adaptive-refined15-extended.json')
+record=dict(case='refined15_extended_same_sigma',pid=os.getpid(),calibration=dict(n_a=15,n_b=15),distribution_rank=48,marginal_rank=128,krylov_steps=96,shock_std=1e-4,horizons=[4,8,16,32],branch_depths=[1,2,3,4],horizon_tolerance=1e-6,branching_tolerance=1e-6,equation_tolerance=1e-8,budget_seconds=180,corners=[],source_sha256={name:hashlib.sha256(Path('puremacro/models/'+name+'.py').read_bytes()).hexdigest() for name in ['hank_capital','hank_reduction','hank_nonlinear_continuation']})
+ss=calibrate_capital_hank(n_a=15,n_b=15);p=solve_hank_reduced_policy(ss,distribution_rank=48,marginal_rank=128,krylov_steps=96)
+original=nc.solve_hank_nonlinear_continuation
+
+def persist():out.write_text(json.dumps(record,indent=2))
+def logged(*a,**kw):
+ start=time.perf_counter();record['pending_corner']=dict(horizon=kw.get('horizon'),branch_depth=kw.get('branch_depth'));persist();result=original(*a,**kw)
+ entry=dict(horizon=kw.get('horizon'),branch_depth=kw.get('branch_depth'),seconds=time.perf_counter()-start,diagnostics=result.diagnostics);record['corners'].append(entry);record.pop('pending_corner',None);persist()
+ print('corner',entry['horizon'],entry['branch_depth'],entry['seconds'],result.converged,result.diagnostics['optimizer_message'],result.diagnostics['market_residual_max_abs'],flush=True);return result
+
+nc.solve_hank_nonlinear_continuation=logged
+def timeout(signum,frame):raise TimeoutError('180-second adaptive-probe budget exhausted')
+signal.signal(signal.SIGALRM,timeout);signal.alarm(180);start=time.perf_counter()
+try:
+ result=nc.correct_hank_stochastic_state(p,aggregate_state=np.array([0.,-1e-6,0.]),horizons=(4,8,16,32),branch_depths=(1,2,3,4),horizon_tolerance=1e-6,branching_tolerance=1e-6,tolerance=1e-8)
+ record.update(converged=result.converged,seconds=time.perf_counter()-start,diagnostics=result.diagnostics,status='completed');print('FINISHED',record['seconds'],result.converged,result.diagnostics,flush=True)
+except nc.HANKContinuationAccuracyError as exc:
+ record.update(converged=False,seconds=time.perf_counter()-start,error=str(exc),diagnostics=exc.result.diagnostics,status='refinement_failed');print('FAILED',record['seconds'],exc.result.diagnostics,flush=True)
+except TimeoutError as exc:
+ record.update(converged=False,seconds=time.perf_counter()-start,error=str(exc),status='budget_exhausted');print('BUDGET',record['pending_corner'],flush=True)
+finally:signal.alarm(0);persist()

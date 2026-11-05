@@ -4,16 +4,19 @@
 
 ## What is independently checked
 
-The independent comparison covers short-term debt (`delta=1`, `kappa=0`),
-deterministic default (`sigma_eps=0`) and the Arellano output penalty. Separate
-Bellman calculations match equations, prices and policies on two grids.
-This is not yet a replication of published calibration moments. See the
-[research reliability plan](research_reliability.md).
+For short-term debt (`delta=1`, `kappa=0`), deterministic default
+(`sigma_eps=0`) and the Arellano output penalty, independent calculations
+check equations, prices and policies. The archived Fortran solver and MATLAB
+measurement code are reproduced; the public baseline also passes its registered
+grid criterion. Exact reproduction of the published moment table is not claimed:
+see the [original-code comparison and grid evidence](arellano_replication.md).
 
 For illustrative comparative statics on this validated model, see the
 [sovereign-risk policy brief](brief_sovereign_risk.md).
 
-Long-term debt uses a smoothed debt choice and needs a separate reference.
+PureMacro 6.1.0 adds [separate small-grid references](sovereign_extensions_validation.md)
+for the long-term smoothed operator, restructuring and the collateral planner.
+Published extension moments and their economic grid convergence remain open.
 `dq_db` differentiates the fitted price interpolant, not the entire equilibrium.
 Monotonicity is optionally imposed; the independent reference disables it.
 
@@ -43,6 +46,14 @@ the solver's diagnostic simulation and `result.simulate()` use this timing and
 start at zero debt. Solver-generated grids include an exact zero node; on a
 grid spanning saving and borrowing the closest interior node is replaced by
 zero, preserving its endpoints and node count. Such grids require `n_b >= 3`.
+
+The 6.1 development API also accepts `debt_grid=coordinates`: a finite,
+strictly increasing vector with at least two nodes and an exact zero. It copies
+the coordinates, preserves every node, and overrides `n_b`, `b_min` and `b_max`.
+This permits finer spacing in sensitive debt regions while keeping the original
+support. Maturity restructuring preserves supplied grids; their price tangents
+use spacing-weighted PCHIP derivatives, clipped at zero. Calls without
+`debt_grid` retain the existing grids and numerical results.
 
 | Parameter | Meaning | Reference case |
 |---|---|---|

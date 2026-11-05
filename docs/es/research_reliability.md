@@ -3,12 +3,11 @@
 El orden acordado es **fiabilidad y replicaciones**, después **modelos y
 aplicaciones de política**, y finalmente **docencia y facilidad de uso**.
 
-## Correcciones publicadas y desarrollo actual
+## Correcciones publicadas y versión actual
 
-La versión **6.0.1** se publicó en PyPI el 2026-10-29 e incluye las correcciones
-siguientes. **6.1.0** está en desarrollo; las adiciones aún no publicadas
-requieren el código fuente. Las etiquetas 5.8.0, 5.9.0 y 6.0.0 no se publicaron.
-Consulte la [hoja de ruta y política de API](1.0_path.md).
+La versión **6.1.0** se publicó en PyPI el 2026-11-03 y sucede a la versión 6.0.1
+(publicada el 2026-10-29), incorporando las correcciones siguientes. Las etiquetas 5.8.0, 5.9.0 y 6.0.0
+no se publicaron. Consulte la [hoja de ruta y política de API](1.0_path.md).
 
 Los adaptadores conservan ecuaciones y cargas del modelo suministrado.
 DSGE usa sensibilidades de Kalman; DAG usa diferencias centrales de Whittle
@@ -45,10 +44,11 @@ la validez económica del modelo.
 | Comparación | Resultado en las mallas probadas | Pendiente |
 |---|---|---|
 | Ecuaciones Arellano de deuda corta y default determinista | Ecuaciones y archivos Fortran/MATLAB contrastados; reingreso e inicio con deuda cero corregidos; mallas de la calibración pública convergidas con 6.401 × 641, y el solucionador público alcanza esa malla con una búsqueda monótona certificada | Diferencias de momentos publicados y convergencia económica de extensiones |
-| Bloque de hogares de un activo | Políticas y consumo coinciden con los autores SSJ dentro de 5e-11; jacobianos de rendimientos dentro de 4e-4 | Convergencia económica de mallas, equilibrio publicado y transiciones no lineales |
+| Bloque de hogares y equilibrio HANK publicado de un activo | Políticas y consumo coinciden con los autores SSJ dentro de 5e-11; jacobianos de rendimientos dentro de 4e-4. Se contrastan independientemente el equilibrio publicado completo, ambos signos no lineales y una malla/horizonte ampliados; véase la [evidencia HANK](hank_equilibrium.md) | Incidencia sobre hogares con datos observados y riesgo agregado general de orden superior |
 
-Las referencias, hashes y procedencia están en
-`tests/fixtures/research_reliability/`. Los generadores están en
+Las referencias originales de ecuaciones y bloques, hashes y procedencia están
+en `tests/fixtures/research_reliability/`; las guías enlazadas indican dónde
+consultar los registros adicionales de equilibrio y malla. Los generadores están en
 `tools/reference_validation/`. SSJ externo no es dependencia de ejecución.
 Coincidir en una malla común no demuestra precisión de discretización.
 

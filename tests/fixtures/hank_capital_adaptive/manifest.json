@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "scope": "Separate capital adaptive domains, retaining the failed higher-risk tests; not a same-parameter error reduction claim",
+  "source_sha256": {
+    "puremacro/models/hank_capital.py": "6bf71a083ff31e6c9ee9ff24e6b6d0948a3539f9f6fcc9c35a5d6be0470d6283",
+    "puremacro/models/hank_reduction.py": "f790bd207d6c22b664163a6987f60dd109f397196306b0fa7a604d18f8701746",
+    "puremacro/models/hank_nonlinear_continuation.py": "d6fdca75c5e2f0aa0e85b7142581087054101a752c304a9113c9d230719c6578",
+    "puremacro/models/hank_recursive.py": "0706296296265aad5fb16d514a8a5c26fc3bf300ea1ae43f191962c110dc682c",
+    "puremacro/models/hank_two_asset_equilibrium.py": "5e1b106e135064ffffb78dc4895e3e6ff5cb1c81d770df4517084bba34c4b42c",
+    "puremacro/models/hank_sequence_space.py": "f88b01f0b040105598f9e0456327d4f6e01c1d40cd49ed72873a49d8eb391a86",
+    "puremacro/models/_hank_stochastic_tree.py": "24e136fe00f9dbdc20c4ae64b7b59823ddea62cfab7eb506a41706d11c3d0be4",
+    "puremacro/models/hank_equilibrium.py": "6c2a8fe69118d26d6fc61d643ddb9e40879f1cc2c75f497da54f7d71d1e423fe",
+    "puremacro/models/_hank_tangent.py": "549ca9cf5969ec80e6d112ea793fbc69ad9fb838150a884ea92dfc8e5e21635d",
+    "puremacro/models/_hank_one_asset_recursive.py": "735b71bb777617b3b5aafefda720c92868b2b4a3315867e6b439cbde37584c63",
+    "puremacro/models/one_asset_hank.py": "969d1915e30c36b4bce73a8e04cc37b200f3b74db8f39a13de8d43686c82fe64",
+    "puremacro/models/hank_scenario_tree.py": "baa00a390f76ce67783686b2a21d7a637ebd7ce40ec535c7c9e19e6de6e2db48",
+    "puremacro/dsge/stacked_newton.py": "27bbca2e3172eac23a9741a6bc78d73e1a44c10f0ce97ab839058b6e1a64c814",
+    "tools/reference_validation/benchmark_hank_equilibrium.py": "c9ac0ddcb1d4562228c32aff09ea2fc75a7326a53088c6c09548d3c24476a548",
+    "tools/reference_validation/validate_hank_capital_equilibrium.py": "23a7350808d164c825cc7a7cb356c6a23a1fc637e50c1e5a05bb274c35767134"
+  },
+  "artifact_sha256": {
+    "original.json": "f6de65c65494ef158c6d84cbd4e32dd91f331bed86aca1784d0a273520eb457e",
+    "original_failure.npz": "5c8774cf160c1e72c875cac7e0c1d081267678c6d756ef9872233769a2239fbc",
+    "refined_lowrisk.json": "66a02c1b6f5d7890cbd7fcf141de3526d8f6369c5a595ecc0de291af3d2c9d67",
+    "refined_lowrisk.npz": "2b68ab3757b9e4cb9b56b168157419043acff5f47e3ee7b6c7ea509bea51bfad",
+    "refined_highrisk_bounded.json": "a9635c610e867506e72bde4d0f7170ee82c1637ab9b5c1dfd7831a59414ccc51",
+    "original_generator.py.txt": "8fec67221115664aafa33100c47d6330c441438b5b6d49418a8c12086edcff9e",
+    "lowrisk_generator.py.txt": "e480db3fe75ad171cdd1ecb9fbf2c5163b03a2d75b3a59dbc7ee77ed66544fc8",
+    "lowrisk_accounts.py.txt": "a697005dc9b8d067b3117af8031ecc7716dc8bd6219c0f0439fa44cdb01eda05",
+    "highrisk_generator.py.txt": "d3b01dbf01028c7ff03b5108dc527c12748ccff5476bcb95ebeee462a0791958"
+  },
+  "original_status": "equations and horizon pass; branching fails before first accepted action",
+  "highrisk_refined_status": "budget exhausted; completed depth-three comparisons miss both sensitivity criteria; no convergence conclusion for unfinished deeper solve",
+  "lowrisk_status": "three adaptive dates accepted at separately declared shock standard deviation1e-5",
+  "thresholds_unchanged": {
+    "equations": 1e-08,
+    "horizon": 1e-06,
+    "branching": 1e-06
+  },
+  "generation": "Exact development probe generators retained verbatim; run from repository root, then run the lowrisk accounts script. Outputs are named under /tmp. Budgets use POSIX SIGALRM.",
+  "timing_scope": "Concurrent host work; probes did not set BLASSetThreading directly, so times are not a controlled performance comparison"
+}

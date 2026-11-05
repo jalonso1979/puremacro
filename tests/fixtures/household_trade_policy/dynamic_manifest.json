@@ -1,0 +1,70 @@
+{
+  "source": {
+    "schema": 1,
+    "source": "INEGI ENIGH 2022 nueva serie, concentradohogar",
+    "source_url": "https://www.inegi.org.mx/contenidos/programas/enigh/nc/2022/microdatos/enigh2022_ns_concentradohogar_csv.zip",
+    "source_archive_sha256": "d59914233c4fbac39034c90836c5e490c22f13a075218dc288e052d147fb5965",
+    "source_csv_sha256": "b499ac9b6182f81d1aa0b719bebd8a74af6df27dbd7c7ad843f9797381b74752",
+    "payload_sha256": "d61e73cd59945c11ff5e88dd47710df585e640f77bb89cd1fd222e4c9a2fd364",
+    "variables": [
+      "factor",
+      "ing_cor",
+      "gasto_mon",
+      "alimentos",
+      "tot_integ",
+      "est_dis",
+      "upm"
+    ],
+    "source_rows": 90102,
+    "population_households": 37560123.0,
+    "analysis_rows": 90033,
+    "excluded_zero_spending_rows": 69,
+    "excluded_zero_spending_population": 21945.0,
+    "weighted_means_all_rows": {
+      "ing_cor": 63695.45790004601,
+      "gasto_mon": 39964.8129166454,
+      "alimentos": 15059.364489137324
+    },
+    "monetary_unit": "MXN at August 2022 prices",
+    "period": "quarter",
+    "population_unit": "households",
+    "weight": "factor",
+    "stratum": "est_dis",
+    "psu": "upm",
+    "reference": "https://www.inegi.org.mx/programas/enigh/nc/2022/",
+    "terms": "https://www.inegi.org.mx/inegi/terminos.html",
+    "attribution": "Fuente: INEGI. ENIGH 2022 nueva serie. Transformaciones: PureMacro.",
+    "transformation": "retain listed columns in original CSV row order; no imputation, rescaling or sampling",
+    "is_synthetic": false,
+    "quintile_income_definition": "quarterly current income / household members",
+    "quintile_weight": "household expansion factor; not person weights",
+    "quintile_cutoffs": [
+      8351.985,
+      12741.906666666668,
+      18690.265,
+      29956.4675
+    ],
+    "ties": "retain in lower quintile",
+    "analysis_population": 37538178.0
+  },
+  "horizon": 12,
+  "tariff_dates": [
+    2,
+    3,
+    4,
+    5
+  ],
+  "origin_shares": {
+    "domestic": 0.7,
+    "imported": 0.3
+  },
+  "sourcing_elasticity": 3.0,
+  "household_elasticity": 1.0,
+  "discount": 0.99,
+  "gross_compensation_share": 0.01,
+  "identification": "origin shares, substitution elasticities, tariffs, and switching costs are assumptions",
+  "transmission": "full pass-through of unit procurement plus switching resources to the survey alimentos composite",
+  "financing": "baseline spending-proportional lump-sum taxes; tariff revenue is not allocated or counted as household income",
+  "scope": "conditional sourcing and household incidence; no national GE, labor adjustment, or causal estimate",
+  "welfare": "same finite horizon for all policy comparisons; no household saving or terminal tail"
+}

@@ -28,6 +28,7 @@ _USER_DOCS = [
     "quickstart.md",
     "dsge_build.md",
     "dsge_workflows.md",
+    "dsge_workbench.md",
     "dsge_nonlinear.md",
     "dsge_transitions.md",
     "dsge_global.md",

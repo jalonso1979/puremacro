@@ -433,9 +433,15 @@
       "BlockDAG",
       "BlockTridiagonalPreconditioner",
       "ConditionalForecastResult",
+      "DSGEAccuracyDashboard",
+      "DSGEComparison",
+      "DSGEFailure",
       "DSGEForecastResult",
       "DSGEPosteriorResult",
+      "DSGERun",
+      "DSGERunControl",
       "DSGEVARResult",
+      "DSGEWorkbench",
       "DiagnosticFinding",
       "DiscretionaryPolicyResult",
       "Dynare2ndDR",
@@ -609,6 +615,7 @@
       "shock_groups_decomposition",
       "smooth_model",
       "smoother",
+      "solution_accuracy",
       "solve_adaptive_time_iteration",
       "solve_announced_path",
       "solve_dynare_2nd_order",
@@ -971,6 +978,15 @@
       "TransitionResult",
       "solve_announced_path",
       "solve_transition"
+    ],
+    "puremacro.dsge.workbench": [
+      "DSGEAccuracyDashboard",
+      "DSGEComparison",
+      "DSGEFailure",
+      "DSGERun",
+      "DSGERunControl",
+      "DSGEWorkbench",
+      "solution_accuracy"
     ],
     "puremacro.dynpanel": [
       "GMMResult",
@@ -2198,28 +2214,90 @@
       "u_midas"
     ],
     "puremacro.models": [
+      "CapitalHANKSteadyState",
       "DMPParameters",
       "DMPState",
       "FakeNewsResult",
       "FiscalTransferResult",
+      "HANKContinuationAccuracyError",
+      "HANKDistributionBasis",
+      "HANKEquilibriumWorkspace",
+      "HANKMarginalBasis",
+      "HANKNonlinearCorrection",
+      "HANKNonlinearSimulation",
+      "HANKScenarioTreeResult",
+      "HANKStochasticResult",
+      "HANKStochasticTreeResult",
       "MonetaryTransmissionResult",
       "MonetaryTransmissionSimulator",
       "NonlinearHANKResult",
       "OneAssetHANKResult",
       "OneAssetHANKSteadyState",
+      "ReducedStochasticHANKPolicy",
       "SequenceSpaceHANKResult",
+      "StochasticHANKPolicy",
       "TradePolicySimulationResult",
       "TradePolicySimulator",
+      "TwoAssetHANKSteadyState",
       "TwoAssetSequenceSpaceHANKResult",
+      "calibrate_capital_hank",
       "calibrate_one_asset_hank",
+      "calibrate_two_asset_equilibrium",
+      "capital_production_block",
+      "correct_hank_stochastic_state",
       "dmp_irf",
       "dmp_steady_state",
       "fake_news_algorithm",
+      "monetary_scenario_tree",
+      "simulate_hank_nonlinear",
       "simulate_targeted_transfer",
+      "solve_hank_equilibrium",
+      "solve_hank_nonlinear_continuation",
+      "solve_hank_reduced_kernel",
+      "solve_hank_reduced_policy",
+      "solve_hank_scenario_tree",
       "solve_hank_sequence_space",
+      "solve_hank_stochastic_policy",
+      "solve_hank_stochastic_tree",
       "solve_nonlinear_transition",
       "solve_one_asset_hank",
       "solve_two_asset_hank_sequence_space"
+    ],
+    "puremacro.models.hank_capital": [
+      "CapitalHANKSteadyState",
+      "calibrate_capital_hank",
+      "capital_production_block"
+    ],
+    "puremacro.models.hank_equilibrium": [
+      "HANKEquilibriumWorkspace",
+      "solve_hank_equilibrium"
+    ],
+    "puremacro.models.hank_nonlinear_continuation": [
+      "HANKContinuationAccuracyError",
+      "HANKNonlinearCorrection",
+      "HANKNonlinearSimulation",
+      "correct_hank_stochastic_state",
+      "simulate_hank_nonlinear",
+      "solve_hank_nonlinear_continuation"
+    ],
+    "puremacro.models.hank_recursive": [
+      "HANKDistributionBasis",
+      "HANKStochasticResult",
+      "HANKStochasticTreeResult",
+      "StochasticHANKPolicy",
+      "solve_hank_stochastic_policy",
+      "solve_hank_stochastic_tree"
+    ],
+    "puremacro.models.hank_reduction": [
+      "HANKMarginalBasis",
+      "ReducedStochasticHANKPolicy",
+      "solve_hank_reduced_kernel",
+      "solve_hank_reduced_policy"
+    ],
+    "puremacro.models.hank_scenario_tree": [
+      "HANKScenarioTreeResult",
+      "monetary_scenario_tree",
+      "solve_hank_scenario_tree"
     ],
     "puremacro.models.hank_sequence_space": [
       "FakeNewsResult",
@@ -2234,6 +2312,10 @@
       "solve_hank_sequence_space",
       "solve_nonlinear_transition",
       "solve_two_asset_hank_sequence_space"
+    ],
+    "puremacro.models.hank_two_asset_equilibrium": [
+      "TwoAssetHANKSteadyState",
+      "calibrate_two_asset_equilibrium"
     ],
     "puremacro.models.nested_dmp": [
       "ComparativeStatics",
@@ -3344,18 +3426,24 @@
       "CounterfactualGrid",
       "PolicyStudioCell",
       "PolicyStudioResult",
+      "RobustPolicyComparison",
       "ScenarioResult",
       "ScenarioSpec",
       "StudyComparison",
       "StudyResult",
       "StudySpec",
       "VariableSpec",
+      "compare_policy_payoffs",
       "compare_studies",
       "load_study",
       "record_scenario",
       "run_policy_studio",
       "run_study",
       "save_study"
+    ],
+    "puremacro.study.robust": [
+      "RobustPolicyComparison",
+      "compare_policy_payoffs"
     ],
     "puremacro.study.studio": [
       "CounterfactualGrid",
@@ -3441,6 +3529,7 @@
       "CESNewtonError",
       "CaliendoParroModel",
       "CaliendoParroResult",
+      "CompensationPlan",
       "Concordance",
       "CondensedEquilibriumResult",
       "CondensedMeasuresResult",
@@ -3471,6 +3560,7 @@
       "HouseholdDemandResult",
       "HouseholdDomainError",
       "HouseholdGroups",
+      "HouseholdIncidencePath",
       "HouseholdPreferences",
       "HouseholdWelfareResult",
       "MRIOAccountingReport",
@@ -3487,6 +3577,7 @@
       "RawFlowCertificate",
       "ScenarioBatchResult",
       "SourceRecord",
+      "SourcingAdjustmentResult",
       "StabilityError",
       "StabilityResult",
       "SupernumeraryFitResult",
@@ -3500,6 +3591,7 @@
       "WelfareDecompositionResult",
       "WelfarePayoffMatrixResult",
       "aggregate_mrio",
+      "balanced_compensation",
       "baqaee_farhi_decomposition",
       "build_initial_guess",
       "build_strategic_tariffs",
@@ -3553,6 +3645,7 @@
       "get_memory_usage",
       "household",
       "household_expenditure_from_calibration",
+      "household_incidence_path",
       "household_prices_from_result",
       "identify_source",
       "mrio",
@@ -3587,6 +3680,7 @@
       "solve_multilateral_nash_tariffs",
       "solve_multilateral_ppp",
       "solve_policy_equilibrium",
+      "solve_sourcing_adjustment",
       "solve_trade_equilibrium",
       "solve_trade_equilibrium_gpu",
       "solve_trade_equilibrium_mlx",
@@ -3605,6 +3699,10 @@
       "TradeEquilibriumResult",
       "WelfarePayoffMatrixResult"
     ],
+    "puremacro.trade.adjustment": [
+      "SourcingAdjustmentResult",
+      "solve_sourcing_adjustment"
+    ],
     "puremacro.trade.calibration": [
       "calibrate_trade_model"
     ],
@@ -3616,6 +3714,10 @@
       "certify_ces_equilibrium",
       "continue_tariff_homotopy",
       "solve_ces_block_newton"
+    ],
+    "puremacro.trade.compensation": [
+      "CompensationPlan",
+      "balanced_compensation"
     ],
     "puremacro.trade.condensed": [
       "BalancedIOTable",
@@ -3940,6 +4042,10 @@
       "fit_supernumerary_share",
       "household_expenditure_from_calibration",
       "household_prices_from_result"
+    ],
+    "puremacro.trade.incidence_transition": [
+      "HouseholdIncidencePath",
+      "household_incidence_path"
     ],
     "puremacro.trade.mrio": [
       "CONCORDANCES",
@@ -5781,6 +5887,15 @@
       "states",
       "variable_names"
     ],
+    "puremacro.dsge._workbench_accuracy.DSGEAccuracyDashboard": [
+      "_json"
+    ],
+    "puremacro.dsge._workbench_state.DSGEFailure": [
+      "category",
+      "exception_type",
+      "message",
+      "next_step"
+    ],
     "puremacro.dsge.bayesian.BayesianEstimationResult": [
       "acceptance_rate",
       "chains",
@@ -6498,13 +6613,19 @@
     ],
     "puremacro.dsge.widgets.InteractiveIRFResult": [
       "_cids",
+      "_current_frames",
       "_is_interactive_backend",
+      "accepted_parameters",
+      "apply_button",
+      "auto_solve",
       "axes",
       "baseline_lines",
       "baseline_model",
+      "failure",
       "fig",
       "horizon",
       "last_latency_ms",
+      "last_success_model",
       "lines",
       "model",
       "n_updates",
@@ -6512,13 +6633,25 @@
       "parameters",
       "qz_criterium",
       "reset_button",
+      "run_state",
       "shocks",
       "size",
       "slider_axes",
       "sliders",
+      "state_text",
       "status_text",
       "strict",
       "variables"
+    ],
+    "puremacro.dsge.workbench.DSGEComparison": [
+      "alignment",
+      "allow_experiment_change",
+      "baseline",
+      "candidate",
+      "table_name"
+    ],
+    "puremacro.dsge.workbench.DSGERun": [
+      "_json"
     ],
     "puremacro.dynpanel._results.GMMResult": [
       "ar1_p",
@@ -7007,6 +7140,102 @@
       "v",
       "w"
     ],
+    "puremacro.models.hank_capital.CapitalHANKSteadyState": [
+      "_household",
+      "aggregates",
+      "calibration",
+      "converged",
+      "diagnostics",
+      "distribution"
+    ],
+    "puremacro.models.hank_nonlinear_continuation.HANKNonlinearCorrection": [
+      "aggregate_coordinates",
+      "aggregate_states",
+      "converged",
+      "diagnostics",
+      "expected_marginals",
+      "marginal_values",
+      "next_aggregate_state",
+      "post_distributions",
+      "prices",
+      "tree"
+    ],
+    "puremacro.models.hank_nonlinear_continuation.HANKNonlinearSimulation": [
+      "converged",
+      "corrections",
+      "diagnostics",
+      "distributions",
+      "expected_marginals",
+      "paths",
+      "policies",
+      "prices",
+      "states"
+    ],
+    "puremacro.models.hank_recursive.HANKDistributionBasis": [
+      "center",
+      "constraints",
+      "diagnostics",
+      "vectors"
+    ],
+    "puremacro.models.hank_recursive.HANKStochasticResult": [
+      "converged",
+      "diagnostics",
+      "distributions",
+      "paths",
+      "states"
+    ],
+    "puremacro.models.hank_recursive.HANKStochasticTreeResult": [
+      "converged",
+      "diagnostics",
+      "distributions",
+      "metadata",
+      "nodes",
+      "paths",
+      "policies",
+      "terminal_states"
+    ],
+    "puremacro.models.hank_recursive.StochasticHANKPolicy": [
+      "_F0",
+      "_F1",
+      "_kernel",
+      "basis",
+      "diagnostics",
+      "feedback",
+      "rho",
+      "shock_std",
+      "transition"
+    ],
+    "puremacro.models.hank_reduction.HANKMarginalBasis": [
+      "center",
+      "diagnostics",
+      "vectors"
+    ],
+    "puremacro.models.hank_reduction.ReducedStochasticHANKPolicy": [
+      "_F0",
+      "_F1",
+      "_full_residual",
+      "_kernel",
+      "basis",
+      "diagnostics",
+      "feedback",
+      "marginal_basis",
+      "reduced_feedback",
+      "rho",
+      "shock_std",
+      "transition"
+    ],
+    "puremacro.models.hank_scenario_tree.HANKScenarioTreeResult": [
+      "converged",
+      "diagnostics",
+      "distributions",
+      "metadata",
+      "nodes",
+      "paths",
+      "policy_a",
+      "policy_c",
+      "policy_n",
+      "steady_state"
+    ],
     "puremacro.models.hank_sequence_space.FakeNewsResult": [
       "expectation_vectors",
       "fake_news",
@@ -7109,6 +7338,14 @@
       "r_b_ss",
       "steady_state",
       "trans_matrix"
+    ],
+    "puremacro.models.hank_two_asset_equilibrium.TwoAssetHANKSteadyState": [
+      "_household",
+      "aggregates",
+      "calibration",
+      "converged",
+      "diagnostics",
+      "distribution"
     ],
     "puremacro.models.monetary_transmission.MonetaryTransmissionResult": [
       "aggregate_mpc_hank",
@@ -8295,6 +8532,13 @@
       "shock_size",
       "variables"
     ],
+    "puremacro.study.robust.RobustPolicyComparison": [
+      "dominance",
+      "metadata",
+      "payoffs",
+      "regrets",
+      "summary"
+    ],
     "puremacro.study.studio.CounterfactualGrid": [
       "axes",
       "fixed_params"
@@ -8476,6 +8720,12 @@
       "summary_df",
       "welfare_metric"
     ],
+    "puremacro.trade.adjustment.SourcingAdjustmentResult": [
+      "accounts",
+      "diagnostics",
+      "metadata",
+      "quantities"
+    ],
     "puremacro.trade.caliendo_parro.CaliendoParroResult": [
       "P_hat",
       "P_index_hat",
@@ -8518,6 +8768,11 @@
       "sigma_origins",
       "sigma_sectors",
       "sigma_va_materials"
+    ],
+    "puremacro.trade.compensation.CompensationPlan": [
+      "households",
+      "ledger",
+      "metadata"
     ],
     "puremacro.trade.condensed._results.CondensedEquilibriumResult": [
       "arclength_path",
@@ -9078,6 +9333,12 @@
       "upper_bound_hit",
       "weighted_rmse",
       "weighted_rmse_unconstrained"
+    ],
+    "puremacro.trade.incidence_transition.HouseholdIncidencePath": [
+      "households",
+      "metadata",
+      "periods",
+      "utility"
     ],
     "puremacro.trade.mrio.Concordance": [
       "coarse_codes",

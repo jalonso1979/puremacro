@@ -18,14 +18,14 @@ python -m pip install puremacro
 
 | Start with your task | First steps |
 |---|---|
-| **Analyze data** | Estimate a shock response with the [quickstart](quickstart.md), then explore [data sources](micro_data.md) and [research workflows](research_workflows.md). |
+| **Analyze data** | Estimate a government spending multiplier in the [fiscal brief](first_brief_fiscal.md), or a shock response with the [quickstart](quickstart.md); then explore [data sources](micro_data.md) and [research workflows](research_workflows.md). |
 | **Simulate policy** | Declare a household model with [dynamic programming](dp.md), study [monetary transmission](monetary_transmission.md), or build a [trade counterfactual](trade_accounting.md). |
 | **Write a policy brief** | Run a [tariff experiment on public data](first_brief_tariffs.md) and read national and household welfare effects. |
 | **Learn or teach** | Choose a [notebook learning path](notebooks.md) or use the [bilingual course and interactive labs](https://github.com/jalonso1979/puremacro/tree/main/curso). Use the pinned course edition below. |
 
-**Status checked 2026-10-29:** **6.0.1** is published on [PyPI](https://pypi.org/project/puremacro/6.0.1/), and `pip install puremacro` installs it. It is the first published version since 5.7.1: the 5.8.0, 5.9.0 and 6.0.0 tags were never published (v6.0.0 failed CI). This `main` branch may contain unreleased work toward 6.1.0; a source tag alone does not establish publication.
+**Status checked 2026-11-03:** **6.1.0** is published on [PyPI](https://pypi.org/project/puremacro/6.1.0/), and `pip install puremacro` installs it. It succeeds 6.0.1 (published 2026-10-29); earlier tags 5.8.0, 5.9.0 and 6.0.0 were never published (v6.0.0 failed CI).
 See the [recommended tests and next milestones](research_reliability.md).
-These pages track the 6.1.0 development API; unreleased additions require a source install. see the [changelog](https://github.com/jalonso1979/puremacro/blob/main/CHANGELOG.md)
+These pages describe the 6.1.0 release; see the [changelog](https://github.com/jalonso1979/puremacro/blob/main/CHANGELOG.md)
 for additions and fixes. Match your installed version to the documentation.
 
 Available since 6.0.1 (introduced in the 6.0.0 source tag): [Forward AD & Differentiable Model Protocol](autodiff_and_protocol.md), [Vectorized Tempered SMC](smc_inference.md), [Nonlinear HANK & 2nd-Order Aggregate Risk](hank_ssj_and_aggregate_risk.md), [Quantitative Sovereign Default](sovereign_default.md), [Distributional Local Projections](distributional_lp.md), and [Production Networks, Spatial Climate IAM & PolicyStudio](network_spatial_climate_iam.md).

@@ -247,12 +247,37 @@ solution because its arrays match the reference arrays. `converged.simulate()`
 returns a raw path with different measurement conventions, so its statistics
 are not the same numbers.
 
+### Explicit debt grids
+
+The 6.1 development solver also accepts `debt_grid=coordinates`, a finite,
+strictly increasing vector containing an exact zero. It copies and preserves
+those coordinates, which override `n_b`, `b_min` and `b_max`; the existing
+generated-grid behavior is unchanged. Maturity restructuring retains a supplied
+grid. Price tangents on nonuniform grids use spacing-weighted PCHIP slopes.
+
+Concentrating debt nodes where borrowing and bond prices are sensitive can
+improve computational efficiency; see [Hatchondo, Martinez and Sapriza (2010)](https://www.imf.org/-/media/websites/imf/imported-full-text-pdf/external/pubs/ft/wp/2010/_wp10100.pdf).
+This motivates a separate high-reentry experiment with the original
+`[-0.15, 0.33]` support, linear saving nodes and quadratic borrowing nodes.
+Its four crossed cases use 6,401/12,801 debt nodes and 641/1,281 income states;
+the simulation design and all four 0.10 moment tolerances remain unchanged.
+Both final refinements must pass. The original failed uniform-grid evidence
+remains in the [sovereign brief](brief_sovereign_risk.md).
+
+```bash
+python -m tools.reference_validation.check_sovereign_curved_grids --output grids_curved
+```
+
+The command writes its protocol before solving and saves every grid coordinate,
+seed, source hash, certification residual and comparison. A nonuniform grid
+alone is not evidence of convergence; assess the completed record.
+
 ## Next decision
 
 The public calibration now has a fixed numerical design: 6,401 debt nodes, 641
 income states and the precision design for simulated moments. The reentry,
-income-volatility and persistence experiments can run on the converged design,
-now from the public solver. Keep the archived and public calibrations separate;
+income-volatility and persistence experiments can start from that design, but
+each scenario requires its own grid check. Keep the archived and public calibrations separate;
 the archived calibration's own convergence is not established beyond 797 debt
 points. Maturity and restructuring extensions follow their own external
 validation. Any recalibration would be a new result, not part of this

@@ -1,0 +1,346 @@
+{
+  "schema": 1,
+  "environment": {
+    "python": "3.11.17",
+    "numpy": "2.4.6",
+    "scipy": "1.17.1",
+    "pandas": "3.1.0"
+  },
+  "sources": {
+    "puremacro/examples/household_trade_policy.py": "109131bef1ad00ee75b733eaf8821a74501e45b8444c7d4a510781ee79fcdbdb",
+    "puremacro/examples/trade_adjustment_households.py": "b383a8abd5158bad602680f7a2e363e9b3b7c7b1d1ae415c9b252b60ebdd9b73",
+    "puremacro/trade/compensation.py": "8da94a50f672cced55eca8fe29210eea6e6711a852c49e86bf298864f560870c",
+    "puremacro/trade/distributional.py": "a5620869efbf98793bb5b58194a310d3c9312830af563e17ef8781cb92a4b726",
+    "puremacro/trade/household.py": "7613bf0d93dd50d42fbb34c841d715fe9a8db066f4843e0065d4bcdc33e62388",
+    "puremacro/trade/adjustment.py": "74982de2b544d06840105f98d379b025a1bc19b54ef61f15394fb3a14e15a3c9",
+    "puremacro/trade/incidence_transition.py": "1c8a47d994602c8b9e9adbc42081b1d85beb8e33fa6a18c32fe167c11bc0bc0b",
+    "puremacro/study/robust.py": "439a2108e761125d048872f4a0b1dfdaa743173eb92697a5092e10c1c3b3f59e",
+    "puremacro/trade/_datafiles/enigh2022_household_policy.npz": "d61e73cd59945c11ff5e88dd47710df585e640f77bb89cd1fd222e4c9a2fd364",
+    "puremacro/trade/_datafiles/enigh2022_household_policy.json": "00df69d5a5486f028993a3ec8bc85cb5cd9e312181581ebbb9b6278c04fb154b"
+  },
+  "runner_sha256": "685951925aa63159502e115e391d79966058dcf5afe16e79300f252c976adb16",
+  "passed": true,
+  "scope": "observed household inputs; assumed prices/preferences/financing; no causal or national-GE claim",
+  "sourcing": {
+    "tariff=0.1;adjustment=0": {
+      "file_prefix": "sourcing_0",
+      "diagnostics": {
+        "accepted": true,
+        "iterations": 0,
+        "kkt_residual": 1.1102230246251565e-16,
+        "production_violation": 1.6653345369377348e-16,
+        "complementarity_residual": 1.710458198680571e-16,
+        "discounted_total_cost": 11.466156612343696,
+        "tolerance": 1e-06
+      },
+      "model": {
+        "elasticity": 3.0,
+        "adjustment_cost": 0.0,
+        "discount": 0.99,
+        "baseline_shares": {
+          "domestic": 0.7,
+          "imported": 0.3
+        },
+        "initial_quantities": {
+          "domestic": 0.7,
+          "imported": 0.3
+        },
+        "prices": {
+          "domestic": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "imported": [
+            1.0,
+            1.0,
+            1.1,
+            1.1,
+            1.1,
+            1.1,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "scope": "conditional fixed-output sourcing; exogenous delivered prices; free disposal; no GE or labor mobility",
+        "terminal_condition": "no production requirement or adjustment cost after the last date",
+        "units": "benchmark unit-composite expenditure per period"
+      }
+    },
+    "tariff=0.1;adjustment=2": {
+      "file_prefix": "sourcing_1",
+      "diagnostics": {
+        "accepted": true,
+        "iterations": 22,
+        "kkt_residual": 4.348584825564217e-09,
+        "production_violation": 6.872002966673563e-13,
+        "complementarity_residual": 6.871836820475797e-13,
+        "discounted_total_cost": 11.47152784428386,
+        "tolerance": 1e-06
+      },
+      "model": {
+        "elasticity": 3.0,
+        "adjustment_cost": 2.0,
+        "discount": 0.99,
+        "baseline_shares": {
+          "domestic": 0.7,
+          "imported": 0.3
+        },
+        "initial_quantities": {
+          "domestic": 0.7,
+          "imported": 0.3
+        },
+        "prices": {
+          "domestic": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "imported": [
+            1.0,
+            1.0,
+            1.1,
+            1.1,
+            1.1,
+            1.1,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "scope": "conditional fixed-output sourcing; exogenous delivered prices; free disposal; no GE or labor mobility",
+        "terminal_condition": "no production requirement or adjustment cost after the last date",
+        "units": "benchmark unit-composite expenditure per period"
+      }
+    },
+    "tariff=0.25;adjustment=0": {
+      "file_prefix": "sourcing_2",
+      "diagnostics": {
+        "accepted": true,
+        "iterations": 0,
+        "kkt_residual": 2.220446049250313e-16,
+        "production_violation": 1.6653345369377348e-16,
+        "complementarity_residual": 1.7632709870858421e-16,
+        "discounted_total_cost": 11.58863182394164,
+        "tolerance": 1e-06
+      },
+      "model": {
+        "elasticity": 3.0,
+        "adjustment_cost": 0.0,
+        "discount": 0.99,
+        "baseline_shares": {
+          "domestic": 0.7,
+          "imported": 0.3
+        },
+        "initial_quantities": {
+          "domestic": 0.7,
+          "imported": 0.3
+        },
+        "prices": {
+          "domestic": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "imported": [
+            1.0,
+            1.0,
+            1.25,
+            1.25,
+            1.25,
+            1.25,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "scope": "conditional fixed-output sourcing; exogenous delivered prices; free disposal; no GE or labor mobility",
+        "terminal_condition": "no production requirement or adjustment cost after the last date",
+        "units": "benchmark unit-composite expenditure per period"
+      }
+    },
+    "tariff=0.25;adjustment=2": {
+      "file_prefix": "sourcing_3",
+      "diagnostics": {
+        "accepted": true,
+        "iterations": 17,
+        "kkt_residual": 6.850503986299827e-08,
+        "production_violation": 1.4588330543574557e-13,
+        "complementarity_residual": 1.4585437879075295e-13,
+        "discounted_total_cost": 11.616269693053123,
+        "tolerance": 1e-06
+      },
+      "model": {
+        "elasticity": 3.0,
+        "adjustment_cost": 2.0,
+        "discount": 0.99,
+        "baseline_shares": {
+          "domestic": 0.7,
+          "imported": 0.3
+        },
+        "initial_quantities": {
+          "domestic": 0.7,
+          "imported": 0.3
+        },
+        "prices": {
+          "domestic": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "imported": [
+            1.0,
+            1.0,
+            1.25,
+            1.25,
+            1.25,
+            1.25,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "scope": "conditional fixed-output sourcing; exogenous delivered prices; free disposal; no GE or labor mobility",
+        "terminal_condition": "no production requirement or adjustment cost after the last date",
+        "units": "benchmark unit-composite expenditure per period"
+      }
+    }
+  },
+  "checks": {
+    "independent_ces_ev": {
+      "maximum_scaled_gap": 1.0827317878249147e-15,
+      "tolerance": 1e-10,
+      "passed": true
+    },
+    "static_fiscal_balance": {
+      "maximum_absolute_residual": 2.382323145866394e-06,
+      "tolerance": 0.001,
+      "passed": true
+    },
+    "dynamic_fiscal_balance": {
+      "maximum_absolute_residual": 2.9484217520803213e-06,
+      "tolerance": 0.001,
+      "passed": true
+    },
+    "sourcing_horizon": {
+      "comparisons": [
+        {
+          "state": "tariff=0.1;adjustment=0",
+          "horizon": 12,
+          "extended_horizon": 24,
+          "maximum_first_window_cost_change": 0.0,
+          "tolerance": 0.0001,
+          "passed": true
+        },
+        {
+          "state": "tariff=0.1;adjustment=2",
+          "horizon": 12,
+          "extended_horizon": 24,
+          "maximum_first_window_cost_change": 8.426769504410458e-06,
+          "tolerance": 0.0001,
+          "passed": true
+        },
+        {
+          "state": "tariff=0.25;adjustment=0",
+          "horizon": 12,
+          "extended_horizon": 24,
+          "maximum_first_window_cost_change": 0.0,
+          "tolerance": 0.0001,
+          "passed": true
+        },
+        {
+          "state": "tariff=0.25;adjustment=2",
+          "horizon": 12,
+          "extended_horizon": 24,
+          "maximum_first_window_cost_change": 4.2771460024626506e-05,
+          "tolerance": 0.0001,
+          "passed": true
+        }
+      ],
+      "passed": true
+    }
+  },
+  "artifacts": {
+    "dynamic_aggregate.csv": "478a5d8d083eb0658445bfa23c5acab225843d3a9ea6dbd7ed77f7013cbf570a",
+    "dynamic_bottom40_mean_cev_dominance.csv": "366c7dc96121678205ee26a4d7417c97e83b4ad36dbf2a4820e690f4866a889a",
+    "dynamic_bottom40_mean_cev_payoffs.csv": "ad3b8d9ae3995257a7e73443ec8390a2406ac2549a10697f4df18400dd117496",
+    "dynamic_bottom40_mean_cev_regrets.csv": "dc58310259e8260ba85a5c0257868755b2f6068eca7ff26bbfb9a3585876fe53",
+    "dynamic_bottom40_mean_cev_summary.csv": "f8067742cd79ffa36cc580222b9f80603e1240093c0d6ccf70e261e665bef036",
+    "dynamic_manifest.json": "171831754589cc58dacf5c8721f5872c82894d01316af3e98ca3c245bac1439b",
+    "dynamic_mean_cev_dominance.csv": "9bf3e2db11e1ebac5ce8f7a5f98d12abcc464f3f90feb5201150b32cb676c593",
+    "dynamic_mean_cev_payoffs.csv": "1fe74f5046ce0feda446af0f2cd343a8ecd409be149727e45ebb7a354aa4de09",
+    "dynamic_mean_cev_regrets.csv": "ea0424a45b95d1a7d91bfb5b0c5ad6d02b5b38871bc98e73771a0e150097cddd",
+    "dynamic_mean_cev_summary.csv": "397da4fd7664fad58647ed15561bcfc0c91920ebc333d9ed2885d19f9f956bda",
+    "dynamic_periods.csv": "3b6e00beca1f751f0480d43c3c86b5ac872ecc31c87a6930e882d610affaee8e",
+    "dynamic_refinement.csv": "a448c4425244745b677e99e958d72e594265479dca47b0ba7ba92335a119a2a1",
+    "sourcing_0_accounts.csv": "6f5c29417c2260a174e29f3fdb590d59b072b1d2fdd5052a4d9e7ca03c296313",
+    "sourcing_0_quantities.csv": "9053e92785b309ff97f94884f95584fc01bfe9e31512c2051a3ed0b38c7519d7",
+    "sourcing_1_accounts.csv": "c3a2a4995dffa9da2ed83b66542862f22d8b0a9405ac74463b5a39a98206607f",
+    "sourcing_1_quantities.csv": "516fade89f0e6ebf10a17ad52ee7bfcbf59df2f3a8d315ac14bf05c898c61b4f",
+    "sourcing_2_accounts.csv": "976817a739429da6f96161ec45e83e4d35875109c625c53ee86b489b6f10c3d6",
+    "sourcing_2_quantities.csv": "0a1de8e0ea5f2a7cfe99c3c56cfde5048d4b229c3483e5f53500582e2abe7c80",
+    "sourcing_3_accounts.csv": "b81436d4f89ad575e0030f56c0c9cc27cc572cd2523c7f5ad605ec1eaf3bced1",
+    "sourcing_3_quantities.csv": "5129cbc5d52905f830aaeb64180d45f4d1d0c17fd709102e06a1b23739e1ed68",
+    "static_aggregate.csv": "ff44691eeed94b01b01ff8d0ba587abc1b095b6d7441c53cbad6aaf9a41296a0",
+    "static_baseline.csv": "c591e3d9030efb16f39803aca51a8af0c719ef19b1a28bf52555494d3d3a0c4c",
+    "static_bottom40_mean_ev_dominance.csv": "eb28dd73ce3003900a4fefc045e23b9e652e5918816b408738bea58bd5adcebb",
+    "static_bottom40_mean_ev_payoffs.csv": "7591209ae80c525ebe990727ac5c76520249a1888d477146e393898b929bd25c",
+    "static_bottom40_mean_ev_regrets.csv": "e0fe0f341fd9f5bfb3bffe22222dc8b1d3575c817a5da49c9b29705751b5dfb9",
+    "static_bottom40_mean_ev_summary.csv": "ce4c21624aeea51c1f0e824d6d6fc771ccb3aa78ee6bb1fb9afe1a856199d655",
+    "static_incidence.csv": "5ddd32bacba2ab8a6d458dc6026273ed042af20b2387d7f0daa6f031a6bba8ac",
+    "static_manifest.json": "ea4ebf147fcef4c5cbceed0b1a5bd76092469430a95b8fcd587f7fc388bebea7",
+    "static_mean_ev_dominance.csv": "835512d1a3f58ec1b91782a93ac2e466dc31dc845b492cd5c2cc9a9810bc105a",
+    "static_mean_ev_payoffs.csv": "74695b7028ced6a60db73adb035d1353b5f7467aec2ca90b768ba535211ec496",
+    "static_mean_ev_regrets.csv": "33100d60578afe24e003a461d71304705e9631176cc1b580e603357765038f5a",
+    "static_mean_ev_summary.csv": "39b9c756bfff771dc4fef2867d158fb9ff99660d117c542328f169ae093013e7"
+  }
+}

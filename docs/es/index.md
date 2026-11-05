@@ -18,14 +18,14 @@ python -m pip install puremacro
 
 | Comience por su tarea | Primeros pasos |
 |---|---|
-| **Analizar datos** | Estime una respuesta a un choque con el [inicio rápido](quickstart.md), luego explore las [fuentes de datos](micro_data.md) y los [flujos de investigación](research_workflows.md). |
+| **Analizar datos** | Estime un multiplicador del gasto público con el [informe fiscal](first_brief_fiscal.md) o una respuesta a un choque con el [inicio rápido](quickstart.md); luego explore las [fuentes de datos](micro_data.md) y los [flujos de investigación](research_workflows.md). |
 | **Simular políticas** | Declare un modelo de hogares con [programación dinámica](dp.md), estudie la [transmisión monetaria](monetary_transmission.md) o construya un [contrafactual comercial](trade_accounting.md). |
 | **Redactar un informe de política** | Ejecute un [experimento arancelario con datos públicos](first_brief_tariffs.md) y lea los efectos de bienestar nacionales y por hogares. |
 | **Aprender o enseñar** | Elija una [ruta de cuadernos](notebooks.md) o use el [curso bilingüe y sus laboratorios interactivos](https://github.com/jalonso1979/puremacro/tree/main/curso). Use la edición fija del curso indicada abajo. |
 
-**Estado comprobado el 2026-10-29:** **6.0.1** está publicada en [PyPI](https://pypi.org/project/puremacro/6.0.1/), y `pip install puremacro` la instala. Es la primera versión publicada desde 5.7.1: las etiquetas 5.8.0, 5.9.0 y 6.0.0 nunca se publicaron (v6.0.0 falló en CI). Esta rama `main` puede contener trabajo no publicado hacia 6.1.0; una etiqueta no acredita por sí sola una publicación.
+**Estado comprobado el 2026-11-03:** **6.1.0** está publicada en [PyPI](https://pypi.org/project/puremacro/6.1.0/), y `pip install puremacro` la instala. Sucede a 6.0.1 (publicada el 2026-10-29); las etiquetas 5.8.0, 5.9.0 y 6.0.0 nunca se publicaron (v6.0.0 falló en CI).
 Consulte las [pruebas recomendadas y próximos hitos](research_reliability.md).
-Estas páginas siguen la API de desarrollo de 6.1.0; las adiciones aún no publicadas requieren instalar desde el código fuente. consulte el
+Estas páginas siguen la versión 6.1.0; consulte el
 [historial de cambios](https://github.com/jalonso1979/puremacro/blob/main/CHANGELOG.md) y use la documentación correspondiente
 a su versión instalada.
 

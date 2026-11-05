@@ -19,14 +19,14 @@ python -m pip install puremacro
 
 | Start with your task | First steps |
 |---|---|
-| **Analyze data** | Estimate a shock response with the [quickstart](docs/quickstart.md), then explore [data sources](docs/micro_data.md) and [research workflows](docs/research_workflows.md). |
+| **Analyze data** | Estimate a government spending multiplier in the [fiscal brief](docs/first_brief_fiscal.md), or a shock response with the [quickstart](docs/quickstart.md); then explore [data sources](docs/micro_data.md) and [research workflows](docs/research_workflows.md). |
 | **Simulate policy** | Declare a household model with [dynamic programming](docs/dp.md), study [monetary transmission](docs/monetary_transmission.md), build a [trade counterfactual](docs/trade_accounting.md), or read the [sovereign-risk policy brief](docs/brief_sovereign_risk.md). |
 | **Write a policy brief** | Run a [tariff experiment on public data](docs/first_brief_tariffs.md) and read national and household welfare effects. |
 | **Learn or teach** | Choose a [notebook learning path](docs/notebooks.md) or use the [bilingual course and interactive labs](curso/README.md). Use the pinned course edition below. |
 
-**Status checked 2026-10-29:** **6.0.1** is published on [PyPI](https://pypi.org/project/puremacro/6.0.1/), and `pip install puremacro` installs it. It is the first published version since 5.7.1: the 5.8.0, 5.9.0 and 6.0.0 tags were never published (v6.0.0 failed CI). This `main` branch may contain unreleased work toward 6.1.0; a source tag alone does not establish publication.
+**Status checked 2026-11-03:** **6.1.0** is published on [PyPI](https://pypi.org/project/puremacro/6.1.0/), and `pip install puremacro` installs it. It succeeds 6.0.1 (published 2026-10-29); earlier tags 5.8.0, 5.9.0 and 6.0.0 were never published (v6.0.0 failed CI).
 See the [recommended tests and next milestones](docs/research_reliability.md).
-These pages track the 6.1.0 development tree; unreleased additions require a source install. See the [changelog](CHANGELOG.md) for additions and fixes. Match your installed version to the documentation.
+These pages track the 6.1.0 release. See the [changelog](CHANGELOG.md) for additions and fixes. Match your installed version to the documentation.
 
 New DSGE workflows share [nonlinear model equations](docs/dsge_nonlinear.md)
 across [robust transitions and announcements](docs/dsge_transitions.md) and
@@ -1090,6 +1090,7 @@ All notebooks strictly adhere to the Pyodide contract and the 7-section pedagogi
 - **`docs/hank_ssj_and_aggregate_risk.md`** — Compositional `BlockDAG` Sequence-Space Jacobians, state-dependent Broyden nonlinear HANK transitions, and 2nd-order aggregate risk perturbation with cross-sectional state reduction (`puremacro.dsge.ssj_dag`, `puremacro.dsge.hank_nonlinear`, `puremacro.dsge.occbin_nonlinear`; Spanish twin under `docs/es/`).
 - **`docs/sovereign_default.md`** — Quantitative sovereign default with short- and long-term debt (Arellano, Chatterjee–Eyigungor), `DualArray` bond schedule gradients, Mendoza collateral-constrained sudden stops, and haircut vs. maturity-extension restructuring (`puremacro.sovereign`; Spanish twin under `docs/es/`).
 - **`docs/brief_sovereign_risk.md`** — Sovereign-risk policy brief: illustrative comparative statics of reentry probability, income volatility and persistence in the public Arellano calibration, with 95% intervals and grid changes beside every number (`python -m puremacro.examples.first_brief_sovereign`; Spanish twin under `docs/es/`).
+- **`docs/first_brief_fiscal.md`** — Fiscal policy brief: the government spending multiplier with and without slack on the Ramey-Zubairy historical data, with Anderson-Rubin sets for weak cells, an experiment without WWII and a concentration diagnostic (`python -m puremacro.examples.first_brief_fiscal`; Spanish twin under `docs/es/`).
 - **`docs/distributional_lp.md`** — Functional, quantile, and distributional local projections with exact cross-sectional adding-up constraints and empirical-to-structural HANK decile IRF bridges (`puremacro.lp.distributional`; Spanish twin under `docs/es/`).
 - **`docs/network_spatial_climate_iam.md`** — Baqaee–Farhi 2nd-order production network aggregation, Caliendo–Parro–Rossi-Hansberg dynamic spatial migration hat-algebra, multi-region spatial climate IAM, and self-auditing `PolicyStudio` interactive HTML5/SVG export (`puremacro.trade.network_macro`, `puremacro.spatial.dynamic_hat`, `puremacro.climate.spatial_iam`, `puremacro.study.studio`; Spanish twin under `docs/es/`).
 - **`docs/vfi_continuous_projection.md`** — Continuous state-space dynamic programming: Chebyshev polynomial collocation and Finite Element Galerkin projection with Fischer-Burmeister borrowing constraints.

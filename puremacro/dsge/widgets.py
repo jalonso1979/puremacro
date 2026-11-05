@@ -22,6 +22,7 @@ import pandas as pd
 
 from puremacro.dsge.build import LinearModel, ModelError
 from puremacro.dsge.klein import BlanchardKahnError
+from puremacro.dsge._workbench_state import DSGEFailure, describe_failure
 
 
 def _is_interactive_backend() -> bool:
@@ -176,6 +177,14 @@ class InteractiveIRFResult:
     qz_criterium: float = 1.0 + 1e-8
     _is_interactive_backend: bool = False
     _cids: list[int] = field(default_factory=list)
+    auto_solve: bool = True
+    apply_button: Button | None = None
+    state_text: Any = None
+    run_state: str = "succeeded"
+    failure: DSGEFailure | None = None
+    last_success_model: LinearModel | None = None
+    accepted_parameters: dict[str, float] = field(default_factory=dict)
+    _current_frames: dict[str, pd.DataFrame] = field(default_factory=dict, repr=False)
 
     def __iter__(self):
         """Allow dual usage: fig, sliders = model.interactive_irf(...)"""
@@ -183,22 +192,13 @@ class InteractiveIRFResult:
         yield self.sliders
 
     def set_value(self, parameter: str, value: float) -> None:
-        """Programmatically adjust a parameter slider and trigger dynamic update."""
-        target_p = parameter
-        if target_p not in self.sliders:
-            for k, mapped in self.param_map.items():
-                if mapped == parameter and k in self.sliders:
-                    target_p = k
-                    break
-        if target_p not in self.sliders:
-            raise KeyError(
-                f"No slider for parameter '{parameter}'; available: {list(self.sliders.keys())}"
-            )
-        self.sliders[target_p].set_val(value)
+        """Edit one value; solve immediately only when ``auto_solve=True``."""
+        self.update({parameter: value})
 
     def update(self, param_values: Mapping[str, float]) -> None:
-        """Programmatically adjust multiple parameter sliders."""
-        for p in param_values:
+        """Validate a batch before editing, then perform at most one solve."""
+        edits = {}
+        for p, value in param_values.items():
             target_p = p
             if target_p not in self.sliders:
                 for k, mapped in self.param_map.items():
@@ -209,28 +209,51 @@ class InteractiveIRFResult:
                 raise KeyError(
                     f"No slider for parameter '{p}'; available: {list(self.sliders.keys())}"
                 )
-        for p, v in param_values.items():
-            target_p = p if p in self.sliders else self.param_map.get(p, p)
-            self.sliders[target_p].set_val(v)
+            slider = self.sliders[target_p]
+            number = float(value)
+            if not np.isfinite(number):
+                raise ValueError(f"{p} must be finite")
+            if target_p in edits:
+                raise ValueError(f"Parameter {target_p} appears more than once through aliases")
+            edits[target_p] = number
+        if not edits:
+            return
+        for p, value in edits.items():
+            slider = self.sliders[p]
+            events, drawing = slider.eventson, slider.drawon
+            try:
+                slider.eventson = slider.drawon = False
+                slider.set_val(value)
+            finally:
+                slider.eventson, slider.drawon = events, drawing
+        self._on_edit()
 
     def reset(self) -> None:
         """Reset all parameter sliders to their initial baseline values."""
-        for s in self.sliders.values():
-            s.reset()
+        self.update({name: slider.valinit for name, slider in self.sliders.items()})
 
     def get_values(self) -> dict[str, float]:
         """Return dictionary of current parameter slider values."""
         return {p: float(s.val) for p, s in self.sliders.items()}
 
+    @property
+    def is_current(self) -> bool:
+        """Whether the displayed/exported run matches every current slider."""
+        return self.run_state == "succeeded" and all(
+            float(s.val) == self.accepted_parameters.get(self.param_map.get(p, p))
+            for p, s in self.sliders.items()
+        )
+
     def to_frame(self, shock: str | None = None) -> pd.DataFrame:
         """Return the current active IRF trajectory as a DataFrame."""
         sh = shock or self.shocks[0]
-        if self.model.is_determinate:
-            try:
-                df = self.model.irf(sh, horizon=self.horizon, size=self.size)
-                return df[self.variables]
-            except Exception:
-                pass
+        if sh not in self.shocks:
+            raise KeyError(f"Unknown plotted shock {sh!r}; available: {self.shocks}")
+        if self.is_current and sh in self._current_frames:
+            frame = self._current_frames[sh].loc[:, self.variables].copy(deep=True)
+            frame.attrs.update(run_state=self.run_state, run_number=self.n_updates,
+                               parameters=self.accepted_parameters.copy())
+            return frame
         return pd.DataFrame(
             np.nan,
             index=pd.RangeIndex(self.horizon + 1, name="h"),
@@ -239,7 +262,12 @@ class InteractiveIRFResult:
 
     def summary(self) -> str:
         """Render publication-grade text summary of interactive exploration."""
-        status = "Determinate" if self.model.is_determinate else "Indeterminate / Unstable"
+        if self.is_current:
+            status = "Determinate"
+        elif (self.failure is not None and self.failure.category == "determinacy") or not getattr(self.model, "is_determinate", True):
+            status = "Indeterminate / Unstable"
+        else:
+            status = "No current solved result"
         lines = [
             "INTERACTIVE IMPULSE RESPONSE EXPLORATION",
             "=" * 72,
@@ -247,6 +275,7 @@ class InteractiveIRFResult:
             f"Shocks              : {', '.join(self.shocks)}",
             f"Variables           : {', '.join(self.variables)}",
             f"Determinacy Status  : {status}",
+            f"Run State           : {self.run_state if self.is_current else ('edited' if self.run_state == 'succeeded' else self.run_state)}",
             f"Updates Performed   : {self.n_updates}",
             f"Last Latency        : {self.last_latency_ms:.2f} ms",
             "-" * 72,
@@ -269,6 +298,26 @@ class InteractiveIRFResult:
         from puremacro.reports import _df_to_markdown
 
         return _df_to_markdown(self.to_frame(shock), **kwargs)
+
+    def accuracy(self):
+        """Inspect the current run, retaining untested accuracy dimensions."""
+        from .workbench import solution_accuracy
+        return solution_accuracy(self.model if self.is_current else None, failure=self.failure)
+
+    def capture_run(self, *, label: str = "Interactive IRF"):
+        """Freeze inputs, current tables and evidence; never capture stale curves."""
+        from .workbench import DSGERun
+        parameters = dict(getattr(self.baseline_model, "_params", {}) or {})
+        parameters.update({self.param_map.get(p, p): float(s.val) for p, s in self.sliders.items()})
+        status = "succeeded" if self.is_current else ("edited" if self.run_state == "succeeded" else self.run_state)
+        return DSGERun.capture(
+            self.model if self.is_current else None, label=label, status=status,
+            parameters=parameters, failure=self.failure,
+            configuration={"operation": "interactive_irf", "shocks": self.shocks,
+                           "horizon": self.horizon, "size": self.size},
+            tables={sh: self.to_frame(sh) for sh in self.shocks} if self.is_current else {},
+            units=dict(self.model.units), timing=str(self.model.timing),
+        )
 
     def to_latex(self, shock: str | None = None, **kwargs) -> str:
         """Export active IRF table to LaTeX tabular."""
@@ -294,30 +343,39 @@ class InteractiveIRFResult:
             except Exception:
                 pass
             s.eventson = False
-        if self.reset_button is not None:
+        for button in (self.reset_button, self.apply_button):
+            if button is None:
+                continue
             try:
-                self.reset_button.disconnect_events()
+                button.disconnect_events()
             except Exception:
                 pass
-            self.reset_button.eventson = False
+            button.eventson = False
 
     def _set_status(self, text: str) -> None:
         if self.status_text is not None:
-            self.status_text.set_text(text)
+            from textwrap import fill
+            width = max(50, int(self.fig.get_figwidth() * 12))
+            self.status_text.set_text(fill(text, width=width, max_lines=2, placeholder="…"))
+            self.status_text.set_color("#8c2c28" if self.run_state == "failed" else "#73530b")
             self.status_text.set_visible(bool(text))
 
     def _set_lines_nan(self) -> None:
         nan_data = np.full(self.horizon + 1, np.nan)
         for line in self.lines.values():
             line.set_ydata(nan_data)
-            ax = line.axes
-            if ax is not None:
-                ax.relim()
-                ax.autoscale_view(scalex=False, scaley=True)
 
     def _on_slider_change(self, val=None) -> None:
-        """Callback invoked instantaneously when any slider is moved."""
+        """One explicit solve of the current batch of slider values."""
         t0 = time.perf_counter()
+        self.run_state = "running"
+        self.failure = None
+        self._current_frames.clear()
+        self._set_lines_nan()
+        self._update_state_text()
+        self._set_status("Solving current parameters…")
+        if self._is_interactive_backend:
+            self.fig.canvas.draw_idle()
         new_params = {}
         for p in self.parameters:
             if p in self.sliders:
@@ -332,14 +390,27 @@ class InteractiveIRFResult:
                 qz_criterium=self.qz_criterium,
             )
             if not new_m.is_determinate:
-                self._set_status("[WARNING] Blanchard-Kahn violation: indeterminacy or explosive roots")
-                self._set_lines_nan()
                 self.model = new_m
+                self.failure = DSGEFailure(
+                    "determinacy", "BlanchardKahnError",
+                    "Blanchard-Kahn violation: indeterminacy or explosive roots",
+                    "Inspect variable timing, the eigenvalues and the policy-rule parameters.",
+                )
+                self.run_state = "failed"
+                self._set_status(f"[determinacy] {self.failure.message}. {self.failure.next_step}")
             else:
-                self._set_status("")
-                self.model = new_m
+                frames = {}
                 for shock in self.shocks:
                     df = new_m.irf(shock, horizon=self.horizon, size=self.size)
+                    if not np.isfinite(df.loc[:, self.variables].to_numpy()).all():
+                        raise FloatingPointError("The solved IRF contains nonfinite values")
+                    frames[shock] = df.copy(deep=True)
+                self.model = self.last_success_model = new_m
+                self.accepted_parameters = dict(getattr(new_m, "_params", {}) or {})
+                self._current_frames = frames
+                self.run_state = "succeeded"
+                self._set_status("")
+                for shock, df in frames.items():
                     for var in self.variables:
                         key = (var, shock)
                         if key in self.lines:
@@ -349,22 +420,44 @@ class InteractiveIRFResult:
                             if ax is not None:
                                 ax.relim()
                                 ax.autoscale_view(scalex=False, scaley=True)
-        except (BlanchardKahnError, ModelError) as err:
-            self._set_status(f"[WARNING] Blanchard-Kahn violation: {err}")
-            self._set_lines_nan()
         except Exception as err:
-            self._set_status(f"[WARNING] Solve error: {err}")
+            self.failure = describe_failure(err)
+            self.run_state = "failed"
+            self._current_frames.clear()
+            self._set_status(f"[{self.failure.category}] {self.failure.message}. {self.failure.next_step}")
             self._set_lines_nan()
 
         t_end = time.perf_counter()
         self.last_latency_ms = (t_end - t0) * 1000.0
         self.n_updates += 1
+        self._update_state_text()
 
         if self._is_interactive_backend:
             try:
                 self.fig.canvas.draw_idle()
             except Exception:
                 pass
+
+    def _update_state_text(self) -> None:
+        if self.state_text is not None:
+            self.state_text.set_text(f"Run {self.n_updates} · {self.run_state}")
+
+    def _on_edit(self, val=None) -> None:
+        if self.auto_solve:
+            self.apply()
+        else:
+            self.run_state = "edited"
+            self.failure = None
+            self._current_frames.clear()
+            self._set_lines_nan()
+            self._set_status("Parameters edited — Apply to solve")
+            self._update_state_text()
+            if self._is_interactive_backend:
+                self.fig.canvas.draw_idle()
+
+    def apply(self) -> None:
+        """Solve current values once; the previous successful model stays explicit."""
+        self._on_slider_change()
 
 
 def interactive_irf(
@@ -384,6 +477,7 @@ def interactive_irf(
     show_reset: bool = True,
     strict: bool = False,
     qz_criterium: float = 1.0 + 1e-8,
+    auto_solve: bool = True,
 ) -> InteractiveIRFResult:
     """Spawn an interactive parameter exploration dashboard with Matplotlib Sliders.
 
@@ -424,6 +518,9 @@ def interactive_irf(
         If False, Blanchard-Kahn failures display a visual warning without raising an exception.
     qz_criterium : float, default 1.0 + 1e-8
         Modulus threshold for explosive roots.
+    auto_solve : bool, default True
+        False batches edits until Apply is pressed. Edited or failed results
+        export missing values, never the last successful model's curves.
 
     Returns
     -------
@@ -565,26 +662,21 @@ def interactive_irf(
             slider_configs[raw_p] = (actual_p, valmin, valmax, valinit, valstep)
             param_names.append(raw_p)
 
+    for raw_p, (_, lo, hi, initial, step) in slider_configs.items():
+        if not all(np.isfinite(value) for value in (lo, hi, initial)) or lo >= hi:
+            raise ValueError(f"Invalid finite slider bounds for '{raw_p}'")
+        if not lo <= initial <= hi:
+            raise ValueError(f"Initial value for '{raw_p}' is outside its slider bounds")
+        if step is not None and (not np.isfinite(step) or step <= 0):
+            raise ValueError(f"Slider step for '{raw_p}' must be finite and positive")
+
     # Initial baseline IRFs
     df_base: dict[str, pd.DataFrame] = {}
     for sh in shocks_list:
         df_base[sh] = model.irf(sh, horizon=horizon, size=size)
 
-    # Check if initial slider values differ from baseline
-    needs_init_resolve = any(cfg[3] != float(model_params[cfg[0]]) for cfg in slider_configs.values())
-    if needs_init_resolve:
-        init_params = {cfg[0]: cfg[3] for cfg in slider_configs.values()}
-        try:
-            active_model = _fast_resolve(model, init_params, strict=strict, qz_criterium=qz_criterium)
-            df_active: dict[str, pd.DataFrame] = {}
-            for sh in shocks_list:
-                df_active[sh] = active_model.irf(sh, horizon=horizon, size=size)
-        except Exception:
-            active_model = model
-            df_active = df_base
-    else:
-        active_model = model
-        df_active = df_base
+    active_model = model
+    df_active = df_base
 
     # Compute figure layout geometry
     n_panels = len(variables_list) * len(shocks_list)
@@ -596,7 +688,7 @@ def interactive_irf(
     slider_rows = int(math.ceil(n_sliders / slider_cols))
 
     h_plots = max(3.2, 2.4 * nrows)
-    h_sliders = max(1.6, 0.48 * slider_rows + (0.6 if show_reset else 0.2))
+    h_sliders = max(1.6, 0.48 * slider_rows + (0.6 if show_reset or not auto_solve else 0.2))
     fig_h = h_plots + h_sliders
     fig_w = max(8.5, 4.2 * ncols)
     if figsize is not None:
@@ -605,7 +697,7 @@ def interactive_irf(
     fig = plt.figure(figsize=(fig_w, fig_h))
 
     slider_frac = min(0.45, h_sliders / fig_h)
-    plots_top = 0.93 if title else 0.95
+    plots_top = 0.85 if title else 0.88
     plots_bottom = slider_frac + 0.04
 
     gs_plots = GridSpec(
@@ -664,7 +756,7 @@ def interactive_irf(
             ax_title = f"{var} (to {sh})" if len(shocks_list) > 1 else var
             ax.set_title(ax_title, fontsize=11, weight="bold")
             ax.set_xlabel("Horizon (h)", fontsize=9)
-            ax.set_ylabel("Response", fontsize=9)
+            ax.set_ylabel(f"Response ({model.units.get(var, 'units unspecified')})", fontsize=9)
             ax.grid(True, linestyle=":", alpha=0.5)
             ax.legend(loc="best", fontsize=8)
 
@@ -679,8 +771,8 @@ def interactive_irf(
     slider_area_top = plots_bottom - 0.04
     slider_area_bottom = 0.04
     avail_h = max(0.10, slider_area_top - slider_area_bottom)
-    reset_h = 0.038 if show_reset else 0.0
-    usable_slider_h = avail_h - (reset_h + 0.02 if show_reset else 0.0)
+    reset_h = 0.038 if show_reset or not auto_solve else 0.0
+    usable_slider_h = avail_h - (reset_h + 0.02 if show_reset or not auto_solve else 0.0)
     row_slot = usable_slider_h / max(1, slider_rows)
     bar_h = min(0.032, row_slot * 0.55)
 
@@ -719,10 +811,15 @@ def interactive_irf(
         ax_btn = fig.add_axes((float(btn_x), float(btn_y), float(btn_w), float(max(0.028, reset_h))))
         reset_btn = Button(ax_btn, "Reset", color="0.95", hovercolor="0.85")
 
+    apply_btn = None
+    if not auto_solve:
+        ax_apply = fig.add_axes((0.68, float(slider_area_bottom), 0.10, float(max(0.028, reset_h))))
+        apply_btn = Button(ax_apply, "Apply", color="0.90", hovercolor="0.80")
+
     # Status Banner and Figure Title
     status_text = fig.text(
         0.5,
-        0.982,
+        0.995,
         "",
         ha="center",
         va="top",
@@ -731,7 +828,7 @@ def interactive_irf(
         weight="bold",
     )
     if title:
-        fig.suptitle(title, fontsize=13, weight="bold", y=0.96)
+        fig.suptitle(title, fontsize=13, weight="bold", y=0.935)
 
     param_map = {raw_p: slider_configs[raw_p][0] for raw_p in param_names}
 
@@ -755,11 +852,17 @@ def interactive_irf(
         strict=strict,
         qz_criterium=qz_criterium,
         _is_interactive_backend=_is_interactive_backend(),
+        auto_solve=auto_solve,
+        apply_button=apply_btn,
+        state_text=fig.text(0.10, 0.01, "Run 0 · succeeded", fontsize=9),
+        last_success_model=model if model.is_determinate else None,
+        accepted_parameters=model_params.copy(),
+        _current_frames={sh: df.copy(deep=True) for sh, df in df_base.items()},
     )
 
     # Attach slider callbacks
     for p, s in sliders.items():
-        cid = s.on_changed(result._on_slider_change)
+        cid = s.on_changed(result._on_edit)
         result._cids.append(cid)
 
     # Attach reset button callback
@@ -768,6 +871,13 @@ def interactive_irf(
         result._cids.append(cid)
 
     # Attach strong reference on figure to prevent GC in interactive backends
+    if apply_btn is not None:
+        result._cids.append(apply_btn.on_clicked(lambda event: result.apply()))
+    # Matplotlib may snap valinit to valstep. Solve the values actually shown.
+    needs_init_resolve = any(float(s.val) != float(model_params[param_map[p]]) for p, s in sliders.items())
+    if needs_init_resolve or not model.is_determinate:
+        result.apply()
+
     fig._interactive_widget = result  # type: ignore[attr-defined]
 
     return result

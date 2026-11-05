@@ -9,9 +9,11 @@ additions are included in 5.4.2. Versions 5.8.0, 5.9.0 and 6.0.0 were tagged
 but not published; their additions are included in 6.0.1, published on
 2026-10-29. See the [release procedure](RELEASING.md).
 
-## 6.1.0 (unreleased)
+## Unreleased
 
-- Added experimental investment-research kernels in `asset_pricing`: lagged,
+### Added
+
+- Experimental investment-research kernels in `asset_pricing`: lagged,
   self-financing long-only backtests with cash, costs, eligibility and JSON replay;
   Ledoit–Wolf covariance, bounded mean/minimum-variance allocation and frontier;
   causal technical indicators, momentum policies and a block-bootstrap max test;
@@ -19,8 +21,176 @@ but not published; their additions are included in 6.0.1, published on
   and sensitivity; Brock–Hommes affine-belief dynamics with explicit fitness timing.
   No new runtime dependencies or bundled market data. Bilingual guides and
   executed notebooks document numerical checks, timing and unsupported extensions.
+- `cumulative=True` on `lp_iv` and `lp_state_dep_iv` estimates integral
+  multipliers directly: the outcome and the endogenous regressor become
+  window sums over `0..h`, the instrument stays dated at `t`. Results carry
+  the flag `is_cumulative` and "(cumulative)" method labels. Window sums need
+  a regular index, so an irregular date or period index raises an error.
+  ([#217](https://github.com/jalonso1979/puremacro/issues/217))
+- `python -m puremacro.examples.first_brief_fiscal [--lang es]` writes a
+  bilingual fiscal policy brief on the Ramey-Zubairy historical data, with
+  the pages `docs/first_brief_fiscal.md` and `docs/es/first_brief_fiscal.md`.
+  It reports linear and slack/no-slack cumulative spending multipliers at 2
+  and 4 years, quotes weak cells by Anderson-Rubin sets, runs the
+  experiment without WWII under the RZ rule and reports a concentration
+  diagnostic. The page numbers come from a frozen record, refreshed with
+  `tools/reference_validation/refresh_fiscal_brief.py` and checked by the tests.
+- `RZ_CONTROLS` is public in the Ramey-Zubairy example; `_CTL` stays as an
+  alias.
 
-Development version after 6.0.1; not a published distribution.
+### Changed
+
+- `lp_state_dep` and `lp_state_dep_iv` take `interact={"all", "intercept",
+  "none"}`, default `"all"`: the constant and every control (lags and
+  contemporaneous controls) are interacted with the regime weight, as in
+  Ramey–Zubairy (2018, eq. 2) and the direct projections of
+  Auerbach–Gorodnichenko (2013). With a threshold transition the point
+  estimates equal one regression per regime. **Behaviour change:** 6.1.0 and
+  earlier pooled the intercept and the control coefficients across regimes;
+  `interact="none"` reproduces those results (relative difference below
+  1e-9 on the bundled Ramey–Zubairy snapshot). `lp_garch_state` inherits the
+  new default. ([#217](https://github.com/jalonso1979/puremacro/issues/217))
+- Both functions also return `diff_HL`, `se_diff_HL` and `p_diff_HL` (HAC test
+  of β_H = β_L) and the effective regime sizes `n_eff_H`, `n_eff_L`.
+- The Ramey-Zubairy example: the headline is now at h = 7 and 15 (the 8- and
+  16-quarter integrals), which reproduce Table 1. The state layer is one-step
+  `lp_state_dep_iv`, with standard errors. Weak-IV diagnostics use the HAC
+  effective F and the HAC Anderson-Rubin set, so the example no longer uses
+  the non-HAC helpers of `inference.weak_iv`. Teaching assertions that did not hold under HAC statistics were
+  replaced: the slack F does not collapse at long horizons (55.9 at h = 20),
+  and the robust set is wider than the conventional band in the no-slack
+  regime (1.28 times at h = 7), not in the slack regime (1.02). The figure is
+  regenerated. The linear and no-slack headlines, whose instrument is weak
+  (effective F 16.0 / 12.0 and 7.3 / 10.8), are reported with their
+  Anderson-Rubin 90% sets. **Compatibility:** scripts that read
+  `run_rz_replication()`'s output must be updated. The `robust` dict's keys
+  are now `h`, `regime`, `beta`, `se`, `conv_lo`, `conv_hi`, `ar_lo`, `ar_hi`,
+  `ar_set_type` and `f_eff`; `msw_lo`, `msw_hi`, `beta_2sls`, `se_2sls`,
+  `n_slack`, `ar_at_point` and `ar_at_zero` are gone. `ar_horizon` now
+  defaults to 7, in the no-slack regime (it was 12, in the slack regime).
+  `linear` is now an `LPResult` indexed by h. New keys: `state_dep` (the
+  `lp_state_dep_iv` result) and `expansion_iv` (`lp_iv` on the no-slack
+  quarters, with Anderson-Rubin sets).
+
+### Fixed
+
+- Pooled controls biased the regime coefficients. On the bundled
+  Ramey–Zubairy snapshot, `lp_state_dep_iv` erased the slack/no-slack gap once
+  World War II is excluded (0.70/0.69 against 1.07/0.49 with everything
+  interacted) and returned explosive estimates on the post-1947 sample
+  (+2538 at 16 quarters).
+- `lp_state_dep_iv` no longer swallows estimation errors: a horizon that
+  cannot be estimated emits a `RuntimeWarning` naming the horizon and the
+  exception, and its row is NaN.
+- Docstrings: `lp_state_dep_iv` explains how to obtain Ramey–Zubairy's
+  integral multiplier instead of claiming to estimate it directly; both
+  functions state that the state is used as dated (Ramey–Zubairy and
+  Auerbach–Gorodnichenko date it at t−1), that the high regime is the one with
+  high values of the state, and that the index must be contiguous (blank the
+  shock or instrument instead of dropping rows). The Ramey–Zubairy example no
+  longer says that pooling moves results "at the second decimal", and
+  `docs/lp.md` / `docs/es/lp.md` document `interact` and the new columns.
+- The Ramey-Zubairy example no longer reads a missing unemployment rate as
+  "no slack": `slack_l` stays NaN.
+
+### Internal
+
+- CI runs the test suite in parallel. Run serially, the suite took about 122
+  of the 128 minutes of the longest leg while the runner's other cores sat
+  idle. Each leg now runs
+  `pytest -n auto --dist loadfile --no-loadscope-reorder`, with one BLAS
+  thread per worker and the slowest test files started first
+  (`_HEAVY_FIRST` in `tests/conftest.py`). `pytest-xdist` joins the `dev`
+  extra; a plain `pytest` still runs serially.
+- mypy, the release gate and the strict docs build run in their own `checks`
+  job beside the test legs. A new commit on a pull request cancels that pull
+  request's CI run in progress; pushes to main and release runs are never
+  cancelled.
+- Under `pytest -n`, workers hand the socket guard's blocked attempts to the
+  controller, so the end-of-run summary still lists them
+  (`tests/test_parallel_runs.py`).
+
+## 6.1.0 (2026-11-03)
+
+**Reliability & Scale Release: Sovereign grid convergence (25,601x1,281), certified fast Arellano monotone solver, HANK with productive capital & matrix-free Newton-GMRES, DSGE solution workbench, and household trade adjustment.**
+
+This release establishes full sovereign grid convergence through 25,601 × 1,281
+uniform nodes and curved grid refinements, provides an exhaustively certified
+monotone search solver for Arellano models, introduces the immutable DSGE
+solution workbench with `.mod` replay, adds matrix-free Newton-GMRES and
+productive capital to two-asset HANK, and delivers empirical household trade
+incidence analysis on Mexican ENIGH 2022 microdata.
+
+### Added
+
+- `solve_sovereign_default(debt_grid=...)` accepts explicit nonuniform debt
+  coordinates with an exact zero. Default-grid equilibria and random paths
+  retain pinned legacy parity; supplied coordinates survive maturity
+  restructuring, and their price tangents use nonuniform PCHIP weights.
+  A separate fixed-support curved-grid experiment evaluates the high-reentry
+  brief scenario with unchanged simulation design and moment tolerances.
+
+- Bounded the short-term monotone policy search's workspace by batching
+  independent income columns. Values, choices, equilibrium metadata and random
+  paths retain exact parity with the pinned original algorithm. Extended
+  sovereign grid convergence studies through 25,601 × 1,281 uniform nodes and
+  curved grid refinements (`tests/fixtures/sovereign_brief/sensitive_grid_convergence.json`
+  and `curved_grid_convergence.json`), retaining all failed crossed refinements
+  through 12,801 × 1,281 without relaxing moment tolerances or rewriting
+  historical source provenance.
+
+- DSGE workbench with immutable experiments, explicit `.mod` replay, Python/HTML
+  export, unit/timing-aware comparisons and separate accuracy evidence. The IRF
+  widget clears stale curves and exports after failed or unapplied edits, reports
+  actionable failures and supports batched changes with Apply mode. Deterministic
+  Krylov runs expose cooperative cancellation and accepted-path recovery.
+  [Guide](docs/dsge_workbench.md).
+
+- Reduced household marginal-value controls join distribution compression, so
+  Jacobians and Schur systems are built directly in reduced coordinates.
+  Full-grid audits expose omitted equations and insufficient ranks. Conditional
+  nonlinear corrections re-solve after each observed shock and separately
+  check horizon and branching refinements. Productive-capital two-asset HANK
+  adds investment, installation costs and endogenous returns with independent
+  market/resource accounts and an author-code capital-block reference. These
+  remain local/finite-tree research solvers, with household grid errors reported
+  separately. [Reduction](docs/hank_reduction.md),
+  [continuation](docs/hank_nonlinear_continuation.md),
+  [capital](docs/hank_capital.md).
+
+- Solved local stochastic HANK policies with constraint- and market-moment-
+  preserving distribution reduction, Schur determinacy checks and held-out
+  full-distribution audits. Nonlinear finite trees can use that solved
+  first-order stochastic terminal policy. A two-asset consol economy clears
+  both asset markets and accounts for coupons, capital gains and portfolio
+  adjustment resources. Failed compression audits remain visible; these are
+  local solutions, not global or second-order aggregate-risk calculations.
+  [Guide](docs/hank_recursive.md).
+
+- `HANKEquilibriumWorkspace` and `solve_hank_equilibrium`: matrix-free
+  Newton-GMRES solves the coupled one-asset finite-history household and market
+  equations with analytic EGM/distribution tangents, a reusable sparse
+  preconditioner and explicit warm starts. Numerical failures retain the last
+  feasible iterate; the dense reference remains unchanged. This extends the
+  computational backend, not the model's terminal or stochastic closure.
+  [Guide](docs/hank_optimized.md).
+
+- Observed ENIGH 2022 household policy studies retain source hashes, survey
+  weights, zero-spending exclusions and household-level welfare. Explicit
+  budget-neutral compensation supports signed per-household transfers.
+  Robust policy comparisons report dominance and minimax regret over complete
+  assumption grids, with no implicit probabilities or failed-cell deletion.
+
+- Conditional dynamic CES sourcing accounts for procurement and quadratic
+  adjustment resources. Finite household consumption paths report CES/CRRA
+  consumption equivalents under explicit financing. These are conditional
+  incidence experiments, not national dynamic GE or causal tariff estimates.
+
+- Finite-tree aggregate-risk HANK solves household choices before future shocks
+  are revealed, with one distribution per history and explicit firm valuation
+  and terminal closures. Deterministic paths reduce to the existing published
+  one-asset model; this does not certify stationary stochastic HANK.
+>>>>>>> origin/main
 
 - `calibrate_one_asset_hank` and `solve_one_asset_hank`: the published ABRS
   one-asset equilibrium with endogenous labor, debt revaluation, asset/labor
@@ -29,33 +199,6 @@ Development version after 6.0.1; not a published distribution.
   study extends income refinement to 31 states and checks assets and horizons;
   failed intermediate refinements remain visible. The existing reduced HANK
   API keeps its original closure. [Guide](docs/hank_equilibrium.md).
-- Independently validated the tariff brief's positive consumption EV with a
-  separate Leontief equilibrium solver and direct flow/budget/EV checks for
-  `sigma=0` and `sigma=2`. The national record now includes investment and
-  spending-abroad quantity changes at baseline prices; bilingual guides explain
-  the final-use reallocation and frozen resource-balance/closure checks. The
-  default tariff covers all modeled sectors including services; the CES input
-  composite substitutes across all country-sector inputs. Both descriptions
-  are corrected without changing the recorded equilibrium results.
-- Independently checked the stated long-term sovereign operator, haircut/maturity
-  states and collateral-planner policies on small grids. Long-term simulation,
-  spread diagnostics and survival pricing now use the debt-choice probabilities
-  used by the smoothed pricing operator; `policy_b` remains the modal choice.
-  Short-term values, prices and simulations retain exact 6.0.1 parity. The
-  long-term operator is explicitly documented as a quantal-policy approximation,
-  with its deterministic-optimality gap exposed.
-- Replaced prescribed collateral diagnostics with reproducible simulated
-  measurements. Amplification uses weighted consumption drops at identical
-  debt/capital states; undefined cases return `NaN` with a status, and no 1.35
-  fallback or lower bound remains. Crisis frequency and grid binding are distinct;
-  capacity averages the actual product `kappa*q*k_next`. Infeasible consumption
-  grids are rejected, and final Bellman residuals certify both policy problems.
-- Haircut-only restructuring reuses the original equilibrium; maturity changes
-  preserve its numerical budget and reject nonconvergence. Recovery starts at
-  the selected income state and reports debt-grid rounding. The legacy survival
-  spread `risk_premium_component` is documented as a compounding adjustment,
-  with independent risk-free/constant-hazard checks. Bilingual notebook 73 and
-  guides now use the corrected measurements and state their validation scope.
 
 - Added `puremacro.inference.gmm`, a public generic GMM engine: user moment
   functions, two-step, iterated, identity or user weighting, Bartlett HAC
@@ -65,6 +208,7 @@ Development version after 6.0.1; not a published distribution.
   linearmodels `IV2SLS`/`IVGMM` and `inference.hansen_j` to 1e-8.
   Optimizer stopping is invariant to common changes of moment units, and a
   rank check rejects unidentified parameter combinations before inference.
+
 - Added `puremacro.asset_pricing` (macro-finance): `to_returns`,
   `excess_returns`, `compound` and annualization helpers; `risk_summary`
   (Sharpe ratio with a Lo 2002 HAC standard error, Sortino, moments,
@@ -78,12 +222,14 @@ Development version after 6.0.1; not a published distribution.
   statsmodels and linearmodels to 1e-8 where definitions coincide; the
   remaining differences are documented. Multi-period historical VaR/ES compound
   simple returns; SDF/HJ reject rank-deficient systems before inference. Bilingual guide `docs/asset_pricing.md`.
+
 - Added `puremacro.fetch.kenfrench_factors.fetch` for the Fama-French three-
   and five-factor, momentum and 25 size/book-to-market files. Data are
   downloaded into the user cache and never bundled (registry entry
   `kenfrench.factors`, not redistributable). A network test reproduces the
   Fama and French (2015) GRS of the three-factor model on the 25 portfolios
   (3.57 against the published 3.62).
+
 - `puremacro.sovereign.solve_fiscal_sovereign_default`: a fiscal block on the
   short-term Arellano solver. A fixed tax share `tau` funds public spending
   `g = tau*y - b + q(b', y) b'`, valued as `psi * v(g)` next to private
@@ -95,23 +241,10 @@ Development version after 6.0.1; not a published distribution.
   `tau` and `psi` have no defaults; `tau=0.2, psi=1` is an illustrative
   calibration, not fitted to any target. Guide:
   [fiscal block](docs/sovereign_fiscal_rules.md).
-- `tools/reference_validation/check_fiscal_grids.py`: a paired-seed grid
-  ladder for the illustrative fiscal calibration, frozen in
-  `tests/fixtures/sovereign_fiscal/fiscal_grid_convergence.json`.
 
-- `solve_sovereign_default` now calls a private Bellman core parameterized by
-  resources, a choice utility and an income-only flow. The value and pricing
-  fixed points retain exact 6.0.1 parity for dense and monotone short-term debt
-  and the smoothed long-term operator. Short-term paths are also unchanged;
-  long-term paths now follow the pricing operator’s debt-choice probabilities.
-- Sovereign brief resumes validate the baseline and scenario overrides before
-  reusing a cached case, preventing stale results from being relabeled.
-- Fiscal grid caches now include the effective calibration and policy-search
-  settings in both solution and simulation identities. The 6.0.1 parity harness
-  independently pins the legacy simulation algorithm on each platform; archived
-  floating-point data allow only the documented cross-platform rounding bound.
 - `check_arellano_grids.paired_comparison` accepts a `tolerances` mapping;
   its default is unchanged.
+
 - A bilingual sovereign-risk policy brief,
   [`docs/brief_sovereign_risk.md`](docs/brief_sovereign_risk.md) (Spanish:
   `docs/es/brief_sovereign_risk.md`). It shows how the market-reentry
@@ -120,8 +253,11 @@ Development version after 6.0.1; not a published distribution.
   short-term Arellano model. These are illustrative comparative statics of the
   public calibration, not a claim about any country. Every number is shown with
   its 95% interval across 16 seeds and its paired 3,201 -> 6,401 grid change.
-  The numbers come from a frozen converged sweep,
-  `tests/fixtures/sovereign_brief/sweep.json`.
+  The original frozen sweep, `tests/fixtures/sovereign_brief/sweep.json`,
+  retains two scenarios that fail its grid criterion; the brief reports their
+  further refinements separately. Quarterly-income debt ratios divide by four
+  when expressed relative to approximate annual GDP.
+
 - `puremacro.sovereign.ergodic_moments(result, *, periods=500_000,
   seeds=range(1979, 1995), burn=1_000)`: raw ergodic debt (% of mean quarterly
   income), mean spread,
@@ -129,18 +265,17 @@ Development version after 6.0.1; not a published distribution.
   t-intervals. It reproduces `SovereignDefaultResult.simulate` draw for draw
   and runs 16 x 500,000 quarters in seconds. Continuing exclusion is not counted
   as default.
+
 - `puremacro.sovereign.value_of_market_access(result)`: the
   consumption-equivalent value (in %) of market access at zero debt, compared
   with permanent autarky without a default cost.
+
 - Example `python -m puremacro.examples.first_brief_sovereign`:
-  `--scenario theta=0.15` (one scenario on the converged 6,401 x 641 grid),
+  `--scenario theta=0.15` (one scenario on the baseline's 6,401 x 641 grid),
   `--sweep --coarse` (all seven scenarios at 801 x 161 in minutes, with a
   coarse-grid caveat), `--output DIR`, `--lang en|es`, `--grid`, `--periods`,
   `--n-seeds`, `--from-record PATH`, and `--freeze PATH` for maintainers.
 
-- Sovereign brief outputs use explicit UTF-8 and portable resource diagnostics.
-  Custom scenarios appear in figures, and effect directions compare numerical
-  values while treating indistinguishable displayed values as flat.
 - Added a first policy brief, `python -m puremacro.examples.first_brief_tariffs`:
   a 10% US tariff on Chinese goods solved with the exact trade engine on the
   bundled OECD ICIO 2019 table, reporting national EV with its purchaser-price,
@@ -153,16 +288,87 @@ Development version after 6.0.1; not a published distribution.
   brief" shows the frozen result, which a test re-renders from the fixture.
   Credit the table as OECD (2023), OECD Inter-Country Input-Output Tables.
 
+### Fixed
+
+- Independently validated the tariff brief's positive consumption EV with a
+  separate Leontief equilibrium solver and direct flow/budget/EV checks for
+  `sigma=0` and `sigma=2`. The national record now includes investment and
+  spending-abroad quantity changes at baseline prices; bilingual guides explain
+  the final-use reallocation and frozen resource-balance/closure checks. The
+  default tariff covers all modeled sectors including services; the CES input
+  composite substitutes across all country-sector inputs. Both descriptions
+  are corrected without changing the recorded equilibrium results.
+
+- Independently checked the stated long-term sovereign operator, haircut/maturity
+  states and collateral-planner policies on small grids. Long-term simulation,
+  spread diagnostics and survival pricing now use the debt-choice probabilities
+  used by the smoothed pricing operator; `policy_b` remains the modal choice.
+  Short-term values, prices and simulations retain exact 6.0.1 parity. The
+  long-term operator is explicitly documented as a quantal-policy approximation,
+  with its deterministic-optimality gap exposed.
+
+- Replaced prescribed collateral diagnostics with reproducible simulated
+  measurements. Amplification uses weighted consumption drops at identical
+  debt/capital states; undefined cases return `NaN` with a status, and no 1.35
+  fallback or lower bound remains. Crisis frequency and grid binding are distinct;
+  capacity averages the actual product `kappa*q*k_next`. Infeasible consumption
+  grids are rejected, and final Bellman residuals certify both policy problems.
+
+- Haircut-only restructuring reuses the original equilibrium; maturity changes
+  preserve its numerical budget and reject nonconvergence. Recovery starts at
+  the selected income state and reports debt-grid rounding. The legacy survival
+  spread `risk_premium_component` is documented as a compounding adjustment,
+  with independent risk-free/constant-hazard checks. Bilingual notebook 73 and
+  guides now use the corrected measurements and state their validation scope.
+
+- `solve_sovereign_default` now calls a private Bellman core parameterized by
+  resources, a choice utility and an income-only flow. The value and pricing
+  fixed points retain exact 6.0.1 parity for dense and monotone short-term debt
+  and the smoothed long-term operator. Short-term paths are also unchanged;
+  long-term paths now follow the pricing operator’s debt-choice probabilities.
+
+- Sovereign brief resumes validate the baseline and scenario overrides before
+  reusing a cached case, preventing stale results from being relabeled.
+
+- Fiscal grid caches now include the effective calibration and policy-search
+  settings in both solution and simulation identities. The 6.0.1 parity harness
+  independently pins the legacy simulation algorithm on each platform; archived
+  floating-point data allow only the documented cross-platform rounding bound.
+
+- Sovereign brief outputs use explicit UTF-8 and portable resource diagnostics.
+  Custom scenarios appear in figures, and effect directions compare numerical
+  values while treating indistinguishable displayed values as flat.
+
 - Tariff-brief resource diagnostics work on Windows; reruns remove obsolete
   generated experiment tables and Spanish figures use decimal commas.
+
 - Faster annual-to-quarterly panel expansion preserves duplicate precedence,
   missing-value handling and provenance; BVAR-SV forecasts reuse their design
   matrix with unchanged seeded paths.
+
 - Course scatter charts support arrow keys, Home/End and Escape. Lab CSV buttons
   retain bilingual accessible labels; button transitions respect reduced motion.
-- Bilingual roadmap/API guidance now describes the published 6.0.1 release and
-  6.1.0 development. CI checks native/Windows typing before numerical tests and
-  verifies representative workflows from a clean installed wheel before publish.
+
+### Internal
+
+- Certified fast Arellano monotone solver: divide-and-conquer monotone search
+  in `tools/reference_validation/_arellano_monge.py` and `tools/reference_validation/arellano_2008.py`
+  solves in $O(n_b \cdot n_y \log n_b)$ while matching author Fortran and
+  certified against exhaustive Bellman evaluation to 1e-11 (`tests/test_arellano_2008_study.py`).
+
+- Sovereign grid convergence study automation and test fixtures: `check_sovereign_sensitive_grids.py`
+  and `check_sovereign_curved_grids.py` paired with frozen verification records
+  (`tests/fixtures/sovereign_brief/sensitive_grid_convergence.json` and `curved_grid_convergence.json`),
+  covered by `tests/test_sovereign_sensitive_grid_record.py` and `tests/test_sovereign_curved_grid_record.py`.
+
+- `tools/reference_validation/check_fiscal_grids.py`: a paired-seed grid
+  ladder for the illustrative fiscal calibration, frozen in
+  `tests/fixtures/sovereign_fiscal/fiscal_grid_convergence.json`.
+
+- Bilingual roadmap/API guidance now describes the published 6.1.0 release.
+  CI checks native/Windows typing before numerical tests and verifies
+  representative workflows from a clean installed wheel before publish.
+
 
 ## 6.0.1 (2026-10-29)
 

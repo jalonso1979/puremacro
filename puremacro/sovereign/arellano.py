@@ -147,6 +147,20 @@ def _make_debt_grid(b_min: float, b_max: float, n_b: int) -> tuple[np.ndarray, i
     return b_grid, zero_idx
 
 
+def _validate_debt_grid(debt_grid: np.ndarray) -> tuple[np.ndarray, int]:
+    """Copy a supplied grid without moving its nodes or rounding its zero."""
+    if np.iscomplexobj(debt_grid):
+        raise ValueError("debt_grid must contain real coordinates")
+    grid = np.array(debt_grid, dtype=float, copy=True)
+    if (grid.ndim != 1 or grid.size < 2 or not np.all(np.isfinite(grid))
+            or not np.all(np.diff(grid) > 0.0)):
+        raise ValueError("debt_grid must be a finite, strictly increasing vector with at least two nodes")
+    zero = np.flatnonzero(grid == 0.0)
+    if zero.size != 1:
+        raise ValueError("debt_grid must include an exact zero-debt node")
+    return grid, int(zero[0])
+
+
 class _CoreSolution(NamedTuple):
     """Converged objects of the Bellman and bond-price fixed point."""
 
@@ -438,8 +452,9 @@ def solve_sovereign_default(
     enforce_monotonicity: bool = True,
     y_penalty_type: str = "chatterjee_eyigungor",
     policy_search: str = "dense",
+    debt_grid: np.ndarray | None = None,
 ) -> SovereignDefaultResult:
-    """Solve quantitative sovereign default model with endogenous maturity and taste shocks.
+    """Solve sovereign default with short- or long-term debt and taste shocks.
 
     Supports short-term debt (delta = 1.0, kappa = 0.0, Arellano 2008) and
     long-term maturing coupon bonds (delta in (0, 1], kappa >= 0, Chatterjee &
@@ -506,6 +521,13 @@ def solve_sovereign_default(
         certifies it: a repayment-value gap above 1e-11 raises RuntimeError.
         It raises ValueError if any candidate consumption reaches the 1e-6
         utility barrier, where utility is not concave; use "dense" there.
+    debt_grid : ndarray, optional
+        Explicit debt coordinates, overriding ``n_b``, ``b_min`` and ``b_max``.
+        Must be a finite, strictly increasing vector with at least two nodes
+        and an exact zero. The solver copies it and preserves every node.
+        Allows nonuniform refinement without changing the debt support.
+        Price tangents on this grid use nonuniform PCHIP weights, clipped at
+        zero as in the default tangent convention.
 
     Returns
     -------
@@ -533,10 +555,12 @@ def solve_sovereign_default(
     if monotone and gamma < 0.0:
         raise ValueError(f'policy_search="monotone" requires concave utility, gamma >= 0; got {gamma}')
 
+    supplied_grid = None if debt_grid is None else _validate_debt_grid(debt_grid)
     y_grid, p_trans, stat_dist = _discretize_endowment(n_y, rho_y, sigma_y, m=m_tauchen)
     y_def = _compute_default_penalty(y_grid, penalty_type=y_penalty_type, d0=d0, d1=d1,
                                      mean_y=float(stat_dist @ y_grid))
-    b_grid, zero_idx = _make_debt_grid(b_min, b_max, n_b)
+    b_grid, zero_idx = (_make_debt_grid(b_min, b_max, n_b)
+                        if supplied_grid is None else supplied_grid)
 
     core = _solve_bellman(
         b_grid=b_grid, p_trans=p_trans, resources=y_grid, resources_default=y_def,
@@ -553,7 +577,12 @@ def solve_sovereign_default(
     policy_b = b_grid[m_opt]
 
     # Exact PCHIP node derivatives dq/db'(b', y)
-    dq_db = _compute_dq_db_dualarray(q, b_grid)
+    if supplied_grid is None:
+        dq_db = _compute_dq_db_dualarray(q, b_grid)
+    else:
+        from scipy.interpolate import PchipInterpolator
+
+        dq_db = np.minimum(PchipInterpolator(b_grid, q, axis=0).derivative()(b_grid), 0.0)
 
     spread_annualized = _spread_schedule(q, delta, kappa, r_star)
 
@@ -610,6 +639,8 @@ def solve_sovereign_default(
         "spread_annualization": "4 * max(0, quarterly_yield - r_star)",
         "income_normalization": "stationary_mean_one",
     }
+    if supplied_grid is not None:
+        metadata["debt_grid_supplied"] = True
     if debt_probabilities is not None:
         metadata.update(debt_choice_probabilities=debt_probabilities,
                         debt_choice_temperature=temperature,
