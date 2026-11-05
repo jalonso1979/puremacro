@@ -115,6 +115,19 @@ def test_ar_set_excludes_zero_and_one(rz_result):
     assert rob["ar_hi"] < 1.0    # and a multiplier of one: 0.817, a margin of 0.183 (p at 1: 0.034)
 
 
+def test_weak_headlines_carry_bounded_ar_sets(rz_result):
+    """The example flags the linear and no-slack headlines at 2 and 4 years
+    as weak and quotes their HAC Anderson-Rubin 90% sets, which must be
+    bounded and contain the estimate; the no-slack sets come from lp_iv on
+    the no-slack quarters, which reproduces beta_L."""
+    lin, st, exp = rz_result["linear"], rz_result["state_dep"], rz_result["expansion_iv"]
+    for h in (7, 15):
+        assert lin.loc[h, "mop_f"] < 23.1 and st.loc[h, "first_stage_f_L"] < 23.1   # 16.0, 12.0; 7.3, 10.8
+        for r in (lin.loc[h], exp.loc[h]):
+            assert r["ar_set_type"] == "bounded" and r["ar_lo"] <= r["beta"] <= r["ar_hi"]
+        np.testing.assert_allclose(exp.loc[h, "beta"], st.loc[h, "beta_L"], rtol=1e-8)
+
+
 def test_first_stage_f_reported_per_horizon(rz_result):
     """lp_iv's per-horizon first-stage F must be finite and positive at
     every horizon of the linear one-step regressions."""

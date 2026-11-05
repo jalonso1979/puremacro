@@ -44,7 +44,9 @@ but not published; their additions are included in 6.0.1, published on
   replaced: the slack F does not collapse at long horizons (55.9 at h = 20),
   and the robust set is wider than the conventional band in the no-slack
   regime (1.28 times at h = 7), not in the slack regime (1.02). The figure is
-  regenerated.
+  regenerated. The linear and no-slack headlines, whose instrument is weak
+  (effective F 16.0 / 12.0 and 7.3 / 10.8), are reported with their
+  Anderson-Rubin 90% sets.
 
 ### Fixed
 

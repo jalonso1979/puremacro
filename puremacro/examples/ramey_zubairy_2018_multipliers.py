@@ -22,7 +22,10 @@ instrument scaled by lagged nominal potential; 4 lags of ``y``, ``g``,
   coefficient is the cumulative multiplier itself. RZ's "2-year" and
   "4-year" integrals are the 8- and 16-quarter windows, h = 7 and
   h = 15. Headline: 0.66 at 2 years and 0.71 at 4 years (RZ Table 1:
-  0.66 and 0.71).
+  0.66 and 0.71). The instrument is weak at both horizons (HAC
+  effective F 16.0 and 12.0, below the 23.1 cutoff), so read them with
+  the weak-instrument-robust Anderson-Rubin 90% sets: 0.57 to 0.83 at
+  2 years and 0.65 to 0.81 at 4 years.
 - **State dependence** via
   :func:`puremacro.lp.state_dep.lp_state_dep_iv` with
   ``cumulative=True``: RZ's one-step state-dependent multiplier, with
@@ -30,7 +33,9 @@ instrument scaled by lagged nominal potential; 4 lags of ``y``, ``g``,
   >= 6.5%, ``transition="threshold"``). Headline: slack-state
   multipliers are NOT above 1 — 0.60 at 2 years and 0.68 at 4 years
   with slack, 0.59 and 0.67 without, as in RZ Table 1 — RZ's central
-  negative finding vs Auerbach-Gorodnichenko.
+  negative finding vs Auerbach-Gorodnichenko. Without slack the
+  instrument is weak (F 7.3 and 10.8), and the Anderson-Rubin 90% sets
+  are 0.44 to 0.82 at 2 years and 0.40 to 0.89 at 4 years.
 - **The pedagogical core — per-horizon weak-IV diagnostics**, all with
   HAC statistics. The HAC first-stage F of the news instrument (with
   one instrument, the Montiel Olea-Pflueger 2013 effective F: ``mop_f``
@@ -86,14 +91,21 @@ como controles; muestra completa 1890-2015 incl. la 2GM):
   *un paso* de RZ: el coeficiente ES el multiplicador acumulado. Las
   integrales "a 2 años" y "a 4 años" de RZ son las ventanas de 8 y 16
   trimestres, h = 7 y h = 15. Titular: 0.66 a 2 años y 0.71 a 4 años
-  (RZ Tabla 1: 0.66 y 0.71).
+  (RZ Tabla 1: 0.66 y 0.71). El instrumento es débil en ambos
+  horizontes (F efectiva HAC 16.0 y 12.0, bajo el umbral de 23.1), así
+  que hay que leerlos con los conjuntos de Anderson-Rubin al 90%,
+  robustos a instrumentos débiles: de 0.57 a 0.83 a 2 años y de 0.65 a
+  0.81 a 4 años.
 - **Dependencia de estado** con
   :func:`puremacro.lp.state_dep.lp_state_dep_iv` y ``cumulative=True``:
   el multiplicador de un paso de RZ por estado, con errores estándar
   HAC, con el indicador de holgura de RZ (desempleo rezagado >= 6.5%):
   los multiplicadores con holgura NO superan 1 — 0.60 a 2 años y 0.68
   a 4 años con holgura, 0.59 y 0.67 sin ella, como en la Tabla 1 de
-  RZ —, el hallazgo central de RZ frente a Auerbach-Gorodnichenko.
+  RZ —, el hallazgo central de RZ frente a Auerbach-Gorodnichenko. Sin
+  holgura el instrumento es débil (F 7.3 y 10.8), y los conjuntos de
+  Anderson-Rubin al 90% van de 0.44 a 0.82 a 2 años y de 0.40 a 0.89
+  a 4 años.
 - **El núcleo pedagógico — diagnósticos de instrumentos débiles por
   horizonte**, todos con estadísticos HAC: la F HAC de la primera etapa
   (con un solo instrumento, la F efectiva de Montiel Olea-Pflueger;
@@ -197,10 +209,13 @@ def run_rz_replication(
     ``beta_H`` and ``beta_L`` as numpy arrays over h), the per-horizon
     HAC effective F by state (``f_eff``: DataFrame with ``slack`` =
     ``first_stage_f_H``, ``expansion`` = ``first_stage_f_L`` and
-    ``linear`` = ``mop_f``), and the conventional-vs-robust comparison
-    at ``ar_horizon`` in the expansion (no-slack) state (``robust``:
-    dict with ``h``, ``regime``, ``beta``, ``se``, ``conv_lo``,
-    ``conv_hi``, ``ar_lo``, ``ar_hi``, ``ar_set_type``, ``f_eff``).
+    ``linear`` = ``mop_f``), the :func:`lp_iv` result on the expansion
+    (no-slack) quarters alone at the headline horizons and
+    ``ar_horizon`` (``expansion_iv``: indexed by h, with Anderson-Rubin
+    sets), and the conventional-vs-robust comparison at ``ar_horizon``
+    in the expansion state (``robust``: dict with ``h``, ``regime``,
+    ``beta``, ``se``, ``conv_lo``, ``conv_hi``, ``ar_lo``, ``ar_hi``,
+    ``ar_set_type``, ``f_eff``).
     """
     # Every call gets the full frame. The estimators skip the rows with a
     # missing state or instrument themselves; dropping rows would leave a
@@ -239,14 +254,17 @@ def run_rz_replication(
     })
 
     # ---- 4. Robust answer where the first stage is weak: the expansion
-    # (no-slack) state at ar_horizon. lp_iv on the expansion quarters
-    # alone (newsy NaN elsewhere, every row kept) reproduces beta_L and
-    # reports the conventional HAC band next to the HAC Anderson-Rubin set.
+    # (no-slack) state at the headline horizons and ar_horizon. lp_iv on
+    # the expansion quarters alone (newsy NaN elsewhere, every row kept)
+    # reproduces beta_L and reports the conventional HAC band next to the
+    # HAC Anderson-Rubin set.
     masked = df.copy()
     masked.loc[masked["slack_l"] != 0.0, "newsy"] = np.nan
-    r = lp_iv(masked, y="y", x="g", z="newsy", horizons=[ar_horizon],
-              n_lags=0, controls=RZ_CONTROLS, alpha=alpha, cumulative=True,
-              anderson_rubin=True).loc[ar_horizon]
+    expansion_iv = lp_iv(masked, y="y", x="g", z="newsy",
+                         horizons=sorted({ar_horizon, *_HEADLINE}), n_lags=0,
+                         controls=RZ_CONTROLS, alpha=alpha, cumulative=True,
+                         anderson_rubin=True)
+    r = expansion_iv.loc[ar_horizon]
     robust = {
         "h": ar_horizon,
         "regime": "expansion",
@@ -266,12 +284,22 @@ def run_rz_replication(
         "m_slack": m_slack,
         "m_expansion": m_expansion,
         "f_eff": f_eff,
+        "expansion_iv": expansion_iv,
         "robust": robust,
         "horizon": horizon,
         "sample_start": df.index.min(),
         "sample_end": df.index.max(),
         "n_obs": len(df),
     }
+
+
+def _weak_iv_note(f: float, ar: pd.Series) -> str:
+    """Instrument strength and the Anderson-Rubin set, printed under a headline."""
+    weak = f < _OP_CUTOFF
+    ar_set = (f"[{ar['ar_lo']:+.3f}, {ar['ar_hi']:+.3f}]"
+              if ar["ar_set_type"] == "bounded" else str(ar["ar_set_type"]))
+    return (f"{'weak' if weak else 'strong'} instrument (F {f:.1f} "
+            f"{'<' if weak else '>='} {_OP_CUTOFF}): Anderson-Rubin 90% {ar_set}")
 
 
 def main() -> None:
@@ -288,18 +316,20 @@ def main() -> None:
     print(f"  Sample: {out['sample_start'].date()}..{out['sample_end'].date()}"
           f" ({out['n_obs']} quarters), {_N_LAGS} lags, slack = "
           f"unemp(t-1) >= {_SLACK_THRESHOLD}%, expansion otherwise")
-    print(f"  Linear cumulative multiplier: 2yr (h={h2}) {m2:+.3f} "
-          f"[90% {lin.loc[h2, 'lo']:+.3f}, {lin.loc[h2, 'hi']:+.3f}], "
-          f"4yr (h={h4}) {m4:+.3f} "
-          f"[90% {lin.loc[h4, 'lo']:+.3f}, {lin.loc[h4, 'hi']:+.3f}]"
-          f"   (RZ Table 1: 0.66, 0.71)")
+    print("  Linear cumulative multiplier (one-step LP-IV):")
+    for h, label, rz in ((h2, "2yr", "0.66"), (h4, "4yr", "0.71")):
+        r = lin.loc[h]
+        print(f"    {label} (h={h:2d}): {r['beta']:+.3f} "
+              f"[90% {r['lo']:+.3f}, {r['hi']:+.3f}]   (RZ Table 1: {rz})")
+        print(f"      {_weak_iv_note(r['mop_f'], r)}")
     print("  State-dependent cumulative multiplier (one-step LP-IV):")
     for h, label, rz in ((h2, "2yr", "0.60, 0.59"), (h4, "4yr", "0.68, 0.67")):
-        r = st.loc[h]
+        r, e = st.loc[h], out["expansion_iv"].loc[h]
         print(f"    {label} (h={h:2d}): slack {r['beta_H']:+.3f} "
               f"[90% {r['lo_H']:+.3f}, {r['hi_H']:+.3f}], expansion "
               f"{r['beta_L']:+.3f} [90% {r['lo_L']:+.3f}, {r['hi_L']:+.3f}]"
               f"   (RZ Table 1: {rz})")
+        print(f"      expansion: {_weak_iv_note(r['first_stage_f_L'], e)}")
     print(f"  -> at 4 years neither exceeds 1 (slack {ms4:+.3f}, expansion "
           f"{me4:+.3f}): RZ's headline.")
     print("  HAC effective F of the first stage (window sum of g on news | "
