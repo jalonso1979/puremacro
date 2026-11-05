@@ -18,7 +18,7 @@ python -m pip install puremacro
 
 | Comience por su tarea | Primeros pasos |
 |---|---|
-| **Analizar datos** | Estime una respuesta a un choque con el [inicio rápido](quickstart.md), luego explore las [fuentes de datos](micro_data.md) y los [flujos de investigación](research_workflows.md). |
+| **Analizar datos** | Estime un multiplicador del gasto público con el [informe fiscal](first_brief_fiscal.md) o una respuesta a un choque con el [inicio rápido](quickstart.md); luego explore las [fuentes de datos](micro_data.md) y los [flujos de investigación](research_workflows.md). |
 | **Simular políticas** | Declare un modelo de hogares con [programación dinámica](dp.md), estudie la [transmisión monetaria](monetary_transmission.md) o construya un [contrafactual comercial](trade_accounting.md). |
 | **Redactar un informe de política** | Ejecute un [experimento arancelario con datos públicos](first_brief_tariffs.md) y lea los efectos de bienestar nacionales y por hogares. |
 | **Aprender o enseñar** | Elija una [ruta de cuadernos](notebooks.md) o use el [curso bilingüe y sus laboratorios interactivos](https://github.com/jalonso1979/puremacro/tree/main/curso). Use la edición fija del curso indicada abajo. |

@@ -33,6 +33,8 @@ REPO = Path(__file__).resolve().parents[1]
 PAGES = [
     "docs/first_brief_tariffs.md",
     "docs/es/first_brief_tariffs.md",
+    "docs/first_brief_fiscal.md",
+    "docs/es/first_brief_fiscal.md",
     "docs/dsge_nonlinear.md",
     "docs/es/dsge_nonlinear.md",
     "docs/dsge_workbench.md",

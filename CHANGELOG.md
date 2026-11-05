@@ -19,6 +19,14 @@ but not published; their additions are included in 6.0.1, published on
   the flag `is_cumulative` and "(cumulative)" method labels. Window sums need
   a regular index, so an irregular date or period index raises an error.
   ([#217](https://github.com/jalonso1979/puremacro/issues/217))
+- `python -m puremacro.examples.first_brief_fiscal [--lang es]` writes a
+  bilingual fiscal policy brief on the Ramey-Zubairy historical data, with
+  the pages `docs/first_brief_fiscal.md` and `docs/es/first_brief_fiscal.md`.
+  It reports linear and slack/no-slack cumulative spending multipliers at 2
+  and 4 years, quotes weak cells by Anderson-Rubin sets, runs the
+  experiment without WWII under the RZ rule and reports a concentration
+  diagnostic. The page numbers come from a frozen record, refreshed with
+  `tools/reference_validation/refresh_fiscal_brief.py` and checked by the tests.
 - `RZ_CONTROLS` is public in the Ramey-Zubairy example; `_CTL` stays as an
   alias.
 

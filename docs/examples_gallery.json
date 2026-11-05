@@ -1,9 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-29T05:09:05Z",
+  "generated_at": "2026-11-05T00:48:27Z",
   "examples": {
+    "first_brief_fiscal": {
+      "description": "Fiscal policy brief: the US government spending multiplier at two and four years, with and without slack, on Ramey and Zubairy's historical data.",
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.705,
+      "figures": [],
+      "last_run": "2026-11-05T00:48:27Z"
+    },
     "first_brief_tariffs": {
-      "description": "Your first policy brief: a 10% US tariff on Chinese goods on the bundled OECD ICIO 2019 table, national EV with its price / factor-income / fiscal split, and synthetic household groups.",
+      "description": "Your first policy brief: a 10% US tariff across all modeled Chinese sectors on the bundled OECD ICIO 2019 table, national EV with its price / factor-income / fiscal split, and synthetic household g...",
       "status": "PASS",
       "reason": null,
       "runtime_s": 6.051,
