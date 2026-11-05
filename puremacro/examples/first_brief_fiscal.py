@@ -645,7 +645,7 @@ _TEXT: dict[str, dict[str, str]] = {
         "fig_y": "Cumulative multiplier",
         "fig_strong": "estimate, effective F of at least {c}",
         "fig_weak": "weak: effective F below {c}",
-        "fig_band": "90% band",
+        "fig_band": "90% band (conventional; robust sets in the table for weak cells)",
         "fig_off": "weak estimate beyond the axis",
     },
     "es": {
@@ -674,7 +674,8 @@ _TEXT: dict[str, dict[str, str]] = {
         "fig_y": "Multiplicador acumulado",
         "fig_strong": "estimación, F efectiva de al menos {c}",
         "fig_weak": "débil: F efectiva por debajo de {c}",
-        "fig_band": "banda al 90%",
+        "fig_band": ("banda al 90% (convencional; conjuntos robustos en la tabla para las celdas "
+                     "débiles)"),
         "fig_off": "estimación débil fuera del eje",
     },
 }
@@ -1136,7 +1137,7 @@ def _figure_png(record: dict[str, Any], paths: pd.DataFrame, lang: str) -> bytes
     if off_axis:
         handles.append(Line2D([], [], color=_INK_2, ls="none", marker="v", ms=6))
         labels.append(t["fig_off"])
-    fig.legend(handles, labels, loc="outside lower center", ncols=len(handles), frameon=False,
+    fig.legend(handles, labels, loc="outside lower center", ncols=2, frameon=False,
                fontsize=8.5, labelcolor=_INK_2)
     fig.suptitle(t["fig_title"], fontsize=11.5, color=_INK)
     buffer = io.BytesIO()
