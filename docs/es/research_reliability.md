@@ -60,7 +60,10 @@ incluye 16 simulaciones independientes por caso, mallas anidadas de deuda y de
 cambia los momentos mucho más que la incertidumbre Monte Carlo, y la volatilidad
 del diferencial se reduce a la mitad. Para la calibración pública, un criterio
 prerregistrado con semillas emparejadas establece la convergencia de mallas con
-6.401 nodos de deuda y 641 estados de ingreso. Un residuo pequeño de Bellman no
+6.401 nodos de deuda y 641 estados de ingreso; el mismo criterio establece la
+convergencia de la calibración archivada con 6.369 × 641, donde la volatilidad
+del diferencial es de cerca de 2,9 puntos porcentuales frente a los 6,36
+publicados. Un residuo pequeño de Bellman no
 habría bastado para esa conclusión.
 
 1. Reingreso, inicio con deuda cero y medición públicos están documentados y

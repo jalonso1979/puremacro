@@ -82,6 +82,13 @@ workstation. The passing record is frozen in
 `tests/fixtures/arellano_2008/public_grid_convergence.json`; see the
 [comparison guide](../../docs/arellano_replication.md) for the result.
 
+`--calibration archive` runs the same check on the archived calibration with
+the author's timing, literals and midpoint-refined 200-node grid
+(`199*2**r+1` debt nodes). The converged archived ladder is
+`--calibration archive --refinements 2 3 4 5 --income-states 321 641`, then the
+same command with `--periods 500000 --windows 1000`; its passing record is
+`tests/fixtures/arellano_2008/archive_grid_convergence.json`.
+
 ## Fiscal sovereign default: grid convergence
 
 ```sh

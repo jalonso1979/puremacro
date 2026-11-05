@@ -59,7 +59,9 @@ now includes 16 independent simulations per case, nested debt grids and 21 to
 321 income states. At the archived calibration, refinement moves the moments
 far more than simulation uncertainty, and spread volatility halves. For the
 public calibration, a pre-registered paired-seed criterion establishes grid
-convergence at 6,401 debt nodes and 641 income states. A small Bellman residual
+convergence at 6,401 debt nodes and 641 income states; the same criterion
+establishes the archived calibration's convergence at 6,369 × 641, where spread
+volatility is about 2.9 percentage points against the published 6.36. A small Bellman residual
 alone would not have justified that conclusion.
 
 1. Public reentry timing, zero-debt initialization and measurement are now

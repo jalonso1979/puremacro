@@ -116,6 +116,21 @@ final comparisons. Tests recompute the comparisons from the per-seed moments
 and check the guide's table. It records a numerical property of this
 calibration only; it is not a published-moment replication.
 
+## Archived-calibration grid convergence record
+
+`archive_grid_convergence.json` is the passing
+`check_arellano_grids --calibration archive` report for the archived Arellano
+(2008) calibration with the author's exclusion timing, Fortran default-real
+literals and 200-node grid refined by midpoint insertion, recorded on
+2026-11-05. It covers 797 to 6,369 debt nodes and 321 and 641 income states,
+solved with the certified monotone search, under the pre-registered precision
+design (16 seeds, 500,000 quarters, a 1,000-quarter burn and 1,000 windows).
+`preceding_standard_design` keeps the 100,000-quarter, 100-window comparisons
+whose one unclassifiable bound triggered that design, with every case mean.
+Tests recompute the final comparisons and check the guide's table. It records
+a numerical property of this calibration only; it is not a published-moment
+replication.
+
 ## Reproduce the comparison
 
 ```sh

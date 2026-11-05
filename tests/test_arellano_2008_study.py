@@ -14,6 +14,7 @@ from tools.reference_validation.arellano_2008 import (
 )
 
 GRID_RECORD = FIXTURE / "public_grid_convergence.json"
+ARCHIVE_GRID_RECORD = FIXTURE / "archive_grid_convergence.json"
 GUIDE_COLUMNS = ("debt_pct", "spread_mean_pct", "annual_default_pct", "spread_std_pp", "corr_tb_spread")
 
 
@@ -248,6 +249,89 @@ def test_frozen_public_grid_record_passes_and_recomputes_from_its_seeds():
                                                      ("docs/es/arellano_replication.md", ".", ",")])
 def test_guides_tabulate_the_frozen_public_grid_record(guide, thousands, decimal):
     record = json.loads(GRID_RECORD.read_text())
+    text = (ROOT / guide).read_text(encoding="utf-8")
+    for case in record["cases"].values():
+        moments = case["simulation"]["moments"]
+        nodes = f'{case["n_assets"]:,}'.replace(",", thousands)
+        row = f'| {nodes} × {case["n_income"]} | ' + " | ".join(
+            f'{moments[k]["mean"]:.3f}'.replace(".", decimal) for k in GUIDE_COLUMNS) + " |"
+        assert row in text, row
+
+
+def test_grid_check_solves_archive_cases_with_author_timing_and_grid(monkeypatch):
+    from tools.reference_validation import check_arellano_grids as grids
+
+    calls = []
+
+    def recorder(**kwargs):
+        calls.append(kwargs)
+        return "solution"
+
+    monkeypatch.setattr(grids.reference, "solve", recorder)
+    assert grids.solve_case(3, 641, "archive") == "solution"
+    assert calls == [dict(refinement=3, n_y=641, timing="archive",
+                          calibration="archive", policy_search="monotone")]
+    # Midpoint refinement of the author's 200-node grid, not the public 401-node ladder.
+    assert [grids.n_assets(r, "archive") for r in (0, 2, 5)] == [200, 797, 6369]
+    assert [len(author_grid(r)) for r in (0, 2, 5)] == [200, 797, 6369]
+    assert [grids.n_assets(r) for r in (0, 4)] == [401, 6401]
+
+
+def test_frozen_archive_grid_record_passes_and_recomputes_from_its_seeds():
+    from tools.reference_validation.check_arellano_grids import TOLERANCES, paired_comparison
+
+    record = json.loads(ARCHIVE_GRID_RECORD.read_text())
+    assert record["calibration_name"] == "archive"
+    assert record["status"] == "passed" and record["passed"] is True
+    assert record["tolerances"] == TOLERANCES
+    calibration = record["calibration"]
+    assert calibration["timing"] == "archive" and calibration["policy_search"] == "monotone"
+    assert calibration["assets_max"] == pytest.approx(1.53502537, abs=1e-8)
+    assert calibration["default_cap"] == pytest.approx(9.69, abs=1e-6)
+    expected_cases = {f"archive_{n_b}_{n_y}" for n_b in (797, 1593, 3185, 6369) for n_y in (321, 641)}
+    assert set(record["cases"]) == expected_cases
+    for case in record["cases"].values():
+        design, diagnostics = case["design"], case["diagnostics"]
+        assert design["seeds"] == list(range(1979, 1995))
+        assert (design["periods"], design["burn"], design["windows"]) == (500000, 1000, 1000)
+        assert diagnostics["policy_search"] == "monotone"
+        assert diagnostics["bellman_residual"] < 4e-12
+        assert diagnostics["exhaustive_bellman_residual"] < 4e-12
+        assert diagnostics["price_residual"] < 1e-8
+    comparisons = record["comparisons"]
+    assert (comparisons["final_asset_refinement"]["coarse"], comparisons["final_asset_refinement"]["fine"]) \
+        == ("archive_3185_641", "archive_6369_641")
+    assert (comparisons["final_income_refinement"]["coarse"], comparisons["final_income_refinement"]["fine"]) \
+        == ("archive_6369_321", "archive_6369_641")
+    for comparison in comparisons.values():
+        recomputed = paired_comparison(record["cases"][comparison["coarse"]]["simulation"],
+                                       record["cases"][comparison["fine"]]["simulation"])
+        assert recomputed["passed"]
+        for name, value in recomputed["moments"].items():
+            assert value["status"] == comparison["moments"][name]["status"] == "passed"
+            assert value["absolute_change_bound"] == pytest.approx(
+                comparison["moments"][name]["absolute_change_bound"], abs=1e-12)
+    # The standard design that triggered the registered precision re-simulation stays on record.
+    standard = record["preceding_standard_design"]
+    assert standard["status"] == "convergence_not_established"
+    assert (standard["design"]["periods"], standard["design"]["windows"]) == (100000, 100)
+    statuses = {(name, moment): value["status"] for name, comparison in standard["comparisons"].items()
+                for moment, value in comparison["moments"].items()}
+    assert {key for key, status in statuses.items() if status != "passed"} == {
+        ("final_income_refinement", "debt_pct")}
+    assert statuses[("final_income_refinement", "debt_pct")] == "sampling_precision_insufficient"
+
+
+def test_archive_ladder_reproduces_the_study_797_by_321_row():
+    # The standard-design 797 x 321 case is the study's archived-calibration row (same seeds, windows).
+    means = json.loads(ARCHIVE_GRID_RECORD.read_text())["preceding_standard_design"]["means"]["archive_797_321"]
+    assert [round(means[k], 3) for k in GUIDE_COLUMNS[:4]] == [5.144, 3.321, 2.942, 3.098]
+
+
+@pytest.mark.parametrize("guide,thousands,decimal", [("docs/arellano_replication.md", ",", "."),
+                                                     ("docs/es/arellano_replication.md", ".", ",")])
+def test_guides_tabulate_the_frozen_archive_grid_record(guide, thousands, decimal):
+    record = json.loads(ARCHIVE_GRID_RECORD.read_text())
     text = (ROOT / guide).read_text(encoding="utf-8")
     for case in record["cases"].values():
         moments = case["simulation"]["moments"]
