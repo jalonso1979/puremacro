@@ -308,6 +308,37 @@ regla es aquí 5,906 pp frente a 2,716 con 6.401 × 641).
 El tope reduce la deuda media, y la menor deuda va acompañada de diferenciales y
 frecuencia de impago más bajos; el límite de déficit apenas se activa.
 
+### Trayectorias de sostenibilidad desde deuda elevada
+
+Las simulaciones ergódicas que parten de deuda cero nunca visitan los estados ($b \ge 0,04776$) donde divergen el tope blando y el tope estricto. `simulate_fiscal_dsa` y `compare_fiscal_rules_dsa` parten en cambio de una deuda inicial elevada (por defecto `b0 = 0.05` con producto de auge `y0 = 1.10`, donde el soberano reembolsa) y trazan la distribución de transición a 40 trimestres con números aleatorios comunes entre reglas.
+
+En la malla **401 × 21** (`1.000` trayectorias, `40` trimestres, `seed = 42`, `threshold = 0.02`):
+
+| Regla | Deuda elegida período 1 $b'_1$ | Gasto/producto período 1 (%) | Período 1 sobre 0,02 (%) | Trimestres reembolso sobre 0,02 (%) | Deuda mediana terminal (%) | $\text{DaR}_{95}$ terminal (%) | Impago acumulado (%) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `none` | 0,03960 | 18,99 | 100,0 | 46,74 | 0,816 | 4,225 | 30,50 |
+| `ceiling` | 0,01992 | 17,22 | 0,0 | 0,00 | 0,792 | 1,992 | 26,60 |
+| `ceiling_escape` | 0,01992 | 17,22 | 0,0 | 0,00 | 0,792 | 1,992 | 26,60 |
+| `soft_ceiling` | 0,03600 | 18,67 | 100,0 | 2,56 | 0,792 | 1,992 | 26,90 |
+| `deficit` | 0,03960 | 18,99 | 100,0 | 46,58 | 0,768 | 4,225 | 30,50 |
+
+Partiendo de $b_0 \approx 0,05$, el **tope estricto** (`ceiling`) fuerza un ajuste fiscal en un solo trimestre desde $b_0 = 0,04992$ hasta $b'_1 = 0,01992 \le 0,02$, comprimiendo el gasto público del primer período al $17,22\,\%$ del producto ($-1,77\text{ pp}$ por debajo de `none`). Bajo el **tope blando** (`soft_ceiling`, `penalty = 0.05`), el gobierno prefiere pagar la penalización de utilidad en el primer trimestre y elegir una deuda intermedia $b'_1 = 0,03600 > 0,02$, suavizando el gasto público del primer período en el $18,67\,\%$ del producto ($+1,45\text{ pp}$ por encima del tope estricto) antes de completar el desapalancamiento por debajo de $0,02$ en el segundo trimestre ($2,56\,\%$ de los trimestres de reembolso sobre el tope en total, con el mismo $\text{DaR}_{95}$ terminal de $1,992\,\%$ que el tope estricto).
+
+```python
+from puremacro.sovereign import compare_fiscal_rules_dsa, simulate_fiscal_dsa
+
+dsa_models = {
+    "none": solve_fiscal_sovereign_default(**small),
+    "ceiling": solve_fiscal_sovereign_default(**small, rule=rules["ceiling"]),
+    "soft_ceiling": solve_fiscal_sovereign_default(**small, rule=rules["soft_ceiling"]),
+}
+dsa_table = compare_fiscal_rules_dsa(dsa_models, b0=0.05, y0=1.10, horizon=20, n_sims=200, seed=42)
+assert dsa_table.loc[dsa_table["rule_name"] == "ceiling", "prob_breach_pct"].item() == 0.0
+assert dsa_table.loc[dsa_table["rule_name"] == "soft_ceiling", "first_period_above_threshold_pct"].item() == 100.0
+soft_dsa = simulate_fiscal_dsa(dsa_models["soft_ceiling"], b0=0.05, y0=1.10, horizon=20, n_sims=200, seed=42)
+print(dsa_table[["rule_name", "first_period_b_next", "first_period_g_pct", "dar_95_pct"]])
+```
+
 ## Límites
 
 - Economía de dotación: el producto no responde a impuestos ni al gasto.

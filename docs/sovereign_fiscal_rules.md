@@ -293,6 +293,37 @@ against 2.716 at 6,401 × 641 above).
 The ceiling lowers average debt, and lower spreads and default frequency
 accompany the lower debt; the deficit limit barely binds.
 
+### Debt-sustainability trajectories from high debt
+
+Ergodic simulations starting at zero debt never reach the states ($b \ge 0.04776$) where the soft ceiling and hard ceiling diverge. `simulate_fiscal_dsa` and `compare_fiscal_rules_dsa` instead start from an elevated initial debt state (default `b0 = 0.05` at boom output `y0 = 1.10`, where the sovereign is in good standing) and trace the 40-quarter transition distribution using common random numbers across rules.
+
+On the **401 × 21** grid (`1,000` paths, `40` quarters, `seed = 42`, `threshold = 0.02`):
+
+| Rule | Period-1 next debt $b'_1$ | Period-1 spending/output (%) | Period-1 above 0.02 (%) | Repay quarters above 0.02 (%) | Terminal median debt (%) | Terminal $\text{DaR}_{95}$ (%) | Cumulative default (%) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `none` | 0.03960 | 18.99 | 100.0 | 46.74 | 0.816 | 4.225 | 30.50 |
+| `ceiling` | 0.01992 | 17.22 | 0.0 | 0.00 | 0.792 | 1.992 | 26.60 |
+| `ceiling_escape` | 0.01992 | 17.22 | 0.0 | 0.00 | 0.792 | 1.992 | 26.60 |
+| `soft_ceiling` | 0.03600 | 18.67 | 100.0 | 2.56 | 0.792 | 1.992 | 26.90 |
+| `deficit` | 0.03960 | 18.99 | 100.0 | 46.58 | 0.768 | 4.225 | 30.50 |
+
+Starting from $b_0 \approx 0.05$, the **hard ceiling** (`ceiling`) forces a one-quarter fiscal contraction from $b_0 = 0.04992$ all the way down to $b'_1 = 0.01992 \le 0.02$, cutting first-period public spending to $17.22\%$ of output ($-1.77\text{ pp}$ below `none`). Under the **soft ceiling** (`soft_ceiling`, `penalty = 0.05`), the government instead pays the utility penalty in period 1 to choose an intermediate debt $b'_1 = 0.03600 > 0.02$, smoothing first-period public spending at $18.67\%$ of output ($+1.45\text{ pp}$ above the hard ceiling) before completing its deleveraging below the $0.02$ cap in period 2 (`2.56%` of repayment quarters above the cap overall, with the same $1.992\%$ terminal $\text{DaR}_{95}$ as the hard ceiling).
+
+```python
+from puremacro.sovereign import compare_fiscal_rules_dsa, simulate_fiscal_dsa
+
+dsa_models = {
+    "none": solve_fiscal_sovereign_default(**small),
+    "ceiling": solve_fiscal_sovereign_default(**small, rule=rules["ceiling"]),
+    "soft_ceiling": solve_fiscal_sovereign_default(**small, rule=rules["soft_ceiling"]),
+}
+dsa_table = compare_fiscal_rules_dsa(dsa_models, b0=0.05, y0=1.10, horizon=20, n_sims=200, seed=42)
+assert dsa_table.loc[dsa_table["rule_name"] == "ceiling", "prob_breach_pct"].item() == 0.0
+assert dsa_table.loc[dsa_table["rule_name"] == "soft_ceiling", "first_period_above_threshold_pct"].item() == 100.0
+soft_dsa = simulate_fiscal_dsa(dsa_models["soft_ceiling"], b0=0.05, y0=1.10, horizon=20, n_sims=200, seed=42)
+print(dsa_table[["rule_name", "first_period_b_next", "first_period_g_pct", "dar_95_pct"]])
+```
+
 ## Limits
 
 - Endowment economy: output does not respond to taxes or spending.
