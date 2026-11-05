@@ -550,8 +550,10 @@ def lp_state_dep_iv(
     ----------
     df : pd.DataFrame
         Wide dataset containing outcome, policy variable, instrument, and
-        state variable. The index must be contiguous in time: to exclude a
-        period, set ``z`` to NaN there rather than dropping the rows.
+        state variable. The index must be contiguous in time. To exclude a
+        period, set ``y``, ``x`` and ``z`` to NaN there, keep the rows, and
+        rebuild any pre-lagged control columns. With ``cumulative=True`` the
+        windows then drop every row that reaches into the period.
     y : str
         Outcome variable column name.
     x : str
