@@ -167,8 +167,8 @@ y Zubairy (2018, p. 876) también encuentran que, sin la guerra, todos sus
 conjuntos de instrumentos parecen débiles en el estado de desempleo alto más
 allá de dos años. Estos conjuntos no pueden mostrar que el multiplicador sea
 mayor con holgura una vez excluida la guerra, y la identificación vuelve a
-apoyarse en episodios aislados: 1961Q2 con holgura y 1950Q3, el inicio de la
-guerra de Corea, sin holgura.
+apoyarse en episodios aislados: 1961Q2 con holgura y 1950Q3, la movilización
+de la guerra de Corea, sin holgura.
 
 ## 5. Sus propios datos
 
@@ -320,7 +320,9 @@ Lo que necesita su marco, y lo que suponen las llamadas:
   rezagos para las bandas, la F efectiva y los conjuntos de Anderson-Rubin
   por igual. Por eso solo se comparan las estimaciones puntuales con sus
   tablas: con h = 7 y 15, las estimaciones del informe en la muestra completa
-  coinciden con su Tabla 1 a dos decimales.
+  coinciden con su Tabla 1 a dos decimales en todas las celdas; esto
+  comprueba la replicación y no convierte en citables las estimaciones
+  puntuales de las celdas débiles.
 - **Un paso, no tres.** Los valores sin la Segunda Guerra Mundial de la Tabla
   3 de Ramey y Zubairy son estimaciones en tres pasos, respuestas al impulso
   sumadas (su nota 26), mientras que las del informe son de un paso. Los dos

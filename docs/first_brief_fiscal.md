@@ -157,7 +157,7 @@ without the war all their instrument sets appear weak in the
 high-unemployment state beyond two years. These sets cannot show that the
 multiplier is larger with slack once the war is excluded, and the
 identification again leans on single episodes: 1961Q2 with slack and 1950Q3,
-the start of the Korean War, without slack.
+the Korean War buildup, without slack.
 
 ## 5. Your own data
 
@@ -297,7 +297,9 @@ What your frame needs, and what the calls assume:
   bandwidth (their footnote 17), while the brief uses h + 1 lags for the
   bands, the effective F and the Anderson-Rubin sets alike. So only point
   estimates are compared with their tables: at h = 7 and 15 the brief's
-  full-sample estimates match their Table 1 to two decimals.
+  full-sample estimates match their Table 1 to two decimals in every cell;
+  this checks the replication and does not make the weak cells' point
+  estimates quotable.
 - **One step, not three.** Ramey and Zubairy's Table 3 values without World
   War II are three-step estimates, summed impulse responses (their footnote
   26), while the brief's are one-step. The two methods agree only when every

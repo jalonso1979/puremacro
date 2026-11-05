@@ -472,3 +472,83 @@ def test_refresh_tool_rewrites_blocks_and_rejects_broken_markers(frozen, monkeyp
     for broken in (missing, duplicate, reversed_):
         with pytest.raises(ValueError, match="experiment block"):
             fill_blocks(broken, frozen, "en")
+
+
+def test_page_prose_facts_hold(computed):
+    # These facts appear in the hand-written prose of docs/first_brief_fiscal.md and its ES twin,
+    # outside the generated blocks. A change in the estimates or the data fails this test rather
+    # than leaving the pages stale: reread the prose of both pages when it fails.
+    from puremacro.examples.ramey_zubairy_2018_multipliers import RZ_CONTROLS
+    from puremacro.lp._common import cumulative_windows
+    record, paths = computed
+    full, exp = record["full"]["horizons"], record["experiment"]["horizons"]
+    cutoff = record["specification"]["weak_cutoff"]
+    rows = ("linear", "slack", "no_slack")
+    assert (record["full"]["start"], record["full"]["end"]) == ("1890Q1", "2015Q4")
+    assert record["specification"]["slack_rule"] == "unemp_{t-1} >= 6.5"
+    assert fb.CONCENTRATION_REPORT_SHARE == 0.25
+
+    # Full sample: the instrument clears the cutoff only with slack, from h = 3 on and never before;
+    # in the linear model and without slack it stays below the cutoff at every horizon.
+    f = paths[paths["sample"] == "full"].set_index("h")
+    assert list(f.index[f["slack_f"] >= cutoff]) == list(range(3, 21))
+    assert (f["linear_f"] < cutoff).all() and (f["no_slack_f"] < cutoff).all()
+
+    def interval(cell):          # what a cell quotes: its band if strong, its Anderson-Rubin set if weak
+        if not cell["weak"]:
+            return cell["lo"], cell["hi"]
+        return (cell["ar_lo"], cell["ar_hi"]) if cell["ar_set_type"] == "bounded" else (-np.inf, np.inf)
+
+    def width(cell):
+        lo, hi = interval(cell)
+        return hi - lo
+
+    # Full sample: every quoted interval lies strictly between 0 and 1.
+    for cells in full.values():
+        for name in rows:
+            lo, hi = interval(cells[name])
+            assert 0 < lo < hi < 1, name
+
+    # Without the war: every headline cell is weak, slack at 4 years cannot be bounded, and most
+    # quoted intervals are much wider (here: at least four of the six at least twice as wide).
+    assert all(cells[name]["weak"] for cells in exp.values() for name in rows)
+    assert exp["15"]["slack"]["ar_set_type"] in ("unbounded_rays", "all_real")
+    assert sum(width(exp[h][name]) >= 2 * width(full[h][name]) for h in full for name in rows) >= 4
+
+    # Regime samples at the headline horizons, both samples: 153 to 313 quarters.
+    sizes = [cells[name]["n_eff"] for sample in (full, exp) for cells in sample.values() for name in rows[1:]]
+    assert (min(sizes), max(sizes)) == (153, 313)
+
+    # Concentration: 1941Q4 carries about half of the slack regime's residual instrument variation
+    # in the full sample; without the war the top quarters are 1961Q2 (slack) and 1950Q3 (no slack).
+    for h in full:
+        top = full[h]["concentration"]["slack"]
+        assert top["date"] == "1941Q4" and 0.45 <= top["share"] <= 0.55
+        assert exp[h]["concentration"]["slack"]["date"] == "1961Q2"
+        assert exp[h]["concentration"]["no_slack"]["date"] == "1950Q3"
+
+    # The war exclusion drops exactly the quarters 1939Q4-1946Q4 at h = 7, and adds none.
+    df = fb.load_brief_data()
+
+    def used(frame):
+        y_w, x_w = cumulative_windows(frame["y"], frame["g"], 7)
+        return pd.concat([y_w, x_w, frame["newsy"], frame[RZ_CONTROLS]], axis=1).notna().all(axis=1)
+
+    before, after = used(df), used(fb.exclude_period(df, fb.parse_exclude(fb.WWII)))
+    assert not (after & ~before).any()
+    dropped = df.index[(before & ~after).to_numpy()].to_period("Q")
+    assert list(dropped) == list(pd.period_range("1939Q4", "1946Q4", freq="Q"))
+
+    # The largest news shock is 1941Q4, in the slack regime; the ten largest in size all fall in
+    # World War I, World War II or the Korean War, and each war is among them.
+    news = df["newsy"]
+    assert str(news.idxmax().to_period("Q")) == "1941Q4" and df.loc[news.idxmax(), "slack_l"] == 1
+    years = {q.year for q in news.abs().nlargest(10).index.to_period("Q")}
+    wars = (set(range(1914, 1919)), set(range(1939, 1946)), set(range(1950, 1954)))
+    assert years <= set().union(*wars) and all(years & war for war in wars)
+
+    # Ramey and Zubairy's Table 1 (p. 871), military news, linear / high / low unemployment:
+    # .66 .60 .59 at 2 years and .71 .68 .67 at 4 years. Every full-sample cell matches to two decimals.
+    table1 = {"7": ["0.66", "0.60", "0.59"], "15": ["0.71", "0.68", "0.67"]}
+    for h, published in table1.items():
+        assert [f"{full[h][name]['multiplier']:.2f}" for name in rows] == published
