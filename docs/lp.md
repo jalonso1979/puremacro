@@ -245,9 +245,11 @@ print(res_ols.attrs["extra_lags"], res_ols.attrs["p_aug"])
 > cluster-robust: the variance is Newey-West HAC in `lp_iv` and White in
 > `la_lp_iv`. Cluster-robust panel inference lives in `panel_lp` /
 > `panel_lp_dk` (§ Panel Local Projections), which do **not** compute
-> `mop_f` or AR sets. `puremacro.inference.weak_iv.olea_pflueger_f`
-> accepts a `cluster=` array, but that is a standalone first-stage
-> statistic, not part of the LP-IV pipeline.
+> `mop_f` or AR sets. `puremacro.inference.weak_iv.olea_pflueger_f`,
+> `anderson_rubin_test`, and `msw_bands` accept `lags=` (Bartlett-HAC, matching
+> `lp_iv` when `lags=h+1`), `olea_pflueger_f` also accepts `controls=` and
+> `cluster=`, and `puremacro.inference.weak_iv.instrument_influence` diagnoses
+> whether a few outlier observations dominate first-stage variation $\sum \tilde{z}_t^2$.
 
 
 ---
@@ -275,7 +277,7 @@ $$y_{t+h} - y_{t-1} = \beta_h^H F(s_t) x_t + \beta_h^L (1 - F(s_t)) x_t + F(s_t)
 
 This is the specification of Ramey & Zubairy (2018, eq. 2); with a threshold transition the point estimates equal one regression per regime. `interact="intercept"` keeps regime-specific intercepts with common control coefficients, and `interact="none"` pools both, which is how the function behaved before the option existed. Pooling is not innocuous: when outcome levels, shock means or control dynamics differ across regimes it biases $\beta^H$ and $\beta^L$ ([issue #217](https://github.com/jalonso1979/puremacro/issues/217)). Every row also carries `diff_HL`, `se_diff_HL` and `p_diff_HL` (a HAC test of $\beta^H = \beta^L$) and the effective regime sizes `n_eff_H`, `n_eff_L`.
 
-The state enters as dated in `df`. Ramey-Zubairy and Auerbach-Gorodnichenko date it at $t-1$, so pass a lagged column. Lags are built by shifting rows, so to exclude a period set `x` (or the instrument) to `NaN` there rather than dropping the rows.
+The state enters as dated in `df` by default (`state_lag=0`). Ramey-Zubairy and Auerbach-Gorodnichenko date it at $t-1$ so the contemporary shock cannot move the regime weight; pass `state_lag=1` (or a pre-lagged column) to shift the state by one period before computing $F(s_{t-\text{state\_lag}})$. Lags are built by shifting rows, so to exclude a period set `x` (or the instrument) to `NaN` there rather than dropping the rows.
 
 ```python
 from puremacro.lp import lp_state_dep
@@ -309,7 +311,7 @@ Following Ramey & Zubairy (2018, *JPE*), evaluating state-dependent government s
 $$\text{Endogenous: } [F(s_t) x_t, \; (1 - F(s_t)) x_t]$$
 $$\text{Instruments: } [F(s_t) z_t, \; (1 - F(s_t)) z_t]$$
 
-`lp_state_dep_iv` estimates both first-stage regressions, checks regime-specific instrument relevance via first-stage F statistics, and computes second-stage responses with HAC inference. `threshold`, `gamma` and `interact` follow exactly the `lp_state_dep` conventions above; with `interact="all"` and a threshold, `first_stage_f_H` and `first_stage_f_L` are the within-regime first-stage F statistics. The coefficient is the response to $x_t$: for Ramey-Zubairy's integral multiplier $\sum_{j \le h} y_{t+j} / \sum_{j \le h} g_{t+j}$, pass `cumulative=True` (see the next section and `puremacro.examples.ramey_zubairy_2018_multipliers`).
+`lp_state_dep_iv` estimates both first-stage regressions, checks regime-specific instrument relevance via first-stage F statistics (`first_stage_f_H`, `first_stage_f_L`) and Sanderson–Windmeijer (2016) conditional first-stage F statistics (`cond_f_H`, `cond_f_L`), and computes second-stage responses with HAC inference. `threshold`, `gamma`, `interact`, and `state_lag` follow the `lp_state_dep` conventions above; with `interact="all"` and a threshold, `first_stage_f_H` and `first_stage_f_L` are the within-regime first-stage F statistics (equal to `cond_f_H` and `cond_f_L`), whereas under `transition="logistic"` they report the Sanderson–Windmeijer conditional F statistics on the smooth regime-weighted endogenous regressors. The coefficient is the response to $x_t$: for Ramey-Zubairy's integral multiplier $\sum_{j \le h} y_{t+j} / \sum_{j \le h} g_{t+j}$, pass `cumulative=True` (see the next section and `puremacro.examples.ramey_zubairy_2018_multipliers`).
 
 ```python
 from puremacro.lp import lp_state_dep_iv

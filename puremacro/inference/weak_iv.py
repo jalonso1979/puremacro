@@ -12,10 +12,29 @@ import warnings
 from typing import Callable
 
 import numpy as np
+import pandas as pd
 from scipy.stats import chi2
 
 from .._linalg import inv_xtx
 from ._results import ARTestResult
+
+
+def _check_lags(lags: int | None, func: str) -> int | None:
+    if lags is None:
+        return None
+    if isinstance(lags, bool) or not isinstance(lags, (int, np.integer)) or int(lags) < 0:
+        raise ValueError(f"{func}: lags must be a non-negative integer, got {lags!r}")
+    return int(lags)
+
+
+def _bartlett_lrv(scores: np.ndarray, lags: int) -> np.ndarray:
+    """Newey-West Bartlett-kernel long-run covariance of score matrix ``scores``."""
+    out = scores.T @ scores
+    for ell in range(1, lags + 1):
+        weight = 1.0 - ell / (lags + 1.0)
+        gamma_ell = scores[ell:].T @ scores[:-ell]
+        out = out + weight * (gamma_ell + gamma_ell.T)
+    return out
 
 
 def anderson_rubin_band(
@@ -276,12 +295,15 @@ def olea_pflueger_f(
     x_endog: np.ndarray,
     z_inst: np.ndarray,
     cluster: np.ndarray | None = None,
+    *,
+    controls: np.ndarray | None = None,
+    lags: int | None = None,
 ) -> float:
     """Olea-Pflueger (2013) effective F-statistic for weak instruments.
 
     The effective F is the modern weak-IV-robust replacement for the
     Stock-Yogo Wald F. It is constructed to be conservative under
-    heteroskedasticity and (optionally) clustering.
+    heteroskedasticity, clustering, or Newey-West HAC serial correlation.
 
     Parameters
     ----------
@@ -291,7 +313,15 @@ def olea_pflueger_f(
         Instrument matrix (k instruments).
     cluster : ndarray of int, shape (T,), optional
         Cluster identifier. If provided, the variance is computed
-        cluster-robustly; otherwise heteroskedasticity-robust (HC0).
+        cluster-robustly; cannot be combined with ``lags``.
+    controls : ndarray, shape (T,) or (T, p), optional
+        Control variables to partial out (along with an intercept) before
+        computing the first-stage effective F. When ``None``, ``x_endog`` and
+        ``z_inst`` are demeaned.
+    lags : int, optional
+        Newey-West Bartlett-kernel lag truncation bandwidth. ``lags=0`` equals
+        the default Eicker-Huber-White (HC0) variance; for local projections
+        at horizon ``h``, pass ``lags=h + 1`` to match :func:`puremacro.lp.lp_iv`.
 
     Returns
     -------
@@ -306,8 +336,11 @@ def olea_pflueger_f(
     Olea, J.L.M. and Pflueger, C. (2013). A robust test for weak
         instruments. JBES 31(3), 358-369.
     """
-    x = np.asarray(x_endog).reshape(-1)
-    Z = np.asarray(z_inst)
+    lags_int = _check_lags(lags, "olea_pflueger_f")
+    if cluster is not None and lags_int is not None:
+        raise ValueError("olea_pflueger_f: pass at most one of cluster or lags")
+    x = np.asarray(x_endog, dtype=float).reshape(-1)
+    Z = np.asarray(z_inst, dtype=float)
     if Z.ndim == 1:
         Z = Z.reshape(-1, 1)
     T, k = Z.shape
@@ -315,14 +348,29 @@ def olea_pflueger_f(
         raise ValueError(
             f"olea_pflueger_f: x_endog length {x.shape[0]} != z_inst rows {T}"
         )
-    # Demean (the proxy-SVAR convention; OP also derive without intercept,
-    # but demeaning is standard in practice).
-    x = x - x.mean()
-    Z = Z - Z.mean(axis=0, keepdims=True)
+    if controls is None:
+        x = x - x.mean()
+        Z = Z - Z.mean(axis=0, keepdims=True)
+    else:
+        W = np.asarray(controls, dtype=float)
+        if W.ndim == 1:
+            W = W.reshape(-1, 1)
+        if W.shape[0] != T:
+            raise ValueError(
+                f"olea_pflueger_f: controls rows {W.shape[0]} != z_inst rows {T}"
+            )
+        W_ctl = np.column_stack([np.ones(T), W])
+        W_inv = np.linalg.pinv(W_ctl.T @ W_ctl)
+        x = x - W_ctl @ (W_inv @ (W_ctl.T @ x))
+        Z = Z - W_ctl @ (W_inv @ (W_ctl.T @ Z))
+
     ZtZ_inv = inv_xtx(Z, name="olea_pflueger_f")
     Pi = ZtZ_inv @ (Z.T @ x)              # shape (k,)
     resid = x - Z @ Pi
-    if cluster is None:
+    if lags_int is not None:
+        scores = Z * resid[:, None]
+        ZtuutZ = _bartlett_lrv(scores, lags_int)
+    elif cluster is None:
         # HC0 sandwich on Z' u u' Z
         ZtuutZ = (Z.T * resid**2) @ Z
     else:
@@ -356,6 +404,8 @@ def anderson_rubin_test(
     x_endog: np.ndarray,
     z: np.ndarray,
     controls: np.ndarray | None = None,
+    *,
+    lags: int | None = None,
 ) -> ARTestResult:
     """Anderson-Rubin (1949) test of H₀: β = β₀ in y = β x + e via instrument z.
 
@@ -364,6 +414,22 @@ def anderson_rubin_test(
     power for w_t (because the only variation in w_t orthogonal to
     controls is the structural error). Under H₁, β₀ is wrong so z's
     relationship with x bleeds into w.
+
+    Parameters
+    ----------
+    beta0 : float
+        Hypothesized slope coefficient β₀.
+    y, x_endog : ndarray, shape (T,)
+        Outcome and endogenous regressor.
+    z : ndarray, shape (T,) or (T, k)
+        Excluded instrument(s).
+    controls : ndarray, shape (T,) or (T, p), optional
+        Included exogenous controls (an intercept is always included).
+    lags : int, optional
+        When ``None`` (default), uses the classical homoskedastic F test.
+        When an integer ``lags >= 0`` is passed, computes the Newey-West
+        Bartlett-HAC Wald statistic ``W / k`` with asymptotic ``χ²(k)``
+        p-value, matching :func:`puremacro.lp.lp_iv` when ``lags = h + 1``.
 
     Returns
     -------
@@ -377,6 +443,7 @@ def anderson_rubin_test(
         a single equation in a complete system of stochastic equations.
         Annals of Mathematical Statistics 20(1), 46-63.
     """
+    lags_int = _check_lags(lags, "anderson_rubin_test")
     y = np.asarray(y, dtype=float).ravel()
     x_endog = np.asarray(x_endog, dtype=float).ravel()
     z = np.asarray(z, dtype=float)
@@ -393,6 +460,39 @@ def anderson_rubin_test(
         if controls.ndim == 1:
             controls = controls.reshape(-1, 1)
         X_r = np.column_stack([np.ones(T), controls])
+
+    df_num = z.shape[1]
+    df_den = T - (X_r.shape[1] + df_num)
+
+    if lags_int is not None:
+        W_inv = np.linalg.pinv(X_r.T @ X_r)
+        w_tilde = w - X_r @ (W_inv @ (X_r.T @ w))
+        Z_tilde = z - X_r @ (W_inv @ (X_r.T @ z))
+        ZtZ_inv = np.linalg.pinv(Z_tilde.T @ Z_tilde)
+        delta = ZtZ_inv @ (Z_tilde.T @ w_tilde)
+        u_hat = w_tilde - Z_tilde @ delta
+        rss_u = float(np.sum(u_hat ** 2))
+        if df_den <= 0 or rss_u <= 0:
+            return ARTestResult(
+                stat=float("nan"), p_value=float("nan"),
+                df_num=int(df_num), df_den=int(df_den),
+                residual_ss=float(rss_u),
+            )
+        scores = Z_tilde * u_hat[:, None]
+        Omega = _bartlett_lrv(scores, lags_int)
+        V_delta = ZtZ_inv @ Omega @ ZtZ_inv
+        try:
+            wald = float(delta @ np.linalg.solve(V_delta, delta))
+        except np.linalg.LinAlgError:
+            wald = float(delta @ np.linalg.pinv(V_delta) @ delta)
+        F = wald / df_num
+        p_value = float(chi2.sf(wald, df_num))
+        return ARTestResult(
+            stat=float(F), p_value=float(p_value),
+            df_num=int(df_num), df_den=int(df_den),
+            residual_ss=float(rss_u),
+        )
+
     beta_r, *_ = np.linalg.lstsq(X_r, w, rcond=None)
     rss_r = float(np.sum((w - X_r @ beta_r) ** 2))
 
@@ -401,8 +501,6 @@ def anderson_rubin_test(
     beta_u, *_ = np.linalg.lstsq(X_u, w, rcond=None)
     rss_u = float(np.sum((w - X_u @ beta_u) ** 2))
 
-    df_num = z.shape[1]
-    df_den = T - X_u.shape[1]
     if df_den <= 0 or rss_u <= 0:
         return ARTestResult(
             stat=float("nan"), p_value=float("nan"),
@@ -425,12 +523,17 @@ def msw_bands(
     z: np.ndarray,
     alpha: float = 0.10,
     controls: np.ndarray | None = None,
+    *,
+    lags: int | None = None,
 ) -> tuple[float, float]:
     """Montiel Olea-Stock-Watson (2021) weak-IV-robust confidence band
     for β via Anderson-Rubin grid inversion.
 
-    Returns the (lo, hi) endpoints of the connected (1-alpha)-confidence
-    set: the smallest and largest β₀ in `grid` for which AR fails to reject.
+    Returns the (lo, hi) endpoints of the (1-alpha)-confidence set on
+    ``grid``: the smallest and largest β₀ in ``grid`` for which AR fails to
+    reject. Emits a :class:`RuntimeWarning` when the accepted set is empty
+    (returning ``(nan, nan)``), touches a grid endpoint (potentially
+    unbounded), or is disconnected.
 
     Parameters
     ----------
@@ -439,16 +542,117 @@ def msw_bands(
         with enough resolution.
     alpha : float
         Significance level (default 0.10 = 90% CI).
+    controls : np.ndarray, optional
+        Included exogenous controls.
+    lags : int, optional
+        Newey-West Bartlett-HAC lag truncation bandwidth passed to
+        :func:`anderson_rubin_test`.
     """
+    lags_int = _check_lags(lags, "msw_bands")
+    grid_arr = np.asarray(grid, dtype=float).ravel()
     p_values = np.array([
-        anderson_rubin_test(b0, y, x_endog, z, controls=controls).p_value
-        for b0 in grid
+        anderson_rubin_test(b0, y, x_endog, z, controls=controls, lags=lags_int).p_value
+        for b0 in grid_arr
     ])
     accepted = p_values >= alpha
     if not accepted.any():
-        return float(grid[np.argmax(p_values)]), float(grid[np.argmax(p_values)])
-    accepted_grid = grid[accepted]
-    return float(accepted_grid.min()), float(accepted_grid.max())
+        warnings.warn(
+            "msw_bands: Anderson-Rubin confidence set is empty on the supplied grid; "
+            "returning (nan, nan).",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return float("nan"), float("nan")
+    idx = np.flatnonzero(accepted)
+    if not accepted[idx[0] : idx[-1] + 1].all():
+        warnings.warn(
+            "msw_bands: Anderson-Rubin confidence set is disconnected on the supplied "
+            "grid; returning the enclosing interval [lo, hi].",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+    if accepted[0] or accepted[-1]:
+        warnings.warn(
+            "msw_bands: Anderson-Rubin confidence set touches the grid boundary; "
+            "the set may be unbounded or require a wider grid.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+    return float(grid_arr[idx[0]]), float(grid_arr[idx[-1]])
+
+
+def instrument_influence(
+    z: np.ndarray | pd.Series,
+    controls: np.ndarray | pd.DataFrame | None = None,
+    weights: np.ndarray | pd.Series | None = None,
+) -> pd.DataFrame:
+    """Per-observation share of residualized instrument variation ``z̃_t² / Σ z̃²``.
+
+    Useful for diagnosing whether first-stage identification is dominated by a
+    handful of observations (for example, in the Ramey-Zubairy military-news
+    series, 1941Q4 carries ~52% of the slack-regime variation, and excluding
+    World War II leaves 1940Q2 carrying ~80-87%).
+
+    Parameters
+    ----------
+    z : array-like or pd.Series, shape (T,)
+        Excluded instrument series.
+    controls : array-like or pd.DataFrame, shape (T, p), optional
+        Controls to partial out (an intercept is always included).
+    weights : array-like or pd.Series, shape (T,), optional
+        Non-negative regime or sample weights ``F_t``. When provided, controls
+        are partialled out within the weighted regime (i.e. regressing
+        ``F_t * z_t`` on ``F_t * [1, controls]``).
+
+    Returns
+    -------
+    pd.DataFrame
+        Indexed like ``z`` (when a Series is passed) and sorted descending by
+        ``"share"``, with columns ``["z_tilde", "z_tilde_sq", "share", "cum_share"]``.
+    """
+    idx = z.index if isinstance(z, pd.Series) else pd.RangeIndex(len(np.asarray(z)))
+    z_arr = np.asarray(z, dtype=float).ravel()
+    T = z_arr.shape[0]
+    if controls is None:
+        X = np.ones((T, 1))
+    else:
+        W = np.asarray(controls, dtype=float)
+        if W.ndim == 1:
+            W = W.reshape(-1, 1)
+        if W.shape[0] != T:
+            raise ValueError(
+                f"instrument_influence: controls rows {W.shape[0]} != z length {T}"
+            )
+        X = np.column_stack([np.ones(T), W])
+    if weights is not None:
+        w = np.asarray(weights, dtype=float).ravel()
+        if w.shape[0] != T:
+            raise ValueError(
+                f"instrument_influence: weights length {w.shape[0]} != z length {T}"
+            )
+        z_eff = w * z_arr
+        X_eff = w[:, None] * X
+    else:
+        z_eff = z_arr
+        X_eff = X
+
+    valid = np.isfinite(z_eff) & np.all(np.isfinite(X_eff), axis=1)
+    z_tilde = np.full(T, np.nan)
+    if valid.any():
+        Xv = X_eff[valid]
+        zv = z_eff[valid]
+        X_inv = np.linalg.pinv(Xv.T @ Xv)
+        z_tilde[valid] = zv - Xv @ (X_inv @ (Xv.T @ zv))
+    z_sq = z_tilde ** 2
+    total = float(np.nansum(z_sq))
+    share = z_sq / total if total > 0 else np.zeros_like(z_sq)
+    out = pd.DataFrame(
+        {"z_tilde": z_tilde, "z_tilde_sq": z_sq, "share": share},
+        index=idx,
+    )
+    out = out.dropna(subset=["z_tilde"]).sort_values("share", ascending=False)
+    out["cum_share"] = out["share"].cumsum()
+    return out
 
 
 __all__ = [
@@ -458,5 +662,6 @@ __all__ = [
     "olea_pflueger_f",
     "anderson_rubin_test",
     "msw_bands",
+    "instrument_influence",
     "ARTestResult",
 ]

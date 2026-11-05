@@ -18,10 +18,11 @@ def test_lp_smooth_transition_irf_returns_dataframe():
     from puremacro.lp.state_dep import lp_smooth_transition_irf
 
     df = _toy_series()
-    result = lp_smooth_transition_irf(
-        df, y="y", x="shock", state_var="state_var",
-        horizons=range(0, 5), n_lags=2, gamma=1.0,
-    )
+    with pytest.deprecated_call(match="lp_state_dep"):
+        result = lp_smooth_transition_irf(
+            df, y="y", x="shock", state_var="state_var",
+            horizons=range(0, 5), n_lags=2, gamma=1.0,
+        )
     assert isinstance(result, pd.DataFrame)
     assert "h" in result.columns
     # Expect per-regime beta columns (high/low state).
@@ -35,9 +36,11 @@ def test_lp_smooth_transition_irf_gamma_scaling():
     from puremacro.lp.state_dep import lp_smooth_transition_irf
 
     df = _toy_series()
-    soft = lp_smooth_transition_irf(df, y="y", x="shock", state_var="state_var",
-                                     horizons=range(0, 3), n_lags=1, gamma=0.5)
-    hard = lp_smooth_transition_irf(df, y="y", x="shock", state_var="state_var",
-                                     horizons=range(0, 3), n_lags=1, gamma=5.0)
+    with pytest.deprecated_call(match="lp_state_dep"):
+        soft = lp_smooth_transition_irf(df, y="y", x="shock", state_var="state_var",
+                                         horizons=range(0, 3), n_lags=1, gamma=0.5)
+    with pytest.deprecated_call(match="lp_state_dep"):
+        hard = lp_smooth_transition_irf(df, y="y", x="shock", state_var="state_var",
+                                         horizons=range(0, 3), n_lags=1, gamma=5.0)
     # Should not be identical — gamma changes the transition function.
     assert not soft.equals(hard)

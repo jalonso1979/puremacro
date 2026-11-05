@@ -8,7 +8,14 @@ from .bootstrap import residual_bootstrap as bootstrap_resample
 from .block_bootstrap import block_bootstrap
 from .moving_block import moving_block_bootstrap
 from .wild_bootstrap import wild_bootstrap, wild_bootstrap_var
-from .weak_iv import cragg_donald_f, kleibergen_paap_f, olea_pflueger_f, anderson_rubin_test, msw_bands
+from .weak_iv import (
+    cragg_donald_f,
+    kleibergen_paap_f,
+    olea_pflueger_f,
+    anderson_rubin_test,
+    msw_bands,
+    instrument_influence,
+)
 from .pesaran import pesaran_cd
 from .swamy import swamy_test
 from .hac_fixed_b import hac_fixed_b, llsw_critical_value
@@ -63,6 +70,7 @@ __all__ = [
     "olea_pflueger_f",
     "anderson_rubin_test",
     "msw_bands",
+    "instrument_influence",
     "pesaran_cd",
     "swamy_test",
     "hac_fixed_b",
