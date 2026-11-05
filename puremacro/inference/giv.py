@@ -7,11 +7,12 @@ Analysis (PCA) and applying inverse-variance precision weighting.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
-import matplotlib.axes
-import matplotlib.figure
-import matplotlib.pyplot as plt
+if TYPE_CHECKING:
+    import matplotlib.axes
+    import matplotlib.figure
+
 import numpy as np
 import pandas as pd
 from scipy.stats import chi2, norm
@@ -130,6 +131,8 @@ class GIVResult:
         **kwargs: Any,
     ) -> matplotlib.figure.Figure | matplotlib.axes.Axes:
         """Plot the leave-one-out giant sensitivity and granular instrument."""
+        import matplotlib.pyplot as plt
+
         created_fig = False
         if ax is None:
             fig, ax_obj = plt.subplots(figsize=kwargs.get("figsize", (7.5, 4.2)))

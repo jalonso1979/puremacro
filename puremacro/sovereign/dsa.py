@@ -927,7 +927,7 @@ def estimate_fiscal_reaction_function(
     se_lin = np.sqrt(np.maximum(np.diag(cov_lin), 1e-16))
     bohn_idx = names_lin.index("beta_debt")
     bohn_t = float(beta_lin[bohn_idx] / se_lin[bohn_idx])
-    bohn_p_one = float(1.0 - norm.cdf(bohn_t))
+    bohn_p_one = float(norm.sf(bohn_t))
 
     fatigue_threshold: float | None = None
     if cubic_fatigue and len(work) >= 12:
@@ -968,7 +968,7 @@ def estimate_fiscal_reaction_function(
         se = se_lin
 
     t_stats_arr = beta / se
-    p_vals_arr = 2.0 * (1.0 - norm.cdf(np.abs(t_stats_arr)))
+    p_vals_arr = 2.0 * norm.sf(np.abs(t_stats_arr))
     tss = float(np.sum((y - np.mean(y)) ** 2))
     rss = float(np.sum(resid ** 2))
     r2 = float(1.0 - rss / max(tss, 1e-16))

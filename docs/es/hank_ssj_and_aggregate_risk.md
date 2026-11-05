@@ -112,7 +112,7 @@ import numpy as np
 from puremacro.dsge.ssj_policy import ssj_ramsey, ssj_osr, ssj_welfare_decomposition
 from puremacro.dsge.risky_steady_state import solve_risky_steady_state, solve_precautionary_obc
 
-# 1. Política óptima de Ramsey en espacio de secuencias (McKay & Wolf 2023)
+# 1. Sequence-space Ramsey optimal policy (McKay & Wolf 2023 / Bhandari et al. 2021)
 T = 16
 J_pi = -0.35 * np.triu(0.75 ** np.subtract.outer(np.arange(T), np.arange(T)).T)
 J_y = -0.60 * np.eye(T)
@@ -125,7 +125,7 @@ ramsey = ssj_ramsey(
 )
 print(ramsey.summary())
 
-# 2. Estado estacionario riesgoso (Coeurdacier, Rey & Winant 2011)
+# 2. Risky Steady State (Coeurdacier, Rey & Winant 2011)
 rss = solve_risky_steady_state(
     f_residual=lambda y_c, y_n, u: np.array([y_c[0] ** (-2.0) - (y_n[0] + u[0]) ** (-2.0) - (y_c[0] - 1.0)]),
     y_det=np.array([1.0]),
