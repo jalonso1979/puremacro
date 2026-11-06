@@ -214,27 +214,34 @@ def _quarterly_chain(p_monthly: pd.DataFrame) -> pd.DataFrame:
     """
     p_monthly = p_monthly.sort_index()
     p_monthly["qdate"] = pd.to_datetime(p_monthly.index) + pd.offsets.QuarterEnd(0)
-    out = []
-    for q, group in p_monthly.groupby("qdate"):
-        if len(group) < 3:
-            continue
-        # Take first 3 months of the quarter to multiply
-        mats = [
-            np.array([
-                [row["p_EE"], row["p_EU"], row["p_EN"]],
-                [row["p_UE"], row["p_UU"], row["p_UN"]],
-                [row["p_NE"], row["p_NU"], row["p_NN"]],
-            ])
-            for _, row in group.iloc[:3].iterrows()
-        ]
-        prod = mats[0] @ mats[1] @ mats[2]
-        out.append({
-            "qdate": q,
-            "p_EE": prod[0, 0], "p_EU": prod[0, 1], "p_EN": prod[0, 2],
-            "p_UE": prod[1, 0], "p_UU": prod[1, 1], "p_UN": prod[1, 2],
-            "p_NE": prod[2, 0], "p_NU": prod[2, 1], "p_NN": prod[2, 2],
-        })
-    return pd.DataFrame(out).set_index("qdate") if out else pd.DataFrame()
+
+    # ⚡ Bolt: Vectorized matrix multiplication for quarterly transition chains
+    # instead of iterrows() and per-group Python loops.
+    counts = p_monthly.groupby("qdate").size()
+    valid_qdates = counts[counts >= 3].index
+
+    if len(valid_qdates) == 0:
+        return pd.DataFrame()
+
+    valid_df = p_monthly[p_monthly["qdate"].isin(valid_qdates)].copy()
+
+    valid_df["month_idx"] = valid_df.groupby("qdate").cumcount()
+    valid_df = valid_df[valid_df["month_idx"] < 3]
+
+    valid_df = valid_df.sort_values(["qdate", "month_idx"])
+
+    data = valid_df[["p_EE", "p_EU", "p_EN", "p_UE", "p_UU", "p_UN", "p_NE", "p_NU", "p_NN"]].to_numpy()
+    data = data.reshape(-1, 3, 3, 3)
+
+    prod = data[:, 0, :, :] @ data[:, 1, :, :] @ data[:, 2, :, :]
+
+    out = pd.DataFrame(
+        prod.reshape(-1, 9),
+        columns=["p_EE", "p_EU", "p_EN", "p_UE", "p_UU", "p_UN", "p_NE", "p_NU", "p_NN"],
+        index=valid_qdates
+    )
+    out.index.name = "qdate"
+    return out
 
 
 def supply_demand_decomposition(panel: TransitionPanel) -> pd.DataFrame:
