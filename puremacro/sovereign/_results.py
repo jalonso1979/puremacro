@@ -16,12 +16,15 @@ import pandas as pd
 if TYPE_CHECKING:
     import matplotlib.figure
 
+    from puremacro.sovereign.rules import FiscalRule
+
 
 __all__ = [
     "SovereignDefaultResult",
     "FiscalSovereignResult",
     "SuddenStopResult",
     "RestructuringResult",
+    "StochasticDSAResult",
 ]
 
 
@@ -430,6 +433,7 @@ class FiscalSovereignResult(SovereignDefaultResult):
     debt_to_gdp: np.ndarray = field(default_factory=lambda: np.zeros((0,)))
     private_consumption_repay: np.ndarray = field(default_factory=lambda: np.zeros((0,)))
     private_consumption_default: np.ndarray = field(default_factory=lambda: np.zeros((0,)))
+    rule: FiscalRule | None = None
 
     def summary(self) -> pd.DataFrame:
         """Return the sovereign summary plus the fiscal parameters."""
@@ -740,3 +744,213 @@ class RestructuringResult:
 
         fig.tight_layout()
         return fig
+
+
+@dataclass(frozen=True)
+class StochasticDSAResult:
+    """Result container for Stochastic Debt Sustainability Analysis (DSA).
+
+    Parameters
+    ----------
+    paths : np.ndarray
+        Simulated debt-to-GDP trajectory matrix of shape (n_sims, horizon + 1).
+    baseline_path : np.ndarray
+        Deterministic baseline debt trajectory of shape (horizon + 1,).
+    d0 : float
+        Initial debt-to-GDP ratio.
+    threshold : float
+        Prudential debt threshold (e.g. 0.80 for 80% of GDP).
+    horizon : int
+        Simulation horizon in periods.
+    frequency : str
+        Data/simulation frequency: "quarterly" or "annual".
+    quantiles : dict[int, np.ndarray]
+        Dictionary mapping percentile levels (e.g. 5, 10, 25, 50, 75, 90, 95)
+        to arrays of shape (horizon + 1,).
+    prob_breach : float
+        Fraction of paths that cross `threshold` at any point up to `horizon`.
+    prob_terminal_breach : float
+        Fraction of paths ending above `threshold` at terminal period `horizon`.
+    prob_non_stabilizing : float
+        Fraction of paths with d_T > d0.
+    dar_95 : float
+        Debt-at-Risk: 95th percentile debt-to-GDP ratio at terminal horizon.
+    macro_paths : np.ndarray | None
+        Simulated macroeconomic states of shape (n_sims, horizon + 1, n_vars),
+        or None if not stored.
+    metadata : dict[str, Any]
+        Configuration parameters, seeds, and model settings.
+    """
+
+    paths: np.ndarray
+    baseline_path: np.ndarray
+    d0: float
+    threshold: float
+    horizon: int
+    frequency: str = "quarterly"
+    quantiles: dict[int, np.ndarray] = field(default_factory=dict)
+    prob_breach: float = 0.0
+    prob_terminal_breach: float = 0.0
+    prob_non_stabilizing: float = 0.0
+    dar_95: float = 0.0
+    macro_paths: np.ndarray | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def shape(self) -> tuple[int, ...]:
+        """Shape of the simulated debt paths matrix."""
+        return self.paths.shape
+
+    def __len__(self) -> int:
+        """Number of simulated paths."""
+        return len(self.paths)
+
+    def __getitem__(self, item: Any) -> Any:
+        """Allow 2D array indexing into simulated debt paths."""
+        return self.paths[item]
+
+    def __array__(self, dtype: Any = None, copy: bool | None = None) -> np.ndarray:
+        """Allow conversion to NumPy ndarray."""
+        if copy is None:
+            return np.asarray(self.paths, dtype=dtype)
+        return np.array(self.paths, dtype=dtype, copy=copy)
+
+    def summary(self) -> pd.DataFrame:
+        """Return a structured summary DataFrame of the Stochastic DSA metrics."""
+        med_terminal = (
+            float(self.quantiles[50][-1])
+            if 50 in self.quantiles
+            else float(np.median(self.paths[:, -1]))
+        )
+        rows = [
+            ("initial_debt_gdp", self.d0),
+            ("prudential_threshold", self.threshold),
+            ("baseline_terminal_debt", float(self.baseline_path[-1])),
+            ("median_terminal_debt", med_terminal),
+            ("dar_95_terminal_debt", self.dar_95),
+            ("prob_breach_threshold", self.prob_breach),
+            ("prob_terminal_breach", self.prob_terminal_breach),
+            ("prob_non_stabilizing", self.prob_non_stabilizing),
+            ("horizon", self.horizon),
+            ("n_sims", len(self.paths)),
+        ]
+        return pd.DataFrame(
+            {"metric": [r[0] for r in rows], "value": [_fmt_val(r[1]) for r in rows]}
+        )
+
+    def fan_chart_frame(self) -> pd.DataFrame:
+        """Return a DataFrame of horizons x percentiles suitable for tabular reporting."""
+        data: dict[str, Any] = {
+            "period": np.arange(self.horizon + 1),
+            "baseline": self.baseline_path,
+        }
+        for p in sorted(self.quantiles.keys()):
+            data[f"q{p:02d}"] = self.quantiles[p]
+        df = pd.DataFrame(data)
+        df.set_index("period", inplace=True)
+        return df
+
+    def to_dataframe(self) -> pd.DataFrame:
+        """Return trajectory percentiles and baseline as a DataFrame."""
+        return self.fan_chart_frame()
+
+    def to_frame(self) -> pd.DataFrame:
+        """Alias returning the fan chart frame."""
+        return self.to_dataframe()
+
+    def to_markdown(self) -> str:
+        """Render summary table in Markdown format."""
+        return _render_df(self.summary(), "markdown")
+
+    def to_latex(self) -> str:
+        """Render summary table in LaTeX tabular format."""
+        return _render_df(self.summary(), "latex")
+
+    def to_typst(self) -> str:
+        """Render summary table in Typst format."""
+        return _render_df(self.summary(), "typst")
+
+    def plot(
+        self,
+        figsize: tuple[float, float] = (10.5, 4.5),
+        ax: Any = None,
+        show: bool = False,
+    ) -> Any:
+        """Headless, WASM-safe fan chart plot of stochastic debt trajectories."""
+        import matplotlib.pyplot as plt
+
+        return_fig = False
+        if ax is None:
+            fig, ax = plt.subplots(figsize=figsize)
+            return_fig = True
+        else:
+            fig = ax.get_figure()
+
+        t_axis = np.arange(self.horizon + 1)
+        if 5 in self.quantiles and 95 in self.quantiles:
+            ax.fill_between(
+                t_axis,
+                self.quantiles[5],
+                self.quantiles[95],
+                color="#1f77b4",
+                alpha=0.12,
+                label="5%-95% DSA Band",
+            )
+        if 10 in self.quantiles and 90 in self.quantiles:
+            ax.fill_between(
+                t_axis,
+                self.quantiles[10],
+                self.quantiles[90],
+                color="#1f77b4",
+                alpha=0.20,
+                label="10%-90% DSA Band",
+            )
+        if 25 in self.quantiles and 75 in self.quantiles:
+            ax.fill_between(
+                t_axis,
+                self.quantiles[25],
+                self.quantiles[75],
+                color="#1f77b4",
+                alpha=0.35,
+                label="25%-75% DSA Band",
+            )
+        if 50 in self.quantiles:
+            ax.plot(
+                t_axis,
+                self.quantiles[50],
+                color="#08306b",
+                lw=2.0,
+                label="Median Trajectory",
+            )
+        ax.plot(
+            t_axis,
+            self.baseline_path,
+            color="black",
+            lw=1.5,
+            ls="--",
+            label="Baseline (Zero Shocks)",
+        )
+        ax.axhline(
+            self.threshold,
+            color="#d62728",
+            lw=1.4,
+            ls=":",
+            label=f"Prudential Threshold ({self.threshold:.0%})",
+        )
+
+        ax.set_xlabel(f"Horizon ({self.frequency.capitalize()} Periods Ahead)")
+        ax.set_ylabel("Debt-to-GDP Ratio")
+        ax.set_title("Stochastic Debt Sustainability Analysis (DSA) Fan Chart")
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc="upper left", frameon=False)
+
+        if return_fig:
+            fig.tight_layout()
+            if show:
+                plt.show()
+            return fig
+
+        if show:
+            plt.show()
+        return ax
+

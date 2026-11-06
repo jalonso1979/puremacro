@@ -121,6 +121,8 @@ _USER_DOCS = [
     "network_spatial_climate_iam.md",
     # Macro-finance: returns, risk and asset-pricing tests.
     "asset_pricing.md",
+    "svar_and_policy_counterfactuals.md",
+    "portfolio_and_macro_allocation.md",
 ]
 
 

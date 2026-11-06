@@ -132,3 +132,124 @@ def test_cached_solution_and_simulation_follow_effective_calibration(tmp_path, m
     assert manifest["calibration"] == grids._calibration()
     assert second["design"]["solution_identity"] == manifest["solution_identity"]
     assert manifest["scalars"]["tau"] == grids.ILLUSTRATIVE["tau"]
+
+
+# ------------------------------------------------------------- registered fiscal-rule predictions
+RULE_PROTOCOL = ROOT / "tests" / "fixtures" / "sovereign_fiscal" / "rule_predictions_protocol.json"
+RULE_RECORD = ROOT / "tests" / "fixtures" / "sovereign_fiscal" / "rule_predictions_record.json"
+RULE_ROWS = ("none", "ceiling", "ceiling_escape", "soft_ceiling", "deficit")
+RULE_COLUMNS = ("debt_pct", "spread_mean_pct", "annual_default_pct", "spread_std_pp")
+
+
+def test_rule_record_uses_the_registered_protocol():
+    import hashlib
+
+    text = RULE_PROTOCOL.read_text()
+    record = json.loads(RULE_RECORD.read_text())
+    assert record["protocol"] == json.loads(text)
+    assert record["protocol_sha256"] == hashlib.sha256(text.encode()).hexdigest()
+    assert (record["protocol"]["design"]["grid"]["n_b"], record["protocol"]["design"]["grid"]["n_y"]) == (401, 21)
+    for name, solve in record["solves"].items():
+        assert solve["converged"] and solve["rule_infeasible_states"] == 0
+        assert solve["policy_search"] == record["protocol"]["policy_search"][name]
+        if solve["policy_search"] == "monotone":
+            assert solve["monotone_certification_gap"] <= 1e-11
+    for case in record["cases"].values():
+        assert [run["seed"] for run in case["runs"]] == record["protocol"]["design"]["seeds"]
+
+
+def test_escape_clause_within_registered_tolerance_of_ceiling():
+    from tools.reference_validation.check_arellano_grids import paired_comparison
+
+    record = json.loads(RULE_RECORD.read_text())
+    tolerances = json.loads(RULE_PROTOCOL.read_text())["tolerances"]
+    comparison = paired_comparison(record["cases"]["ceiling"], record["cases"]["ceiling_escape"],
+                                   tolerances=tolerances)
+    assert comparison["passed"], comparison
+    cap = record["protocol"]["rules"]["ceiling"]["debt_ceiling"]
+    assert all(v < cap for v in record["measurements"]["max_b_recession"].values())
+
+
+def test_rule_prediction_verdicts_recompute_from_measurements():
+    record = json.loads(RULE_RECORD.read_text())
+    m, p = record["measurements"], record["protocol"]["predictions"]
+    lo, hi = p["ceiling_binding_share_pct"]
+    dlo, dhi = p["deficit_binding_share_pct"]
+    assert record["predictions"]["ceiling_binding_share_pct"]["held"] == (lo <= m["ceiling_binding"]["binding_share_pct"] <= hi)
+    assert record["predictions"]["deficit_binding_share_pct"]["held"] == (dlo <= m["deficit_binding"]["binding_share_pct"] <= dhi)
+    assert record["predictions"]["ceiling_binding_in_booms"]["held"] == (m["ceiling_binding"]["binding_in_booms"] == 1.0)
+    assert record["predictions"]["escape_inert"]["held"] == (
+        all(v < 0.02 for v in m["max_b_recession"].values()) and m["escape_vs_ceiling"]["passed"])
+
+
+@pytest.mark.parametrize("guide,decimal", [("docs/sovereign_fiscal_rules.md", "."),
+                                           ("docs/es/sovereign_fiscal_rules.md", ",")])
+def test_guides_report_the_rule_record(guide, decimal):
+    record = json.loads(RULE_RECORD.read_text())
+    text = (ROOT / guide).read_text(encoding="utf-8")
+
+    def fmt(value, digits):
+        return f"{value:.{digits}f}".replace(".", decimal)
+
+    for name in RULE_ROWS:
+        moments = record["cases"][name]["moments"]
+        row = f"| `{name}` | " + " | ".join(fmt(moments[k], 3) for k in RULE_COLUMNS) + " |"
+        assert row in text, row
+    m = record["measurements"]
+    for value, digits in ((m["penalty_output_equivalent"], 4), (m["ceiling_binding"]["binding_share_pct"], 1),
+                          (m["deficit_binding"]["binding_share_pct"], 1), (m["max_b_recession"]["401x21"], 5),
+                          (m["max_b_recession"]["801x41"], 5),
+                          (m["soft_ceiling_policy_above_cap"]["min_current_debt"], 5)):
+        assert fmt(value, digits) in text, fmt(value, digits)
+    assert f'{m["soft_ceiling_policy_above_cap"]["repayment_states"]} ' in text
+    assert ("COARSE 401 × 21" if decimal == "." else "MALLA GRUESA 401 × 21") in text
+    assert ("not held" if decimal == "." else "no se cumplió") in text
+
+
+def test_soft_ceiling_off_the_ergodic_set_is_recorded_and_recomputes():
+    import numpy as np
+
+    from puremacro.sovereign import FiscalRule, solve_fiscal_sovereign_default
+
+    info = json.loads(RULE_RECORD.read_text())["measurements"]["soft_ceiling_policy_above_cap"]
+    soft = solve_fiscal_sovereign_default(tau=.2, psi=1., n_b=401, n_y=21,
+                                          rule=FiscalRule(debt_ceiling=.02, penalty=.05))
+    hard = solve_fiscal_sovereign_default(tau=.2, psi=1., n_b=401, n_y=21, rule=FiscalRule(debt_ceiling=.02))
+    above = (soft.policy_b > .02 + 1e-12) & (soft.default_prob < .5)
+    rows = np.nonzero(above)[0]
+    assert info["repayment_states"] == int(above.sum()) > 0
+    assert info["min_current_debt"] == float(soft.b_grid[rows].min()) > .02
+    at_or_below = soft.b_grid <= .02
+    assert info["policies_equal_at_or_below_cap"] is True
+    assert np.array_equal(soft.policy_index[at_or_below], hard.policy_index[at_or_below])
+
+
+def test_rule_record_recomputes_from_code_for_one_seed():
+    from tools.reference_validation import check_fiscal_rule_predictions as tool
+
+    record = json.loads(RULE_RECORD.read_text())
+    protocol = json.loads(RULE_PROTOCOL.read_text())
+    design = dict(protocol["design"], seeds=[1979])
+    grid = protocol["design"]["grid"]
+    results = {}
+    for name in ("none", "ceiling", "deficit"):
+        res = tool.solve(protocol, name, grid["n_b"], grid["n_y"])
+        assert res.iterations == record["solves"][name]["iterations"]
+        paths = tool._paths(res, design)
+        (run,) = tool._runs(paths, design)
+        expected = record["cases"][name]["runs"][0]
+        # Moments are sums over 100,000 quarters; allow last-ulp differences
+        # across NumPy builds, keep every other field exact.
+        assert run.keys() == expected.keys(), name
+        for key, value in expected.items():
+            if key == "moments":
+                assert run[key].keys() == value.keys(), name
+                for moment, number in value.items():
+                    assert run[key][moment] == pytest.approx(number, rel=1e-12, abs=1e-15), (name, moment)
+            else:
+                assert run[key] == value, (name, key)
+        results[name] = (res, paths)
+    free, free_paths = results["none"]
+    binding = tool._binding(free, free_paths, design["burn"], protocol["rules"]["ceiling"]["debt_ceiling"], None)
+    assert binding["per_seed_pct"] == record["measurements"]["ceiling_binding"]["per_seed_pct"][:1]
+    assert binding["per_seed_pct"][0] == pytest.approx(23.479, abs=5e-4)

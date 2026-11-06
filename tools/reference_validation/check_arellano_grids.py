@@ -1,8 +1,15 @@
-"""Check economic grid convergence of the public deterministic Arellano baseline.
+"""Check economic grid convergence of a deterministic Arellano calibration.
 
-Uses the independent solver checked against the public API. Numerical grids
-change; calibration, support, timing and measurement stay fixed. A small
-Bellman residual is necessary but does not substitute for stable moments.
+Uses the independent solver checked against the author's Fortran (archive) and
+the public API (public). Numerical grids change; calibration, support, timing
+and measurement stay fixed. A small Bellman residual is necessary but does not
+substitute for stable moments.
+
+``--calibration public`` (default) is PureMacro's public baseline with canonical
+timing on 400*2**r+1 uniform debt nodes. ``--calibration archive`` is the
+archived Arellano (2008) calibration with the author's exclusion timing on the
+author's 200-node grid refined by midpoint insertion (199*2**r+1 nodes), with
+income refinements on the archived log-income support.
 """
 from __future__ import annotations
 
@@ -29,11 +36,41 @@ TOLERANCES = {name: .02 if name.startswith("corr_") else .10 for name in referen
 # is still certified by the solver's independent exhaustive Bellman check.
 POLICY_SEARCH = "monotone"
 
+# name: timing, debt-node multiplier (n_b = base*2**refinement+1), theta, gross R
+CALIBRATIONS = {
+    "public": dict(timing="canonical", base=400, theta=.282, gross_r=1.017),
+    "archive": dict(timing="archive", base=199, theta=reference.THETA, gross_r=reference.GROSS_R),
+}
 
-def solve_case(refinement: int, n_y: int) -> reference.Solution:
-    """Public calibration, canonical timing, certified monotone policy search."""
-    return reference.solve(refinement=refinement, n_y=n_y, timing="canonical",
-                           calibration="public", policy_search=POLICY_SEARCH)
+
+def calibration_metadata(calibration: str) -> dict:
+    """Recorded description of the fixed calibration, support and timing."""
+    spec = CALIBRATIONS[calibration]
+    if calibration == "public":
+        return dict(beta=.95282, gamma=2., theta=.282, r=.017, rho=.945, sigma=.025,
+                    timing=spec["timing"], policy_search=POLICY_SEARCH,
+                    mean_income=10., default_cap=9.69,
+                    assets_min=-3.3, assets_max=1.5, income_support="three unconditional log standard deviations")
+    assets = reference.author_grid()
+    log_y, _ = reference.verified_inputs()
+    return dict(beta=reference.BETA, gamma=2., theta=reference.THETA, r=reference.GROSS_R-1,
+                rho=.945, sigma=.025, timing=spec["timing"], policy_search=POLICY_SEARCH,
+                income_scale=10., default_cap=10*reference.CAP,
+                assets_min=float(assets[0]), assets_max=float(assets[-1]),
+                income_support=[float(log_y[0]), float(log_y[-1])],
+                literals="Fortran default-real (float32) beta, theta, R and cap, as archived",
+                grid="author 200-node grid refined by midpoint insertion; income refinements "
+                     "use Tauchen probabilities on the archived log-income endpoints")
+
+
+def n_assets(refinement: int, calibration: str = "public") -> int:
+    return CALIBRATIONS[calibration]["base"]*2**refinement+1
+
+
+def solve_case(refinement: int, n_y: int, calibration: str = "public") -> reference.Solution:
+    """Certified monotone policy search; timing follows the calibration's Bellman equation."""
+    return reference.solve(refinement=refinement, n_y=n_y, timing=CALIBRATIONS[calibration]["timing"],
+                           calibration=calibration, policy_search=POLICY_SEARCH)
 
 
 def paired_comparison(coarse: dict, fine: dict, tolerances: Mapping[str, float] = TOLERANCES) -> dict:
@@ -59,8 +96,10 @@ def paired_comparison(coarse: dict, fine: dict, tolerances: Mapping[str, float] 
 
 
 def case(refinement: int, n_y: int, args, source_hash: str) -> dict:
-    n_b = 400*2**refinement+1
-    name = f"public_{n_b}_{n_y}"
+    calibration = getattr(args, "calibration", "public")
+    spec = CALIBRATIONS[calibration]
+    n_b = n_assets(refinement, calibration)
+    name = f"{calibration}_{n_b}_{n_y}"
     manifest_path = args.output / (name+"_solution.json")
     arrays_path = args.output / (name+".npz")
     solution = None
@@ -70,10 +109,11 @@ def case(refinement: int, n_y: int, args, source_hash: str) -> dict:
                 and manifest["arrays_sha256"] == hashlib.sha256(arrays_path.read_bytes()).hexdigest()):
             with np.load(arrays_path) as a:
                 solution = reference.Solution(**{key: a[key] for key in a.files},
-                            timing="canonical", theta=.282, gross_r=1.017, diagnostics=manifest["diagnostics"])
+                            timing=spec["timing"], theta=spec["theta"], gross_r=spec["gross_r"],
+                            diagnostics=manifest["diagnostics"])
     if solution is None:
         print("Solving", name, flush=True)
-        solution = solve_case(refinement, n_y)
+        solution = solve_case(refinement, n_y, calibration)
         np.savez_compressed(arrays_path, **{key: getattr(solution, key) for key in (
             "assets", "income", "transition", "default_income", "value", "price", "policy", "default")})
         manifest_path.write_text(json.dumps(dict(source_sha256=source_hash,
@@ -99,7 +139,8 @@ def case(refinement: int, n_y: int, args, source_hash: str) -> dict:
 
 def write_report(report: dict, output: Path) -> None:
     (output / "grid_report.json").write_text(json.dumps(report, indent=2, allow_nan=False)+"\n")
-    rows = ["# Public Arellano baseline: grid convergence", "",
+    title = {"public": "Public Arellano baseline", "archive": "Archived Arellano (2008) calibration"}
+    rows = [f'# {title[report.get("calibration_name", "public")]}: grid convergence', "",
             "Calibration is fixed; published moments are not acceptance targets.", "",
             "Pass requires |paired mean change| + its 95% Student-t half-width",
             "to fit every stated tolerance, for the final income and asset refinements.", "",
@@ -127,6 +168,9 @@ def write_report(report: dict, output: Path) -> None:
 
 
 def run(args) -> dict:
+    calibration = getattr(args, "calibration", "public")
+    if calibration not in CALIBRATIONS:
+        raise ValueError("calibration must be public or archive")
     args.output.mkdir(parents=True, exist_ok=True)
     refinements, incomes = sorted(set(args.refinements)), sorted(set(args.income_states))
     if len(refinements) < 2 or len(incomes) < 2:
@@ -136,11 +180,11 @@ def run(args) -> dict:
                   repository_head=subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
                   source_sha256=source_hash, checker_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                   python=platform.python_version(), numpy=np.__version__,
-                  calibration=dict(beta=.95282, gamma=2., theta=.282, r=.017, rho=.945, sigma=.025,
-                                   timing="canonical", policy_search=POLICY_SEARCH,
-                                   mean_income=10., default_cap=9.69,
-                                   assets_min=-3.3, assets_max=1.5, income_support="three unconditional log standard deviations"),
+                  calibration=calibration_metadata(calibration),
                   tolerances=TOLERANCES, cases={}, comparisons={}, status="incomplete")
+    if calibration != "public":
+        # Recorded only for non-default calibrations, so public records keep their schema.
+        report["calibration_name"] = calibration
     # Written before solving, so the tolerance/design cannot be mistaken for a
     # rule chosen retrospectively to fit the final grid output.
     (args.output / "grid_protocol.json").write_text(json.dumps(report | dict(
@@ -151,11 +195,11 @@ def run(args) -> dict:
             record = case(refinement, n_y, args, source_hash)
             report["cases"][record["name"]] = record
             (args.output / "grid_report.json").write_text(json.dumps(report, indent=2, allow_nan=False)+"\n")
-    fine_b, coarse_b = (400*2**r+1 for r in refinements[-2:][::-1])
+    fine_b, coarse_b = (n_assets(r, calibration) for r in refinements[-2:][::-1])
     fine_y, coarse_y = incomes[-1], incomes[-2]
     for name, left, right in (
-        ("final_asset_refinement", f"public_{coarse_b}_{fine_y}", f"public_{fine_b}_{fine_y}"),
-        ("final_income_refinement", f"public_{fine_b}_{coarse_y}", f"public_{fine_b}_{fine_y}"),
+        ("final_asset_refinement", f"{calibration}_{coarse_b}_{fine_y}", f"{calibration}_{fine_b}_{fine_y}"),
+        ("final_income_refinement", f"{calibration}_{fine_b}_{coarse_y}", f"{calibration}_{fine_b}_{fine_y}"),
     ):
         report["comparisons"][name] = dict(coarse=left, fine=right, **paired_comparison(
             report["cases"][left]["simulation"], report["cases"][right]["simulation"]))
@@ -168,6 +212,7 @@ def run(args) -> dict:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--calibration", choices=sorted(CALIBRATIONS), default="public")
     parser.add_argument("--income-states", type=int, nargs="+", default=[321, 641])
     parser.add_argument("--refinements", type=int, nargs="+", default=[0, 1])
     parser.add_argument("--replications", type=int, default=16)

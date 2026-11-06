@@ -82,6 +82,13 @@ workstation. The passing record is frozen in
 `tests/fixtures/arellano_2008/public_grid_convergence.json`; see the
 [comparison guide](../../docs/arellano_replication.md) for the result.
 
+`--calibration archive` runs the same check on the archived calibration with
+the author's timing, literals and midpoint-refined 200-node grid
+(`199*2**r+1` debt nodes). The converged archived ladder is
+`--calibration archive --refinements 2 3 4 5 --income-states 321 641`, then the
+same command with `--periods 500000 --windows 1000`; its passing record is
+`tests/fixtures/arellano_2008/archive_grid_convergence.json`.
+
 ## Fiscal sovereign default: grid convergence
 
 ```sh
@@ -103,6 +110,24 @@ before solving and are not changed afterwards. A failing ladder is frozen as
 `convergence_not_established`. The record is
 `tests/fixtures/sovereign_fiscal/fiscal_grid_convergence.json`; see the
 [fiscal rules guide](../../docs/sovereign_fiscal_rules.md).
+
+## Fiscal rules: registered predictions
+
+```sh
+MPLBACKEND=Agg python -m tools.reference_validation.check_fiscal_rule_predictions --output /tmp/rule_predictions_record.json
+```
+
+Predictions about the four illustrative fiscal rules (a 0.02 debt ceiling,
+the same with an escape clause below `y = 0.92`, a soft ceiling with
+`penalty=0.05`, and a 0.005 deficit limit) were committed in
+`tests/fixtures/sovereign_fiscal/rule_predictions_protocol.json` before any
+rule was solved. The tool reads that protocol, never changes it, solves each
+rule on the coarse 401 x 21 grid, simulates 16 paired seeds of 100,000
+quarters and writes the outcomes with a verdict per prediction; a failed
+prediction stays failed. The frozen record is
+`tests/fixtures/sovereign_fiscal/rule_predictions_record.json`; see the
+[fiscal rules guide](../../docs/sovereign_fiscal_rules.md). Rules are compared
+only within that one coarse grid.
 
 ## Dynare 7.0 / MATLAB
 
