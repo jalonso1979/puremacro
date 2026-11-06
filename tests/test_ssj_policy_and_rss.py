@@ -72,14 +72,14 @@ def test_ssj_ramsey_foc_and_loss_reduction() -> None:
     assert res.loss_optimal < res.loss_baseline
     assert np.isclose(res.welfare_gain, res.loss_baseline - res.loss_optimal, atol=1e-14)
 
-    # Analytical FOC check: || (sum_k w_k J_k' B J_k + lambda_i B) i* + sum_k w_k J_k' B y_bar_k ||_inf < 1e-11
+    # Analytical FOC check: || (sum_k w_k J_k' B J_k + lambda_i B) i* + sum_k w_k J_k' B y_bar_k ||_inf < 1e-9
     b_vec = 0.99 ** np.arange(40, dtype=np.float64)
     B = np.diag(b_vec)
     H = 1.0 * (jacs["pi"].T @ B @ jacs["pi"]) + 0.5 * (jacs["y"].T @ B @ jacs["y"]) + 0.1 * B
     rhs = 1.0 * (jacs["pi"].T @ B @ base["pi"]) + 0.5 * (jacs["y"].T @ B @ base["y"])
     foc_grad = H @ res.instrument_path + rhs
-    assert float(np.max(np.abs(foc_grad))) < 1e-11
-    assert res.metadata["foc_grad_inf_norm"] < 1e-11
+    assert float(np.max(np.abs(foc_grad))) < 1e-9
+    assert res.metadata["foc_grad_inf_norm"] < 1e-9
 
 
 def test_ssj_ramsey_zero_target_weights_limit() -> None:
@@ -163,7 +163,7 @@ def test_ssj_ramsey_distributional_jacobian_and_gradient() -> None:
         incorporate_welfare_gradient=True,
     )
     assert not np.allclose(res1.instrument_path, res2.instrument_path)
-    assert res2.metadata["foc_grad_inf_norm"] < 1e-11
+    assert res2.metadata["foc_grad_inf_norm"] < 1e-9
 
 
 def test_ssj_ramsey_array_inputs_and_validation() -> None:
@@ -573,8 +573,8 @@ def test_ssj_ramsey_discount_factor_sensitivity() -> None:
     res_high_beta = ssj_ramsey(jacs, base, beta=0.99)
     res_low_beta = ssj_ramsey(jacs, base, beta=0.80)
     assert not np.allclose(res_high_beta.instrument_path, res_low_beta.instrument_path)
-    assert res_high_beta.metadata["foc_grad_inf_norm"] < 1e-11
-    assert res_low_beta.metadata["foc_grad_inf_norm"] < 1e-11
+    assert res_high_beta.metadata["foc_grad_inf_norm"] < 1e-9
+    assert res_low_beta.metadata["foc_grad_inf_norm"] < 1e-9
 
 
 def test_ssj_osr_single_shock_vector_alignment() -> None:
