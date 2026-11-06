@@ -25,9 +25,9 @@ python -m pip install puremacro
 | **Redactar un informe de política** | Ejecute un [experimento arancelario con datos públicos](docs/es/first_brief_tariffs.md) y lea los efectos de bienestar nacionales y por hogares. |
 | **Aprender o enseñar** | Elija una [ruta de cuadernos](docs/es/notebooks.md) o use el [curso bilingüe y sus laboratorios interactivos](curso/README.md). Use la edición fija del curso indicada abajo. |
 
-**Estado comprobado el 2026-11-03:** **6.1.0** está publicada en [PyPI](https://pypi.org/project/puremacro/6.1.0/), y `pip install puremacro` la instala. Sucede a 6.0.1 (publicada el 2026-10-29); las etiquetas 5.8.0, 5.9.0 y 6.0.0 nunca se publicaron (v6.0.0 falló en CI).
+**Estado comprobado el 2026-11-05:** **6.2.0** está publicada en [PyPI](https://pypi.org/project/puremacro/6.2.0/), y `pip install puremacro` la instala. Sucede a 6.1.0 (publicada el 2026-11-03) y 6.0.1 (publicada el 2026-10-29); las etiquetas 5.8.0, 5.9.0 y 6.0.0 nunca se publicaron (v6.0.0 falló en CI).
 Consulte las [pruebas recomendadas y próximos hitos](docs/es/research_reliability.md).
-Estas páginas siguen la versión 6.1.0. Consulte el
+Estas páginas siguen la versión 6.2.0. Consulte el
 [historial de cambios](CHANGELOG.md) y use la documentación correspondiente
 a su versión instalada.
 

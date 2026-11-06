@@ -111,9 +111,10 @@ def test_v6_frontdoors_and_catalogs_synchronized():
         txt = (DOCS_DIR / idx_file).read_text(encoding="utf-8")
         assert "6.0.0" in txt, f"docs/{idx_file} does not mention v6.0.0"
         # The front door names the version PyPI actually serves, with the date checked.
-        assert "2026-11-03" in txt or "2026-10-29" in txt
+        assert "2026-11-05" in txt or "2026-11-03" in txt or "2026-10-29" in txt
         assert (
-            "https://pypi.org/project/puremacro/6.1.0/" in txt
+            "https://pypi.org/project/puremacro/6.2.0/" in txt
+            or "https://pypi.org/project/puremacro/6.1.0/" in txt
             or "https://pypi.org/project/puremacro/6.0.1/" in txt
         )
         assert "https://pypi.org/project/puremacro/6.0.0/" not in txt
