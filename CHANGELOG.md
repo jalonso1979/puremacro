@@ -9,9 +9,9 @@ additions are included in 5.4.2. Versions 5.8.0, 5.9.0 and 6.0.0 were tagged
 but not published; their additions are included in 6.0.1, published on
 2026-10-29. See the [release procedure](RELEASING.md).
 
-## Unreleased
+## 6.2.0 (2026-11-05)
 
-Development changes after 6.1.0. Not a published distribution.
+**Fiscal rules & debt-sustainability analysis, state-dependent LP & weak-IV HAC diagnostics, sequence-space optimal policy, SVAR identification, GIV, and investment-research workflows.**
 
 ### Added
 

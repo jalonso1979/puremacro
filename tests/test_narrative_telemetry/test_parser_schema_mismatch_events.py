@@ -153,6 +153,12 @@ def test_iter_source_emits_event_on_schema_mismatch(fresh_db, monkeypatch, name)
         ParserSchemaMismatchError,
     )
 
+    # Import the connector module BEFORE monkeypatching _telemetry.log_event
+    # or _schema_check.assert_landmarks so a first-time module import in an
+    # xdist worker binds the real functions first, allowing monkeypatch teardown
+    # to restore the real bindings afterwards.
+    mod = importlib.import_module(f"puremacro.narrative.sources.{name}")
+
     # Spy on log_event to confirm it was called with the right args.
     calls: list[tuple] = []
 
@@ -165,6 +171,8 @@ def test_iter_source_emits_event_on_schema_mismatch(fresh_db, monkeypatch, name)
         "puremacro.narrative.sources._telemetry.log_event",
         _spy_log_event,
     )
+    if hasattr(mod, "log_event"):
+        monkeypatch.setattr(mod, "log_event", _spy_log_event)
 
     # Force assert_landmarks to always raise so the iter_<source>
     # wrapper's except block fires.
@@ -176,8 +184,6 @@ def test_iter_source_emits_event_on_schema_mismatch(fresh_db, monkeypatch, name)
         "puremacro.narrative.sources._schema_check.assert_landmarks",
         _always_raise,
     )
-
-    mod = importlib.import_module(f"puremacro.narrative.sources.{name}")
 
     # Apply connector-specific stubs (local bindings + listing stubs).
     _apply_connector_stubs(name, mod, monkeypatch, _always_raise)
