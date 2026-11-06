@@ -52,38 +52,87 @@
       "ssl"
     ],
     "puremacro.asset_pricing": [
+      "BacktestResult",
+      "BeliefSimulationResult",
       "CCAPMResult",
+      "CovarianceResult",
       "FamaMacBethResult",
       "HJDistanceResult",
+      "PortfolioAllocationResult",
       "RiskSummaryResult",
       "SDFResult",
+      "StrategyComparisonResult",
       "TimeSeriesTestResult",
       "VaRBacktestResult",
+      "ValuationResult",
       "annualize_return",
       "annualize_volatility",
+      "backtest_portfolio",
       "ccapm",
+      "compare_strategies",
       "compound",
+      "discounted_cash_flow",
+      "dividend_discount",
+      "efficient_frontier",
+      "equal_weight",
+      "estimate_covariance",
       "excess_returns",
       "expected_shortfall",
       "fama_macbeth",
       "fred_consumption_growth",
       "fred_risk_free",
+      "fundamental_ratios",
+      "fundamentals_asof",
       "hj_distance",
+      "momentum_weights",
+      "optimize_portfolio",
+      "replay_backtest",
       "risk_summary",
       "sdf_gmm",
+      "simulate_brock_hommes",
+      "technical_indicators",
       "time_series_test",
       "to_returns",
+      "valuation_sensitivity",
       "value_at_risk",
-      "var_backtest"
+      "var_backtest",
+      "walk_forward_weights"
     ],
+    "puremacro.asset_pricing._research": [],
     "puremacro.asset_pricing._results": [],
     "puremacro.asset_pricing._validate": [],
+    "puremacro.asset_pricing.allocation": [
+      "CovarianceResult",
+      "PortfolioAllocationResult",
+      "efficient_frontier",
+      "equal_weight",
+      "estimate_covariance",
+      "optimize_portfolio"
+    ],
+    "puremacro.asset_pricing.backtest": [
+      "BacktestResult",
+      "backtest_portfolio",
+      "replay_backtest",
+      "walk_forward_weights"
+    ],
+    "puremacro.asset_pricing.beliefs": [
+      "BeliefSimulationResult",
+      "simulate_brock_hommes"
+    ],
     "puremacro.asset_pricing.ccapm": [
       "ccapm"
     ],
     "puremacro.asset_pricing.factor_tests": [
       "fama_macbeth",
       "time_series_test"
+    ],
+    "puremacro.asset_pricing.fundamentals": [
+      "ValuationResult",
+      "discounted_cash_flow",
+      "dividend_discount",
+      "fundamental_ratios",
+      "fundamentals_asof",
+      "valuation_sensitivity"
     ],
     "puremacro.asset_pricing.macro_data": [
       "fred_consumption_growth",
@@ -105,6 +154,12 @@
     "puremacro.asset_pricing.sdf": [
       "hj_distance",
       "sdf_gmm"
+    ],
+    "puremacro.asset_pricing.technical": [
+      "StrategyComparisonResult",
+      "compare_strategies",
+      "momentum_weights",
+      "technical_indicators"
     ],
     "puremacro.bartik": [
       "ShiftShareIVResult",
@@ -4933,6 +4988,70 @@
       "p_ind",
       "p_uc",
       "violation_rate"
+    ],
+    "puremacro.asset_pricing.allocation.CovarianceResult": [
+      "covariance",
+      "means",
+      "method",
+      "n_obs",
+      "names",
+      "shrinkage"
+    ],
+    "puremacro.asset_pricing.allocation.PortfolioAllocationResult": [
+      "constraint_violation",
+      "converged",
+      "expected_return",
+      "names",
+      "objective",
+      "optimality_gap",
+      "turnover",
+      "variance",
+      "weights"
+    ],
+    "puremacro.asset_pricing.backtest.BacktestResult": [
+      "_recipe_json",
+      "input_sha256",
+      "ledger",
+      "trades",
+      "weights"
+    ],
+    "puremacro.asset_pricing.beliefs.BeliefSimulationResult": [
+      "deviations",
+      "fitness",
+      "forecasts",
+      "fractions",
+      "names",
+      "prices",
+      "profits",
+      "shocks",
+      "specification_json"
+    ],
+    "puremacro.asset_pricing.fundamentals.ValuationResult": [
+      "cash_flows",
+      "discount_rates",
+      "enterprise_value",
+      "equity_value",
+      "forecast_pv",
+      "kind",
+      "net_debt",
+      "shares_outstanding",
+      "terminal_fraction",
+      "terminal_growth",
+      "terminal_pv",
+      "value_per_share"
+    ],
+    "puremacro.asset_pricing.technical.StrategyComparisonResult": [
+      "adjusted_pvalue",
+      "block_length",
+      "ci_lower",
+      "ci_upper",
+      "confidence",
+      "global_pvalue",
+      "mean_difference",
+      "n_boot",
+      "n_obs",
+      "names",
+      "seed"
     ],
     "puremacro.bartik.akm.ShiftShareIVResult": [
       "akm_shocks",

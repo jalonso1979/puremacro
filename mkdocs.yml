@@ -99,6 +99,8 @@ nav:
           - Penalized Forecasting: forecast.md
       - Macro-finance:
           - Returns, risk and asset-pricing tests: asset_pricing.md
+          - Portfolio and investment research: investment_research.md
+          - Investment research validation: investment_research_validation.md
       - Publication & Reporting:
           - Manuscript Tables & Exports: reporting.md
       - Structural Models:
@@ -229,6 +231,8 @@ nav:
           - Pronóstico penalizado: es/forecast.md
       - Macrofinanzas:
           - Rendimientos, riesgo y pruebas de valoración de activos: es/asset_pricing.md
+          - Investigación de carteras e inversiones: es/investment_research.md
+          - Validación de investigación de inversiones: es/investment_research_validation.md
       - Publicación e informes:
           - Tablas y exportación de manuscritos: es/reporting.md
       - Modelos estructurales:

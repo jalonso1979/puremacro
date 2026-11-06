@@ -1,5 +1,8 @@
 > 🇬🇧 English · 🇪🇸 [Español](es/asset_pricing.md)
 
+For portfolio backtesting, allocation, technical/fundamental analysis and
+chartist–fundamentalist dynamics, see [investment research](investment_research.md).
+
 # Returns, risk and asset-pricing tests
 
 `puremacro.asset_pricing` measures return risk and tests asset-pricing

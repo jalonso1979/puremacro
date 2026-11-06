@@ -9,6 +9,10 @@ tours, not the starting point for the current package.
 
 ## Choose a learning path
 
+For portfolio, technical and fundamental research, start with the
+[investment research guide](investment_research.md) and its executed bilingual
+notebooks, `investment_research.ipynb` and `investment_research_es.ipynb`.
+
 The numbers below refer to the linked catalog. The order within each row moves
 from a focused example to a broader application.
 

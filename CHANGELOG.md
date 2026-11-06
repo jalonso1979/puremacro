@@ -15,6 +15,14 @@ Development changes after 6.1.0. Not a published distribution.
 
 ### Added
 
+- Experimental investment-research kernels in `asset_pricing`: lagged,
+  self-financing long-only backtests with cash, costs, eligibility and JSON replay;
+  Ledoit–Wolf covariance, bounded mean/minimum-variance allocation and frontier;
+  causal technical indicators, momentum policies and a block-bootstrap max test;
+  availability-dated fundamentals, financial ratios, FCFF/FCFE/dividend valuation
+  and sensitivity; Brock–Hommes affine-belief dynamics with explicit fitness timing.
+  No new runtime dependencies or bundled market data. Bilingual guides and
+  executed notebooks document numerical checks, timing and unsupported extensions.
 - `cumulative=True` on `lp_iv` and `lp_state_dep_iv` estimates integral
   multipliers directly: the outcome and the endogenous regressor become
   window sums over `0..h`, the instrument stays dated at `t`. Results carry
@@ -282,6 +290,7 @@ incidence analysis on Mexican ENIGH 2022 microdata.
   are revealed, with one distribution per history and explicit firm valuation
   and terminal closures. Deterministic paths reduce to the existing published
   one-asset model; this does not certify stationary stochastic HANK.
+>>>>>>> origin/main
 
 - `calibrate_one_asset_hank` and `solve_one_asset_hank`: the published ABRS
   one-asset equilibrium with endogenous labor, debt revaluation, asset/labor

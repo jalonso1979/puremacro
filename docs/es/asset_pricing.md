@@ -1,5 +1,8 @@
 > 🇬🇧 [English](../asset_pricing.md) · 🇪🇸 Español
 
+Para evaluación histórica de carteras, asignación, análisis técnico/fundamental
+y dinámica de chartistas y fundamentalistas, consulte [investigación de inversiones](investment_research.md).
+
 # Rendimientos, riesgo y pruebas de valoración de activos
 
 `puremacro.asset_pricing` mide el riesgo de los rendimientos y contrasta

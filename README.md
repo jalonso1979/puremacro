@@ -449,7 +449,10 @@ entries that could not be confirmed against the live API are marked `VERIFY_ONLI
   HAC Wald time-series tests, Fama-MacBeth with Shanken se, linear SDF GMM,
   Hansen-Jagannathan distance, Hansen-Singleton CCAPM, on the public GMM
   engine `inference.gmm`; Ken French and FRED data fetched, never bundled;
-  see `docs/asset_pricing.md`.
+  see `docs/asset_pricing.md`. Experimental investment-research tools add lagged
+  portfolio backtests with costs, constrained allocation, technical indicators,
+  dated fundamentals and DCF, and Brock–Hommes belief dynamics; see the
+  [English/Spanish guide](docs/investment_research.md).
 
 **Frontier methods (2.3)**
 

@@ -1,4 +1,4 @@
-"""Macro-finance: returns, risk, VaR and asset-pricing tests.
+"""Macro-finance, portfolio research, valuation and heterogeneous beliefs.
 
 Returns and risk (:mod:`.returns`), value at risk and its backtests, the
 time-series (GRS) and Fama-MacBeth factor tests, linear stochastic discount
@@ -6,6 +6,11 @@ factor GMM, the Hansen-Jagannathan distance and the Hansen-Singleton
 consumption CAPM. The moment-based estimators are built on
 :func:`puremacro.inference.gmm`. No asset data are bundled; see
 :mod:`puremacro.fetch.kenfrench_factors` and :mod:`.macro_data`.
+
+Experimental research APIs add lagged portfolio accounting, constrained
+allocation, technical indicators, availability-dated fundamentals and cash-flow
+valuation, and Brock-Hommes belief dynamics. These operate on explicit supplied
+inputs; numerical validation is separate from empirical investment performance.
 """
 from .returns import (
     annualize_return,
@@ -19,6 +24,13 @@ from .factor_tests import fama_macbeth, time_series_test
 from .sdf import hj_distance, sdf_gmm
 from .ccapm import ccapm
 from .macro_data import fred_consumption_growth, fred_risk_free
+from .backtest import BacktestResult, backtest_portfolio, walk_forward_weights, replay_backtest
+from .allocation import (CovarianceResult, PortfolioAllocationResult, estimate_covariance,
+                         equal_weight, optimize_portfolio, efficient_frontier)
+from .technical import technical_indicators, momentum_weights, StrategyComparisonResult, compare_strategies
+from .fundamentals import (fundamentals_asof, fundamental_ratios, ValuationResult,
+                           discounted_cash_flow, dividend_discount, valuation_sensitivity)
+from .beliefs import BeliefSimulationResult, simulate_brock_hommes
 from ._results import (
     CCAPMResult,
     FamaMacBethResult,
@@ -53,4 +65,14 @@ __all__ = [
     "CCAPMResult",
     "fred_consumption_growth",
     "fred_risk_free",
+    "BacktestResult",
+    "backtest_portfolio",
+    "walk_forward_weights",
+    "replay_backtest",
+    "CovarianceResult", "PortfolioAllocationResult", "estimate_covariance",
+    "equal_weight", "optimize_portfolio", "efficient_frontier",
+    "technical_indicators", "momentum_weights", "StrategyComparisonResult", "compare_strategies",
+    "fundamentals_asof", "fundamental_ratios", "ValuationResult", "discounted_cash_flow",
+    "dividend_discount", "valuation_sensitivity",
+    "BeliefSimulationResult", "simulate_brock_hommes",
 ]
