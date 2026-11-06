@@ -147,8 +147,9 @@ def test_extension_retains_each_historical_case_and_its_source_hashes(tmp_path, 
         case['parameters'].update(n_b=b, n_y=y)
         generated['scenarios'][name]['cases'][f'{b}x{y}'] = case
     monkeypatch.setattr(study, 'build_record', lambda *a, **k: generated)
-    # The real record may have been generated on a different CI interpreter.
+    # The real record may have been generated on a different CI interpreter or package version.
     monkeypatch.setattr(study, '_versions', lambda: frozen['versions'])
+    monkeypatch.setattr(study, '_package_version', lambda: frozen['package_version'])
     result = study.extend(tmp_path, path, {name: SCENARIOS[name]})
     assert result['initial_record_sha256'] == hashlib.sha256(path.read_bytes()).hexdigest()
     for key, case in frozen['scenarios'][name]['cases'].items():
