@@ -1774,6 +1774,7 @@
       "gmm",
       "hac_fixed_b",
       "hansen_j",
+      "instrument_influence",
       "kleibergen_paap_f",
       "lewbel_iv",
       "llsw_critical_value",
@@ -1884,6 +1885,7 @@
       "anderson_rubin_band",
       "anderson_rubin_test",
       "cragg_donald_f",
+      "instrument_influence",
       "kleibergen_paap_f",
       "msw_bands",
       "olea_pflueger_f"

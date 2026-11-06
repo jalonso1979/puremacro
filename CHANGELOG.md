@@ -31,6 +31,24 @@ Development changes after 6.1.0. Not a published distribution.
   `tools/reference_validation/refresh_fiscal_brief.py` and checked by the tests.
 - `RZ_CONTROLS` is public in the Ramey-Zubairy example; `_CTL` stays as an
   alias.
+- `olea_pflueger_f`, `anderson_rubin_test`, and `msw_bands` in
+  `puremacro.inference.weak_iv` accept `lags: int | None = None` for
+  Bartlett-HAC long-run covariance estimation (matching `lp_iv` when
+  `lags=h+1`), and `olea_pflueger_f` accepts `controls` so raw `x` and `z` can
+  be residualized inside the helper. ([#217](https://github.com/jalonso1979/puremacro/issues/217))
+- `instrument_influence(z, controls=None, weights=None)` in
+  `puremacro.inference.weak_iv` (also re-exported from `puremacro.inference`)
+  computes per-observation shares of residualized instrument variation
+  $\tilde{z}_t^2 / \sum_s \tilde{z}_s^2$, effective sample size
+  $1 / \sum_t w_t^2$, and max share / top indices to flag outlier-driven first
+  stages. ([#217](https://github.com/jalonso1979/puremacro/issues/217))
+- `lp_state_dep`, `lp_state_dep_iv`, and `lp_garch_state` accept
+  `state_lag: int = 0` to shift the regime state column by `state_lag` periods
+  before evaluating transition weights $F(s_{t-\text{state\_lag}})$.
+  `lp_state_dep_iv` also reports Sanderson–Windmeijer (2016) conditional
+  first-stage F statistics (`cond_f_H`, `cond_f_L`) and uses them for
+  `first_stage_f_H` / `first_stage_f_L` when `transition="logistic"`.
+  ([#217](https://github.com/jalonso1979/puremacro/issues/217))
 - Archived Arellano (2008) calibration: grid convergence established.
   `check_arellano_grids --calibration archive` keeps the author's exclusion
   timing, Fortran default-real literals and midpoint-refined 200-node grid.
@@ -132,9 +150,16 @@ Development changes after 6.1.0. Not a published distribution.
   World War II is excluded (0.70/0.69 against 1.07/0.49 with everything
   interacted) and returned explosive estimates on the post-1947 sample
   (+2538 at 16 quarters).
-- `lp_state_dep_iv` no longer swallows estimation errors: a horizon that
-  cannot be estimated emits a `RuntimeWarning` naming the horizon and the
-  exception, and its row is NaN.
+- `lp_state_dep_iv` and `lp_smooth_transition_irf` no longer swallow estimation
+  errors: a horizon that cannot be estimated emits a `RuntimeWarning` naming
+  the horizon and the exception, and its row is NaN. `lp_smooth_transition_irf`
+  also emits a `DeprecationWarning` directing callers to
+  `lp_state_dep(..., transition="logistic")`.
+- `msw_bands` emits a `RuntimeWarning` and returns `(nan, nan)` when the
+  Anderson-Rubin confidence set is empty on the grid (instead of silently
+  returning the argmin point estimate), and warns when the accepted set touches
+  the grid boundary (unbounded/truncated) or is disconnected.
+  ([#217](https://github.com/jalonso1979/puremacro/issues/217))
 - Docstrings: `lp_state_dep_iv` explains how to obtain Ramey–Zubairy's
   integral multiplier instead of claiming to estimate it directly; both
   functions state that the state is used as dated (Ramey–Zubairy and

@@ -124,6 +124,66 @@ def _check_interact(interact: str, func: str) -> str:
     return interact
 
 
+def _check_state_lag(state_lag: int, func: str) -> int:
+    if isinstance(state_lag, bool) or not isinstance(state_lag, (int, np.integer)) or int(state_lag) < 0:
+        raise ValueError(f"{func}: state_lag must be a non-negative integer, got {state_lag!r}")
+    return int(state_lag)
+
+
+def _sanderson_windmeijer_f(
+    x_H: np.ndarray,
+    x_L: np.ndarray,
+    z_H: np.ndarray,
+    z_L: np.ndarray,
+    E: np.ndarray,
+    lags: int,
+) -> tuple[float, float]:
+    """Sanderson and Windmeijer (2016) conditional first-stage F-statistics
+    with Newey-West Bartlett-HAC errors for two endogenous regime regressors
+    ``(x_H, x_L)`` instrumented by ``(z_H, z_L)`` given exogenous design ``E``.
+    """
+    E_inv = np.linalg.pinv(E.T @ E)
+    Z = np.column_stack([z_H, z_L])
+    Z_tilde = Z - E @ (E_inv @ (E.T @ Z))
+    xH_tilde = x_H - E @ (E_inv @ (E.T @ x_H))
+    xL_tilde = x_L - E @ (E_inv @ (E.T @ x_L))
+
+    ZtZ = Z_tilde.T @ Z_tilde
+    ZtZ_inv = np.linalg.pinv(ZtZ)
+    pi_H = ZtZ_inv @ (Z_tilde.T @ xH_tilde)
+    pi_L = ZtZ_inv @ (Z_tilde.T @ xL_tilde)
+    xH_hat = Z_tilde @ pi_H
+    xL_hat = Z_tilde @ pi_L
+
+    def _cond_f(x_j: np.ndarray, x_other: np.ndarray, x_other_hat: np.ndarray) -> float:
+        denom_other = float(x_other_hat @ x_other_hat)
+        delta_j = float(x_other_hat @ x_j) / denom_other if denom_other > 1e-14 else 0.0
+        u_j = x_j - delta_j * x_other
+        kappa = ZtZ_inv @ (Z_tilde.T @ u_j)
+        v_hat = u_j - Z_tilde @ kappa
+        scores = Z_tilde * v_hat[:, None]
+        Omega = scores.T @ scores
+        for ell in range(1, lags + 1):
+            weight = 1.0 - ell / (lags + 1.0)
+            gamma_ell = scores[ell:].T @ scores[:-ell]
+            Omega = Omega + weight * (gamma_ell + gamma_ell.T)
+        V_kappa = ZtZ_inv @ Omega @ ZtZ_inv
+        # Under a sharp threshold with interact='all', one column of Z_tilde has
+        # zero residual variance in each regime; restrict to active instruments.
+        active = np.diag(Omega) > 1e-20
+        if not active.any():
+            return float("nan")
+        k_sub = kappa[active]
+        V_sub = V_kappa[np.ix_(active, active)]
+        try:
+            wald = float(k_sub @ np.linalg.solve(V_sub, k_sub))
+        except np.linalg.LinAlgError:
+            wald = float(k_sub @ np.linalg.pinv(V_sub) @ k_sub)
+        return float(wald)
+
+    return _cond_f(xH_tilde, xL_tilde, xL_hat), _cond_f(xL_tilde, xH_tilde, xH_hat)
+
+
 def _regime_design(W: np.ndarray, F: np.ndarray, interact: str) -> np.ndarray:
     """Exogenous regressors (constants and controls) for one horizon.
 
@@ -187,6 +247,7 @@ def lp_state_dep(
     alpha: float = 0.10,
     *,
     interact: str = "all",
+    state_lag: int = 0,
     lags: int | None = None,
     horizon: int | None = None,
     ci: float | None = None,
@@ -268,6 +329,12 @@ def lp_state_dep(
         Two-sided level of the bands (alias ``ci = 1 - alpha``).
     interact : {'all', 'intercept', 'none'}, default 'all'
         Which coefficients besides the shock's are regime-specific (above).
+    state_lag : int, default 0
+        Number of periods by which to lag ``state`` before computing the
+        regime weight ``F(s_{t - state_lag})``. Pass ``state_lag=1`` when ``state``
+        is dated at ``t`` in ``df`` and the predetermined convention ``s_{t-1}``
+        of Ramey-Zubairy / Auerbach-Gorodnichenko is desired. Requires a
+        regularly spaced index when ``state_lag > 0``.
 
     Returns
     -------
@@ -300,14 +367,19 @@ def lp_state_dep(
         raise ValueError(
             f"lp_state_dep: unknown transition {transition!r}; use 'logistic' or 'threshold'")
     interact = _check_interact(interact, "lp_state_dep")
+    state_lag = _check_state_lag(state_lag, "lp_state_dep")
+    if state_lag > 0:
+        check_regular_index(df.index, "lp_state_dep")
     ctl = list(controls or [])
     z_crit = norm.ppf(1 - alpha / 2)
-    s_mean, s_sd = _state_scale(df[state], func="lp_state_dep", state_name=state)
+    state_series = df[state].shift(state_lag) if state_lag > 0 else df[state]
+    s_mean, s_sd = _state_scale(state_series, func="lp_state_dep", state_name=state)
     cutoff = s_mean if threshold is None else float(threshold)
 
     rows = []
     for h in horizons:
-        sub = df[list(dict.fromkeys([y, x, state] + ctl))].copy()
+        sub = df[list(dict.fromkeys([y, x] + ctl))].copy()
+        sub["__state__"] = state_series
         sub["__dy_h__"] = sub[y].shift(-h) - sub[y].shift(1)
         for lag in range(1, n_lags + 1):
             sub[f"__{x}_L{lag}__"] = sub[x].shift(lag)
@@ -319,7 +391,7 @@ def lp_state_dep(
             rows.append(_nan_regime_row(h, _DIFF_COLS))
             continue
         F = _transition_weights(
-            sub[state].to_numpy(), transition, gamma, cutoff, s_sd,
+            sub["__state__"].to_numpy(), transition, gamma, cutoff, s_sd,
             state_name=state, func="lp_state_dep")
 
         xv = sub[x].to_numpy(dtype=float)
@@ -333,7 +405,8 @@ def lp_state_dep(
             "beta_H": beta_H, "se_H": se_H,
             "lo_H": beta_H - z_crit * se_H, "hi_H": beta_H + z_crit * se_H,
             "beta_L": beta_L, "se_L": se_L,
-            "lo_L": beta_L - z_crit * se_L, "hi_L": beta_L + z_crit * se_L,
+            "lo_L": beta_L - z_crit * se_L,
+            "hi_L": beta_L + z_crit * se_L,
             **_regime_difference(out["beta"], out["vcov"], F),
         })
     res = LPResult(rows)
@@ -358,6 +431,9 @@ def lp_smooth_transition_irf(
     alpha: float = 0.10,
 ) -> pd.DataFrame:
     """Granger-Teräsvirta smooth-transition LP (Auerbach-Gorodnichenko style).
+
+    .. deprecated::
+        Use :func:`lp_state_dep` with ``transition='logistic'`` instead.
 
     Estimates, for each horizon h:
 
@@ -413,6 +489,12 @@ def lp_smooth_transition_irf(
         ``beta_high`` is the coefficient on F(z_t)*x_t (high-state regime);
         ``beta_low`` is the coefficient on (1-F(z_t))*x_t (low-state regime).
     """
+    warnings.warn(
+        "lp_smooth_transition_irf is deprecated and will be removed in a future release; "
+        "use lp_state_dep(..., transition='logistic') instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     import statsmodels.api as sm  # lazy: Pyodide contract
 
     horizons = list(horizons)
@@ -471,7 +553,13 @@ def lp_smooth_transition_irf(
             b_low = float(coef[2])
             se_high = float(np.sqrt(max(cov[1, 1], 0.0)))
             se_low = float(np.sqrt(max(cov[2, 2], 0.0)))
-        except Exception:
+        except Exception as exc:  # noqa: BLE001 — reported, not swallowed
+            warnings.warn(
+                f"lp_smooth_transition_irf: horizon h={h} could not be estimated "
+                f"({type(exc).__name__}: {exc}); its row is NaN.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
             b_high = b_low = se_high = se_low = np.nan
 
         rows.append({
@@ -503,6 +591,7 @@ def lp_state_dep_iv(
     *,
     interact: str = "all",
     cumulative: bool = False,
+    state_lag: int = 0,
     lags: int | None = None,
     horizon: int | None = None,
     ci: float | None = None,
@@ -544,7 +633,8 @@ def lp_state_dep_iv(
     of ``state`` (``None`` = sample mean); ``'threshold'`` gives
     ``F = 1{state > threshold}`` and ``'logistic'`` gives
     ``F = 1 / (1 + exp(-gamma (state - threshold) / sd(state)))``. The
-    state is used as dated in ``df``; Ramey-Zubairy date it at ``t - 1``.
+    state is used as dated in ``df`` unless ``state_lag > 0``; Ramey-Zubairy
+    date it at ``t - 1``.
 
     Parameters
     ----------
@@ -585,6 +675,10 @@ def lp_state_dep_iv(
         and ``beta_L`` are cumulative responses of ``y`` per unit of
         cumulative ``x``. Requires a regularly spaced index; ``h = 0``
         coincides with the default.
+    state_lag : int, default 0
+        Number of periods by which to lag ``state`` before computing the
+        regime weight ``F(s_{t - state_lag})``. Requires a regularly spaced
+        index when ``state_lag > 0``.
     lags : int, optional
         Alias for n_lags.
     horizon : int, optional
@@ -598,10 +692,10 @@ def lp_state_dep_iv(
         DataFrame subclass indexed by ``h`` containing columns:
         ``h``, ``beta_H``, ``se_H``, ``lo_H``, ``hi_H``,
         ``beta_L``, ``se_L``, ``lo_L``, ``hi_L``,
-        ``first_stage_f_H``, ``first_stage_f_L`` (squared HAC t-statistic of
-        each regime's instrument in its own first stage; with
-        ``interact='all'`` and a threshold this is the within-regime
-        first-stage F), ``diff_HL``, ``se_diff_HL``, ``p_diff_HL`` (HAC test
+        ``first_stage_f_H``, ``first_stage_f_L``, ``cond_f_H``, ``cond_f_L``
+        (Sanderson-Windmeijer 2016 conditional first-stage F; under
+        ``transition='logistic'``, ``first_stage_f_H/L`` also report the
+        conditional F), ``diff_HL``, ``se_diff_HL``, ``p_diff_HL`` (HAC test
         of ``β_H = β_L``) and ``n_eff_H``, ``n_eff_L``.
 
     Raises
@@ -623,17 +717,20 @@ def lp_state_dep_iv(
         raise ValueError(
             f"lp_state_dep_iv: unknown transition {transition!r}; use 'threshold' or 'logistic'")
     interact = _check_interact(interact, "lp_state_dep_iv")
+    state_lag = _check_state_lag(state_lag, "lp_state_dep_iv")
     ctl = list(controls or [])
     z_crit = norm.ppf(1 - alpha / 2)
-    extra = ("first_stage_f_H", "first_stage_f_L") + _DIFF_COLS
-    s_mean, s_sd = _state_scale(df[state], func="lp_state_dep_iv", state_name=state)
-    cutoff = s_mean if threshold is None else float(threshold)
-    if cumulative:
+    extra = ("first_stage_f_H", "first_stage_f_L", "cond_f_H", "cond_f_L") + _DIFF_COLS
+    if cumulative or state_lag > 0:
         check_regular_index(df.index, "lp_state_dep_iv")
+    state_series = df[state].shift(state_lag) if state_lag > 0 else df[state]
+    s_mean, s_sd = _state_scale(state_series, func="lp_state_dep_iv", state_name=state)
+    cutoff = s_mean if threshold is None else float(threshold)
 
     rows = []
     for h in horizons:
-        sub = df[list(dict.fromkeys([y, x, z, state] + ctl))].copy()
+        sub = df[list(dict.fromkeys([y, x, z] + ctl))].copy()
+        sub["__state__"] = state_series
         # Lags come from the original x and y, before any window replaces them.
         for lag in range(1, n_lags + 1):
             sub[f"__{x}_L{lag}__"] = sub[x].shift(lag)
@@ -651,14 +748,16 @@ def lp_state_dep_iv(
             continue
 
         F = _transition_weights(
-            sub[state].to_numpy(), transition, gamma, cutoff, s_sd,
+            sub["__state__"].to_numpy(), transition, gamma, cutoff, s_sd,
             state_name=state, func="lp_state_dep_iv")
 
         xv = sub["__x_w__"].to_numpy(dtype=float)
         zv = sub[z].to_numpy(dtype=float)
-        E = _regime_design(_controls_matrix(sub, x, y, ctl, n_lags), F, interact)
+        W_ctl = _controls_matrix(sub, x, y, ctl, n_lags)
+        E = _regime_design(W_ctl, F, interact)
         x_H, x_L = F * xv, (1.0 - F) * xv
-        Z_fs = np.column_stack([F * zv, (1.0 - F) * zv, E])
+        z_H, z_L = F * zv, (1.0 - F) * zv
+        Z_fs = np.column_stack([z_H, z_L, E])
 
         try:
             # With interact='all' and a threshold, the other regime's instrument
@@ -668,8 +767,13 @@ def lp_state_dep_iv(
             with np.errstate(divide="ignore", invalid="ignore"):
                 fs_H = ols_hac(x_H, Z_fs, lags=h + 1)
                 fs_L = ols_hac(x_L, Z_fs, lags=h + 1)
+                cond_f_H, cond_f_L = _sanderson_windmeijer_f(
+                    x_H, x_L, z_H, z_L, E, lags=h + 1
+                )
             f_H = float((fs_H["beta"][0] / fs_H["se"][0]) ** 2) if fs_H["se"][0] > 0 else np.nan
             f_L = float((fs_L["beta"][1] / fs_L["se"][1]) ** 2) if fs_L["se"][1] > 0 else np.nan
+            if transition == "logistic":
+                f_H, f_L = cond_f_H, cond_f_L
             X_hat = np.column_stack([Z_fs @ fs_H["beta"], Z_fs @ fs_L["beta"], E])
             X_act = np.column_stack([x_H, x_L, E])
             out2 = tsls_hac(sub["__dy_h__"].values, X_act, X_hat, lags=h + 1)
@@ -691,6 +795,8 @@ def lp_state_dep_iv(
             "lo_L": b_L - z_crit * se_L, "hi_L": b_L + z_crit * se_L,
             "first_stage_f_H": f_H,
             "first_stage_f_L": f_L,
+            "cond_f_H": cond_f_H,
+            "cond_f_L": cond_f_L,
             **_regime_difference(out2["beta"], out2["vcov"], F),
         })
 
