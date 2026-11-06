@@ -569,6 +569,8 @@ def ssj_ramsey(
             H += w_k * (J_k.T @ BJ_k)
             g0 += w_k * (J_k.T @ By0)
 
+    H = 0.5 * (H + H.T)
+
     social_grad = np.zeros(T, dtype=np.float64)
     dist_J_arr: np.ndarray | None = None
     w_groups: np.ndarray | None = None
@@ -607,6 +609,10 @@ def ssj_ramsey(
     else:
         try:
             i_opt = scipy.linalg.solve(H, rhs, assume_a="sym")
+            res_vec = rhs - (H @ i_opt)
+            i_cand = i_opt + scipy.linalg.solve(H, res_vec, assume_a="sym")
+            if float(np.max(np.abs(H @ i_cand - rhs))) < float(np.max(np.abs(res_vec))):
+                i_opt = i_cand
         except scipy.linalg.LinAlgError:
             i_opt = np.linalg.lstsq(H, rhs, rcond=None)[0]
 
