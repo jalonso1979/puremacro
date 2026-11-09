@@ -1,0 +1,4 @@
+## 2023-11-10 - WCAG 2.5.3 (Label in Name) and Grouped Controls
+
+**Learning:** Adding an `aria-label` to a button that already has visible text (like an explicit "CSV" label or text populated dynamically) overrides the visible text for screen readers, potentially violating WCAG 2.5.3 (Label in Name). For grouped controls (`role="group"`), dynamically assigning an `aria-label` with a descriptive name on the group itself might not be the best approach if a visible label exists.
+**Action:** Use `aria-labelledby` to associate a visible descriptive element (like a `<span>` with an ID) with the `role="group"` container instead of using `aria-label`. Remove `aria-label` from buttons that already convey their purpose through visible text, relying on `title` or surrounding context for additional description if necessary.
