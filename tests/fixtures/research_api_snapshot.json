@@ -3583,5 +3583,208 @@
       "kind": "KEYWORD_ONLY",
       "default": "1e-09"
     }
+  ],
+  "puremacro.models.hank_second_order.HANKSecondOrderAudit": [
+    {
+      "name": "accepted",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "residual",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "diagnostics",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.models.hank_second_order.SecondOrderHANKPolicy": [
+    {
+      "name": "transition_curvature",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "feedback_curvature",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "transition_variance",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "feedback_variance",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "diagnostics",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "_linear",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.models.hank_second_order.SecondOrderHANKPolicy.audit": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "state",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "shock_std",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "tolerance",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-05"
+    },
+    {
+      "name": "quadrature_order",
+      "kind": "KEYWORD_ONLY",
+      "default": "3"
+    }
+  ],
+  "puremacro.models.hank_second_order.SecondOrderHANKPolicy.controls": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "state",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "shock_std",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    }
+  ],
+  "puremacro.models.hank_second_order.SecondOrderHANKPolicy.mean_decomposition": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "shock_std",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    }
+  ],
+  "puremacro.models.hank_second_order.SecondOrderHANKPolicy.next_state": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "state",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "shock_std",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    }
+  ],
+  "puremacro.models.hank_second_order.SecondOrderHANKPolicy.simulate": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "innovations",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "initial_state",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "shock_std",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "tolerance",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-05"
+    },
+    {
+      "name": "quadrature_order",
+      "kind": "KEYWORD_ONLY",
+      "default": "3"
+    }
+  ],
+  "puremacro.models.hank_second_order.SecondOrderHANKPolicy.state": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "distribution",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "None"
+    },
+    {
+      "name": "lag_nominal",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.0"
+    },
+    {
+      "name": "monetary_shock",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.0"
+    }
+  ],
+  "puremacro.models.hank_second_order.solve_hank_second_order": [
+    {
+      "name": "linear_policy",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "difference_step",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.001"
+    },
+    {
+      "name": "curvature_tolerance",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.001"
+    },
+    {
+      "name": "max_states",
+      "kind": "KEYWORD_ONLY",
+      "default": "48"
+    },
+    {
+      "name": "max_workspace_bytes",
+      "kind": "KEYWORD_ONLY",
+      "default": "268435456"
+    }
   ]
 }

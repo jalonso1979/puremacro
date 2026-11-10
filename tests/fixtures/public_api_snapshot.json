@@ -2300,6 +2300,7 @@
       "HANKNonlinearCorrection",
       "HANKNonlinearSimulation",
       "HANKScenarioTreeResult",
+      "HANKSecondOrderAudit",
       "HANKStochasticResult",
       "HANKStochasticTreeResult",
       "InformationNKParameters",
@@ -2311,6 +2312,7 @@
       "OneAssetHANKResult",
       "OneAssetHANKSteadyState",
       "ReducedStochasticHANKPolicy",
+      "SecondOrderHANKPolicy",
       "SequenceSpaceHANKResult",
       "StochasticHANKPolicy",
       "TradePolicySimulationResult",
@@ -2334,6 +2336,7 @@
       "solve_hank_reduced_kernel",
       "solve_hank_reduced_policy",
       "solve_hank_scenario_tree",
+      "solve_hank_second_order",
       "solve_hank_sequence_space",
       "solve_hank_stochastic_policy",
       "solve_hank_stochastic_tree",
@@ -2377,6 +2380,11 @@
       "HANKScenarioTreeResult",
       "monetary_scenario_tree",
       "solve_hank_scenario_tree"
+    ],
+    "puremacro.models.hank_second_order": [
+      "HANKSecondOrderAudit",
+      "SecondOrderHANKPolicy",
+      "solve_hank_second_order"
     ],
     "puremacro.models.hank_sequence_space": [
       "FakeNewsResult",
@@ -7729,6 +7737,19 @@
       "policy_c",
       "policy_n",
       "steady_state"
+    ],
+    "puremacro.models.hank_second_order.HANKSecondOrderAudit": [
+      "accepted",
+      "diagnostics",
+      "residual"
+    ],
+    "puremacro.models.hank_second_order.SecondOrderHANKPolicy": [
+      "_linear",
+      "diagnostics",
+      "feedback_curvature",
+      "feedback_variance",
+      "transition_curvature",
+      "transition_variance"
     ],
     "puremacro.models.hank_sequence_space.FakeNewsResult": [
       "expectation_vectors",
