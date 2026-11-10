@@ -25,6 +25,11 @@ Consultar las guías de [derivadas](equilibrium_linearization.md),
 [comercio](trade_reallocation.md), [información](heterogeneous_expectations.md),
 [banca](sovereign_banking.md) y [adaptación](sovereign_adaptation.md).
 
+La [referencia experimental HANK de segundo orden](hank_second_order.md)
+añade `models.solve_hank_second_order` para modelos pequeños con un
+activo y bases completas. Tiene comprobaciones propias de derivadas, ecuaciones
+y factibilidad; no cambia el orden ni los criterios de las API HANK existentes.
+
 ## Composición explícita
 
 Un residuo de equilibrio puede aportar sensibilidades y una rama local.
@@ -74,8 +79,9 @@ convierten en rechazos o penalizaciones de optimización.
 No existe una composición automática entre las economías de comercio, banca,
 adaptación e información. Difieren en hogares, financiamiento, cronología y
 condiciones terminales. Conectarlas exige un nuevo cierre económico explícito.
-HANK de orden superior y las demás extensiones aplazadas quedan fuera de estas
-primeras implementaciones.
+La API HANK de segundo orden se limita a los casos con un activo y bases
+completas descritos en su guía; las extensiones HANK más generales y las demás
+extensiones aplazadas quedan fuera de estos contratos admitidos.
 
 ## Propiedad de datos, controles y resultados guardados
 

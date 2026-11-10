@@ -9,14 +9,15 @@ additions are included in 5.4.2. Versions 5.8.0, 5.9.0 and 6.0.0 were tagged
 but not published; their additions are included in 6.0.1, published on
 2026-10-29. See the [release procedure](RELEASING.md).
 
-## 6.3.0rc1 (2026-11-09)
+## 6.3.0 (2026-11-10)
 
 **Research APIs for equilibrium derivatives, simulation-aware inference and
-audited policy models, with shared integration contracts.**
+audited policy models, with shared integration contracts and bounded
+second-order HANK.**
 
-Release candidate source; publication and hosted qualification are tracked
-separately. The new economic models are experimental bounded implementations.
-HANK remains first order in this candidate; sampled confidence sets, finite
+The new economic models are experimental bounded implementations. Existing
+HANK entry points retain their approximation order; the new second-order API
+has its own supported domain and audits. Sampled confidence sets, finite
 horizons and discrete grids retain the limits documented in the API guides.
 
 ### Hardened
@@ -31,12 +32,20 @@ horizons and discrete grids retain the limits documented in the API guides.
   boundary economies. Statistical modules declare their public exports.
 - Added a reviewed argument-contract snapshot, composed equilibrium/SMM and
   information/measurement regressions, and executable EN/ES API guides.
-  Model closures, numerical equations and existing public entry points remain
-  unchanged; these changes do not add higher-order HANK or join the separate
+  These ownership and validation changes preserve model closures, numerical
+  equations and existing public entry points. They do not join the separate
   sovereign, banking, trade and information economies.
 
 ### Added
 
+- Experimental second-order one-asset HANK on small full household grids:
+  state curvature, anticipated-variance terms, pruned simulation, separate
+  risk/dispersion means and nonlinear finite-grid audits. Derivative step
+  refinement and resource limits reject unsupported calculations. Includes
+  exact algebraic and finite nonlinear references, a signed-amplitude benchmark,
+  and executable English/Spanish guides. Continuous-grid, global and welfare
+  accuracy, reduced-basis curvature and two-asset/capital models remain
+  unsupported; stochastic terminal-horizon sensitivity is retained.
 - Shared dense equilibrium residuals and local sensitivities in `puremacro.core`:
   named/scaled equations, retained Jacobians, forward/transpose products and
   factorization reuse, explicit singularity and stencil diagnostics, and no
@@ -121,6 +130,17 @@ horizons and discrete grids retain the limits documented in the API guides.
   comparisons across all three economic closures, and a reproducible benchmark
   that separates total solve time, decomposition time and process memory.
   Historical evidence retains its original hashes and archived source.
+
+### Known issues
+
+- The experimental second-order HANK benchmark accepts 22 of 24 amplitude
+  cases. Shocks `-0.001` and `-0.0005` on its 20-asset grid fail the unchanged
+  distribution audit. Check the returned audit rather than treating every
+  simulated path as accepted; use smaller shocks only after their audits pass.
+  Eight of ten finite nonlinear reference solves meet the declared tolerance;
+  two coarse 12-asset cases retain their failures. Refine grids and terminal
+  horizons before making accuracy claims. The benchmark does not establish
+  grid convergence, infinite-tail accuracy, or welfare support.
 
 ## 6.2.0 (2026-11-05)
 

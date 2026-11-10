@@ -24,9 +24,9 @@ python -m pip install puremacro
 | **Write a policy brief** | Run a [tariff experiment on public data](docs/first_brief_tariffs.md) and read national and household welfare effects. |
 | **Learn or teach** | Choose a [notebook learning path](docs/notebooks.md) or use the [bilingual course and interactive labs](curso/README.md). Use the pinned course edition below. |
 
-**Status checked 2026-11-05:** **6.2.0** is published on [PyPI](https://pypi.org/project/puremacro/6.2.0/), and `pip install puremacro` installs it. It succeeds 6.1.0 (published 2026-11-03) and 6.0.1 (published 2026-10-29); earlier tags 5.8.0, 5.9.0 and 6.0.0 were never published (v6.0.0 failed CI).
+**Version guide:** this source and its documentation target **6.3.0**. See [PyPI](https://pypi.org/project/puremacro/) for published versions and match the documentation to your installed version.
 See the [recommended tests and next milestones](docs/research_reliability.md).
-These pages track the 6.2.0 release. See the [changelog](CHANGELOG.md) for additions and fixes. Match your installed version to the documentation.
+In 6.3.0, the [research APIs](docs/research_api.md) add equilibrium derivatives and continuation, simulation-aware SMM and identification-robust inference. The release also includes [experimental second-order HANK](docs/hank_second_order.md), with its supported domain and numerical limits documented.
 
 New DSGE workflows share [nonlinear model equations](docs/dsge_nonlinear.md)
 across [robust transitions and announcements](docs/dsge_transitions.md) and

@@ -23,10 +23,9 @@ python -m pip install puremacro
 | **Write a policy brief** | Run a [tariff experiment on public data](first_brief_tariffs.md) and read national and household welfare effects. |
 | **Learn or teach** | Choose a [notebook learning path](notebooks.md) or use the [bilingual course and interactive labs](https://github.com/jalonso1979/puremacro/tree/main/curso). Use the pinned course edition below. |
 
-**Status checked 2026-11-05:** **6.2.0** is published on [PyPI](https://pypi.org/project/puremacro/6.2.0/), and `pip install puremacro` installs it. It succeeds 6.1.0 (published 2026-11-03) and 6.0.1 (published 2026-10-29); earlier tags 5.8.0, 5.9.0 and 6.0.0 were never published (v6.0.0 failed CI).
+**Version guide:** this source and its documentation target **6.3.0**. See [PyPI](https://pypi.org/project/puremacro/) for published versions and match the documentation to your installed version.
 See the [recommended tests and next milestones](research_reliability.md).
-These pages describe the 6.2.0 release; see the [changelog](https://github.com/jalonso1979/puremacro/blob/main/CHANGELOG.md)
-for additions and fixes. Match your installed version to the documentation.
+In 6.3.0, the [research APIs](research_api.md) add equilibrium derivatives and continuation, simulation-aware SMM and identification-robust inference. The release also includes [experimental second-order HANK](hank_second_order.md), with its supported domain and numerical limits documented.
 
 Available since 6.0.1 (introduced in the 6.0.0 source tag): [Forward AD & Differentiable Model Protocol](autodiff_and_protocol.md), [Vectorized Tempered SMC](smc_inference.md), [Nonlinear HANK & 2nd-Order Aggregate Risk](hank_ssj_and_aggregate_risk.md), [Quantitative Sovereign Default](sovereign_default.md), [Distributional Local Projections](distributional_lp.md), and [Production Networks, Spatial Climate IAM & PolicyStudio](network_spatial_climate_iam.md).
 

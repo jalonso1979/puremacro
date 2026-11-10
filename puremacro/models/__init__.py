@@ -60,6 +60,9 @@ from puremacro.models.hank_reduction import (
     HANKMarginalBasis, ReducedStochasticHANKPolicy,
     solve_hank_reduced_policy, solve_hank_reduced_kernel,
 )
+from puremacro.models.hank_second_order import (
+    HANKSecondOrderAudit, SecondOrderHANKPolicy, solve_hank_second_order,
+)
 from puremacro.models.hank_capital import (
     CapitalHANKSteadyState, calibrate_capital_hank, capital_production_block,
 )
@@ -102,6 +105,7 @@ __all__ = [
     "TwoAssetHANKSteadyState", "calibrate_two_asset_equilibrium",
     "HANKMarginalBasis", "ReducedStochasticHANKPolicy",
     "solve_hank_reduced_policy", "solve_hank_reduced_kernel",
+    "HANKSecondOrderAudit", "SecondOrderHANKPolicy", "solve_hank_second_order",
     "CapitalHANKSteadyState", "calibrate_capital_hank", "capital_production_block",
     "HANKNonlinearCorrection", "HANKNonlinearSimulation", "HANKContinuationAccuracyError",
     "solve_hank_nonlinear_continuation", "correct_hank_stochastic_state", "simulate_hank_nonlinear",

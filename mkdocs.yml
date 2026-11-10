@@ -117,6 +117,7 @@ nav:
           - Optimized coupled HANK equilibrium: hank_optimized.md
           - Recursive HANK and two-asset equilibrium: hank_recursive.md
           - Reduced HANK states and controls: hank_reduction.md
+          - Experimental second-order one-asset HANK: hank_second_order.md
           - Nonlinear stochastic HANK continuation: hank_nonlinear_continuation.md
           - Two-asset HANK with productive capital: hank_capital.md
           - Non-Linear HANK Transitions: hank_nonlinear.md
@@ -258,6 +259,7 @@ nav:
           - Equilibrio HANK acoplado y optimizado: es/hank_optimized.md
           - HANK recursivo y equilibrio de dos activos: es/hank_recursive.md
           - Estados y controles HANK reducidos: es/hank_reduction.md
+          - HANK experimental de segundo orden con un activo: es/hank_second_order.md
           - Continuación estocástica no lineal en HANK: es/hank_nonlinear_continuation.md
           - HANK de dos activos con capital productivo: es/hank_capital.md
           - Transiciones no lineales en HANK: es/hank_nonlinear.md
