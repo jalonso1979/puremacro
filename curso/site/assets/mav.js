@@ -90,14 +90,16 @@
     row.className = "ctl";
     const head = document.createElement("div"); head.className = "ctl-head";
     const lab = document.createElement("span"); head.appendChild(lab);
+    lab.id = "seg-lab-" + o.key;
     const seg = document.createElement("div"); seg.className = "seg"; seg.setAttribute("role", "group");
+    seg.setAttribute("aria-labelledby", lab.id);
     let value = o.value;
     const buttons = o.options.map((opt) => {
       const b = document.createElement("button"); b.type = "button";
       b.addEventListener("click", () => { value = opt.value; paint(); onChange && onChange(value); });
       seg.appendChild(b); return [b, opt];
     });
-    const paint = () => { lab.textContent = MAV.t(o.label); seg.setAttribute("aria-label", MAV.t(o.label));
+    const paint = () => { lab.textContent = MAV.t(o.label);
       buttons.forEach(([b, opt]) => { b.textContent = MAV.t(opt.label); b.setAttribute("aria-pressed", String(opt.value === value)); }); };
     row.append(head, seg); parent.appendChild(row);
     MAV.onLang(paint); paint();
