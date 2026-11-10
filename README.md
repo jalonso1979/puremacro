@@ -24,7 +24,7 @@ python -m pip install puremacro
 | **Write a policy brief** | Run a [tariff experiment on public data](docs/first_brief_tariffs.md) and read national and household welfare effects. |
 | **Learn or teach** | Choose a [notebook learning path](docs/notebooks.md) or use the [bilingual course and interactive labs](curso/README.md). Use the pinned course edition below. |
 
-**Version guide:** this source and its documentation target **6.3.0**. See [PyPI](https://pypi.org/project/puremacro/) for published versions and match the documentation to your installed version.
+**Status checked 2026-11-10:** **6.3.0** is published on [PyPI](https://pypi.org/project/puremacro/6.3.0/). Install with `python -m pip install puremacro==6.3.0` and use the documentation for your installed version.
 See the [recommended tests and next milestones](docs/research_reliability.md).
 In 6.3.0, the [research APIs](docs/research_api.md) add equilibrium derivatives and continuation, simulation-aware SMM and identification-robust inference. The release also includes [experimental second-order HANK](docs/hank_second_order.md), with its supported domain and numerical limits documented.
 

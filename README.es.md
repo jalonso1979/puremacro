@@ -25,7 +25,7 @@ python -m pip install puremacro
 | **Redactar un informe de política** | Ejecute un [experimento arancelario con datos públicos](docs/es/first_brief_tariffs.md) y lea los efectos de bienestar nacionales y por hogares. |
 | **Aprender o enseñar** | Elija una [ruta de cuadernos](docs/es/notebooks.md) o use el [curso bilingüe y sus laboratorios interactivos](curso/README.md). Use la edición fija del curso indicada abajo. |
 
-**Guía de versiones:** este código y su documentación corresponden a **6.3.0**. Consulte [PyPI](https://pypi.org/project/puremacro/) para ver las versiones publicadas y use la documentación de su versión instalada.
+**Estado comprobado 2026-11-10:** **6.3.0** está publicada en [PyPI](https://pypi.org/project/puremacro/6.3.0/). Instale con `python -m pip install puremacro==6.3.0` y use la documentación de su versión instalada.
 Consulte las [pruebas recomendadas y próximos hitos](docs/es/research_reliability.md).
 En 6.3.0, las [API de investigación](docs/es/research_api.md) incorporan derivadas y continuación de equilibrios, SMM con incertidumbre de simulación e inferencia robusta a identificación. También se incluye [HANK experimental de segundo orden](docs/es/hank_second_order.md), con su dominio admitido y sus límites numéricos documentados.
 
