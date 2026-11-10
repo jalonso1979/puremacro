@@ -99,6 +99,8 @@ def run_benchmark(output: Path, *, references: bool = False) -> dict:
         ax.loglog(data.amplitude,data.first_error,'o-',label='First order')
         ax.loglog(data.amplitude,data.second_error,'s-',label='Second order')
         ax.set(title=f'{na} assets, 2 income states',xlabel='Shock and innovation scale',ylabel='Scaled equation error')
+        ax.set_xticks(data.amplitude,labels=[f'{v:g}' for v in data.amplitude])
+        ax.xaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
         ax.grid(True,which='both',alpha=.25);ax.legend()
     fig.savefig(output/'equation-errors.png',dpi=180);plt.close(fig)
     record['artifact_hashes']={p.name:hashlib.sha256(p.read_bytes()).hexdigest()
