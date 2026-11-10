@@ -1,0 +1,31 @@
+{
+  "python": "3.11.17 (main, Oct 21 2026, 17:46:23) [Clang 23.1.3 ]",
+  "platform": "macOS-27.3-arm64-arm-64bit",
+  "numpy": "2.4.6",
+  "scipy": "1.17.1",
+  "pandas": "3.1.0",
+  "source_commit": "8d573473de59b9165e93175208a4edb14ccae8b6",
+  "command": "python tools/reference_validation/benchmark_hank_second_order.py --output OUTPUT --references",
+  "artifacts": {
+    "amplitudes.csv": "c9ffbf5e820c07f4da620e4e2eed0ad6a62d9d9bc6ac3c38290679ce80d4b421",
+    "coefficients-and-paths.npz": "7ce3d466b6864b7265705965d1001235dbe259be04543f57dd4fdf6a8399e2c9",
+    "equation-errors.png": "3c221b922af115d39ff622776469350707a1ec11421eb176f02249297af4d6b4",
+    "nonlinear-references.csv": "5b5846a449292dfe61d1b722f84e6d883ae828cc9e27bf7d3e08e86a37374302",
+    "record.json": "a3170ed17a972ad118ca28c720b47e1b078530b94fd210516f5bf1dd35dec5e1"
+  },
+  "results": {
+    "grids": 2,
+    "amplitude_cases": 24,
+    "quadrature_cases": 6,
+    "held_out_paths": 4,
+    "held_out_failures": 0,
+    "finite_references": 10,
+    "converged_finite_references": 8,
+    "rejected_coarse_references": 2
+  },
+  "limitations": [
+    "No household grid convergence certificate",
+    "First-order terminal boundary remains horizon sensitive",
+    "No global or welfare certificate"
+  ]
+}
