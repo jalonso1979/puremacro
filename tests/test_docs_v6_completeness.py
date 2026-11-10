@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import ast
+from datetime import date
 from pathlib import Path
 import re
+import tomllib
 
 import matplotlib
 matplotlib.use("Agg")
@@ -107,16 +109,29 @@ def test_v6_guides_have_language_switchers(rel_path):
 
 
 def test_v6_frontdoors_and_catalogs_synchronized():
+    version = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+    for rel_path in ("README.md", "README.es.md", "docs/index.md", "docs/es/index.md"):
+        txt = (ROOT / rel_path).read_text(encoding="utf-8")
+        notices = [line for line in txt.splitlines() if line.startswith((
+            "**Version guide:", "**Guía de versiones:",
+            "**Status checked ", "**Estado comprobado ",
+        ))]
+        assert len(notices) == 1, f"{rel_path} must have one explicit version notice"
+        notice = notices[0]
+        assert f"**{version}**" in notice, f"{rel_path} does not match the source version"
+        if notice.startswith(("**Version guide:", "**Guía de versiones:")):
+            # Source documentation may precede PyPI publication. Do not require
+            # an unavailable version link or manufacture a publication date.
+            assert "[PyPI](https://pypi.org/project/puremacro/)" in notice
+        else:
+            checked = re.search(r"\b(\d{4}-\d{2}-\d{2})\b", notice)
+            assert checked is not None, f"{rel_path} needs a publication-check date"
+            date.fromisoformat(checked.group(1))
+            assert f"[PyPI](https://pypi.org/project/puremacro/{version}/)" in notice
+
     for idx_file in ("index.md", "es/index.md"):
         txt = (DOCS_DIR / idx_file).read_text(encoding="utf-8")
         assert "6.0.0" in txt, f"docs/{idx_file} does not mention v6.0.0"
-        # The front door names the version PyPI actually serves, with the date checked.
-        assert "2026-11-05" in txt or "2026-11-03" in txt or "2026-10-29" in txt
-        assert (
-            "https://pypi.org/project/puremacro/6.2.0/" in txt
-            or "https://pypi.org/project/puremacro/6.1.0/" in txt
-            or "https://pypi.org/project/puremacro/6.0.1/" in txt
-        )
         assert "https://pypi.org/project/puremacro/6.0.0/" not in txt
 
     for nb_cat in ("notebooks.md", "es/notebooks.md"):
