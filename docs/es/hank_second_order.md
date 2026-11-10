@@ -107,14 +107,23 @@ malla finita. En la malla demostrada de 20 activos rondan 0.004, aunque los
 errores de las ecuaciones discretas son mucho menores. No se certifica la
 convergencia de la malla del hogar.
 
-Los ejemplos de 12 y 20 activos muestran errores cúbicos para choques de ambos
-signos, por encima de su piso numérico. Con 20 activos y escalas de choque e
+Los casos de ambos signos con 12 activos y los choques positivos con 20 activos
+muestran una caída cúbica del error por encima de su piso numérico. Con 20
+activos y escalas positivas de choque e
 innovación de 0.001, 0.0005 y 0.00025, los errores máximos escalados son
 aproximadamente 2.34e-6, 2.91e-7 y 3.62e-8. Casos polinómicos exactos y una
 solución densa independiente verifican el álgebra. Equilibrios no lineales
 finitos resueltos por separado aportan otra comparación, con su propia frontera
 terminal de primer orden. La sensibilidad al horizonte estocástico sigue siendo
 material; concordar con un árbol no certifica precisión global o infinita.
+
+Los choques negativos de -0.001 y -0.0005 en la malla de 20 activos fallan
+la tolerancia original de auditoría, 1e-5: los errores de la ecuación de
+distribución rondan 2.55e-4 y 3.69e-5. Los casos menores, -0.00025 y -0.000125,
+sí pasan. En total pasan 22 de los 24 casos de amplitud; los dos rechazos se
+conservan. La precisión local debe comprobarse para cada dirección y tamaño
+del choque, incluso cuando pasan las ecuaciones de coeficientes y las pruebas
+de refinamiento de derivadas.
 
 La comprobación más estricta de referencia, 1e-9, falla con la calibración de
 12 activos por su piso de equilibrio de aproximadamente 1.47e-9. Esos fallos se

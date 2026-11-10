@@ -217,3 +217,19 @@ def test_independent_finite_nonlinear_equilibrium_improves_on_first_order(sigma,
     # This reference retains a first-order terminal tail. It is a finite
     # stochastic equation check, not a certification of the infinite tail.
     assert ref.tree.metadata['terminal_policy_order']==1
+
+
+@pytest.mark.parametrize('amplitude',[.001,.0005])
+def test_negative_finer_grid_shocks_keep_failed_distribution_audit(amplitude):
+    from puremacro.models.one_asset_hank import calibrate_one_asset_hank
+    from puremacro.models.hank_reduction import solve_hank_reduced_policy
+    from puremacro.models.hank_second_order import solve_hank_second_order
+    ss=calibrate_one_asset_hank(n_a=20,n_e=2,a_max=120.)
+    linear=solve_hank_reduced_policy(ss,distribution_rank=None,marginal_rank=None,shock_std=amplitude)
+    policy=solve_hank_second_order(linear)
+    negative=policy.audit(policy.state(monetary_shock=-amplitude))
+    positive=policy.audit(policy.state(monetary_shock=amplitude))
+    assert not negative.accepted
+    assert negative.diagnostics['distribution_error']>1e-5
+    assert negative.diagnostics['reason']=='equations_or_feasibility_failed'
+    assert positive.accepted

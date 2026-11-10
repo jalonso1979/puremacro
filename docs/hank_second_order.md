@@ -104,14 +104,22 @@ Euler/KKT residuals are reported separately from finite-grid equation acceptance
 At the demonstrated 20-asset grid they are around 0.004, despite much smaller
 discrete equation errors. Household-grid convergence is not certified.
 
-The checked 12- and 20-asset examples have cubic signed-shock equation errors
-above their numerical floor. At 20 assets, shock/innovation scales of 0.001,
+The 12-asset signed-shock cases and the 20-asset positive-shock cases show
+cubic equation-error decay above their numerical floor. At 20 assets,
+positive shock/innovation scales of 0.001,
 0.0005 and 0.00025 give maximum scaled errors of roughly 2.34e-6, 2.91e-7 and
 3.62e-8. Exact polynomial fixtures and a separate dense coefficient solve check
 the state/variance algebra. Independently solved finite nonlinear equilibria
 provide an additional comparison; they retain their own first-order terminal
 boundary. Stochastic horizon sensitivity remains material, and agreement with
 one such tree does not establish infinite-horizon or global accuracy.
+
+The 20-asset negative-shock cases at -0.001 and -0.0005 fail the unchanged
+1e-5 audit tolerance: distribution-equation errors are approximately 2.55e-4
+and 3.69e-5. The smaller -0.00025 and -0.000125 cases pass. Thus 22 of the 24
+amplitude cases pass; both rejected cases remain in the record. Local accuracy
+must be checked for each shock direction and size, even when the coefficient
+equations and derivative-refinement checks pass.
 
 The stricter 1e-9 finite-reference check fails on the 12-asset calibration's
 approximately 1.47e-9 equilibrium floor. Those failures are retained; the

@@ -116,5 +116,7 @@ if __name__=='__main__':
     args=parser.parse_args()
     result=run_benchmark(args.output,references=args.references)
     print(json.dumps(dict(grids=len(result['grids']),amplitude_cases=len(result['amplitudes']),
+        rejected_amplitudes=sum(not r['accepted'] for r in result['amplitudes']),
+        rejected_quadrature=sum(not r['accepted'] for r in result['quadrature']),
         reference_cases=len(result['references']),rejected_references=sum(not r['converged'] for r in result['references']),
         held_out_paths=len(result['held_out_paths']),failed_paths=sum(not r['converged'] for r in result['held_out_paths']))))
