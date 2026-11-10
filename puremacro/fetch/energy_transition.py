@@ -155,6 +155,12 @@ def _parse_ember_df(
     if has_share:
         work[share_col] = pd.to_numeric(work[share_col], errors="coerce")
 
+    # Map column names to integer indices for itertuples
+    col_idx = {col_name: i for i, col_name in enumerate(work.columns)}
+    src_idx = col_idx[src_col]
+    share_idx = col_idx[share_col] if has_share else -1
+    gen_idx = col_idx[gen_col] if has_gen else -1
+
     # Group by code and year to allow share calculation if needed
     for (iso, yr), grp in work.groupby([iso_col, year_col]):
         dt = pd.Timestamp(f"{yr}-01-01")
@@ -172,8 +178,9 @@ def _parse_ember_df(
                     "source": "Ember:ElectricityReview",
                 })
 
-        for _, row in grp.iterrows():
-            src_val = row[src_col]
+        # ⚡ Bolt: Vectorize row iteration using itertuples for performance
+        for row in grp.itertuples(index=False, name=None):
+            src_val = row[src_idx]
             if src_val not in _SOURCE_MAP:
                 continue
             var_name, metric_type = _SOURCE_MAP[src_val]
@@ -182,13 +189,13 @@ def _parse_ember_df(
 
             val = np.nan
             if metric_type == "share":
-                if has_share and pd.notna(row[share_col]):
-                    val = float(row[share_col])
-                elif has_gen and pd.notna(row[gen_col]) and pd.notna(tot_gen) and tot_gen > 0:
-                    val = (float(row[gen_col]) / tot_gen) * 100.0
+                if has_share and pd.notna(row[share_idx]):
+                    val = float(row[share_idx])
+                elif has_gen and pd.notna(row[gen_idx]) and pd.notna(tot_gen) and tot_gen > 0:
+                    val = (float(row[gen_idx]) / tot_gen) * 100.0
             elif metric_type == "gen":
-                if has_gen and pd.notna(row[gen_col]):
-                    val = float(row[gen_col])
+                if has_gen and pd.notna(row[gen_idx]):
+                    val = float(row[gen_idx])
 
             if pd.notna(val):
                 records.append({
