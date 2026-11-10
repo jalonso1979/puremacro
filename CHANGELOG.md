@@ -9,6 +9,20 @@ additions are included in 5.4.2. Versions 5.8.0, 5.9.0 and 6.0.0 were tagged
 but not published; their additions are included in 6.0.1, published on
 2026-10-29. See the [release procedure](RELEASING.md).
 
+## Unreleased
+
+### Added
+
+- Experimental second-order one-asset HANK on small full household grids:
+  state curvature, anticipated-variance terms, pruned simulation, separate
+  risk/dispersion means and nonlinear finite-grid audits. Derivative step
+  refinement and resource limits reject unsupported calculations. Includes
+  exact algebraic and finite nonlinear references, an amplitude benchmark,
+  and executable English/Spanish guides. This separately developed research
+  extension is outside the qualified 6.3.0rc1 foundation. Continuous-grid,
+  global and welfare accuracy, reduced-basis curvature and two-asset models
+  remain unsupported; stochastic terminal-horizon sensitivity is retained.
+
 ## 6.3.0rc1 (2026-11-09)
 
 **Research APIs for equilibrium derivatives, simulation-aware inference and

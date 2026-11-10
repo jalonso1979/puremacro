@@ -25,6 +25,11 @@ See the detailed guides for [derivatives](equilibrium_linearization.md),
 [trade](trade_reallocation.md), [information](heterogeneous_expectations.md),
 [banking](sovereign_banking.md) and [adaptation](sovereign_adaptation.md).
 
+The separately developed [second-order HANK benchmark](hank_second_order.md)
+adds `models.solve_hank_second_order` for small one-asset models with full
+bases. It has its own derivative, equation and feasibility checks; it does not
+upgrade the approximation order or acceptance criteria of existing HANK APIs.
+
 ## Explicit composition
 
 An equilibrium residual can provide sensitivities and a local branch. A caller

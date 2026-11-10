@@ -10,6 +10,7 @@ MODULES = (
     "puremacro.structural.robust", "puremacro.expectations.gaussian",
     "puremacro.models.information_nk", "puremacro.models.hank_reduction", "puremacro.trade.reallocation",
     "puremacro.sovereign.banking", "puremacro.sovereign.adaptation",
+    "puremacro.models.hank_second_order",
 )
 
 

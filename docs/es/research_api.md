@@ -25,6 +25,11 @@ Consultar las guías de [derivadas](equilibrium_linearization.md),
 [comercio](trade_reallocation.md), [información](heterogeneous_expectations.md),
 [banca](sovereign_banking.md) y [adaptación](sovereign_adaptation.md).
 
+La [referencia HANK de segundo orden](hank_second_order.md), desarrollada por
+separado, añade `models.solve_hank_second_order` para modelos pequeños con un
+activo y bases completas. Tiene comprobaciones propias de derivadas, ecuaciones
+y factibilidad; no cambia el orden ni los criterios de las API HANK existentes.
+
 ## Composición explícita
 
 Un residuo de equilibrio puede aportar sensibilidades y una rama local.
