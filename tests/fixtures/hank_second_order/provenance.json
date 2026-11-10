@@ -4,19 +4,22 @@
   "numpy": "2.4.6",
   "scipy": "1.17.1",
   "pandas": "3.1.0",
-  "source_commit": "4705e7cc8cb486ef7f12d2935f3f9adc47f64930",
+  "source_commit": "4fc66aba9219a0791809c5a42d6f00f369d47ac0",
   "command": "python tools/reference_validation/benchmark_hank_second_order.py --output OUTPUT --references",
   "artifacts": {
-    "amplitudes.csv": "c9ffbf5e820c07f4da620e4e2eed0ad6a62d9d9bc6ac3c38290679ce80d4b421",
-    "coefficients-and-paths.npz": "7ce3d466b6864b7265705965d1001235dbe259be04543f57dd4fdf6a8399e2c9",
+    "amplitudes.csv": "ce2a38279087a6dc96abcc6bbaad161c64d0f0d096bad1f1d8ae92824132157c",
+    "coefficients-and-paths.npz": "d9af30aafc58481b0af5b40b1acdc69535b7cb2e5103b84a35b4b47a41a4d391",
     "equation-errors.png": "6391412f95b8b44564979a5290a6755c73c4075feb5689efdd22f4edcb1c615e",
-    "nonlinear-references.csv": "9bb34a6366148cde783780a168a34cf405769453899dad08a266bfc3eb88ba17",
-    "record.json": "e8bcfa9f490025e8259f0e501e28d761e712189365fd94ef024393537bdc362d"
+    "nonlinear-references.csv": "6b1e0512ce2cf717b9cdce0668e38e4473476967da66a637a8891a338b47ff61",
+    "record.json": "cddb9ec29960dbfac1c215f736d13b177e8a4429bead58ae2ce14a0b99f7c648"
   },
   "results": {
     "grids": 2,
     "amplitude_cases": 24,
+    "amplitude_passed": 22,
+    "amplitude_rejected": 2,
     "quadrature_cases": 6,
+    "quadrature_rejected": 0,
     "held_out_paths": 4,
     "held_out_failures": 0,
     "finite_references": 10,
@@ -24,9 +27,14 @@
     "rejected_coarse_references": 2
   },
   "limitations": [
+    "Two negative-shock 20-asset amplitude cases fail the distribution-equation audit",
     "No household grid convergence certificate",
     "First-order terminal boundary remains horizon sensitive",
     "No global or welfare certificate"
   ],
-  "chart_rerun": "Numerical results exactly equal to the earlier record after excluding timings and hashes; only tick formatting changed."
+  "rerun": {
+    "classifications_unchanged": true,
+    "maximum_record_absolute_difference": 3.0734863123891513e-16,
+    "maximum_array_absolute_difference": 2.2737367544323206e-13
+  }
 }
