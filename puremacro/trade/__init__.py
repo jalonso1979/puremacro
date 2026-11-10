@@ -14,7 +14,8 @@ experimental), native MRIO tables with provenance, readers, regularization and
 aggregation (:mod:`puremacro.trade.mrio`), the condensed one-factor Leontief
 tariff model with an independent certificate (:mod:`puremacro.trade.condensed`),
 the perfect-foresight dynamic MRIO with sector capital
-(:mod:`puremacro.trade.dynamic`, experimental), plotting and GPU/MLX solver entry points (:mod:`puremacro.trade.gpu`; torch and mlx are
+(:mod:`puremacro.trade.dynamic`, experimental), joint sourcing/capital/labor
+transitions (:mod:`puremacro.trade.reallocation`, experimental), plotting and GPU/MLX solver entry points (:mod:`puremacro.trade.gpu`; torch and mlx are
 optional and imported on first use) and the result containers; data loaders
 and the synthetic table live in :mod:`puremacro.trade.data` (for example
 ``from puremacro.trade.data import synthetic_icio_table``).
@@ -201,6 +202,18 @@ from .dynamic import (
      tariff_path,
 )
 from . import network_macro
+from .reallocation import (
+    ReallocationEconomy,
+    ReallocationSteadyState,
+    ReallocationTransitionResult,
+    ReallocationHorizonResult,
+    ReallocationSolveError,
+    audit_reallocation,
+    reallocation_stability,
+    solve_reallocation_steady_state,
+    solve_reallocation_transition,
+    run_reallocation_horizon_ladder,
+)
 from .network_macro import (
     NetworkMacroDecompositionResult,
     baqaee_farhi_decomposition,
@@ -372,4 +385,9 @@ __all__: list[str] = [
     "CompensationPlan", "balanced_compensation",
     "SourcingAdjustmentResult", "solve_sourcing_adjustment",
     "HouseholdIncidencePath", "household_incidence_path",
+    "reallocation",
+    "ReallocationEconomy", "ReallocationSteadyState", "ReallocationTransitionResult",
+    "ReallocationHorizonResult", "ReallocationSolveError", "audit_reallocation",
+    "reallocation_stability", "solve_reallocation_steady_state",
+    "solve_reallocation_transition", "run_reallocation_horizon_ladder",
 ]
