@@ -12092,5 +12092,8 @@
   "timing_context": "sequential benchmark workers; regression checks may share this host; no exclusive-machine speed claim",
   "scope": "same-grid state/control reduction with actual full-grid audits; separate finite-grid sensitivity",
   "grid_caveat": "two-asset supplies are calibrated at each grid; grid comparisons are sensitivity, not a fixed-supply convergence certificate",
-  "finished_utc": "2026-11-01T19:36:21.799864+00:00"
+  "finished_utc": "2026-11-01T19:36:21.799864+00:00",
+  "source_snapshots": {
+    "puremacro/models/hank_reduction.py": "tests/fixtures/hank_scaling/sources/puremacro/models/hank_reduction.py.txt"
+  }
 }

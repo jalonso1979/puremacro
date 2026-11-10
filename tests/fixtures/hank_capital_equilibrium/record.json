@@ -1665,5 +1665,8 @@
   "audit_length": 10,
   "sources_unchanged_during_run": true,
   "finished_utc": "2026-11-01T19:41:02.017014+00:00",
-  "total_seconds": 94.8462107499945
+  "total_seconds": 94.8462107499945,
+  "source_snapshots": {
+    "puremacro/models/hank_reduction.py": "tests/fixtures/hank_scaling/sources/puremacro/models/hank_reduction.py.txt"
+  }
 }

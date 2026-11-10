@@ -110,7 +110,8 @@ def test_capital_sources_artifacts_threading_and_scope_are_bound():
     assert {"adaptive horizon acceptance", "adaptive branching acceptance",
             "global aggregate-risk accuracy", "household-grid accuracy certificate"} <= set(r["exclusions"])
     for name, expected in r["source_sha256"].items():
-        assert hashlib.sha256((ROOT/name).read_bytes()).hexdigest() == expected, name
+        path = ROOT/r.get("source_snapshots", {}).get(name, name)
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == expected, name
     for name, expected in r["artifact_sha256"].items():
         assert hashlib.sha256((DATA/name).read_bytes()).hexdigest() == expected, name
     assert {p.name for p in DATA.iterdir() if p.is_file()} == set(r["artifact_sha256"]) | {"record.json"}

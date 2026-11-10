@@ -67,6 +67,10 @@ from puremacro.models.hank_nonlinear_continuation import (
     HANKNonlinearCorrection, HANKNonlinearSimulation, HANKContinuationAccuracyError,
     solve_hank_nonlinear_continuation, correct_hank_stochastic_state, simulate_hank_nonlinear,
 )
+from puremacro.models.information_nk import (
+    InformationNKParameters, InformationNKSolution, InformationNKPath,
+    solve_information_nk, audit_information_nk,
+)
 
 __all__ = [
     "DMPParameters",
@@ -101,4 +105,6 @@ __all__ = [
     "CapitalHANKSteadyState", "calibrate_capital_hank", "capital_production_block",
     "HANKNonlinearCorrection", "HANKNonlinearSimulation", "HANKContinuationAccuracyError",
     "solve_hank_nonlinear_continuation", "correct_hank_stochastic_state", "simulate_hank_nonlinear",
+    "InformationNKParameters", "InformationNKSolution", "InformationNKPath",
+    "solve_information_nk", "audit_information_nk",
 ]

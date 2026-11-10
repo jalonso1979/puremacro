@@ -24,6 +24,22 @@ from puremacro.sovereign._results import (
     SuddenStopResult,
 )
 from puremacro.sovereign.arellano import solve_sovereign_default
+from puremacro.sovereign.adaptation import (
+    SovereignAdaptationParameters,
+    SovereignAdaptationResult,
+    AdaptationDistribution,
+    solve_sovereign_adaptation,
+    audit_sovereign_adaptation,
+    audit_adaptation_distribution,
+)
+from puremacro.sovereign.banking import (
+    SovereignBankingParameters,
+    SovereignBankingEquilibrium,
+    SovereignBankingResult,
+    sovereign_bank_accounts,
+    solve_sovereign_banking,
+    audit_sovereign_banking,
+)
 from puremacro.sovereign.dsa import (
     FiscalReactionEstimateResult,
     FiscalReactionFunction,
@@ -47,6 +63,18 @@ from puremacro.sovereign.smm import (
 )
 
 __all__ = [
+    "SovereignAdaptationParameters",
+    "SovereignAdaptationResult",
+    "AdaptationDistribution",
+    "solve_sovereign_adaptation",
+    "audit_sovereign_adaptation",
+    "audit_adaptation_distribution",
+    "SovereignBankingParameters",
+    "SovereignBankingEquilibrium",
+    "SovereignBankingResult",
+    "sovereign_bank_accounts",
+    "solve_sovereign_banking",
+    "audit_sovereign_banking",
     "SovereignDefaultResult",
     "FiscalSovereignResult",
     "FiscalRule",

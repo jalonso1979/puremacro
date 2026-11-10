@@ -1,5 +1,12 @@
 # HANK state/control scaling evidence
 
+This record predates the default real-Schur backend. The `source_snapshots`
+manifest entry resolves `puremacro/models/hank_reduction.py` to the exact
+archived implementation in `sources/`; its original hash is unchanged. The
+capital-equilibrium and capital-adaptive evidence manifests reference the same
+copy. Historical matrices, paths and failed cases have not been regenerated.
+Use `benchmark_hank_schur.py` for current real/complex comparisons.
+
 Run `tools/reference_validation/validate_hank_scaling.py --output NEW_DIRECTORY`
 with all four BLAS thread environment variables set to 1. Each configuration
 runs in a fresh process; macOS Accelerate threading is also verified. The

@@ -104,7 +104,13 @@ nav:
       - Publication & Reporting:
           - Manuscript Tables & Exports: reporting.md
       - Structural Models:
+          - Research API composition and contracts: research_api.md
           - Empirical-to-structural estimation: structural_bridge.md
+          - Shared equilibrium derivatives: equilibrium_linearization.md
+          - Heterogeneous information and NK forecasts: heterogeneous_expectations.md
+          - Equilibrium branch continuation: equilibrium_continuation.md
+          - Simulation-aware SMM: simulation_aware_smm.md
+          - Identification-robust moment confidence sets: identification_robust_inference.md
           - Sequence-Space HANK: models.md
           - Published one-asset HANK equilibrium: hank_equilibrium.md
           - Finite-tree aggregate-risk HANK: hank_scenario_tree.md
@@ -120,6 +126,8 @@ nav:
           - Macroeconomic Policy Simulators & Browser Labs: policy_simulators.md
           - Gertler-Karadi (2011) DSGE: gertler_karadi.md
           - Quantitative Sovereign Default & Sudden Stops: sovereign_default.md
+          - Sovereign risk and domestic banks: sovereign_banking.md
+          - Adaptation and sovereign risk: sovereign_adaptation.md
           - Sovereign extension validation: sovereign_extensions_validation.md
           - Fiscal Block and Fiscal Rules in a Sovereign Default Model: sovereign_fiscal_rules.md
           - Sovereign-risk policy brief: brief_sovereign_risk.md
@@ -164,6 +172,7 @@ nav:
           - Condensed one-factor Leontief model: trade_condensed.md
           - Native MRIO tables: trade_mrio.md
           - Dynamic MRIO with sector-specific capital: trade_dynamic.md
+          - Joint sourcing, capital and labor transitions: trade_reallocation.md
           - GPU, MLX and batched Jacobians: trade_gpu.md
       - Running Anywhere (iPad / browser): tablet.md
       - Local language models (iPad, Mac, Windows, Linux, Colab): local_llm.md
@@ -236,7 +245,13 @@ nav:
       - Publicación e informes:
           - Tablas y exportación de manuscritos: es/reporting.md
       - Modelos estructurales:
+          - Composición y contratos de las API de investigación: es/research_api.md
           - Estimación empírica-estructural: es/structural_bridge.md
+          - Derivadas comunes del equilibrio: es/equilibrium_linearization.md
+          - Información heterogénea y pronósticos NK: es/heterogeneous_expectations.md
+          - Continuación de ramas de equilibrio: es/equilibrium_continuation.md
+          - SMM con incertidumbre de simulación: es/simulation_aware_smm.md
+          - Conjuntos robustos a identificación débil: es/identification_robust_inference.md
           - HANK en el espacio de secuencias: es/models.md
           - Equilibrio HANK publicado de un activo: es/hank_equilibrium.md
           - HANK con riesgo agregado en árbol finito: es/hank_scenario_tree.md
@@ -252,6 +267,8 @@ nav:
           - Simuladores de política macroeconómica y laboratorios interactivos: es/policy_simulators.md
           - DSGE de Gertler-Karadi (2011): es/gertler_karadi.md
           - Default soberano cuantitativo y paradas repentinas: es/sovereign_default.md
+          - Riesgo soberano y bancos domésticos: es/sovereign_banking.md
+          - Adaptación y riesgo soberano: es/sovereign_adaptation.md
           - Validación de extensiones soberanas: es/sovereign_extensions_validation.md
           - Bloque fiscal y reglas fiscales en un modelo de impago soberano: es/sovereign_fiscal_rules.md
           - Informe de política sobre riesgo soberano: es/brief_sovereign_risk.md
@@ -296,6 +313,7 @@ nav:
           - Modelo de Leontief condensado con un factor: es/trade_condensed.md
           - Tablas MRIO nativas: es/trade_mrio.md
           - MRIO dinámico con capital específico por sector: es/trade_dynamic.md
+          - Transiciones conjuntas de abastecimiento, capital y trabajo: es/trade_reallocation.md
           - GPU, MLX y jacobianos por lotes: es/trade_gpu.md
       - Ejecución en cualquier entorno (iPad / navegador): es/tablet.md
       - Modelos de lenguaje locales (iPad, Mac, Windows, Linux, Colab): es/local_llm.md

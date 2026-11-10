@@ -13,10 +13,11 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from scipy.linalg import ordqz, solve, solve_discrete_lyapunov
+from scipy.linalg import solve_discrete_lyapunov
 from scipy.optimize import root
 
 from ._hank_one_asset_recursive import _OneAssetKernel
+from ._hank_schur import _solve_schur_policy
 from .hank_recursive import (HANKDistributionBasis, HANKStochasticResult,
                              _array, _integer, _make_basis)
 from .hank_two_asset_equilibrium import _TwoAssetKernel
@@ -330,7 +331,8 @@ class ReducedStochasticHANKPolicy:
 def solve_hank_reduced_kernel(kernel: Any, *, distribution_rank: int | None = 12,
         marginal_rank: int | None = 32, snapshots: np.ndarray | None = None,
         marginal_snapshots: np.ndarray | None = None, krylov_steps: int = 48,
-        rho: float = .7, shock_std: float = .0001, max_system_size: int = 1800) -> ReducedStochasticHANKPolicy:
+        rho: float = .7, shock_std: float = .0001, max_system_size: int = 1800,
+        schur_output: str = "real") -> ReducedStochasticHANKPolicy:
     """Solve projected equations for a kernel implementing the HANK protocol.
 
     ``linear_residual`` accepts full-grid marginal directions and must apply
@@ -343,7 +345,12 @@ def solve_hank_reduced_kernel(kernel: Any, *, distribution_rank: int | None = 12
     use a backward-response Krylov/SVD basis, or supplied marginal snapshots.
     A requested rank above the numerically independent training span is capped
     and recorded. ``None`` retains every marginal on small comparison grids.
+    ``schur_output="real"`` keeps conjugate pairs in real Schur blocks;
+    ``"complex"`` retains the previous decomposition for comparison. Both
+    paths enforce the same determinacy, conditioning and equation checks.
     """
+    if schur_output not in ("real", "complex"):
+        raise ValueError("schur_output must be 'real' or 'complex'")
     if not np.isfinite([rho, shock_std]).all() or abs(rho) >= 1 or shock_std < 0:
         raise ValueError("require abs(rho) < 1 and nonnegative finite shock_std")
     if (getattr(kernel, "_derivatives", None) is not None
@@ -387,28 +394,10 @@ def solve_hank_reduced_kernel(kernel: Any, *, distribution_rank: int | None = 12
         direction = expand(unit)
         F0[:, j] = project(kernel.linear_residual(direction, zero, basis, rho))
         F1[:, j] = project(kernel.linear_residual(zero, direction, basis, rho))
-    S, T, alpha, beta, _, Z = ordqz(-F0, F1, sort="iuc", output="complex")
-    with np.errstate(divide="ignore", invalid="ignore"):
-        eigen = alpha/beta
-    modulus = abs(eigen)
-    if np.isnan(modulus).any() or np.any(abs(modulus-1) < 1e-8) or int(np.sum(modulus < 1-1e-8)) != ns:
-        raise ValueError(f"projected stochastic equilibrium fails determinacy: {np.sum(modulus < 1-1e-8)} stable roots for {ns} states")
-    Zx = Z[:ns, :ns]
-    condition = float(np.linalg.cond(Zx))
-    if not np.isfinite(condition) or condition > 1e12:
-        raise ValueError("stable Schur subspace does not identify a well-conditioned state policy")
-    reduced_G = solve(Zx.T, Z[ns:, :ns].T).T
-    H = solve(Zx.T, (Zx@solve(T[:ns, :ns], S[:ns, :ns])).T).T
-    if max(float(abs(reduced_G.imag).max()), float(abs(H.imag).max())) > 1e-8:
-        raise ValueError("non-real Schur policy")
-    reduced_G, H = reduced_G.real, H.real
+    H, reduced_G, diagnostics = _solve_schur_policy(F0, F1, ns, output=schur_output)
     G = np.vstack([marginals.vectors@reduced_G[:nr], reduced_G[nr:]])
     stack = np.vstack([np.eye(ns), reduced_G])
     projected = F0@stack+F1@stack@H
-    residual = float(np.max(abs(projected)))
-    radius = float(np.max(abs(np.linalg.eigvals(H))))
-    if residual > 1e-8 or radius >= 1-1e-8:
-        raise ValueError("projected stochastic equilibrium failed equation or stability checks")
     full_stack = np.vstack([np.eye(ns), G])
     full_residual = np.column_stack([kernel.linear_residual(full_stack[:, j], full_stack@H[:, j], basis, rho)
                                      for j in range(ns)])
@@ -418,15 +407,14 @@ def solve_hank_reduced_kernel(kernel: Any, *, distribution_rank: int | None = 12
     Q[shock_index, shock_index] = shock_std**2
     covariance = solve_discrete_lyapunov(H, Q)
     omitted_variance = np.maximum(np.einsum("ij,ji->i", omitted@covariance, omitted.T), 0.)
-    diagnostics = dict(equilibrium_residual_max_abs=residual, projected_equilibrium_residual_max_abs=residual,
+    diagnostics.update(
         full_equation_residual_max_abs=float(np.max(abs(full_residual))),
         full_marginal_residual_max_abs=float(np.max(abs(omitted))),
         full_marginal_relative_residual_max_abs=float(np.max(abs(omitted)/(1+abs(kernel.m[:, None])))),
         full_marginal_stationary_rms_max=float(np.sqrt(omitted_variance).max()),
         full_marginal_stationary_relative_rms_max=float(np.max(np.sqrt(omitted_variance)/(1+abs(kernel.m)))),
         directional_projection_error=float(np.max(abs(np.column_stack([project(v) for v in full_residual.T])-projected))),
-        steady_state_error=base_error, spectral_radius=radius, stable_roots=ns,
-        state_projection_condition=condition, system_dimension=dim,
+        steady_state_error=base_error, system_dimension=dim,
         full_control_system_dimension=full_dim, distribution_rank=basis.rank, marginal_rank=nr,
         full_distribution_dimension=kernel.d.size-kernel.constraints.shape[1], full_marginal_dimension=nm,
         approximation_order=1, stochastic_tail_solved=True, model=kernel.model,
@@ -449,7 +437,8 @@ def solve_hank_reduced_kernel(kernel: Any, *, distribution_rank: int | None = 12
 def solve_hank_reduced_policy(steady_state: Any, *, distribution_rank: int | None = 12,
         marginal_rank: int | None = 32, snapshots: np.ndarray | None = None,
         marginal_snapshots: np.ndarray | None = None, krylov_steps: int = 48,
-        rho: float = .7, shock_std: float = .0001, max_system_size: int = 1800) -> ReducedStochasticHANKPolicy:
+        rho: float = .7, shock_std: float = .0001, max_system_size: int = 1800,
+        schur_output: str = "real") -> ReducedStochasticHANKPolicy:
     """Reduce distribution states and household marginal controls before QZ.
 
     Supports one-asset, fixed-supply illiquid-consol and productive-capital
@@ -457,7 +446,11 @@ def solve_hank_reduced_policy(steady_state: Any, *, distribution_rank: int | Non
     ``solve_hank_reduced_kernel`` supplies the extensible aggregate closure.
     Retaining full marginals on a small grid is an independent comparison to
     the existing dense solver; large grids should use an explicit small rank.
+    The default real Schur form preserves conjugate stable blocks. Use
+    ``schur_output="complex"`` to compare with the previous decomposition.
     """
+    if schur_output not in ("real", "complex"):
+        raise ValueError("schur_output must be 'real' or 'complex'")
     from .one_asset_hank import OneAssetHANKSteadyState
     from .hank_capital import CapitalHANKSteadyState, _CapitalKernel
     kernel = (_CapitalKernel(steady_state) if isinstance(steady_state, CapitalHANKSteadyState)
@@ -465,4 +458,4 @@ def solve_hank_reduced_policy(steady_state: Any, *, distribution_rank: int | Non
               else _DirectionalTwoAssetKernel(steady_state))
     return solve_hank_reduced_kernel(kernel, distribution_rank=distribution_rank, marginal_rank=marginal_rank,
         snapshots=snapshots, marginal_snapshots=marginal_snapshots, krylov_steps=krylov_steps,
-        rho=rho, shock_std=shock_std, max_system_size=max_system_size)
+        rho=rho, shock_std=shock_std, max_system_size=max_system_size, schur_output=schur_output)

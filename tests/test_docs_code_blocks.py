@@ -31,6 +31,14 @@ matplotlib.use("Agg")
 REPO = Path(__file__).resolve().parents[1]
 
 PAGES = [
+    "docs/research_api.md",
+    "docs/es/research_api.md",
+    "docs/sovereign_adaptation.md",
+    "docs/es/sovereign_adaptation.md",
+    "docs/sovereign_banking.md",
+    "docs/es/sovereign_banking.md",
+    "docs/heterogeneous_expectations.md",
+    "docs/es/heterogeneous_expectations.md",
     "docs/first_brief_tariffs.md",
     "docs/es/first_brief_tariffs.md",
     "docs/first_brief_fiscal.md",
@@ -88,12 +96,14 @@ PAGES = [
     "docs/trade_condensed.md",
     "docs/trade_mrio.md",
     "docs/trade_dynamic.md",
+    "docs/trade_reallocation.md",
     "docs/es/trade_household.md",
     "docs/es/trade_distributional.md",
     "docs/es/trade_ces_newton.md",
     "docs/es/trade_condensed.md",
     "docs/es/trade_mrio.md",
     "docs/es/trade_dynamic.md",
+    "docs/es/trade_reallocation.md",
     # Caliendo-Parro, Allen-Arkolakis and the bundled OECD table (English and Spanish, identical code).
     "docs/spatial_and_trade_ge.md",
     "docs/es/spatial_and_trade_ge.md",

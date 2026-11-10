@@ -9,6 +9,119 @@ additions are included in 5.4.2. Versions 5.8.0, 5.9.0 and 6.0.0 were tagged
 but not published; their additions are included in 6.0.1, published on
 2026-10-29. See the [release procedure](RELEASING.md).
 
+## 6.3.0rc1 (2026-11-09)
+
+**Research APIs for equilibrium derivatives, simulation-aware inference and
+audited policy models, with shared integration contracts.**
+
+Release candidate source; publication and hosted qualification are tracked
+separately. The new economic models are experimental bounded implementations.
+HANK remains first order in this candidate; sampled confidence sets, finite
+horizons and discrete grids retain the limits documented in the API guides.
+
+### Hardened
+
+- Research APIs retain numeric arrays with immutable backing storage and own
+  nested diagnostics. This also protects empirical `MomentTargets` reused by
+  SMM and robust inference. Working copies and report tables remain writable.
+- Equilibrium tolerances and trade/NK/sovereign scalar primitives reject
+  strings, booleans, complex values and arrays with axes. Equilibrium labels and direction/transpose flags now have
+  explicit validation. Trade and information audits reject malformed retained
+  structures before indexing or broadcasting them, including mismatched trade
+  boundary economies. Statistical modules declare their public exports.
+- Added a reviewed argument-contract snapshot, composed equilibrium/SMM and
+  information/measurement regressions, and executable EN/ES API guides.
+  Model closures, numerical equations and existing public entry points remain
+  unchanged; these changes do not add higher-order HANK or join the separate
+  sovereign, banking, trade and information economies.
+
+### Added
+
+- Shared dense equilibrium residuals and local sensitivities in `puremacro.core`:
+  named/scaled equations, retained Jacobians, forward/transpose products and
+  factorization reuse, explicit singularity and stencil diagnostics, and no
+  silent regularization. Initial `linearize_projection` and `linearize_aiyagari`
+  adapters cover built-in Chebyshev Euler growth and canonical continuous EGM
+  Aiyagari with fixed grids/income chains. Includes bilingual guides and an
+  executable example. Sparse operators and statistical confidence sets remain
+  outside this initial interface.
+- `puremacro.core.continue_equilibrium` traces dense, single-parameter
+  equilibrium branches with pseudo-arclength predictors, damped Newton
+  correctors, adaptive steps and retained rejected-step diagnostics. Refined
+  fold candidates carry rank, transversality and curvature checks; declared
+  regime changes and unresolved numerical failures terminate explicitly.
+  Includes independent algebraic and model re-solve tests, bilingual guides,
+  and a fixed-saving growth example with two folds and three equilibria.
+  Disconnected-branch discovery, branch switching and stability inference
+  remain outside this local continuation API.
+- Simulation-aware SMM in `puremacro.structural`: fixed reproducible plans,
+  retained joint replicates/counts/statuses, simulation-mean covariance, explicit
+  data/simulation dependence, fixed pilot weights and fresh validation streams.
+  Local sandwich inference separates sampling and simulation uncertainty and
+  checks numerical regularity and derivative consistency. Includes correlated
+  GLS and analytic time-series references, bilingual guides and a synthetic
+  example. Legacy estimators, sovereign measurement conventions, adaptive
+  budgets and weak-identification-robust confidence sets are outside this slice.
+- Identification-robust point-null moment tests and continuous confidence sets
+  for declared scalar affine/quadratic moment curves with constant covariance.
+  Preserves disconnected components, singleton tangencies, empty/all-real sets,
+  search-domain truncation and unresolved numerical cases. General candidate
+  grids retain sampled tests without claiming complete continuous sets; the
+  simulation adapter evaluates uncertainty at each hypothesized parameter.
+  Includes analytic references, bilingual guides and an executable example.
+  General nuisance profiling, singularity-robust methods and arbitrary-callback
+  continuous inversion remain outside this initial supported class.
+- Experimental `puremacro.trade.reallocation`: a joint two-country/two-sector
+  perfect-foresight equilibrium with endogenous CES sourcing, capital investment
+  and costly sector labor allocation. All adjustment costs use real goods;
+  national households pool income, with financial autarky and lump-sum tariff
+  rebates. Includes independent accounts/optimality audits, local terminal
+  stability checks, retained horizon failures, approximate-tail consumption
+  equivalents, bilingual guides and an executable four-case illustration.
+  The initial sourcing-cost calibration 1.0 failed the terminal stability check;
+  the illustrative default is explicitly amended to 0.1. No empirical,
+  worker-specific welfare, global optimality or general MRIO claim is made.
+- Dated Gaussian information sets in `puremacro.expectations`: group-specific
+  signals, retained posterior means/covariances, exact redundancy handling,
+  explicit ambiguous-rank rejection and independent information audits.
+  `models.information_nk` applies them to a finite present-value NK forecast
+  system with separate consumer/firm weights, coefficient-space audits,
+  realized paths and group forecasts. Includes full-information and dense
+  references, bilingual guides and a reproducible news/learning illustration.
+  Only declared signals are processed; endogenous market learning, optimal
+  attention, welfare and HANK integration remain outside this first slice.
+- Experimental `puremacro.sovereign.banking`: a three-date contract economy
+  with one-period sovereign debt, mandated domestic bond holdings, bank equity
+  losses before private lending, and credit constrained by bank leverage.
+  Exhaustive finite-state pure price/default enumeration retains multiple and
+  zero-price equilibria, rejected portfolios and missing pure equilibria.
+  Explicit highest/lowest price selection precedes discrete debt optimization.
+  Includes independent sector/resource/optimality audits, analytic zero-exposure
+  limits, bilingual guides and reproducible debt-grid/stress comparisons.
+  Recursive debt dynamics, optimal portfolios, mixed equilibria and bank
+  recapitalization remain outside this first slice.
+- Experimental `puremacro.sovereign.adaptation`: finite-horizon, finite-grid
+  debt/default and adaptation choices with predetermined disaster protection,
+  depreciation and explicit free disposal. Risk-neutral lenders price both
+  next debt and installed stock. External investment grants and one-period
+  disaster-payment forgiveness enter government/household resource accounts.
+  Includes full Bellman/pricing audits, exact probability propagation with
+  separate default-entry/exclusion mass, consumption equivalents, bilingual
+  guides and joint debt/stock grid and debt-domain sensitivity experiments.
+  Hazard is exogenous; permanent exclusion and zero terminal continuation are
+  maintained assumptions. Domestic banking, endogenous climate, donor welfare,
+  reentry and infinite-horizon equilibrium remain outside this first slice.
+
+### Changed
+
+- Reduced HANK solvers now use real generalized Schur blocks by default;
+  `schur_output="complex"` retains the previous decomposition for comparison.
+  Both paths preserve determinacy, conditioning and equation tolerances, and
+  full-grid household/market audits. Includes analytical conjugate-mode tests,
+  comparisons across all three economic closures, and a reproducible benchmark
+  that separates total solve time, decomposition time and process memory.
+  Historical evidence retains its original hashes and archived source.
+
 ## 6.2.0 (2026-11-05)
 
 **Fiscal rules & debt-sustainability analysis, state-dependent LP & weak-IV HAC diagnostics, sequence-space optimal policy, SVAR identification, GIV, and investment-research workflows.**

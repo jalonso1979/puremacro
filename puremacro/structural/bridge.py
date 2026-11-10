@@ -21,6 +21,7 @@ from scipy.optimize import least_squares
 from scipy.stats import chi2, norm
 
 from puremacro._linalg import safe_cholesky
+from puremacro._numeric_contracts import readonly_array
 from puremacro.reports import df_to_latex, df_to_markdown, df_to_typst
 
 
@@ -34,9 +35,7 @@ def _array(value: Any, name: str, ndim: int) -> np.ndarray:
 
 
 def _readonly(value: Any) -> np.ndarray:
-    a = np.array(value, copy=True)
-    a.setflags(write=False)
-    return a
+    return readonly_array(value)
 
 
 def _freeze(value: Any) -> Any:

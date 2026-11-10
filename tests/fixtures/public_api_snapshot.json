@@ -273,15 +273,35 @@
       "spillover_index"
     ],
     "puremacro.core": [
+      "ContinuationAttempt",
       "DFMDifferentiableAdapter",
       "DSGEDifferentiableAdapter",
       "DifferentiableModel",
+      "EquilibriumBranchResult",
+      "EquilibriumFold",
+      "EquilibriumLinearization",
+      "EquilibriumSensitivityResult",
+      "EquilibriumSystem",
       "HANKDAGDifferentiableAdapter",
       "SVARDifferentiableAdapter",
       "SpatialDifferentiableAdapter",
       "StateSpaceProtocol",
       "TradeDifferentiableAdapter",
+      "continue_equilibrium",
+      "linearize_equilibrium",
       "wrap_differentiable_model"
+    ],
+    "puremacro.core.continuation": [
+      "ContinuationAttempt",
+      "EquilibriumBranchResult",
+      "EquilibriumFold",
+      "continue_equilibrium"
+    ],
+    "puremacro.core.equilibrium": [
+      "EquilibriumLinearization",
+      "EquilibriumSensitivityResult",
+      "EquilibriumSystem",
+      "linearize_equilibrium"
     ],
     "puremacro.core.protocol": [
       "DFMDifferentiableAdapter",
@@ -1036,6 +1056,18 @@
       "build_diff_design",
       "build_diff_instruments",
       "build_instruments"
+    ],
+    "puremacro.expectations": [
+      "GaussianInformation",
+      "GaussianSignal",
+      "audit_gaussian_information",
+      "build_gaussian_information"
+    ],
+    "puremacro.expectations.gaussian": [
+      "GaussianInformation",
+      "GaussianSignal",
+      "audit_gaussian_information",
+      "build_gaussian_information"
     ],
     "puremacro.experiment": [
       "run_experiment"
@@ -2270,6 +2302,9 @@
       "HANKScenarioTreeResult",
       "HANKStochasticResult",
       "HANKStochasticTreeResult",
+      "InformationNKParameters",
+      "InformationNKPath",
+      "InformationNKSolution",
       "MonetaryTransmissionResult",
       "MonetaryTransmissionSimulator",
       "NonlinearHANKResult",
@@ -2282,6 +2317,7 @@
       "TradePolicySimulator",
       "TwoAssetHANKSteadyState",
       "TwoAssetSequenceSpaceHANKResult",
+      "audit_information_nk",
       "calibrate_capital_hank",
       "calibrate_one_asset_hank",
       "calibrate_two_asset_equilibrium",
@@ -2301,6 +2337,7 @@
       "solve_hank_sequence_space",
       "solve_hank_stochastic_policy",
       "solve_hank_stochastic_tree",
+      "solve_information_nk",
       "solve_nonlinear_transition",
       "solve_one_asset_hank",
       "solve_two_asset_hank_sequence_space"
@@ -2358,6 +2395,13 @@
     "puremacro.models.hank_two_asset_equilibrium": [
       "TwoAssetHANKSteadyState",
       "calibrate_two_asset_equilibrium"
+    ],
+    "puremacro.models.information_nk": [
+      "InformationNKParameters",
+      "InformationNKPath",
+      "InformationNKSolution",
+      "audit_information_nk",
+      "solve_information_nk"
     ],
     "puremacro.models.nested_dmp": [
       "ComparativeStatics",
@@ -3338,15 +3382,24 @@
       "shapley_var"
     ],
     "puremacro.sovereign": [
+      "AdaptationDistribution",
       "FiscalReactionEstimateResult",
       "FiscalReactionFunction",
       "FiscalRule",
       "FiscalSovereignResult",
       "RestructuringResult",
+      "SovereignAdaptationParameters",
+      "SovereignAdaptationResult",
+      "SovereignBankingEquilibrium",
+      "SovereignBankingParameters",
+      "SovereignBankingResult",
       "SovereignDefaultResult",
       "SovereignSMMResult",
       "StochasticDSAResult",
       "SuddenStopResult",
+      "audit_adaptation_distribution",
+      "audit_sovereign_adaptation",
+      "audit_sovereign_banking",
       "calibrate_fiscal_sovereign_smm",
       "compare_fiscal_rules_dsa",
       "decompose_spread_term_structure",
@@ -3357,8 +3410,11 @@
       "simulate_fiscal_dsa",
       "simulate_stochastic_dsa",
       "solve_fiscal_sovereign_default",
+      "solve_sovereign_adaptation",
+      "solve_sovereign_banking",
       "solve_sovereign_default",
       "solve_sudden_stop",
+      "sovereign_bank_accounts",
       "value_of_market_access"
     ],
     "puremacro.sovereign._fiscal_paths": [
@@ -3380,8 +3436,24 @@
       "StochasticDSAResult",
       "SuddenStopResult"
     ],
+    "puremacro.sovereign.adaptation": [
+      "AdaptationDistribution",
+      "SovereignAdaptationParameters",
+      "SovereignAdaptationResult",
+      "audit_adaptation_distribution",
+      "audit_sovereign_adaptation",
+      "solve_sovereign_adaptation"
+    ],
     "puremacro.sovereign.arellano": [
       "solve_sovereign_default"
+    ],
+    "puremacro.sovereign.banking": [
+      "SovereignBankingEquilibrium",
+      "SovereignBankingParameters",
+      "SovereignBankingResult",
+      "audit_sovereign_banking",
+      "solve_sovereign_banking",
+      "sovereign_bank_accounts"
     ],
     "puremacro.sovereign.dsa": [
       "FiscalReactionEstimateResult",
@@ -3522,11 +3594,27 @@
     ],
     "puremacro.structural": [
       "AGSSensitivityResult",
+      "MomentConfidenceSet",
+      "MomentReplication",
       "MomentTargets",
+      "MomentTestGridResult",
+      "MomentTestResult",
+      "QuadraticMomentCurve",
+      "SMMFitResult",
+      "SimulatedMoments",
+      "SimulationMomentError",
+      "SimulationPlan",
       "StructuralFitResult",
       "ags_sensitivity",
+      "evaluate_moment_grid",
+      "fit_simulated_moments",
       "fit_structural",
-      "lp_moment_targets"
+      "invert_quadratic_moments",
+      "lp_moment_targets",
+      "moment_error_covariance",
+      "moment_restriction_test",
+      "simulate_moments",
+      "simulated_moment_test"
     ],
     "puremacro.structural.bridge": [
       "AGSSensitivityResult",
@@ -3537,6 +3625,26 @@
     ],
     "puremacro.structural.lp": [
       "lp_moment_targets"
+    ],
+    "puremacro.structural.robust": [
+      "MomentConfidenceSet",
+      "MomentTestGridResult",
+      "MomentTestResult",
+      "QuadraticMomentCurve",
+      "evaluate_moment_grid",
+      "invert_quadratic_moments",
+      "moment_restriction_test",
+      "simulated_moment_test"
+    ],
+    "puremacro.structural.simulation": [
+      "MomentReplication",
+      "SMMFitResult",
+      "SimulatedMoments",
+      "SimulationMomentError",
+      "SimulationPlan",
+      "fit_simulated_moments",
+      "moment_error_covariance",
+      "simulate_moments"
     ],
     "puremacro.study": [
       "CounterfactualGrid",
@@ -3691,6 +3799,11 @@
       "ParameterContinuationResult",
       "PolicyEquilibriumError",
       "RawFlowCertificate",
+      "ReallocationEconomy",
+      "ReallocationHorizonResult",
+      "ReallocationSolveError",
+      "ReallocationSteadyState",
+      "ReallocationTransitionResult",
       "ScenarioBatchResult",
       "SourceRecord",
       "SourcingAdjustmentResult",
@@ -3707,6 +3820,7 @@
       "WelfareDecompositionResult",
       "WelfarePayoffMatrixResult",
       "aggregate_mrio",
+      "audit_reallocation",
       "balanced_compensation",
       "baqaee_farhi_decomposition",
       "build_initial_guess",
@@ -3774,12 +3888,15 @@
       "read_exiobase_native",
       "read_figaro_native",
       "read_oecd_native",
+      "reallocation",
+      "reallocation_stability",
       "reduced_stability",
       "regularize_table",
       "reset_peak_memory",
       "resolve_country_indices",
       "restore_capital_formation",
       "run_horizon_ladder",
+      "run_reallocation_horizon_ladder",
       "run_scenario",
       "run_scenario_batch",
       "select_compute_device",
@@ -3796,6 +3913,8 @@
       "solve_multilateral_nash_tariffs",
       "solve_multilateral_ppp",
       "solve_policy_equilibrium",
+      "solve_reallocation_steady_state",
+      "solve_reallocation_transition",
       "solve_sourcing_adjustment",
       "solve_trade_equilibrium",
       "solve_trade_equilibrium_gpu",
@@ -4232,6 +4351,18 @@
       "intermediate_tensor_to_matrix",
       "postprocess_trade_equilibrium"
     ],
+    "puremacro.trade.reallocation": [
+      "ReallocationEconomy",
+      "ReallocationHorizonResult",
+      "ReallocationSolveError",
+      "ReallocationSteadyState",
+      "ReallocationTransitionResult",
+      "audit_reallocation",
+      "reallocation_stability",
+      "run_reallocation_horizon_ladder",
+      "solve_reallocation_steady_state",
+      "solve_reallocation_transition"
+    ],
     "puremacro.trade.regularize": [
       "balance_gras",
       "balance_quadratic",
@@ -4603,6 +4734,8 @@
       "ks_simulate",
       "life_cycle_distribution",
       "life_cycle_profile",
+      "linearize_aiyagari",
+      "linearize_projection",
       "lorenz_and_gini",
       "lottery_distribution",
       "lottery_push",
@@ -4726,6 +4859,10 @@
       "PermanentTypesEquilibrium",
       "stationary_equilibrium",
       "stationary_equilibrium_types"
+    ],
+    "puremacro.vfi.equilibrium_linearization": [
+      "linearize_aiyagari",
+      "linearize_projection"
     ],
     "puremacro.vfi.estimate": [
       "EstimationResult",
@@ -5235,6 +5372,91 @@
       "rho",
       "z_alpha",
       "z_t"
+    ],
+    "puremacro.core.continuation.ContinuationAttempt": [
+      "accepted",
+      "arclength_residual",
+      "from_index",
+      "iterations",
+      "reason",
+      "residual_norm",
+      "step"
+    ],
+    "puremacro.core.continuation.EquilibriumBranchResult": [
+      "arclength",
+      "attempts",
+      "augmented_condition_numbers",
+      "branch_id",
+      "folds",
+      "message",
+      "newton_iterations",
+      "parameter_name",
+      "parameters",
+      "residual_norms",
+      "states",
+      "status",
+      "step_sizes",
+      "system",
+      "tangents"
+    ],
+    "puremacro.core.continuation.EquilibriumFold": [
+      "augmented_condition_number",
+      "curvature",
+      "curvature_error",
+      "equilibrium_residual",
+      "iterations",
+      "left_index",
+      "parameters",
+      "reason",
+      "right_index",
+      "state",
+      "state_corank",
+      "status",
+      "tangent",
+      "transversality"
+    ],
+    "puremacro.core.equilibrium.EquilibriumLinearization": [
+      "_factor",
+      "branch_id",
+      "condition_number",
+      "equilibrium_residual",
+      "parameter_derivative_source",
+      "parameter_jacobian",
+      "parameter_steps",
+      "parameters",
+      "reasons",
+      "residual",
+      "smallest_scaled_singular_value",
+      "state",
+      "state_derivative_source",
+      "state_jacobian",
+      "state_steps",
+      "system"
+    ],
+    "puremacro.core.equilibrium.EquilibriumSensitivityResult": [
+      "branch_id",
+      "condition_number",
+      "equilibrium_residual",
+      "jacobian",
+      "linearized_residual",
+      "parameter_names",
+      "reasons",
+      "snapshot_id",
+      "state_names",
+      "status"
+    ],
+    "puremacro.core.equilibrium.EquilibriumSystem": [
+      "equation_names",
+      "label",
+      "parameter_jacobian",
+      "parameter_names",
+      "parameter_scale",
+      "regime",
+      "residual",
+      "residual_scale",
+      "state_jacobian",
+      "state_names",
+      "state_scale"
     ],
     "puremacro.credentials.ServiceCredentialSpec": [
       "description",
@@ -6873,6 +7095,23 @@
       "step",
       "windmeijer"
     ],
+    "puremacro.expectations.gaussian.GaussianInformation": [
+      "covariance",
+      "diagnostics",
+      "group_names",
+      "horizon",
+      "posterior_covariances",
+      "projectors",
+      "ranks",
+      "signals",
+      "state_names",
+      "weights"
+    ],
+    "puremacro.expectations.gaussian.GaussianSignal": [
+      "date",
+      "label",
+      "loading"
+    ],
     "puremacro.fetch.longpanel._splice.Seam": [
       "date",
       "newer",
@@ -7601,6 +7840,31 @@
       "converged",
       "diagnostics",
       "distribution"
+    ],
+    "puremacro.models.information_nk.InformationNKParameters": [
+      "beta",
+      "intertemporal_elasticity",
+      "inverse_frisch",
+      "price_stickiness"
+    ],
+    "puremacro.models.information_nk.InformationNKPath": [
+      "inflation",
+      "next_inflation_forecasts",
+      "next_output_forecasts",
+      "next_rate_forecasts",
+      "nominal_rate",
+      "output",
+      "realization",
+      "solution"
+    ],
+    "puremacro.models.information_nk.InformationNKSolution": [
+      "diagnostics",
+      "firm_weights",
+      "inflation_loadings",
+      "information",
+      "output_loadings",
+      "parameters",
+      "rate_loadings"
     ],
     "puremacro.models.monetary_transmission.MonetaryTransmissionResult": [
       "aggregate_mpc_hank",
@@ -8504,6 +8768,80 @@
       "policy_q_asset",
       "z_grid"
     ],
+    "puremacro.sovereign.adaptation.AdaptationDistribution": [
+      "access_mass",
+      "diagnostics",
+      "excluded_mass",
+      "initial_access",
+      "initial_adaptation_index",
+      "initial_debt_index",
+      "initial_probabilities",
+      "result"
+    ],
+    "puremacro.sovereign.adaptation.SovereignAdaptationParameters": [
+      "beta",
+      "default_loss",
+      "depreciation",
+      "disaster_relief",
+      "effectiveness",
+      "grant_rate",
+      "gross_rate"
+    ],
+    "puremacro.sovereign.adaptation.SovereignAdaptationResult": [
+      "access_value",
+      "adaptation_grid",
+      "damage",
+      "debt_grid",
+      "decision_tolerance",
+      "default",
+      "diagnostics",
+      "disaster",
+      "excluded_adaptation_policy",
+      "excluded_value",
+      "horizon",
+      "income",
+      "parameters",
+      "prices",
+      "repayment_adaptation_policy",
+      "repayment_debt_policy",
+      "repayment_value",
+      "transition"
+    ],
+    "puremacro.sovereign.banking.SovereignBankingEquilibrium": [
+      "accounts",
+      "debt_index",
+      "default",
+      "initial_consumption",
+      "initial_reserves",
+      "mask",
+      "price",
+      "value"
+    ],
+    "puremacro.sovereign.banking.SovereignBankingParameters": [
+      "beta",
+      "credit_scale",
+      "default_loss",
+      "domestic_share",
+      "gross_rate",
+      "initial_equity",
+      "initial_income",
+      "leverage",
+      "terminal_income"
+    ],
+    "puremacro.sovereign.banking.SovereignBankingResult": [
+      "candidates",
+      "debt_grid",
+      "decision_tolerance",
+      "diagnostics",
+      "equilibria",
+      "income",
+      "parameters",
+      "price_selection",
+      "probabilities",
+      "productivity",
+      "selected_index",
+      "selected_indices"
+    ],
     "puremacro.sovereign.dsa.FiscalReactionEstimateResult": [
       "bohn_p_value_one_sided",
       "bohn_solvency_holds",
@@ -8882,6 +9220,104 @@
       "success",
       "targets",
       "theta"
+    ],
+    "puremacro.structural.robust.MomentConfidenceSet": [
+      "alpha",
+      "boundary_contact",
+      "calibration",
+      "covariance",
+      "critical_value",
+      "curve",
+      "df",
+      "diagnostics",
+      "domain",
+      "global_geometry",
+      "global_intervals",
+      "intervals",
+      "status",
+      "targets",
+      "truncated"
+    ],
+    "puremacro.structural.robust.MomentTestGridResult": [
+      "grid",
+      "parameter_name",
+      "tests"
+    ],
+    "puremacro.structural.robust.MomentTestResult": [
+      "accepted",
+      "alpha",
+      "calibration",
+      "covariance",
+      "critical_value",
+      "df",
+      "error",
+      "labels",
+      "metadata",
+      "pvalue",
+      "simulation",
+      "statistic",
+      "status"
+    ],
+    "puremacro.structural.robust.QuadraticMomentCurve": [
+      "center",
+      "definition_id",
+      "labels",
+      "linear",
+      "loading",
+      "offset",
+      "parameter_name",
+      "quadratic",
+      "scale",
+      "units"
+    ],
+    "puremacro.structural.simulation.MomentReplication": [
+      "counts",
+      "labels",
+      "status",
+      "values"
+    ],
+    "puremacro.structural.simulation.SMMFitResult": [
+      "covariance",
+      "cross_covariance_adjustment",
+      "diagnostics",
+      "inference_reasons",
+      "inference_valid",
+      "influence",
+      "jacobian",
+      "moment_covariance",
+      "n_evals",
+      "n_replications_evaluated",
+      "objective",
+      "parameter_names",
+      "pilot",
+      "sampling_covariance",
+      "simulation",
+      "simulation_covariance",
+      "standard_errors",
+      "success",
+      "targets",
+      "theta",
+      "validation",
+      "weight"
+    ],
+    "puremacro.structural.simulation.SimulatedMoments": [
+      "counts",
+      "definition_id",
+      "labels",
+      "metadata",
+      "plan",
+      "replicates",
+      "statuses",
+      "theta",
+      "units"
+    ],
+    "puremacro.structural.simulation.SimulationPlan": [
+      "burn_in",
+      "periods",
+      "replications",
+      "role",
+      "seed",
+      "stream"
     ],
     "puremacro.study._core.StudyComparison": [
       "comparison_note",
@@ -9903,6 +10339,43 @@
       "terms_of_trade_index_change",
       "tot_effect",
       "total_welfare_change"
+    ],
+    "puremacro.trade.reallocation.ReallocationEconomy": [
+      "beta",
+      "capital_cost",
+      "capital_share",
+      "countries",
+      "delta",
+      "home_shares",
+      "labor_cost",
+      "labor_supply",
+      "productivity",
+      "risk_aversion",
+      "sector_weights",
+      "sectors",
+      "sourcing_cost",
+      "trade_elasticity"
+    ],
+    "puremacro.trade.reallocation.ReallocationHorizonResult": [
+      "attempts",
+      "runs",
+      "status"
+    ],
+    "puremacro.trade.reallocation.ReallocationSteadyState": [
+      "coordinates",
+      "diagnostics",
+      "economy",
+      "tariffs",
+      "values"
+    ],
+    "puremacro.trade.reallocation.ReallocationTransitionResult": [
+      "coordinates",
+      "diagnostics",
+      "economy",
+      "initial",
+      "paths",
+      "tariffs",
+      "terminal"
     ],
     "puremacro.trade.scenarios.TariffScenario": [
       "description",
