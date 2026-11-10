@@ -121,6 +121,14 @@ horizons and discrete grids retain the limits documented in the API guides.
   maintained assumptions. Domestic banking, endogenous climate, donor welfare,
   reentry and infinite-horizon equilibrium remain outside this first slice.
 
+### Fixed
+
+- Expanded the English/Spanish NUTS notebook's sampling budget to four chains,
+  500 warmup iterations and 1,000 retained draws per chain after the short
+  example failed its convergence check on a hosted runner. The seed, R-hat,
+  divergence and energy diagnostic thresholds are unchanged; longer sampling
+  does not waive those checks.
+
 ### Changed
 
 - Reduced HANK solvers now use real generalized Schur blocks by default;

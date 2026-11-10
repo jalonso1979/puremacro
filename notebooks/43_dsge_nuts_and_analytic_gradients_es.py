@@ -272,16 +272,21 @@ assert np.all(np.isfinite(score_exact))
 # Estimamos los parámetros estructurales $\sigma$ y $\kappa$ simultáneamente con el algoritmo `method="nuts"` guiado por los gradientes analíticos exactos de puremacro.
 #
 # Configuración del muestreador:
-# - Extracciones por cadena: `n_draws = 150`
-# - Calentamiento (*burn-in*): `burn_in = 75`
-# - Cadenas paralelas: `n_chains = 2`
+# - Extracciones por cadena: `n_draws = 1000`
+# - Calentamiento (*burn-in*): `burn_in = 500`
+# - Cadenas: `n_chains = 4`
 # - Adaptación del paso: Promedio dual con tasa objetivo $\delta^* = 0.80$
 # - Métrica de masa: Matriz diagonal adaptada en línea con el algoritmo de Welford
+#
+# Un calentamiento y una muestra retenida más largos aportan más información a
+# los diagnósticos de convergencia que una demostración breve. La semilla y los
+# umbrales siguientes se mantienen fijos; revise los fallos antes de interpretar
+# las estimaciones posteriores.
 
 # %%
-n_draws = 150
-n_chains = 2
-burn_in = 75
+n_draws = 1000
+n_chains = 4
+burn_in = 500
 seed_nuts = 42
 
 print(f"\nEjecutando Estimación MCMC mediante NUTS:")
@@ -427,10 +432,10 @@ ax4.legend(loc="upper right", fontsize=8)
 # 1. **Score Analítico Exacto vs Diferencias Finitas**: El cálculo del score de Kalman en un solo paso de puremacro evalúa las derivadas exactas de la verosimilitud en menos de $25\text{ ms}$, coincidiendo estrechamente con las diferencias finitas centrales de 5 puntos sin necesidad de re-resolver el modelo $2K$ veces ni sufrir por cancelación numérica.
 # 2. **Exploración Hamiltoniana sin Calibración Manual**: A diferencia del HMC tradicional donde el paso y la longitud de trayectoria debían afinarse por ensayo y error, NUTS selecciona automáticamente la trayectoria óptima en cada iteración (profundidades de árbol medias de $\approx 2\text{--}3$ duplicaciones) adaptando el paso a la tasa de aceptación fijada ($\approx 80\%$).
 # 3. **Convergencia y Diagnósticos MCMC**:
-#    - **Split-$\hat{R}$**: Ambos parámetros registran un split-$\hat{R} < 1.02$, muy por debajo del umbral conservador de $1.05$, confirmando la estacionariedad intra-cadena y la mezcla óptima entre cadenas.
-#    - **Tamaño Muestral Efectivo**: Tanto el ESS central como el ESS de colas superan 80 extracciones efectivas sobre una muestra moderada de 300 extracciones post-calentamiento, reflejando baja autocorrelación.
-#    - **Cero Divergencias**: No se registran divergencias hamiltonianas ($\Delta_{\max} = 1000$), lo que corrobora que el integrador leapfrog sigue con fidelidad la variedad posterior sin caer en trampas numéricas de energía.
-#    - **E-BFMI**: Los valores de la fracción bayesiana de información perdida de energía ($\approx 1.0\text{--}1.2$) superan holgadamente el umbral crítico de $0.30$, garantizando un muestreo adecuado de la energía.
+#    - **Split-$\hat{R}$**: Compare los valores reportados con el umbral sin cambios de $1.05$. Superarlo favorablemente aporta evidencia diagnóstica de muestra finita, no una prueba de convergencia; investigue los fallos antes de usar los resúmenes posteriores.
+#    - **Tamaño Muestral Efectivo**: Lea el ESS central y de colas junto con las 4,000 extracciones totales post-calentamiento. El ESS incorpora la dependencia; el número de extracciones retenidas no mide por sí solo la precisión Monte Carlo.
+#    - **Cero Divergencias**: Este ejemplo exige cero divergencias hamiltonianas reportadas ($\Delta_{\max} = 1000$). Investigue cualquier divergencia incluso cuando se cumpla el criterio R-hat.
+#    - **E-BFMI**: Compare el diagnóstico energético de cada cadena con el umbral sin cambios de $0.30$. Interprételo junto con las trazas, el ESS y R-hat, no como garantía de un muestreo adecuado.
 # 4. **Identificación Estructural de Parámetros**: Las distribuciones posteriores engloban con precisión los parámetros que generaron los datos sintéticos ($\sigma^* = 1.00$, $\kappa^* = 0.10$). La información muestral actualiza efectivamente las distribuciones previas, reduciendo la incertidumbre y centrando los modos en torno a los valores reales.
 
 # %%

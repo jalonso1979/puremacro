@@ -272,16 +272,20 @@ assert np.all(np.isfinite(score_exact))
 # We estimate structural parameters $\sigma$ and $\kappa$ simultaneously using `method="nuts"` driven by puremacro's exact analytical likelihood score.
 #
 # Sampler settings:
-# - Draws per chain: `n_draws = 150`
-# - Warmup / burn-in: `burn_in = 75`
-# - Parallel chains: `n_chains = 2`
+# - Draws per chain: `n_draws = 1000`
+# - Warmup / burn-in: `burn_in = 500`
+# - Chains: `n_chains = 4`
 # - Step-size adaptation: Dual averaging targeting $\delta^* = 0.80$
 # - Metric: Diagonal mass matrix $M^{-1}$ adapted via online Welford updates
+#
+# The longer warmup and retained sample provide more information for convergence
+# diagnostics than a short demonstration run. The seed and diagnostic thresholds
+# below remain fixed; inspect failures before interpreting posterior estimates.
 
 # %%
-n_draws = 150
-n_chains = 2
-burn_in = 75
+n_draws = 1000
+n_chains = 4
+burn_in = 500
 seed_nuts = 42
 
 print(f"\nRunning NUTS MCMC Estimation:")
@@ -427,10 +431,10 @@ ax4.legend(loc="upper right", fontsize=8)
 # 1. **Exact Analytical Score vs Numerical Finite Differences**: puremacro's single-pass Kalman score evaluates exact likelihood derivatives in under $25\text{ ms}$, matching central finite difference approximations closely while requiring only a single forward recursion. This avoids the $2K$ expensive full-model resolving passes and eliminates floating-point cancellation errors.
 # 2. **Hamiltonian Exploration without Tuning**: Unlike traditional HMC, where step size and path length must be tuned by trial and error, NUTS automatically selects optimal trajectory lengths at every step (averaging tree depths of $\approx 2\text{--}3$ doubling steps) while adapting step sizes to achieve the target acceptance probability ($\approx 80\%$).
 # 3. **Convergence and Diagnostics**:
-#    - **Split-$\hat{R}$**: Both parameters exhibit split-$\hat{R} < 1.02$, well below the stringent $1.05$ threshold, confirming stationary within-chain behavior and excellent across-chain mixing.
-#    - **Effective Sample Size**: Both bulk ESS and tail ESS exceed 80 on a modest sample of 300 total post-warmup draws, demonstrating low autocorrelation and high sampling efficiency.
-#    - **Zero Divergences**: The sampler reports zero Hamiltonian divergences ($\Delta_{\max} = 1000$), confirming that the symplectic leapfrog integrator tracks the posterior manifold smoothly without falling into numerical energy traps.
-#    - **E-BFMI**: Energy Bayesian Fraction of Missing Information values ($\approx 1.0\text{--}1.2$) significantly exceed the $0.30$ warning threshold, indicating that momentum resamplings adequately explore the energy distribution.
+#    - **Split-$\hat{R}$**: Compare the reported values with the unchanged $1.05$ threshold. A pass is finite-sample diagnostic evidence, not proof of convergence; investigate failures before using the posterior summaries.
+#    - **Effective Sample Size**: Read bulk and tail ESS alongside the 4,000 total post-warmup draws. ESS accounts for dependence, so the retained draw count alone does not measure Monte Carlo precision.
+#    - **Zero Divergences**: This example requires zero reported Hamiltonian divergences ($\Delta_{\max} = 1000$). Investigate any divergence even when the R-hat check passes.
+#    - **E-BFMI**: Compare each chain's reported energy diagnostic with the unchanged $0.30$ threshold. Consider it together with the trace plots, ESS and R-hat rather than as a guarantee of adequate sampling.
 # 4. **Structural Parameter Identification**: The posterior distributions tightly encompass the true data-generating values ($\sigma^* = 1.00$, $\kappa^* = 0.10$). The data successfully update the prior distributions, yielding informative posterior standard deviations and well-centered modes.
 
 # %%
