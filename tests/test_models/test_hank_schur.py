@@ -108,13 +108,54 @@ def test_default_real_backend_preserves_live_equations_and_policies(comparison):
         np.testing.assert_array_equal(getattr(real, field), getattr(complex_, field))
     np.testing.assert_array_equal(real.basis.vectors, complex_.basis.vectors)
     np.testing.assert_array_equal(real.marginal_basis.vectors, complex_.marginal_basis.vectors)
-    for field in ("transition", "feedback", "reduced_feedback", "_full_residual"):
+    for field in ("transition", "feedback", "reduced_feedback"):
         np.testing.assert_allclose(getattr(real, field), getattr(complex_, field), atol=1e-6, rtol=1e-8)
         assert not getattr(real, field).flags.writeable
     np.testing.assert_allclose(real.covariance(), complex_.covariance(), atol=1e-12, rtol=1e-8)
     innovations = np.random.default_rng(9917).normal(0., 1e-5, 30)
     np.testing.assert_allclose(real.simulate(innovations).paths, complex_.simulate(innovations).paths,
                                atol=1e-10, rtol=0)
+
+
+def test_full_grid_diagnostic_parity_resolves_finite_difference_precision(comparison):
+    real, complex_ = comparison
+    for policy in comparison:
+        assert np.isfinite(policy._full_residual).all()
+        assert not policy._full_residual.flags.writeable
+    if not hasattr(real._kernel, "fd_step"):
+        np.testing.assert_allclose(real._full_residual, complex_._full_residual,
+                                   atol=1e-6, rtol=1e-8)
+        return
+
+    # Two-asset kernels evaluate directional household derivatives by centered
+    # differences. Audit arrays can vary more than policy coefficients when
+    # cancellation amplifies roundoff. Measure that diagnostic's own stencil
+    # sensitivity; the policy, equation and nonlinear-audit limits stay fixed.
+    sensitivities = []
+    for policy in comparison:
+        kernel = policy._kernel
+        step = kernel.fd_step
+        ns = len(policy.transition)
+        full = np.vstack([np.eye(ns), policy.feedback])
+        scale = np.r_[np.ones(ns), 1+abs(kernel.m),
+                      np.ones(len(kernel.aggregate_names))][:, None]
+        residuals = []
+        try:
+            for factor in (1., .5, 2.):
+                kernel.fd_step = step*factor
+                residuals.append(np.column_stack([
+                    kernel.linear_residual(full[:, j], full@policy.transition[:, j],
+                                           policy.basis, policy.rho)
+                    for j in range(ns)]))
+        finally:
+            kernel.fd_step = step
+        np.testing.assert_array_equal(residuals[0], policy._full_residual)
+        changes = [abs(residuals[0]-r) for r in residuals[1:]]
+        # Reject unresolved derivative audits instead of accepting any width.
+        assert max(np.max(change/scale) for change in changes) < 1e-5
+        sensitivities.append(max(float(np.max(change)) for change in changes))
+    budget = 1e-6 + 1e-8*np.max(abs(complex_._full_residual)) + sum(sensitivities)
+    assert np.max(abs(real._full_residual-complex_._full_residual)) <= budget
 
 
 def test_real_backend_keeps_full_grid_audit_and_failure_decisions(comparison):
