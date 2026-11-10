@@ -26,6 +26,8 @@ A reusable, multi-backend (numpy/numba/mlx/cupy) solver for dynamic economic mod
 """
 from __future__ import annotations
 
+from puremacro.vfi.equilibrium_linearization import linearize_aiyagari, linearize_projection
+
 from puremacro.vfi.discretize import (
     combine_markov_chains,
     farmer_toda,
@@ -195,6 +197,7 @@ __all__ = [
     "ks_exog_transition", "ks_simulate", "krusell_smith", "KSEquilibrium",
     "Model",
     "CollocationBasis", "CollocationProblem", "CollocationSolution", "solve_collocation",
+    "linearize_projection", "linearize_aiyagari",
     "FEMMesh", "FEMProblem", "FEMSolution", "solve_fem",
     "ContinuousStationaryDistribution", "ContinuousDistributionResult",
     "AiyagariContinuousEquilibrium", "ContinuousEquilibriumResult",
