@@ -1,0 +1,3587 @@
+{
+  "puremacro.core.equilibrium.EquilibriumSystem": [
+    {
+      "name": "residual",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "state_names",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameter_names",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "state_scale",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "None"
+    },
+    {
+      "name": "parameter_scale",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "None"
+    },
+    {
+      "name": "residual_scale",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "None"
+    },
+    {
+      "name": "state_jacobian",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "None"
+    },
+    {
+      "name": "parameter_jacobian",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "None"
+    },
+    {
+      "name": "regime",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "None"
+    },
+    {
+      "name": "equation_names",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "None"
+    },
+    {
+      "name": "label",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "'equilibrium'"
+    }
+  ],
+  "puremacro.core.equilibrium.EquilibriumSystem.evaluate": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "state",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameters",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.equilibrium.EquilibriumLinearization": [
+    {
+      "name": "system",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "state",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameters",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "residual",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "state_jacobian",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameter_jacobian",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "state_steps",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameter_steps",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "state_derivative_source",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameter_derivative_source",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "reasons",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "condition_number",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "smallest_scaled_singular_value",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "equilibrium_residual",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "branch_id",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "None"
+    }
+  ],
+  "puremacro.core.equilibrium.EquilibriumLinearization.jvp": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "direction",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.equilibrium.EquilibriumLinearization.sensitivity": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.equilibrium.EquilibriumLinearization.solve": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "rhs",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "transpose",
+      "kind": "KEYWORD_ONLY",
+      "default": "False"
+    }
+  ],
+  "puremacro.core.equilibrium.EquilibriumLinearization.vjp": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "cotangent",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.equilibrium.EquilibriumSensitivityResult": [
+    {
+      "name": "state_names",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameter_names",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "jacobian",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "status",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "reasons",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "equilibrium_residual",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "linearized_residual",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "condition_number",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "branch_id",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "snapshot_id",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.equilibrium.EquilibriumSensitivityResult.plot": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "states",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "ax",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    }
+  ],
+  "puremacro.core.equilibrium.EquilibriumSensitivityResult.summary": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.equilibrium.EquilibriumSensitivityResult.to_dataframe": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.equilibrium.EquilibriumSensitivityResult.to_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.equilibrium.EquilibriumSensitivityResult.to_latex": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "kwargs",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.equilibrium.EquilibriumSensitivityResult.to_markdown": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "kwargs",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.equilibrium.EquilibriumSensitivityResult.to_typst": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "kwargs",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.equilibrium.linearize_equilibrium": [
+    {
+      "name": "system",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "state",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameters",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "step",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-05"
+    },
+    {
+      "name": "residual_tol",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-07"
+    },
+    {
+      "name": "derivative_tol",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.001"
+    },
+    {
+      "name": "singular_tol",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-10"
+    },
+    {
+      "name": "condition_limit",
+      "kind": "KEYWORD_ONLY",
+      "default": "10000000000.0"
+    },
+    {
+      "name": "max_states",
+      "kind": "KEYWORD_ONLY",
+      "default": "1500"
+    },
+    {
+      "name": "branch_id",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    }
+  ],
+  "puremacro.core.continuation.ContinuationAttempt": [
+    {
+      "name": "from_index",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "step",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "accepted",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "iterations",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "residual_norm",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "arclength_residual",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "reason",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.continuation.EquilibriumFold": [
+    {
+      "name": "left_index",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "right_index",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "state",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameters",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "tangent",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "equilibrium_residual",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "state_corank",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "augmented_condition_number",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "transversality",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "curvature",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "curvature_error",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "status",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "reason",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "iterations",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.continuation.EquilibriumBranchResult": [
+    {
+      "name": "system",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameter_name",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "states",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameters",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "tangents",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "arclength",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "step_sizes",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "residual_norms",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "newton_iterations",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "augmented_condition_numbers",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "folds",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "attempts",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "status",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "message",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "branch_id",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "None"
+    }
+  ],
+  "puremacro.core.continuation.EquilibriumBranchResult.attempts_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.continuation.EquilibriumBranchResult.plot": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "state",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "None"
+    },
+    {
+      "name": "ax",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    }
+  ],
+  "puremacro.core.continuation.EquilibriumBranchResult.summary": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.continuation.EquilibriumBranchResult.to_dataframe": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.continuation.EquilibriumBranchResult.to_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.continuation.EquilibriumBranchResult.to_latex": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "kwargs",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.continuation.EquilibriumBranchResult.to_markdown": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "kwargs",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.continuation.EquilibriumBranchResult.to_typst": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "kwargs",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.core.continuation.continue_equilibrium": [
+    {
+      "name": "system",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "state",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameters",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameter",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "direction",
+      "kind": "KEYWORD_ONLY",
+      "default": "1"
+    },
+    {
+      "name": "initial_tangent",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "step",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.05"
+    },
+    {
+      "name": "min_step",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-05"
+    },
+    {
+      "name": "max_step",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.2"
+    },
+    {
+      "name": "max_steps",
+      "kind": "KEYWORD_ONLY",
+      "default": "100"
+    },
+    {
+      "name": "max_newton",
+      "kind": "KEYWORD_ONLY",
+      "default": "12"
+    },
+    {
+      "name": "max_retries",
+      "kind": "KEYWORD_ONLY",
+      "default": "8"
+    },
+    {
+      "name": "residual_tol",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-09"
+    },
+    {
+      "name": "arclength_tol",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-09"
+    },
+    {
+      "name": "derivative_step",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-05"
+    },
+    {
+      "name": "derivative_tol",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.001"
+    },
+    {
+      "name": "rank_tol",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-10"
+    },
+    {
+      "name": "condition_limit",
+      "kind": "KEYWORD_ONLY",
+      "default": "10000000000.0"
+    },
+    {
+      "name": "max_states",
+      "kind": "KEYWORD_ONLY",
+      "default": "1500"
+    },
+    {
+      "name": "fold_tol",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-07"
+    },
+    {
+      "name": "fold_max_iter",
+      "kind": "KEYWORD_ONLY",
+      "default": "40"
+    },
+    {
+      "name": "curvature_step",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.0001"
+    },
+    {
+      "name": "degeneracy_tol",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-05"
+    },
+    {
+      "name": "parameter_bounds",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "branch_id",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    }
+  ],
+  "puremacro.vfi.equilibrium_linearization.linearize_projection": [
+    {
+      "name": "solution",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "problem",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameters",
+      "kind": "KEYWORD_ONLY",
+      "default": "('alpha', 'beta')"
+    },
+    {
+      "name": "options",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.vfi.equilibrium_linearization.linearize_aiyagari": [
+    {
+      "name": "solution",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameters",
+      "kind": "KEYWORD_ONLY",
+      "default": "('alpha', 'beta')"
+    },
+    {
+      "name": "options",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.simulation.SimulationPlan": [
+    {
+      "name": "seed",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "replications",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "periods",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "burn_in",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0"
+    },
+    {
+      "name": "stream",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0"
+    },
+    {
+      "name": "role",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "'fit'"
+    }
+  ],
+  "puremacro.structural.simulation.SimulationPlan.rng": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "replication",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.simulation.SimulationPlan.to_dict": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.simulation.MomentReplication": [
+    {
+      "name": "values",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "counts",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "None"
+    },
+    {
+      "name": "status",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "'ok'"
+    },
+    {
+      "name": "labels",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "None"
+    }
+  ],
+  "puremacro.structural.simulation.SimulatedMoments": [
+    {
+      "name": "theta",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "plan",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "labels",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "units",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "definition_id",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "replicates",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "counts",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "statuses",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "metadata",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "<factory>"
+    }
+  ],
+  "puremacro.structural.simulation.SimulatedMoments.to_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.simulation.SimulationMomentError": [
+    {
+      "name": "message",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "batch",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "reference",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "None"
+    }
+  ],
+  "puremacro.structural.simulation.SMMFitResult": [
+    {
+      "name": "theta",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameter_names",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "covariance",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "standard_errors",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "sampling_covariance",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "simulation_covariance",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "cross_covariance_adjustment",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "moment_covariance",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "weight",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "jacobian",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "influence",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "targets",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "simulation",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "pilot",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "validation",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "objective",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "success",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "inference_valid",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "inference_reasons",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "n_evals",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "n_replications_evaluated",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "diagnostics",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.simulation.SMMFitResult.moment_fit": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "validation",
+      "kind": "KEYWORD_ONLY",
+      "default": "False"
+    }
+  ],
+  "puremacro.structural.simulation.SMMFitResult.summary": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "ci",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.95"
+    }
+  ],
+  "puremacro.structural.simulation.SMMFitResult.to_dataframe": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "ci",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.95"
+    }
+  ],
+  "puremacro.structural.simulation.SMMFitResult.to_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "ci",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.95"
+    }
+  ],
+  "puremacro.structural.simulation.SMMFitResult.to_latex": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "ci",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.95"
+    },
+    {
+      "name": "kwargs",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.simulation.SMMFitResult.to_markdown": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "ci",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.95"
+    },
+    {
+      "name": "kwargs",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.simulation.SMMFitResult.to_typst": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "ci",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.95"
+    },
+    {
+      "name": "kwargs",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.simulation.simulate_moments": [
+    {
+      "name": "simulator",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "theta",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "plan",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "labels",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "definition_id",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "units",
+      "kind": "KEYWORD_ONLY",
+      "default": "'unspecified'"
+    },
+    {
+      "name": "metadata",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    }
+  ],
+  "puremacro.structural.simulation.moment_error_covariance": [
+    {
+      "name": "targets",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "simulation",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "assume_independent",
+      "kind": "KEYWORD_ONLY",
+      "default": "False"
+    },
+    {
+      "name": "cross_covariance",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    }
+  ],
+  "puremacro.structural.simulation.fit_simulated_moments": [
+    {
+      "name": "simulator",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "targets",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "theta0",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "plan",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "definition_id",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "parameter_names",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "bounds",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "jac",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "weight",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "pilot_plan",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "validation_plan",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "assume_independent",
+      "kind": "KEYWORD_ONLY",
+      "default": "False"
+    },
+    {
+      "name": "cross_covariance",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "assume_smooth",
+      "kind": "KEYWORD_ONLY",
+      "default": "False"
+    },
+    {
+      "name": "max_nfev",
+      "kind": "KEYWORD_ONLY",
+      "default": "2000"
+    },
+    {
+      "name": "tol",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-10"
+    },
+    {
+      "name": "rank_rtol",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-10"
+    },
+    {
+      "name": "condition_limit",
+      "kind": "KEYWORD_ONLY",
+      "default": "100000000.0"
+    },
+    {
+      "name": "derivative_step",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.0001"
+    },
+    {
+      "name": "derivative_tol",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.001"
+    },
+    {
+      "name": "metadata",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    }
+  ],
+  "puremacro.structural.robust.MomentTestResult": [
+    {
+      "name": "statistic",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "pvalue",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "critical_value",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "df",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "alpha",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "calibration",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "status",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "accepted",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "error",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "covariance",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "labels",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "metadata",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "<factory>"
+    },
+    {
+      "name": "simulation",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "None"
+    }
+  ],
+  "puremacro.structural.robust.MomentTestResult.to_dataframe": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.MomentTestResult.to_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.MomentTestResult.to_latex": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "kwargs",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.MomentTestResult.to_markdown": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "kwargs",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.MomentTestResult.to_typst": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "kwargs",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.MomentConfidenceSet": [
+    {
+      "name": "intervals",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "global_intervals",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "domain",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "boundary_contact",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "truncated",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "global_geometry",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "status",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "alpha",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "df",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "critical_value",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "calibration",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "curve",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "targets",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "covariance",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "diagnostics",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.MomentConfidenceSet.contains": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "theta",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "globally",
+      "kind": "KEYWORD_ONLY",
+      "default": "False"
+    }
+  ],
+  "puremacro.structural.robust.MomentConfidenceSet.summary": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.MomentConfidenceSet.to_dataframe": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.MomentConfidenceSet.to_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.MomentConfidenceSet.to_latex": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "kwargs",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.MomentConfidenceSet.to_markdown": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "kwargs",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.MomentConfidenceSet.to_typst": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "kwargs",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.MomentTestGridResult": [
+    {
+      "name": "grid",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "tests",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameter_name",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.MomentTestGridResult.accepted_runs": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.MomentTestGridResult.to_dataframe": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.MomentTestGridResult.to_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.MomentTestGridResult.to_latex": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "kwargs",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.MomentTestGridResult.to_markdown": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "kwargs",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.MomentTestGridResult.to_typst": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "kwargs",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.MomentTestGridResult.unresolved_cells": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.structural.robust.QuadraticMomentCurve": [
+    {
+      "name": "offset",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "loading",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "labels",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "definition_id",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "linear",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "1.0"
+    },
+    {
+      "name": "quadratic",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0.0"
+    },
+    {
+      "name": "center",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0.0"
+    },
+    {
+      "name": "scale",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "1.0"
+    },
+    {
+      "name": "parameter_name",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "'theta'"
+    },
+    {
+      "name": "units",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "'unspecified'"
+    }
+  ],
+  "puremacro.structural.robust.moment_restriction_test": [
+    {
+      "name": "targets",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "model_moments",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "covariance",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "alpha",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.05"
+    },
+    {
+      "name": "calibration",
+      "kind": "KEYWORD_ONLY",
+      "default": "'asymptotic'"
+    },
+    {
+      "name": "metadata",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    }
+  ],
+  "puremacro.structural.robust.simulated_moment_test": [
+    {
+      "name": "targets",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "simulation",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "assume_independent",
+      "kind": "KEYWORD_ONLY",
+      "default": "False"
+    },
+    {
+      "name": "cross_covariance",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "alpha",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.05"
+    }
+  ],
+  "puremacro.structural.robust.invert_quadratic_moments": [
+    {
+      "name": "curve",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "targets",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "covariance",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "domain",
+      "kind": "KEYWORD_ONLY",
+      "default": "(-inf, inf)"
+    },
+    {
+      "name": "alpha",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.05"
+    },
+    {
+      "name": "calibration",
+      "kind": "KEYWORD_ONLY",
+      "default": "'asymptotic'"
+    }
+  ],
+  "puremacro.structural.robust.evaluate_moment_grid": [
+    {
+      "name": "test_at",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "grid",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameter_name",
+      "kind": "KEYWORD_ONLY",
+      "default": "'theta'"
+    }
+  ],
+  "puremacro.expectations.gaussian.GaussianSignal": [
+    {
+      "name": "date",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "loading",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "label",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.expectations.gaussian.GaussianInformation": [
+    {
+      "name": "covariance",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "signals",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "horizon",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "weights",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "group_names",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "state_names",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "projectors",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "posterior_covariances",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "ranks",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "diagnostics",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.expectations.gaussian.GaussianInformation.belief_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "realization",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.expectations.gaussian.GaussianInformation.beliefs": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "realization",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.expectations.gaussian.GaussianInformation.forecast": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "loadings",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "realization",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "date",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "group",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    }
+  ],
+  "puremacro.expectations.gaussian.build_gaussian_information": [
+    {
+      "name": "covariance",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "signals",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "horizon",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "weights",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "group_names",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "state_names",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    }
+  ],
+  "puremacro.expectations.gaussian.audit_gaussian_information": [
+    {
+      "name": "info",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "tolerance",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-09"
+    }
+  ],
+  "puremacro.models.information_nk.InformationNKParameters": [
+    {
+      "name": "beta",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0.99"
+    },
+    {
+      "name": "intertemporal_elasticity",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "1.0"
+    },
+    {
+      "name": "price_stickiness",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0.75"
+    },
+    {
+      "name": "inverse_frisch",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "1.0"
+    }
+  ],
+  "puremacro.models.information_nk.InformationNKSolution": [
+    {
+      "name": "information",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameters",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "firm_weights",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "rate_loadings",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "output_loadings",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "inflation_loadings",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "diagnostics",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.models.information_nk.InformationNKSolution.evaluate": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "realization",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.models.information_nk.InformationNKSolution.to_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.models.information_nk.InformationNKSolution.to_latex": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.models.information_nk.InformationNKSolution.to_markdown": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.models.information_nk.InformationNKSolution.to_typst": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.models.information_nk.InformationNKPath": [
+    {
+      "name": "solution",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "realization",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "output",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "inflation",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "nominal_rate",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "next_output_forecasts",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "next_inflation_forecasts",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "next_rate_forecasts",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.models.information_nk.InformationNKPath.forecast_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.models.information_nk.InformationNKPath.to_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.models.information_nk.InformationNKPath.to_latex": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.models.information_nk.InformationNKPath.to_markdown": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.models.information_nk.InformationNKPath.to_typst": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.models.information_nk.solve_information_nk": [
+    {
+      "name": "information",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "nominal_rate_loadings",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "parameters",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "firm_weights",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "tolerance",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-09"
+    }
+  ],
+  "puremacro.models.information_nk.audit_information_nk": [
+    {
+      "name": "solution",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "tolerance",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-09"
+    }
+  ],
+  "puremacro.models.hank_reduction.HANKMarginalBasis": [
+    {
+      "name": "center",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "vectors",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "diagnostics",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "<factory>"
+    }
+  ],
+  "puremacro.models.hank_reduction.HANKMarginalBasis.decode": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "coefficients",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "check_positive",
+      "kind": "KEYWORD_ONLY",
+      "default": "True"
+    }
+  ],
+  "puremacro.models.hank_reduction.HANKMarginalBasis.project": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "difference",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.models.hank_reduction.ReducedStochasticHANKPolicy": [
+    {
+      "name": "basis",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "marginal_basis",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "transition",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "feedback",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "reduced_feedback",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "rho",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "shock_std",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "diagnostics",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "_kernel",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "_F0",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "_F1",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "_full_residual",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.models.hank_reduction.ReducedStochasticHANKPolicy.audit": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "innovations",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "tolerance",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-05"
+    }
+  ],
+  "puremacro.models.hank_reduction.ReducedStochasticHANKPolicy.covariance": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.models.hank_reduction.ReducedStochasticHANKPolicy.simulate": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "innovations",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "initial_state",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    }
+  ],
+  "puremacro.models.hank_reduction.ReducedStochasticHANKPolicy.state": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "distribution",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "None"
+    },
+    {
+      "name": "lag_nominal",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.0"
+    },
+    {
+      "name": "monetary_shock",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.0"
+    },
+    {
+      "name": "aggregate_states",
+      "kind": "VAR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.models.hank_reduction.solve_hank_reduced_policy": [
+    {
+      "name": "steady_state",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "distribution_rank",
+      "kind": "KEYWORD_ONLY",
+      "default": "12"
+    },
+    {
+      "name": "marginal_rank",
+      "kind": "KEYWORD_ONLY",
+      "default": "32"
+    },
+    {
+      "name": "snapshots",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "marginal_snapshots",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "krylov_steps",
+      "kind": "KEYWORD_ONLY",
+      "default": "48"
+    },
+    {
+      "name": "rho",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.7"
+    },
+    {
+      "name": "shock_std",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.0001"
+    },
+    {
+      "name": "max_system_size",
+      "kind": "KEYWORD_ONLY",
+      "default": "1800"
+    },
+    {
+      "name": "schur_output",
+      "kind": "KEYWORD_ONLY",
+      "default": "'real'"
+    }
+  ],
+  "puremacro.models.hank_reduction.solve_hank_reduced_kernel": [
+    {
+      "name": "kernel",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "distribution_rank",
+      "kind": "KEYWORD_ONLY",
+      "default": "12"
+    },
+    {
+      "name": "marginal_rank",
+      "kind": "KEYWORD_ONLY",
+      "default": "32"
+    },
+    {
+      "name": "snapshots",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "marginal_snapshots",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "krylov_steps",
+      "kind": "KEYWORD_ONLY",
+      "default": "48"
+    },
+    {
+      "name": "rho",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.7"
+    },
+    {
+      "name": "shock_std",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.0001"
+    },
+    {
+      "name": "max_system_size",
+      "kind": "KEYWORD_ONLY",
+      "default": "1800"
+    },
+    {
+      "name": "schur_output",
+      "kind": "KEYWORD_ONLY",
+      "default": "'real'"
+    }
+  ],
+  "puremacro.trade.reallocation.ReallocationEconomy": [
+    {
+      "name": "countries",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "('AAA', 'BBB')"
+    },
+    {
+      "name": "sectors",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "('S01', 'S02')"
+    },
+    {
+      "name": "beta",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0.96"
+    },
+    {
+      "name": "delta",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0.08"
+    },
+    {
+      "name": "capital_share",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0.3"
+    },
+    {
+      "name": "risk_aversion",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "2.0"
+    },
+    {
+      "name": "trade_elasticity",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "4.0"
+    },
+    {
+      "name": "capital_cost",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "4.0"
+    },
+    {
+      "name": "labor_cost",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "5.0"
+    },
+    {
+      "name": "sourcing_cost",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0.1"
+    },
+    {
+      "name": "productivity",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "<factory>"
+    },
+    {
+      "name": "sector_weights",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "<factory>"
+    },
+    {
+      "name": "home_shares",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "<factory>"
+    },
+    {
+      "name": "labor_supply",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "<factory>"
+    }
+  ],
+  "puremacro.trade.reallocation.ReallocationSteadyState": [
+    {
+      "name": "economy",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "tariffs",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "coordinates",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "values",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "diagnostics",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.trade.reallocation.ReallocationSteadyState.to_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.trade.reallocation.ReallocationSteadyState.to_latex": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.trade.reallocation.ReallocationSteadyState.to_markdown": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.trade.reallocation.ReallocationSteadyState.to_typst": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.trade.reallocation.ReallocationTransitionResult": [
+    {
+      "name": "economy",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "initial",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "terminal",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "tariffs",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "coordinates",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "paths",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "diagnostics",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.trade.reallocation.ReallocationTransitionResult.sector_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.trade.reallocation.ReallocationTransitionResult.to_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.trade.reallocation.ReallocationTransitionResult.to_latex": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.trade.reallocation.ReallocationTransitionResult.to_markdown": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.trade.reallocation.ReallocationTransitionResult.to_typst": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.trade.reallocation.ReallocationHorizonResult": [
+    {
+      "name": "runs",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "attempts",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "status",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.trade.reallocation.ReallocationHorizonResult.to_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.trade.reallocation.ReallocationHorizonResult.to_latex": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.trade.reallocation.ReallocationHorizonResult.to_markdown": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.trade.reallocation.ReallocationHorizonResult.to_typst": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.trade.reallocation.ReallocationSolveError": [
+    {
+      "name": "message",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "diagnostics",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "coordinates",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "None"
+    }
+  ],
+  "puremacro.trade.reallocation.audit_reallocation": [
+    {
+      "name": "result",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "tolerance",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-08"
+    }
+  ],
+  "puremacro.trade.reallocation.solve_reallocation_steady_state": [
+    {
+      "name": "economy",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "tariffs",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "None"
+    },
+    {
+      "name": "tolerance",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-08"
+    },
+    {
+      "name": "max_evaluations",
+      "kind": "KEYWORD_ONLY",
+      "default": "200"
+    },
+    {
+      "name": "start",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    }
+  ],
+  "puremacro.trade.reallocation.solve_reallocation_transition": [
+    {
+      "name": "economy",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "tariffs",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "initial",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "terminal",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "tolerance",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-08"
+    },
+    {
+      "name": "max_evaluations",
+      "kind": "KEYWORD_ONLY",
+      "default": "200"
+    },
+    {
+      "name": "start",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "require_stable_terminal",
+      "kind": "KEYWORD_ONLY",
+      "default": "True"
+    }
+  ],
+  "puremacro.trade.reallocation.run_reallocation_horizon_ladder": [
+    {
+      "name": "economy",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "policy_factory",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "horizons",
+      "kind": "KEYWORD_ONLY",
+      "default": "(40, 80, 160)"
+    },
+    {
+      "name": "initial",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "terminal",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "window",
+      "kind": "KEYWORD_ONLY",
+      "default": "20"
+    },
+    {
+      "name": "path_tolerance",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-06"
+    },
+    {
+      "name": "welfare_tolerance",
+      "kind": "KEYWORD_ONLY",
+      "default": "0.0001"
+    },
+    {
+      "name": "terminal_tolerance",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-05"
+    },
+    {
+      "name": "tolerance",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-08"
+    },
+    {
+      "name": "max_evaluations",
+      "kind": "KEYWORD_ONLY",
+      "default": "200"
+    }
+  ],
+  "puremacro.trade.reallocation.reallocation_stability": [
+    {
+      "name": "steady",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.banking.SovereignBankingParameters": [
+    {
+      "name": "beta",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0.95"
+    },
+    {
+      "name": "gross_rate",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "1.02"
+    },
+    {
+      "name": "initial_income",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "1.0"
+    },
+    {
+      "name": "terminal_income",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0.3"
+    },
+    {
+      "name": "initial_equity",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0.15"
+    },
+    {
+      "name": "domestic_share",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0.4"
+    },
+    {
+      "name": "leverage",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "4.0"
+    },
+    {
+      "name": "credit_scale",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0.1"
+    },
+    {
+      "name": "default_loss",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0.1"
+    }
+  ],
+  "puremacro.sovereign.banking.SovereignBankingEquilibrium": [
+    {
+      "name": "debt_index",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "mask",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "price",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "initial_consumption",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "initial_reserves",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "value",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "default",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "accounts",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.banking.SovereignBankingEquilibrium.to_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.banking.SovereignBankingEquilibrium.to_latex": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.banking.SovereignBankingEquilibrium.to_markdown": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.banking.SovereignBankingEquilibrium.to_typst": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.banking.SovereignBankingResult": [
+    {
+      "name": "parameters",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "income",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "productivity",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "probabilities",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "debt_grid",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "price_selection",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "decision_tolerance",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "equilibria",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "candidates",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "selected_indices",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "selected_index",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "diagnostics",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.banking.SovereignBankingResult.candidates_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.banking.SovereignBankingResult.counterfactual_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "equilibrium",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "None"
+    }
+  ],
+  "puremacro.sovereign.banking.SovereignBankingResult.debt_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.banking.SovereignBankingResult.equilibria_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.banking.SovereignBankingResult.to_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.banking.SovereignBankingResult.to_latex": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.banking.SovereignBankingResult.to_markdown": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.banking.SovereignBankingResult.to_typst": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.banking.sovereign_bank_accounts": [
+    {
+      "name": "parameters",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "income",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "productivity",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "debt",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "price",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "default",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.banking.solve_sovereign_banking": [
+    {
+      "name": "income",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "productivity",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "probabilities",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "debt_grid",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "price_selection",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "parameters",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "decision_tolerance",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-12"
+    }
+  ],
+  "puremacro.sovereign.banking.audit_sovereign_banking": [
+    {
+      "name": "result",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "tolerance",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-09"
+    }
+  ],
+  "puremacro.sovereign.adaptation.SovereignAdaptationParameters": [
+    {
+      "name": "beta",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0.96"
+    },
+    {
+      "name": "gross_rate",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "1.02"
+    },
+    {
+      "name": "depreciation",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0.15"
+    },
+    {
+      "name": "effectiveness",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "6.0"
+    },
+    {
+      "name": "default_loss",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0.15"
+    },
+    {
+      "name": "grant_rate",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0.0"
+    },
+    {
+      "name": "disaster_relief",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0.0"
+    }
+  ],
+  "puremacro.sovereign.adaptation.SovereignAdaptationResult": [
+    {
+      "name": "parameters",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "income",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "damage",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "disaster",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "transition",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "debt_grid",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "adaptation_grid",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "horizon",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "decision_tolerance",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "access_value",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "repayment_value",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "excluded_value",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "default",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "repayment_debt_policy",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "repayment_adaptation_policy",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "excluded_adaptation_policy",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "prices",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "diagnostics",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.adaptation.SovereignAdaptationResult.distribution": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "initial_probabilities",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "debt_index",
+      "kind": "KEYWORD_ONLY",
+      "default": "0"
+    },
+    {
+      "name": "adaptation_index",
+      "kind": "KEYWORD_ONLY",
+      "default": "0"
+    },
+    {
+      "name": "market_access",
+      "kind": "KEYWORD_ONLY",
+      "default": "True"
+    }
+  ],
+  "puremacro.sovereign.adaptation.SovereignAdaptationResult.pricing_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "date",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0"
+    }
+  ],
+  "puremacro.sovereign.adaptation.SovereignAdaptationResult.to_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "date",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": "0"
+    },
+    {
+      "name": "excluded",
+      "kind": "KEYWORD_ONLY",
+      "default": "False"
+    }
+  ],
+  "puremacro.sovereign.adaptation.SovereignAdaptationResult.to_latex": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.adaptation.SovereignAdaptationResult.to_markdown": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.adaptation.SovereignAdaptationResult.to_typst": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.adaptation.AdaptationDistribution": [
+    {
+      "name": "result",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "initial_probabilities",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "initial_debt_index",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "initial_adaptation_index",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "initial_access",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "access_mass",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "excluded_mass",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "diagnostics",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.adaptation.AdaptationDistribution.consumption_equivalent": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "reference",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.adaptation.AdaptationDistribution.to_frame": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.adaptation.AdaptationDistribution.to_latex": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.adaptation.AdaptationDistribution.to_markdown": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.adaptation.AdaptationDistribution.to_typst": [
+    {
+      "name": "self",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    }
+  ],
+  "puremacro.sovereign.adaptation.solve_sovereign_adaptation": [
+    {
+      "name": "income",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "damage",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "disaster",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "transition",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "debt_grid",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "adaptation_grid",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "horizon",
+      "kind": "KEYWORD_ONLY",
+      "default": null
+    },
+    {
+      "name": "parameters",
+      "kind": "KEYWORD_ONLY",
+      "default": "None"
+    },
+    {
+      "name": "decision_tolerance",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-12"
+    }
+  ],
+  "puremacro.sovereign.adaptation.audit_sovereign_adaptation": [
+    {
+      "name": "result",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "tolerance",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-09"
+    }
+  ],
+  "puremacro.sovereign.adaptation.audit_adaptation_distribution": [
+    {
+      "name": "distribution",
+      "kind": "POSITIONAL_OR_KEYWORD",
+      "default": null
+    },
+    {
+      "name": "tolerance",
+      "kind": "KEYWORD_ONLY",
+      "default": "1e-09"
+    }
+  ]
+}
