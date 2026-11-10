@@ -9,7 +9,15 @@ additions are included in 5.4.2. Versions 5.8.0, 5.9.0 and 6.0.0 were tagged
 but not published; their additions are included in 6.0.1, published on
 2026-10-29. See the [release procedure](RELEASING.md).
 
-## Unreleased
+## 6.3.0rc1 (2026-11-09)
+
+**Research APIs for equilibrium derivatives, simulation-aware inference and
+audited policy models, with shared integration contracts.**
+
+Release candidate source; publication and hosted qualification are tracked
+separately. The new economic models are experimental bounded implementations.
+HANK remains first order in this candidate; sampled confidence sets, finite
+horizons and discrete grids retain the limits documented in the API guides.
 
 ### Hardened
 
