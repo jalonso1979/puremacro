@@ -17,7 +17,8 @@ def read(name):
 def test_adaptive_records_and_exact_generators_are_bound():
     manifest = read("manifest.json")
     for name, digest in manifest["source_sha256"].items():
-        assert hashlib.sha256((ROOT/name).read_bytes()).hexdigest() == digest
+        path = ROOT/manifest.get("source_snapshots", {}).get(name, name)
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest
     for name, digest in manifest["artifact_sha256"].items():
         assert hashlib.sha256((DATA/name).read_bytes()).hexdigest() == digest
 

@@ -38,5 +38,8 @@
     "branching": 1e-06
   },
   "generation": "Exact development probe generators retained verbatim; run from repository root, then run the lowrisk accounts script. Outputs are named under /tmp. Budgets use POSIX SIGALRM.",
-  "timing_scope": "Concurrent host work; probes did not set BLASSetThreading directly, so times are not a controlled performance comparison"
+  "timing_scope": "Concurrent host work; probes did not set BLASSetThreading directly, so times are not a controlled performance comparison",
+  "source_snapshots": {
+    "puremacro/models/hank_reduction.py": "tests/fixtures/hank_scaling/sources/puremacro/models/hank_reduction.py.txt"
+  }
 }

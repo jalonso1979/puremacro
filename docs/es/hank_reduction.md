@@ -46,6 +46,41 @@ horizonte de entrenamiento, que también debe comprobarse al refinar el rango.
 El límite de dimensión se comprueba antes de construir una matriz identidad
 marginal completa o una matriz de Schur.
 
+## Formas de Schur real y compleja
+
+Ambas funciones de solución reducida usan `schur_output="real"` por defecto.
+La forma de Schur generalizada real conserva los modos conjugados complejos
+en bloques de 2×2; el solucionador utiliza los bloques estables completos
+para recuperar la transición y la respuesta de los controles. Los valores
+propios complejos no implican una política económica compleja. Véase la
+[documentación de Schur generalizada de SciPy](https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.ordqz.html).
+
+Use `schur_output="complex"` para comparar con la descomposición anterior.
+La elección se registra en `policy.diagnostics["schur_output"]`. Ambas rutas
+usan las mismas bases y ecuaciones proyectadas, número de raíces estables,
+margen respecto al círculo unitario, límite de condición de la proyección de
+estados y tolerancias de ecuaciones. No hay un reintento automático con otra
+descomposición. Un fallo se conserva para la configuración solicitada.
+
+La forma real reduce la aritmética del paso de Schur denso. La mejora total
+depende del modelo: las respuestas de hogares y el entrenamiento de bases
+pueden dominar una solución de dos activos. El algoritmo sigue usando un
+sistema reducido denso; no proporciona un método iterativo de subespacios
+estables. Para medir ambas rutas en el equipo actual, con auditorías de grilla
+completa y rangos que históricamente fallaron, ejecute:
+
+```sh
+PYTHONPATH=. python tools/reference_validation/benchmark_hank_schur.py \
+    --output reviews/hank-schur-benchmark --repeats 3
+```
+
+Use un directorio nuevo. Cada solución usa un proceso nuevo y secuencial;
+el registro separa el tiempo total, Schur, construcción de bases y memoria
+residente máxima. La descomposición está incluida en la fase de política de
+Schur, por lo que esos dos tiempos no deben sumarse. El tiempo no es una
+prueba de exactitud; una descomposición más rápida no certifica la precisión
+no lineal.
+
 ## Ecuaciones y aceptación
 
 Sean `B` las direcciones retenidas de la distribución y `V` las de los
@@ -127,13 +162,18 @@ completos.
 
 ## Evidencia numérica conservada
 
-El registro de `tests/fixtures/hank_scaling/` vincula fuentes, matrices y
-trayectorias por SHA-256. Usa procesos nuevos y verifica un solo hilo de BLAS.
+El registro histórico con Schur complejo de `tests/fixtures/hank_scaling/`
+vincula fuentes, matrices y trayectorias por SHA-256. Su manifiesto apunta a
+una copia exacta archivada de `hank_reduction.py`; se conservan los hashes
+originales y los artefactos numéricos. Usa procesos nuevos y verifica un solo
+hilo de BLAS.
 La grilla de un activo de 500×7, con rangos 96 y 128, tiene 229 ecuaciones;
 la de dos activos de 40×40×2, con rangos 24 y 48, tiene 78. Ambas usan 96
-pasos de entrenamiento de Krylov. El rango marginal 128 también funciona en
-la segunda grilla, pero el rango 80 con ese horizonte falla la comprobación
-de una política real. Los rangos no forman una regla monótona de aceptación.
+pasos de entrenamiento de Krylov. El rango marginal 128 también funcionó en
+la segunda grilla, pero el rango 80 con ese horizonte falló la comprobación
+de una política real en ese registro de Schur complejo. Es evidencia
+histórica, no una afirmación para todas las descomposiciones. Los rangos no
+forman una regla monótona de aceptación.
 
 En grillas pequeñas, reducir los controles cambia las trayectorias agregadas
 retenidas como máximo en `5.8e-9` para un activo y `5.1e-11` para dos. Para

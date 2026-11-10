@@ -42,6 +42,38 @@ rank refinement should also check that horizon. `marginal_rank=None` retains
 all controls for small-grid comparisons. The dimension guard runs before any
 full marginal identity matrix or Schur matrix is constructed.
 
+## Real and complex Schur forms
+
+Both reduced solver entry points use `schur_output="real"` by default.
+The real generalized Schur form retains complex-conjugate modes in 2×2
+blocks; the solver uses the entire stable blocks to recover the transition
+and feedback. Complex eigenvalues do not imply a complex economic policy.
+See the [SciPy generalized Schur documentation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.ordqz.html).
+
+Pass `schur_output="complex"` to compare with the previous decomposition.
+The choice is recorded in `policy.diagnostics["schur_output"]`. Both paths
+use the same bases and projected equations, stable-root count, unit-circle
+margin, state-projection condition limit, and equation tolerances. There is
+no automatic retry with another backend. A failure remains a failure for
+the requested configuration.
+
+The real form reduces arithmetic in the dense Schur step. Total gains depend
+on the model: household responses and basis training can dominate a two-asset
+solve. The algorithm still uses a dense reduced pencil and does not provide
+an iterative stable-subspace method. To measure both paths on the current
+host, including full-grid audits and historical failed ranks, run:
+
+```sh
+PYTHONPATH=. python tools/reference_validation/benchmark_hank_schur.py \
+    --output reviews/hank-schur-benchmark --repeats 3
+```
+
+Use a new output directory. Each solve runs in a fresh sequential worker;
+the record separates total solve time, Schur time, basis construction and
+peak resident memory. Decomposition time is nested in the Schur-policy
+phase, so those two timings must not be added. Timing is not an accuracy
+test, and faster decomposition does not certify nonlinear accuracy.
+
 ## Equations and acceptance
 
 Let `B` contain retained distribution directions and `V` retained marginal
@@ -99,8 +131,10 @@ claiming to reproduce their sparse-cosine implementation or calibration.
 
 ## Retained numerical evidence
 
-The source-bound record in `tests/fixtures/hank_scaling/` uses fresh worker
-processes and verified single-thread BLAS. It includes the failed rank and
+The historical complex-Schur record in `tests/fixtures/hank_scaling/` uses
+fresh worker processes and verified single-thread BLAS. Its manifest points
+to an archived exact copy of `hank_reduction.py`; original source hashes and
+numerical artifacts are preserved. It includes the failed rank and
 training-horizon cases, full matrices, and the independent held-out paths.
 
 | Household grid | Distribution rank | Marginal rank | Projected equations |
@@ -109,8 +143,10 @@ training-horizon cases, full matrices, and the independent held-out paths.
 | Two assets, 40×40×2 | 24 | 48 | 78 |
 
 Both rows use 96 backward Krylov training steps. The two-asset marginal rank 128
-comparison also solves, whereas rank 80 at that same training horizon fails the
-real-policy check. These settings are measured cases, not monotone rank rules.
+comparison also solved, whereas rank 80 at that same training horizon failed
+the real-policy check in that retained complex-Schur run. This is historical
+evidence, not a claim about every backend. These settings are measured cases,
+not monotone rank rules.
 
 On the small comparison grids, retaining reduced controls instead of every
 marginal changes held-out aggregate log paths by at most `5.8e-9` (one asset)

@@ -32,7 +32,8 @@ def test_scaling_sources_artifacts_and_failed_configurations_are_preserved():
     r = record()
     assert r["completed"] and len(r["cases"]) == 12
     for name, expected in r["source_sha256"].items():
-        assert hashlib.sha256((ROOT/name).read_bytes()).hexdigest() == expected
+        path = ROOT/r.get("source_snapshots", {}).get(name, name)
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == expected
     for name, expected in r["artifact_sha256"].items():
         assert hashlib.sha256((DATA/name).read_bytes()).hexdigest() == expected
     assert all(value == "1" for value in r["threads"].values())
