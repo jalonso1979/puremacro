@@ -53,6 +53,10 @@ class DynareFeatureError(NotImplementedError):
     """A .mod construct puremacro recognises but does not implement yet."""
 
 
+class _ShockValuesParseError(DynareParseError, ValueError):
+    """Located dated-value syntax error that cannot enter the legacy fallback."""
+
+
 @dataclass(frozen=True, slots=True)
 class Token:
     """A lexical token."""
@@ -1513,7 +1517,24 @@ class Parser:
         return periods
 
     def _parse_values_list(self) -> list[float]:
-        """Parse values list or single value (e.g. 0.01, 0.02, 0.01, [0.01])."""
+        """Parse dated values with optional commas and parenthesized expressions.
+
+        Outside parentheses, a plus/minus starts the next signed value rather
+        than extending the preceding expression. Bare parameters and products
+        remain accepted for compatibility; addition/subtraction belongs inside
+        parentheses, as in Dynare's deterministic-shock grammar.
+        """
+        try:
+            return self._parse_values_list_impl()
+        except DynareParseError as exc:
+            # parse_mod may fall back on general grammar errors, but its legacy
+            # parser cannot preserve dated shocks. Keep syntax failures in this
+            # numerical declaration fatal, with their location for inspection.
+            raise _ShockValuesParseError(
+                f"Invalid shock values: {exc.message}", exc.line, exc.col,
+            ) from exc
+
+    def _parse_values_list_impl(self) -> list[float]:
         values: list[float] = []
         # Full-file parsing reaches dated shocks before its calibration
         # post-pass. Resolve the preceding declarations here; the ordered
@@ -1530,9 +1551,12 @@ class Parser:
                             pass
                 if len(scope) == previous_size:
                     break
-        has_bracket = bool(self._match("LBRACKET") or self._match("LPAREN"))
-        while self._curr().type not in ("SEMI", "RBRACKET", "RPAREN", "EOF"):
-            expr = self.parse_expression()
+        has_bracket = self._match("LBRACKET")
+        while self._curr().type not in ("SEMI", "RBRACKET", "EOF"):
+            # Parsing a full additive expression here turns ``.02 -.01 -.01``
+            # into one zero, which the caller then broadcasts over all dates.
+            # Parenthesized expressions are still fully parsed by _parse_primary.
+            expr = self._parse_multiplicative()
             if self.collect_only:
                 values.append(0.0)  # shape-only placeholder, never returned as calibration
                 self._match("COMMA")
@@ -1546,12 +1570,7 @@ class Parser:
             values.append(val)
             self._match("COMMA")
         if has_bracket:
-            if not (self._match("RBRACKET") or self._match("RPAREN")):
-                raise DynareParseError(
-                    "Expected closing bracket/parenthesis for values",
-                    self._curr().line,
-                    self._curr().col,
-                )
+            self._expect("RBRACKET")
         self._expect("SEMI")
         return values
 

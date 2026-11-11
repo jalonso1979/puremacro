@@ -9,6 +9,29 @@ additions are included in 5.4.2. Versions 5.8.0, 5.9.0 and 6.0.0 were tagged
 but not published; their additions are included in 6.0.1, published on
 2026-10-29. See the [release procedure](RELEASING.md).
 
+## Unreleased
+
+### Fixed
+
+- Deterministic Dynare shock lists retain space-separated signed values and
+  successive parenthesized expressions. For example, `values .02 -.01 -.01;`
+  now specifies three shocks instead of broadcasting their sum. Write arithmetic
+  sums inside parentheses (`values (.02-.01);`); use commas or square brackets
+  for lists, not one parenthesized list. Re-run affected deterministic scenarios.
+- `var.identify.sign_zero` chooses one orientation per column and verifies every
+  sign/zero restriction, orthogonality and covariance before reporting success.
+  Malformed constraints now raise `ValueError`; zero sign values are invalid
+  (omit an entry for no restriction). Finite-search failure is not proof of
+  infeasibility. Recheck previously accepted impact matrices.
+- BLS LAUS measure 04 maps to unemployment and 06 to labor force. Rebuild affected
+  state/county panels and derived labor-force logarithms from their raw inputs;
+  existing saved outputs are not automatically rewritten.
+- Energy-transition downloads never substitute repository test fixtures for
+  missing countries or failed downloads. Missing Ember electricity data emits
+  `RuntimeWarning`; available observations and genuine WDI primary energy retain
+  their source labels. Explicit offline data remains available through
+  `csv_path`. Re-fetch outputs that could contain the old implicit fixture data.
+
 ## 6.3.0 (2026-11-10)
 
 **Research APIs for equilibrium derivatives, simulation-aware inference and

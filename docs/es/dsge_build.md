@@ -178,6 +178,14 @@ print(m.decision_rules().summary())
 print(m.theoretical_moments().summary())
 ```
 
+Los valores fechados de `shocks` pueden separarse por espacios o comas:
+`values .02 -.01 -.01;` indica tres choques. Los paréntesis delimitan una
+expresión, por ejemplo `values (.03-.01) (-.01) (-.02+.01);`. Un escalar sigue
+repitiéndose en todo el intervalo de períodos. Escriba las sumas/restas dentro
+de paréntesis; para una lista utilice comas o corchetes, sin encerrar toda la
+lista en paréntesis. Vuelva a ejecutar escenarios deterministas que usaron
+valores con signo separados por espacios en versiones anteriores.
+
 ### 4b. Nivel 0: El Front End — Preprocesador de Macros, Parser AST y Diferenciación Simbólica (v2.7.0)
 
 A partir de `puremacro 2.7.0`, el motor DSGE incorpora un parser para un subconjunto documentado de archivos Dynare, usando las dependencias del núcleo científico de Python:

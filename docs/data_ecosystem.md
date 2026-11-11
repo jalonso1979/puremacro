@@ -61,32 +61,26 @@ df_emissions = fetch_emissions_panel(
 
 ## 2. Energy Balances & Transition (`puremacro.fetch.energy_transition`)
 
-Collects electricity generation by source, clean energy transition shares, and primary energy consumption balances from open international repositories (OECD, Ember, Energy Institute).
+`fetch_energy_transition` reads Ember electricity generation and World Bank
+WDI primary energy consumption. Coverage depends on the returned source data.
 
 ```python
-from puremacro.fetch.energy_transition import (
-    fetch_electricity_generation_mix,
-    fetch_energy_transition_panel,
-)
+from puremacro.fetch.energy_transition import fetch_energy_transition
 
-# Fetch electricity generation mix (renewables, fossil, hydro, nuclear)
-df_mix = fetch_electricity_generation_mix(
-    codes=["USA", "DEU", "FRA", "ESP"],
-    start_year=2010,
-)
-
-# Full energy transition panel with clean energy share
-df_energy = fetch_energy_transition_panel(
-    codes=["USA", "DEU"],
-    start_year=2000,
-)
+df_energy = fetch_energy_transition(codes=["USA", "DEU"], start_year=2000)
 ```
 
-### Key Metrics Provided
-- `clean_elec_share`: Percentage of electricity generated from zero-carbon sources (renewables, hydro, nuclear).
-- `fossil_elec_share`: Percentage of electricity generated from fossil fuels (coal, gas, oil).
-- `elec_gen_twh`: Total annual electricity generation in terawatt-hours (TWh).
-- `energy_intensity`: Energy consumption per unit of real GDP.
+Rows use the long-form columns `code`, `date`, `variable`, `value`, `sa_source`
+and `source`. Variables include `elec_gen_total_twh_a`,
+`elec_gen_renewable_pct_a`, `elec_gen_hydro_pct_a`, `elec_gen_nuclear_pct_a`,
+`elec_gen_fossil_pct_a`, and `primary_energy_cons_toe_a` (tonnes of oil equivalent).
+
+Missing Ember data raises a `RuntimeWarning` and returns only available
+observations. Genuine WDI primary energy retains its own source label; it does
+not replace missing electricity generation. Repository test fixtures are never
+selected automatically. For offline use, explicitly pass `csv_path` with a CSV
+whose provenance you have checked. Re-fetch outputs potentially affected by the
+old implicit fixture fallback; existing saved files are not rewritten.
 
 ---
 

@@ -28,14 +28,6 @@ _EMBER_URL = (
     "release_generation_yearly_lower.csv"
 )
 
-_FIXTURE_PATH = (
-    Path(__file__).resolve().parent.parent.parent
-    / "tests"
-    / "data"
-    / "commodities"
-    / "ember_generation_mock.csv"
-)
-
 _EMPTY = pd.DataFrame(
     columns=["code", "date", "variable", "value", "sa_source", "source"]
 )
@@ -343,12 +335,22 @@ def fetch_energy_transition(
     start_year : int, default 1990.
     refresh : bool, if True bypass cache and re-download.
     timeout : float, network timeout in seconds (default 30.0).
-    csv_path : optional path to pre-recorded offline CSV fixture.
+    csv_path : optional path to a caller-selected offline CSV.
+        The caller is responsible for its provenance. Test fixtures are never
+        selected automatically when a download fails or a country is missing.
 
     Returns
     -------
     pd.DataFrame with long-form schema:
     [code, date, variable, value, sa_source, source]
+
+    Warns
+    -----
+    RuntimeWarning
+        Ember returns no matching electricity observations, a requested country
+        is missing, or the download/parser fails. Available observations and
+        separately sourced WDI primary energy are retained; missing electricity
+        observations are not fabricated.
     """
     frames = []
 
@@ -381,40 +383,41 @@ def fetch_energy_transition(
             except Exception:
                 pass
     else:
+        ember_failure = "no matching electricity observations"
         try:
             content = cached_get(_EMBER_URL, refresh=refresh, timeout=timeout)
-            if content and len(content) > 100:
+            if content:
                 raw_df = pd.read_csv(io.BytesIO(content), low_memory=False)
                 ember_df = _parse_ember_df(raw_df, codes=codes, start_year=start_year)
                 if not ember_df.empty:
                     frames.append(ember_df)
-        except Exception:
-            pass
+        except Exception as exc:
+            ember_failure = f"download or parsing failed ({type(exc).__name__})"
 
-        # If any requested codes are missing (e.g. non-European countries in Ember CSV)
-        # or if frames is empty (offline execution without cache), supplement from fixture
-        missing_codes = None
-        if codes is not None:
-            found_codes = set()
-            for f in frames:
-                if not f.empty and "code" in f.columns:
-                    found_codes.update(f["code"].unique())
+        # A source checkout must have the same data semantics as an installed
+        # wheel. In particular, never substitute tests/data for missing values.
+        found_codes = set()
+        for frame in frames:
+            electricity = frame[frame["variable"].str.startswith("elec_gen_")]
+            found_codes.update(electricity["code"].unique())
+        if not found_codes:
+            warnings.warn(
+                f"Ember electricity data unavailable: {ember_failure}; "
+                "returning only available observations from other sources.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+        elif codes is not None:
             wanted = {str(c).strip().upper() for c in codes}
             missing_codes = wanted - found_codes
-
-        if codes is not None and missing_codes:
-            if _FIXTURE_PATH.exists():
-                try:
-                    fix_raw = pd.read_csv(_FIXTURE_PATH, low_memory=False)
-                    fix_df = _parse_ember_df(
-                        fix_raw,
-                        codes=list(missing_codes),
-                        start_year=start_year,
-                    )
-                    if not fix_df.empty:
-                        frames.append(fix_df)
-                except Exception:
-                    pass
+            if missing_codes:
+                warnings.warn(
+                    "Ember electricity data missing for requested countries: "
+                    f"{', '.join(sorted(missing_codes))}; "
+                    "returning only available observations.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
 
     # 2. Fetch primary energy consumption from WDI if not already present
     has_primary = any(

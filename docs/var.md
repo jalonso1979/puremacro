@@ -200,7 +200,9 @@ schemes restrict different objects. This is the table to check before typing:
 | `narrative_sign_svar` | `sign_matrix` | `{h: S}`, `S` shape `(n, n)` or `(n,)`; a bare array means `{0: S}` | `S[i, j]` restricts variable `i` to shock `j`; an `(n,)` vector restricts shock 0 |
 | `sign_zero` | `sign_constraints`, `zero_constraints` | `{(i, j): ±1}`, `[(i, j)]` | entries of `B0` — impact only, horizon 0 |
 
-`0` always means unrestricted. `sign_restrictions` draws `n_draws=2000`
+`0` means unrestricted in the sign-matrix APIs. In `sign_zero`'s dictionary,
+omit an entry for no restriction; its values must be `+1` or `-1`.
+`sign_restrictions` draws `n_draws=2000`
 Haar-uniform rotations by default and raises `RuntimeError` if none is
 admissible; `n_accepted / n_draws` is in the `summary()` and is the number to
 look at before believing the bands, since a 1% acceptance rate means the median
@@ -210,6 +212,14 @@ is a median over twenty draws.
 `Sigma` rather than `Y`, it returns only `B0` and `Q` (no IRFs), and a failed
 search does not raise — inspect `success`, which is `False` with `B0=None` when
 no draw satisfied everything within `n_draws=1000`.
+
+`sign_zero` orients each column against all its signs together, then checks
+every sign and zero, orthogonality, and covariance before returning success.
+Zero tolerances are relative to each variable's residual standard deviation.
+The sequential zero-projection search can miss feasible rotations, so a failed
+finite search is not an infeasibility certificate. Invalid coordinates, signs,
+draw counts or covariance inputs raise an error. Recheck matrices accepted by
+older versions if multiple signs constrained the same column.
 
 ### Narrative sign restrictions
 

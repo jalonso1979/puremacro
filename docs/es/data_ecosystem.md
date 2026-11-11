@@ -61,32 +61,29 @@ df_emissions = fetch_emissions_panel(
 
 ## 2. Balances Energéticos y Transición (`puremacro.fetch.energy_transition`)
 
-Recolecta generación de electricidad por fuente, cuotas de transición a energías limpias y balances de consumo de energía primaria de repositorios internacionales abiertos (OCDE, Ember, Energy Institute).
+`fetch_energy_transition` obtiene generación eléctrica de Ember y consumo de
+energía primaria de WDI del Banco Mundial. La cobertura depende de los datos
+que devuelvan las fuentes.
 
 ```python
-from puremacro.fetch.energy_transition import (
-    fetch_electricity_generation_mix,
-    fetch_energy_transition_panel,
-)
+from puremacro.fetch.energy_transition import fetch_energy_transition
 
-# Obtener matriz de generación eléctrica (renovables, fósiles, hidroeléctrica, nuclear)
-df_mix = fetch_electricity_generation_mix(
-    codes=["USA", "DEU", "FRA", "ESP"],
-    start_year=2010,
-)
-
-# Panel completo de transición energética con cuota de energía limpia
-df_energy = fetch_energy_transition_panel(
-    codes=["USA", "DEU"],
-    start_year=2000,
-)
+df_energy = fetch_energy_transition(codes=["USA", "DEU"], start_year=2000)
 ```
 
-### Métricas Clave Suministradas
-- `clean_elec_share`: Porcentaje de electricidad generada a partir de fuentes con cero emisiones de carbono (renovables, hidroeléctrica, nuclear).
-- `fossil_elec_share`: Porcentaje de electricidad generada a partir de combustibles fósiles (carbón, gas, petróleo).
-- `elec_gen_twh`: Generación eléctrica total anual en teravatios-hora (TWh).
-- `energy_intensity`: Consumo energético por unidad de PIB real.
+Las filas tienen las columnas `code`, `date`, `variable`, `value`, `sa_source`
+y `source`. Las variables incluyen `elec_gen_total_twh_a`,
+`elec_gen_renewable_pct_a`, `elec_gen_hydro_pct_a`, `elec_gen_nuclear_pct_a`,
+`elec_gen_fossil_pct_a` y `primary_energy_cons_toe_a` (toneladas equivalentes
+de petróleo).
+
+La falta de datos de Ember genera `RuntimeWarning` y se devuelven solo las
+observaciones disponibles. La energía primaria real de WDI conserva su etiqueta
+de fuente; no sustituye la generación eléctrica faltante. Los datos sintéticos
+de pruebas nunca se seleccionan automáticamente. Para trabajar sin conexión,
+pase explícitamente `csv_path` con un CSV cuya procedencia haya comprobado.
+Vuelva a obtener los resultados que pudieran contener datos de la antigua
+sustitución implícita; los archivos ya guardados no se reescriben.
 
 ---
 

@@ -15,12 +15,26 @@ For v1, only zero restrictions on B0 (horizon-0 impacts) are supported.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
+from numbers import Integral, Real
 from typing import Iterable
 
 import numpy as np
 
 from ..._linalg import safe_cholesky
 from ._results import SignZeroResult
+
+
+def _constraint_pair(pair, n: int, name: str) -> tuple[int, int]:
+    """Validate coordinates without accepting negative NumPy indexing."""
+    try:
+        i, j = pair
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} entries must be (row, column) pairs") from exc
+    if any(isinstance(k, (bool, np.bool_)) or not isinstance(k, Integral)
+           or not 0 <= int(k) < n for k in (i, j)):
+        raise ValueError(f"{name} indices must be integers in [0, {n})")
+    return int(i), int(j)
 
 
 def _enforce_zero_in_column(B0: np.ndarray, P: np.ndarray, i: int, j: int) -> np.ndarray | None:
@@ -82,12 +96,16 @@ def sign_zero(
     Parameters
     ----------
     A_list, Sigma : VAR coefficients and reduced-form residual covariance.
+        Only impact restrictions are supported, so ``A_list`` is not used.
+        ``Sigma`` must be a finite real symmetric positive-definite matrix.
     zero_constraints : iterable of (i, j) pairs
         Impose B0[i, j] = 0 (variable i has zero impact response to shock j).
+        Indices are zero-based. Numerical zeros are checked relative to the
+        residual standard deviation of variable i, with tolerance 1e-8.
     sign_constraints : dict {(i, j): +1 or -1}
-        Impose sign(B0[i, j]) = +1 or -1.
+        Impose sign(B0[i, j]) = +1 or -1; zero is not an unrestricted entry.
     n_draws : int
-        Maximum number of Haar draws to try.
+        Nonnegative integer maximum number of Haar draws to try.
     rng : np.random.Generator
         Random source.
 
@@ -98,19 +116,59 @@ def sign_zero(
         every constraint was found within ``n_draws`` attempts; on
         failure, ``B0`` and ``Q`` are ``None``.
 
+    Notes
+    -----
+    A failed finite search does not prove the restrictions infeasible. The
+    sequential zero-projection search can miss feasible rotations; every
+    returned success is checked against all restrictions and the covariance.
+    A strict sign and a zero on the same entry are contradictory and return
+    failure without drawing. Malformed constraints raise ``ValueError``.
+
     References
     ----------
     Arias, J., Rubio-Ramírez, J. and Waggoner, D. (2018). Inference
         based on structural vector autoregressions identified with sign
         and zero restrictions. Econometrica 86(2), 685-720.
     """
+    if isinstance(n_draws, (bool, np.bool_)) or not isinstance(n_draws, Integral) or n_draws < 0:
+        raise ValueError("n_draws must be a nonnegative integer")
+    n_draws = int(n_draws)
+    if np.iscomplexobj(Sigma):
+        raise ValueError("Sigma must be a real covariance matrix")
+    try:
+        Sigma = np.asarray(Sigma, dtype=float)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Sigma must be a real covariance matrix") from exc
+    if Sigma.ndim != 2 or Sigma.shape[0] == 0 or Sigma.shape[0] != Sigma.shape[1]:
+        raise ValueError("Sigma must be a nonempty square covariance matrix")
+    if not np.isfinite(Sigma).all():
+        raise ValueError("Sigma must contain only finite values")
+    if not np.allclose(Sigma, Sigma.T, rtol=1e-12, atol=0):
+        raise ValueError("Sigma must be symmetric")
+    n = Sigma.shape[0]
+    try:
+        raw_zeros = [] if zero_constraints is None else list(zero_constraints)
+    except TypeError as exc:
+        raise ValueError("zero_constraints must be an iterable of index pairs") from exc
+    zeros = [_constraint_pair(pair, n, "zero_constraints") for pair in raw_zeros]
+    if sign_constraints is not None and not isinstance(sign_constraints, Mapping):
+        raise ValueError("sign_constraints must map index pairs to +1 or -1")
+    signs = {}
+    for pair, value in ({} if sign_constraints is None else sign_constraints).items():
+        ij = _constraint_pair(pair, n, "sign_constraints")
+        if isinstance(value, (bool, np.bool_)) or not isinstance(value, Real) or value not in (-1, 1):
+            raise ValueError("sign_constraints values must be +1 or -1")
+        signs[ij] = int(value)
+    P = safe_cholesky(Sigma, name="sign_zero_svar Σ")
+    scales = np.sqrt(np.diag(Sigma))
+    correlation = Sigma / scales[:, None] / scales[None, :]
+    if any(pair in signs for pair in zeros):
+        return SignZeroResult(success=False, B0=None, Q=None, n_draws_used=0)
+    by_column: dict[int, list[tuple[int, int]]] = {}
+    for (i, j), required in signs.items():
+        by_column.setdefault(j, []).append((i, required))
     if rng is None:
         rng = np.random.default_rng(0)
-    Sigma = np.asarray(Sigma)
-    P = safe_cholesky(Sigma, name="sign_zero_svar Σ")
-    n = P.shape[0]
-    zeros = list(zero_constraints or [])
-    signs = dict(sign_constraints or {})
 
     for d in range(n_draws):
         # Haar Q via QR of Gaussian
@@ -133,30 +191,39 @@ def sign_zero(
             continue
 
         # Check zero constraints actually hold
-        zero_ok = all(abs(B0[i, j]) < 1e-8 for (i, j) in zeros)
+        zero_ok = all(abs(B0[i, j]) / scales[i] < 1e-8 for (i, j) in zeros)
         if not zero_ok:
             continue
 
-        # Check sign constraints
+        # Choose one orientation per column. Flipping separately for each
+        # entry can undo a previously satisfied restriction in that column.
         sign_ok = True
-        for (i, j), required in signs.items():
-            if required > 0 and B0[i, j] < 0:
-                # Try flipping the column
+        for j, restrictions in by_column.items():
+            signed_entries = np.array([required * B0[i, j] for i, required in restrictions])
+            if np.all(signed_entries > 0):
+                continue
+            if np.all(signed_entries < 0):
                 B0[:, j] *= -1
                 Q[:, j] *= -1
-            elif required < 0 and B0[i, j] > 0:
-                B0[:, j] *= -1
-                Q[:, j] *= -1
-            if (required > 0 and B0[i, j] <= 0) or (required < 0 and B0[i, j] >= 0):
+            else:
                 sign_ok = False
                 break
         if not sign_ok:
             continue
 
-        # Verify zeros still hold after sign flips (they should — column flip
-        # preserves zero entries)
-        zero_ok2 = all(abs(B0[i, j]) < 1e-8 for (i, j) in zeros)
-        if not zero_ok2:
+        # Acceptance is an independent final check of the complete candidate.
+        # Row normalization makes the zero/covariance checks invariant to a
+        # change in measurement units and avoids absolute covariance floors.
+        scaled_B0 = B0 / scales[:, None]
+        if not (np.isfinite(Q).all() and np.isfinite(scaled_B0).all()):
+            continue
+        if not all(required * B0[i, j] > 0 for (i, j), required in signs.items()):
+            continue
+        if not all(abs(scaled_B0[i, j]) < 1e-8 for (i, j) in zeros):
+            continue
+        if not np.allclose(Q.T @ Q, np.eye(n), rtol=0, atol=1e-10):
+            continue
+        if not np.allclose(scaled_B0 @ scaled_B0.T, correlation, rtol=0, atol=1e-10):
             continue
 
         return SignZeroResult(success=True, B0=B0, Q=Q, n_draws_used=d + 1)

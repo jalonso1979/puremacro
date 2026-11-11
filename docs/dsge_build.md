@@ -233,6 +233,14 @@ print(m.decision_rules().summary())
 print(m.theoretical_moments().summary())
 ```
 
+Dated `shocks` values may be separated by spaces or commas:
+`values .02 -.01 -.01;` means three shocks. Parentheses delimit one arithmetic
+expression, as in `values (.03-.01) (-.01) (-.02+.01);`. A scalar still
+broadcasts across a period range. Put addition/subtraction inside parentheses;
+use commas or square brackets for a list instead of enclosing the entire list
+in parentheses. Re-run deterministic scenarios that used space-separated signed
+values in earlier versions.
+
 ### 4b. Tier 0: The Front End — Macro Preprocessor, AST Parser & Symbolic Differentiation (v2.7.0)
 
 Starting with `puremacro 2.7.0`, the DSGE engine includes a front end for a documented subset of Dynare model files, using the core scientific-Python dependencies:

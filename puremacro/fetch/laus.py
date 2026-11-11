@@ -6,10 +6,11 @@ unadjusted; prefix `LAUCN`); panel users should add seasonal dummies or
 apply X-13 if county-level seasonality biases their estimates.
 
 Series ID layout (after right-stripping trailing whitespace, length 20):
-  LASST<state_fips:2><area_code:13><measure:2>           (state, SA)
-  LAUCN<state_fips:2><county_fips:3><area_code:10><measure:2>   (county, NSA)
+  LASST<state_fips:2><area_suffix:11><measure:2>           (state, SA)
+  LAUCN<state_fips:2><county_fips:3><area_suffix:8><measure:2>   (county, NSA)
 
-Measures: 03=urate, 04=lf, 05=emp, 06=une.
+Measures: 03=urate, 04=une, 05=emp, 06=lf.
+Definitions: https://download.bls.gov/pub/time.series/la/la.measure
 """
 from __future__ import annotations
 
@@ -25,7 +26,7 @@ from ._http import cached_get
 _LAUS_STATE_URL = "https://download.bls.gov/pub/time.series/la/la.data.1.CurrentS"
 # County: only available unadjusted (la.data.64.County, prefix LAUCN)
 _LAUS_COUNTY_URL = "https://download.bls.gov/pub/time.series/la/la.data.64.County"
-_MEASURE_MAP = {"03": "urate", "04": "lf", "05": "emp", "06": "une"}
+_MEASURE_MAP = {"03": "urate", "04": "une", "05": "emp", "06": "lf"}
 
 
 def _read_laus(source: Union[str, Path, IO[bytes]]) -> pd.DataFrame:

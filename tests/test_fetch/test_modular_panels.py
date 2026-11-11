@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import io
 import importlib
+import json
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 import urllib.request
@@ -55,6 +56,7 @@ def mock_all_network(monkeypatch):
     # removed/reloaded a fetcher but left an older parent-package attribute.
     _http = importlib.import_module("puremacro.fetch._http")
     wb_pink_sheet = importlib.import_module("puremacro.fetch.wb_pink_sheet")
+    energy_transition = importlib.import_module("puremacro.fetch.energy_transition")
 
     network_attempts = []
 
@@ -68,10 +70,14 @@ def mock_all_network(monkeypatch):
     def offline_cached_get(url: str, *, refresh: bool = False, timeout: float | None = None, **kwargs) -> bytes:
         # 1. World Bank WDI (emissions / energy)
         if "api.worldbank.org" in url:
-            if "EG.USE" in url or "energy" in url.lower():
-                p = COMM_DIR / "wdi_energy_mock.json"
-                if p.exists():
-                    return p.read_bytes()
+            indicator = urlparse(url).path.rsplit("/", 1)[-1]
+            if indicator in {"EG.USE.PCAP.KG.OE", "SP.POP.TOTL"}:
+                # The frozen file combines two indicators, whereas each WDI
+                # request returns only its requested indicator. In particular,
+                # population must not receive the unrelated emissions fixture.
+                payload = json.loads((COMM_DIR / "wdi_energy_mock.json").read_text())
+                rows = [row for row in payload[1] if row["indicator"]["id"] == indicator]
+                return json.dumps([{**payload[0], "total": len(rows)}, rows]).encode()
             p = EMISS_DIR / "wdi_emissions.json"
             if p.exists():
                 return p.read_bytes()
@@ -86,7 +92,12 @@ def mock_all_network(monkeypatch):
         if "ember-energy.org" in url or "generation_yearly" in url:
             p = COMM_DIR / "ember_generation_mock.csv"
             if p.exists():
-                return p.read_bytes()
+                # This shared synthetic file also contains invented primary
+                # energy rows. Select electricity only for the Ember response
+                # so primary energy is independently supplied by the WDI stub.
+                raw = pd.read_csv(p)
+                electricity = raw[raw["Electricity source"] != "Primary energy"]
+                return electricity.to_csv(index=False).encode()
 
         # 4. Commodities Pink Sheet workbook
         if "worldbank.org" in url and ("CMO" in url or "Pink" in url or "Historical" in url):
@@ -118,6 +129,9 @@ def mock_all_network(monkeypatch):
     # Pink Sheet now has its own urllib-backed seam. Patching only the older
     # requests helper left this nominally offline suite reading live/cache data.
     monkeypatch.setattr(wb_pink_sheet, "cached_get", offline_cached_get)
+    # Energy imports the transport helper by value. Patch that seam explicitly
+    # so Ember/WDI use these selected test payloads instead of live/cache data.
+    monkeypatch.setattr(energy_transition, "cached_get", offline_cached_get)
     yield network_attempts
     # Fetchers intentionally handle provider failures; catch a swallowed
     # transport assertion as well as one that propagates to the test itself.
@@ -152,6 +166,14 @@ class TestClimatePanel:
         assert pd.api.types.is_datetime64_any_dtype(panel["date"])
         assert pd.api.types.is_numeric_dtype(panel["value"])
 
+        observed = panel[panel["date"] == pd.Timestamp("2015-01-01")].set_index(["code", "variable"])
+        for code, electricity, primary in [("USA", 4200.0, 2_244_000_000.0), ("DEU", 550.0, 290_500_000.0)]:
+            assert observed.loc[(code, "elec_gen_total_twh_a"), "value"] == electricity
+            assert observed.loc[(code, "elec_gen_total_twh_a"), "source"] == "Ember:ElectricityReview"
+            # Independent fixture arithmetic: kg/capita * population / 1000.
+            assert observed.loc[(code, "primary_energy_cons_toe_a"), "value"] == primary
+            assert observed.loc[(code, "primary_energy_cons_toe_a"), "source"] == "WorldBank:WDI:EG.USE.PCAP.KG.OE"
+
     def test_annual_frequency_dates(self):
         """Annual frequency normalizes to January 1."""
         panel = build_climate_panel(codes=["USA"], start_year=2015, frequency="A")
@@ -175,6 +197,8 @@ class TestClimatePanel:
         sub = sub_2019[sub_2019["variable"] == sample_var]
         assert len(sub) == 4
         assert sub["value"].nunique() == 1  # repeated value
+        electricity = sub_2019[sub_2019["variable"] == "elec_gen_total_twh_q"].sort_values("date")
+        assert electricity["value"].tolist() == [4452.0] * 4
 
     def test_quarterly_interpolate_harmonization(self):
         """Quarterly harmonization with 'interpolate' produces smooth intermediate quarterly values."""
@@ -186,10 +210,15 @@ class TestClimatePanel:
 
         first_var = panel_interp["variable"].iloc[0]
         sub = panel_interp[panel_interp["variable"] == first_var].sort_values("date")
-        if len(sub) >= 8:
-            # Intermediate quarters should have values between year endpoints if endpoints differ
-            vals = sub["value"].values
-            assert not np.isnan(vals).any()
+        assert len(sub) >= 8
+        vals = sub["value"].values
+        assert not np.isnan(vals).any()
+        electricity = panel_interp[
+            (panel_interp["variable"] == "elec_gen_total_twh_q")
+            & (panel_interp["date"].dt.year == 2015)
+        ].sort_values("date")
+        # Frozen generation rises from 4200 in 2015 to 4263 in 2016.
+        np.testing.assert_allclose(electricity["value"], [4200.0, 4215.75, 4231.5, 4247.25])
 
     def test_wide_format_pivoting(self):
         """Wide format pivots to date index with code_variable column names."""

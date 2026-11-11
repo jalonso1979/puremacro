@@ -92,7 +92,23 @@ restricciones = {
 res_signs = sign_restrictions(Y, restrictions=restricciones, p=2, horizon=20, n_draws=5000)
 ```
 
-Para restricciones de signo combinadas con restricciones contemporáneas de cero exacto, utilice `sign_zero_restrictions` (Arias, Rubio-Ramírez y Waggoner 2018). Para inferencia robusta al conjunto identificado, utilice las bandas de Giacomini y Kitagawa (2021).
+Para restricciones de signo combinadas con ceros en el impacto, utilice
+`puremacro.var.identify.sign_zero(A_list, Sigma, ...)`. Recibe
+`sign_constraints={(i, j): +1 o -1}` y `zero_constraints=[(i, j)]`; omita una
+entrada para no restringirla. El valor cero en el diccionario de signos es
+inválido. Solo admite restricciones contemporáneas y no utiliza `A_list`.
+
+Cada columna se orienta una sola vez según todos sus signos; antes de declarar
+éxito se comprueban todos los signos y ceros, la ortogonalidad y la covarianza.
+La tolerancia de los ceros es relativa a la desviación estándar residual de cada
+variable. Si no encuentra una solución devuelve `success=False`, `B0=None` y
+`Q=None`. La proyección secuencial puede perder soluciones factibles: agotar los
+sorteos no demuestra inviabilidad. Coordenadas, signos, número de sorteos o
+covarianzas inválidos generan un error. Revise matrices aceptadas por versiones
+anteriores cuando varios signos restringían la misma columna.
+
+Para inferencia robusta al conjunto identificado, utilice las bandas de
+Giacomini y Kitagawa (2021).
 
 ### SVAR con Proxy / Instrumentos externos (`proxy_svar`)
 Identifica el choque estructural mediante una variable instrumental externa $z_t$ correlacionada con el choque de interés y ortogonal a las demás perturbaciones estructurales (Mertens y Ravn 2013, Stock y Watson 2018):

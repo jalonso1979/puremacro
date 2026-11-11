@@ -402,6 +402,15 @@ def test_sign_zero_non_pd_sigma_diagnostic():
     assert "sign_zero" in str(exc.value)
 
 
+def test_sign_zero_rejects_nonsymmetric_covariance():
+    from puremacro.var.identify import sign_zero
+
+    # Cholesky reads only the lower triangle. Without a symmetry check this
+    # input is silently treated as I, not the caller's covariance matrix.
+    with pytest.raises(ValueError, match="Sigma.*symmetric"):
+        sign_zero([], np.array([[1.0, 0.5], [0.0, 1.0]]), n_draws=1)
+
+
 def test_non_gaussian_svar_non_pd_sigma_diagnostic():
     from puremacro.var.identify.non_gaussian import non_gaussian_svar
 
