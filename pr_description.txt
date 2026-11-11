@@ -1,10 +1,14 @@
-🎯 **What:** The `realized_jump` function lacked tests with simple static mock values. The function calculates relative jump RJ = max(0, RV - BV) / RV and includes basic bounds checking.
+💡 What
+- Removed the `aria-label` attribute from the "CSV" download button, keeping only the `title` attribute for tooltips.
+- Refactored `MAV.segmented` to dynamically assign an `id` to its label `span` and apply `aria-labelledby` directly to the `role="group"` container.
 
-📊 **Coverage:** Added simple mock value testing in `test_realized_vol_coverage.py` using simple bounds and limits. Includes scenarios:
-* Normal valid computation `rv=10.0, bv=5.0`
-* Zero jump because equal bounds `rv=10.0, bv=10.0`
-* Negative jump bounded to zero `rv=10.0, bv=15.0`
-* Division by zero protection `rv=0.0, bv=5.0`
-* Negative RV fallback `rv=-5.0, bv=5.0`
+🎯 Why
+- Applying an `aria-label` to the CSV button was overriding its text content ("CSV"), creating a conflict that violated WCAG 2.5.3 (Label in Name).
+- Assigning `aria-label` dynamically during the render loop for grouped UI controls is a brittle pattern. Semantically linking the visible label using `aria-labelledby` with a unique ID provides robust, statically structured labeling for screen readers parsing custom groupings.
 
-✨ **Result:** Improved test coverage and explicitly documented parameter behaviors by running through simple static mock parameters rather than randomly generated variables or implicit variable coverage.
+📸 Before/After
+*(Visual UI remains identical, DOM structure improved for screen readers)*
+
+♿ Accessibility
+- Fixed WCAG 2.5.3 compliance on the CSV download button.
+- Improved context and semantic structure for users relying on screen readers to navigate grouped controls like language toggles.
