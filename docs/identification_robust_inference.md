@@ -171,8 +171,15 @@ The null maintains both the parameter and the moment restrictions. Empty sets
 can reflect incompatible moments; a small set alone does not establish precise
 identification. There is no automatic weak-identification diagnostic, arbitrary
 nuisance profiling, conditional QLR test, singularity-robust inference or
-continuous inversion of arbitrary callbacks in this first slice. Legacy
-weak-IV enclosing-band APIs are unchanged.
+continuous inversion of arbitrary callbacks in this first slice. In
+`puremacro.inference.weak_iv`, `kleibergen_paap_f` computes the reduced-rank
+Kleibergen–Paap (2006) `rk` Wald $F$ statistic for $k \ge 1$ endogenous
+regressors, and `anderson_rubin_band` returns `(nan, nan)` with a
+`RuntimeWarning` when the Anderson–Rubin acceptance set is empty on the supplied
+grid instead of returning the grid endpoints. In `puremacro.narrative.validate`,
+`weak_iv_summary` partials out the intercept and any `controls` from `endog`,
+`outcome` and `Z` before evaluating Cragg–Donald, Kleibergen–Paap and
+Anderson–Rubin diagnostics.
 
 Run `python -m puremacro.examples.identification_robust_sets --output /tmp/weak-id`
 for component tables, a missed-island demonstration, a simulation grid, report

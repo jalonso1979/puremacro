@@ -100,3 +100,21 @@ def test_zero_budget_is_a_valid_empty_search():
 def test_malformed_covariance_rejected(sigma):
     with pytest.raises(ValueError, match="Sigma"):
         sign_zero([], sigma, n_draws=1)
+
+
+def test_validation_gallery_sign_zero_fails_when_search_exhausted(monkeypatch):
+    import sys
+    from puremacro.validation.cases_var import _sign_zero_orthogonality
+    from puremacro.var.identify.sign_zero import SignZeroResult
+
+    good = _sign_zero_orthogonality()
+    assert np.isfinite(good["zero_res"]) and abs(good["zero_res"]) < 1e-10
+
+    sz_mod = sys.modules["puremacro.var.identify.sign_zero"]
+    monkeypatch.setattr(
+        sz_mod,
+        "sign_zero",
+        lambda *args, **kwargs: SignZeroResult(B0=None, Q=None, n_draws_used=50, success=False),
+    )
+    failed = _sign_zero_orthogonality()
+    assert np.isinf(failed["zero_res"]) and failed["zero_res"] > 0.0

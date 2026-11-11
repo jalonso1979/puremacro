@@ -31,6 +31,42 @@ but not published; their additions are included in 6.0.1, published on
   `RuntimeWarning`; available observations and genuine WDI primary energy retain
   their source labels. Explicit offline data remains available through
   `csv_path`. Re-fetch outputs that could contain the old implicit fixture data.
+- `dsge._sylvester.solve_generalized_sylvester_order3` retains the scalar factor
+  `T1[0, 0] * T2[0, 0]` when pairing two real `1x1` Schur blocks with a `2x2`
+  complex-conjugate block, and `dsge.local_accuracy.diagnose_perturbation`
+  emits explicit warnings when normalized perturbation residuals exceed
+  `residual_warning` (`1e-8` by default). Re-solve third-order DSGE models with
+  mixed real and complex stable roots.
+- `sovereign.dsa.simulate_stochastic_dsa(..., frequency="quarterly", exact_compounding=True)`
+  converts annualized percentage rates to per-quarter compounding using
+  `rate_convention="apr"` (`r_pct / 400`, default) or `rate_convention="effective"`
+  (`(1 + r_pct / 100)**0.25 - 1`) across both Monte Carlo paths and the
+  deterministic baseline instead of applying annual `/100` compounding per
+  quarter. Pass `frequency="annual"` explicitly when simulating annual horizons.
+- `inference.weak_iv.kleibergen_paap_f` computes the Kleibergen & Paap (2006)
+  heteroskedasticity-robust reduced-rank (`rk`) Wald $F$-statistic for
+  $H_0: \operatorname{rank}(\Pi) = k - 1$ (preserving $k = 1$ values while
+  detecting multi-endogenous rank deficiency), `anderson_rubin_band` emits
+  `RuntimeWarning` and returns `(nan, nan)` when no grid point is accepted, and
+  `narrative.validate.weak_iv_summary` partials the intercept and exogenous
+  controls consistently across `cragg_donald_f`, `kleibergen_paap_f` and
+  `beta_2sls`.
+- `inference.smc` and `dsge.bayesian` draw initial prior particles from the
+  exact `[lb, ub]`-truncated prior distributions across all six `dsge.priors`
+  families (`uniform`, `normal`, `beta`, `gamma`, `invgamma` types 1 & 2,
+  `weibull`) in both `Prior` object and dictionary forms without `np.clip`
+  boundary point-mass atoms, while preserving untruncated `Prior.logpdf` Dynare
+  parity.
+- `var.identify.proxy.proxy_svar` defaults to the Jentsch & Lunsford (2019,
+  2022) centered moving-block bootstrap (`bootstrap="mbb"`, with optional
+  `block_size` and `"iid"`/`"wild"` modes) for asymptotically valid confidence
+  bands when reduced-form covariance is non-scalar.
+- `trade.optimal_tariffs.evaluate_national_welfare(..., metric="geary_khamis")`
+  evaluates raw state vectors through consistent producer/purchaser accounting,
+  deflates net foreign investment `XN` by investment-category purchaser prices
+  in `restore_capital_formation(..., p_fd=...)`, and anchors counterfactual
+  Geary–Khamis real GDP to baseline international reference prices
+  $\pi^{\text{base}}$ whenever `base_equilibrium` is supplied.
 
 ## 6.3.0 (2026-11-10)
 

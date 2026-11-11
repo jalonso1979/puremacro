@@ -23,7 +23,7 @@ import pandas as pd
 from scipy import stats
 from scipy.optimize import minimize
 
-from puremacro.dsge.priors import ensure_prior, Prior, _validate_priors
+from puremacro.dsge.priors import ensure_prior, Prior, _sample_prior, _validate_priors
 from puremacro.dsge._results import BayesianIRFResult, PriorPredictiveResult
 from puremacro.mcmc import gelman_rubin, geweke_z
 
@@ -882,83 +882,7 @@ def _resolve_model_with_params(
 
 def _sample_from_prior(spec: Any, n_samples: int, rng: np.random.Generator) -> np.ndarray:
     """Sample parameter values from a prior specification."""
-    if isinstance(spec, Prior):
-        spec = spec.to_dict() if hasattr(spec, "to_dict") else {
-            "dist": spec.dist,
-            "mean": spec.mean,
-            "std": spec.std,
-            "lb": spec.lb,
-            "ub": spec.ub,
-            **getattr(spec, "_extra", {}),
-        }
-    dist = str(spec.get("dist", "normal")).lower()
-    mean = float(spec.get("mean", 0.0))
-    std = float(spec.get("std", 1.0))
-    lb = float(spec.get("lb", -math.inf))
-    ub = float(spec.get("ub", math.inf))
-
-    if dist == "uniform":
-        low = lb if np.isfinite(lb) else (mean - math.sqrt(3.0) * std)
-        high = ub if np.isfinite(ub) else (mean + math.sqrt(3.0) * std)
-        return rng.uniform(low, high, size=n_samples)
-
-    elif dist == "normal":
-        samples = rng.normal(mean, std, size=n_samples)
-        if np.isfinite(lb) or np.isfinite(ub):
-            for idx in range(n_samples):
-                val = samples[idx]
-                attempts = 0
-                while (val < lb or val > ub) and attempts < 100:
-                    val = rng.normal(mean, std)
-                    attempts += 1
-                if val < lb or val > ub:
-                    val = np.clip(val, lb, ub)
-                samples[idx] = val
-        return samples
-
-    elif dist == "beta":
-        shift = float(spec.get("shift", 0.0))
-        scale = float(spec.get("scale", 1.0))
-        norm_mean = (mean - shift) / scale
-        norm_var = (std / scale) ** 2
-        if norm_var >= norm_mean * (1.0 - norm_mean) or norm_mean <= 0.0 or norm_mean >= 1.0:
-            return rng.uniform(shift, shift + scale, size=n_samples)
-        temp = norm_mean * (1.0 - norm_mean) / norm_var - 1.0
-        a = norm_mean * temp
-        b = (1.0 - norm_mean) * temp
-        raw = rng.beta(a, b, size=n_samples)
-        return shift + scale * raw
-
-    elif dist == "gamma":
-        shift = float(spec.get("shift", 0.0))
-        adj_mean = mean - shift
-        if adj_mean <= 0.0 or std <= 0.0:
-            return rng.normal(mean, std, size=n_samples)
-        k = (adj_mean / std) ** 2
-        theta = (std ** 2) / adj_mean
-        raw = rng.gamma(shape=k, scale=theta, size=n_samples)
-        return shift + raw
-
-    elif dist == "invgamma":
-        if "s" in spec and "nu" in spec:
-            s_val = float(spec["s"])
-            nu_val = float(spec["nu"])
-        else:
-            nu_val = 4.0
-            s_val = mean * math.sqrt(nu_val / 2.0)
-        raw_gamma = rng.gamma(shape=nu_val / 2.0, scale=2.0, size=n_samples)
-        raw_gamma = np.maximum(raw_gamma, 1e-12)
-        raw_x2 = (s_val ** 2) / raw_gamma
-        return np.sqrt(np.maximum(raw_x2, 1e-12))
-
-    elif dist == "weibull":
-        shape = float(spec.get("shape", 2.0))
-        scale = float(spec.get("scale", 1.0))
-        shift = float(spec.get("shift", 0.0))
-        return shift + rng.weibull(shape, size=n_samples) * scale
-
-    else:
-        return rng.normal(mean, std, size=n_samples)
+    return _sample_prior(spec, n_samples, rng)
 
 
 def bayesian_irf(

@@ -70,9 +70,11 @@ Puremacro implements recursive **Real Schur (Bartels–Stewart) Generalized Sylv
 2. Transforms the right-hand side into Schur coordinates along all $k$ tensor modes: $\tilde{K} = K_{x^k} U_h^{\otimes k}$.
 3. Recursively decouples the outermost tensor mode via block back-substitution over the diagonal blocks $B_p$ of $T_h$:
    - For a $1 \times 1$ block $B_p = [\lambda]$, solves the order-$(k-1)$ Sylvester subproblem with scaled matrix $\lambda A_+$.
-   - For a $2 \times 2$ block $B_p = \begin{pmatrix} t_{00} & t_{01} \\ t_{10} & t_{11} \end{pmatrix}$, solves the coupled $2 n_y$-dimensional order-$(k-1)$ system directly in real arithmetic, using bounded LU caching (`solve_order1_sylvester`) at the base level.
+   - For a $2 \times 2$ block $B_p = \begin{pmatrix} t_{00} & t_{01} \\ t_{10} & t_{11} \end{pmatrix}$, solves the coupled $2 n_y$-dimensional order-$(k-1)$ system directly in real arithmetic, using bounded LU caching (`solve_order1_sylvester`) at the base level. At $k = 3$, mixed $(1, 1, 2)$ real/complex diagonal block triples scale the $2 n_y$ inner block system by the exact scalar product $t_p t_q A_+$.
    - Pushes strictly upper-triangular couplings $T_h[i, b]$ forward into earlier columns before solving block $i$.
 4. Rotates the solution back to state coordinates in real arithmetic: $g_{x^k} = \tilde{g}_{x^k} (U_h^\top)^{\otimes k}$.
+
+`diagnose_perturbation(solution, max_curvature_order=3, residual_warning=1e-8)` checks the normalized Sylvester equation residuals (`ghxx`, `ghs2`, `ghxxx`, `ghxss`, `ghuss`) and appends an explicit entry to `diagnostics.warnings` if any residual exceeds `residual_warning`.
 
 On the benchmark Smets-Wouters (2007) model, this solver executes in **0.034 seconds** with **< 1 MB memory overhead**, completely bypassing dense Kronecker assembly.
 

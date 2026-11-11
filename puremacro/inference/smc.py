@@ -34,6 +34,7 @@ from puremacro._linalg import safe_cholesky
 from puremacro.core.protocol import DifferentiableModel
 from puremacro.dsge.priors import (
     Prior,
+    _sample_prior,
     ensure_prior,
     grad_log_prior,
     log_prior,
@@ -174,55 +175,8 @@ def _systematic_resample(weights: np.ndarray, rng: np.random.Generator) -> np.nd
 # ===========================================================================
 
 def _sample_from_prior(spec: Any, n: int, rng: np.random.Generator) -> np.ndarray:
-    """Draw n independent samples from a prior specification."""
-    if hasattr(spec, "dist"):
-        dist = spec.dist
-        mean = getattr(spec, "mean", 0.0)
-        std = getattr(spec, "std", 1.0)
-        lb = getattr(spec, "lb", -1e6)
-        ub = getattr(spec, "ub", 1e6)
-        shift = getattr(spec, "shift", 0.0)
-        scale = getattr(spec, "scale", 1.0)
-    elif isinstance(spec, Mapping):
-        dist = spec.get("dist", "normal")
-        mean = float(spec.get("mean", 0.0))
-        std = float(spec.get("std", 1.0))
-        lb = float(spec.get("lb", -1e6))
-        ub = float(spec.get("ub", 1e6))
-        shift = float(spec.get("shift", 0.0))
-        scale = float(spec.get("scale", 1.0))
-    else:
-        dist = "normal"
-        mean, std, lb, ub, shift, scale = 0.0, 1.0, -1e6, 1e6, 0.0, 1.0
-
-    if dist == "uniform":
-        return rng.uniform(lb, ub, size=n)
-
-    if dist == "normal":
-        draws = rng.normal(mean, std, size=n)
-        return np.clip(draws, lb, ub)
-
-    if dist == "beta":
-        # Mean/std parameterization for beta on [shift, shift+scale]
-        m_norm = (mean - shift) / scale
-        s_norm = std / scale
-        var_norm = s_norm ** 2
-        denom = max(1e-12, m_norm * (1.0 - m_norm) / var_norm - 1.0)
-        a = max(1e-4, m_norm * denom)
-        b = max(1e-4, (1.0 - m_norm) * denom)
-        draws = shift + scale * scipy.stats.beta.rvs(a, b, size=n, random_state=rng)
-        return np.clip(draws, lb, ub)
-
-    if dist == "gamma":
-        z_mean = max(1e-4, mean - shift)
-        k = (z_mean / std) ** 2
-        theta = (std ** 2) / z_mean
-        draws = shift + scipy.stats.gamma.rvs(k, scale=theta, size=n, random_state=rng)
-        return np.clip(draws, lb, ub)
-
-    # General fallback
-    draws = rng.normal(mean, std, size=n)
-    return np.clip(draws, lb, ub)
+    """Draw n independent samples from a supported DSGE prior specification."""
+    return _sample_prior(spec, n, rng)
 
 
 # ===========================================================================

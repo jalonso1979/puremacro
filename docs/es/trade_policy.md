@@ -8,6 +8,15 @@ bienestar. Esto usa [contabilidad consistente](trade_accounting.md), devolucione
 fiscales de suma fija y la [función de gasto de consumo](trade_welfare.md). Los
 valores por defecto históricos y los alias `ev`, `equivalent_variation` y
 `consumption` conservan sus objetivos históricos. No seleccionan el nuevo cálculo.
+Al evaluar la absorción real con `metric="geary_khamis"` mediante
+`evaluate_national_welfare`, suministrar `base_equilibrium` ancla la valoración
+a los precios internacionales de referencia de Geary–Khamis del equilibrio base
+$\pi^{\text{base}}$, deflacta el préstamo neto al exterior en unidades reales de
+inversión mediante `restore_capital_formation(..., p_fd=...)` y evalúa los
+vectores de estado crudos `(p_sol, y_sol, r_sol, w_sol, T_sol, XN_sol)` con el
+mismo mapa de contabilidad consistente que `TradeEquilibriumResult`, preservando
+la invariancia del bienestar de Geary–Khamis anclado a la base ante reescalados
+nominales de precios contrafactuales.
 
 ```python
 from puremacro.trade import (

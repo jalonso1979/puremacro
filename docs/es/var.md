@@ -120,6 +120,8 @@ res_proxy = proxy_svar(Y, p=2, instrument_series=z, horizon=20)
 print("Estadístico F de primera etapa:", res_proxy.first_stage_F)
 ```
 
+Las bandas de confianza emplean por defecto `bootstrap="mbb"`, el *moving-block bootstrap* centrado por posición dentro del bloque de Jentsch y Lunsford (2019, 2022) sobre pares conjuntos `(resid, z)` con longitud de bloque por defecto `block_size = min(max(1, T_eff - 1), max(1, int(5.03 * T_eff**0.25)))`. También admite `bootstrap="iid"` (remuestreo i.i.d. por pares, `block_size=1`) y `bootstrap="wild"` (que conserva el *wild bootstrap* de Rademacher heredado emitiendo un `UserWarning` por su inconsistencia para la covarianza conjunta `(u_t, z_t)` en SVAR con proxy). Los instrumentos disponibles solo en una submuestra rellenados con `NaN` se admiten de forma nativa: el VAR se estima con la muestra completa `T - p` y la covarianza con el instrumento y el estadístico $F$ de primera etapa utilizan las fechas válidas.
+
 ### Máxima participación espectral / News (`max_share_svar`)
 Identifica choques que maximizan la contribución a la varianza del error de pronóstico de una variable objetivo en horizontes específicos (Barsky y Sims 2011, Francis et al. 2014).
 

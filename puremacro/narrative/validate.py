@@ -58,6 +58,7 @@ def weak_iv_summary(
         - Anderson-Rubin p-value at 2SLS estimate,
         - Montiel Olea-Stock-Watson identification-robust band.
     """
+    from .._linalg import inv_xtx
     from ..inference.weak_iv import (
         cragg_donald_f, kleibergen_paap_f,
         anderson_rubin_test, msw_bands,
@@ -79,26 +80,31 @@ def weak_iv_summary(
         mask = mask & ~np.any(np.isnan(ctl), axis=1)
     z_arr, x_arr, y_arr, ctl = z_arr[mask], x_arr[mask], y_arr[mask], ctl[mask]
 
-    cd = cragg_donald_f(y_arr, x_arr, z_arr)
-    kp = kleibergen_paap_f(y_arr, x_arr, z_arr,
-                            W=ctl[:, 1:] if ctl.shape[1] > 1 else None)
+    cd = cragg_donald_f(y_arr, x_arr, z_arr, W=ctl)
+    kp = kleibergen_paap_f(y_arr, x_arr, z_arr, W=ctl)
 
-    # 2SLS β̂ for AR test:
-    # x_hat = projection of x on (z, controls).
-    Zfull = np.column_stack([ctl, z_arr])
-    proj = Zfull @ np.linalg.solve(Zfull.T @ Zfull, Zfull.T @ x_arr)
-    beta_2sls = float((proj @ y_arr) / (proj @ x_arr)) if (proj @ x_arr) != 0 else float("nan")
-    ar = anderson_rubin_test(beta_2sls, y_arr, x_arr, z_arr,
-                              controls=ctl[:, 1:] if ctl.shape[1] > 1 else None)
-    grid = np.linspace(beta_2sls - 5.0, beta_2sls + 5.0, grid_points)
-    msw_lo, msw_hi = msw_bands(grid, y_arr, x_arr, z_arr,
-                                 controls=ctl[:, 1:] if ctl.shape[1] > 1 else None)
+    # Exact FWL-partialled 2SLS slope β̂ for the excluded instrument z_arr:
+    ctl_inv = inv_xtx(ctl, name="weak_iv_summary (controls)")
+    z_tilde = z_arr - ctl @ (ctl_inv @ (ctl.T @ z_arr))
+    x_tilde = x_arr - ctl @ (ctl_inv @ (ctl.T @ x_arr))
+    y_tilde = y_arr - ctl @ (ctl_inv @ (ctl.T @ y_arr))
+    denom = float(z_tilde @ x_tilde)
+    beta_2sls = float((z_tilde @ y_tilde) / denom) if abs(denom) > 1e-15 else float("nan")
+    ctl_no_const = ctl[:, 1:] if ctl.shape[1] > 1 else None
+    if np.isfinite(beta_2sls):
+        ar = anderson_rubin_test(beta_2sls, y_arr, x_arr, z_arr, controls=ctl_no_const)
+        grid = np.linspace(beta_2sls - 5.0, beta_2sls + 5.0, grid_points)
+        msw_lo, msw_hi = msw_bands(grid, y_arr, x_arr, z_arr, controls=ctl_no_const)
+        ar_pval = ar.p_value
+    else:
+        ar_pval = float("nan")
+        msw_lo, msw_hi = float("nan"), float("nan")
     return {
         "n_obs": int(len(y_arr)),
         "first_stage_f_cd": float(cd),
         "first_stage_f_kp": float(kp),
         "beta_2sls": beta_2sls,
-        "AR_p_value_at_2sls": ar.p_value,
+        "AR_p_value_at_2sls": ar_pval,
         "MSW_band": (msw_lo, msw_hi),
     }
 

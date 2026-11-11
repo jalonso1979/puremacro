@@ -438,3 +438,72 @@ def test_dense_sylvester_fallback_enforces_allocation_limits_and_reports_details
     msg = str(exc_info.value)
     assert "20000x20000" in msg
     assert "synthetic Schur failure" in msg
+
+
+def test_order3_sylvester_mixed_real_and_complex_schur_blocks():
+    """Order-3 Real-Schur solver matches dense Kronecker across all mixed (1x1, 2x2) block permutations."""
+    rng = np.random.default_rng(20261111)
+    # 6 states: two distinct real eigenvalues + two distinct 2x2 complex oscillator blocks,
+    # conjugated by a random non-orthogonal similarity transform with off-diagonal coupling.
+    base_blocks = np.array(
+        [
+            [0.75, 0.20, -0.10, 0.05, 0.02, -0.04],
+            [0.00, -0.55, 0.15, -0.08, 0.03, 0.01],
+            [0.00, 0.00, 0.60, -0.45, 0.12, -0.06],
+            [0.00, 0.00, 0.45, 0.60, 0.04, 0.09],
+            [0.00, 0.00, 0.00, 0.00, -0.40, -0.50],
+            [0.00, 0.00, 0.00, 0.00, 0.50, -0.40],
+        ],
+        dtype=float,
+    )
+    P_sim = np.eye(6) + 0.15 * rng.standard_normal((6, 6))
+    h_x = P_sim @ base_blocks @ np.linalg.inv(P_sim)
+
+    N = 4
+    n_x = 6
+    A_hat = np.eye(N) * 1.5 + 0.15 * rng.standard_normal((N, N))
+    A_plus = 0.25 * rng.standard_normal((N, N))
+    K_xxx = rng.standard_normal((N, n_x**3))
+
+    g_xxx, counts = solve_order3_sylvester_schur(A_hat, A_plus, h_x, K_xxx, return_work_counts=True)
+    # 4 Schur blocks (2 real 1x1 + 2 complex 2x2): 2^3 = 8 scalar blocks and 4^3 - 2^3 = 56 quasi-blocks
+    assert counts.scalar_solves == 8
+    assert counts.quasi_block_solves == 56
+    assert counts.max_block_size == 8
+
+    H3 = np.kron(np.kron(h_x, h_x), h_x)
+    op_dense = np.kron(np.eye(n_x**3), A_hat) + np.kron(H3.T, A_plus)
+    g_dense = np.linalg.solve(op_dense, (-K_xxx).ravel(order="F")).reshape((N, n_x**3), order="F")
+
+    np.testing.assert_allclose(g_xxx, g_dense, rtol=1e-11, atol=1e-12)
+    res_inf = float(np.max(np.abs(A_hat @ g_xxx + (A_plus @ g_xxx) @ H3 + K_xxx)))
+    assert res_inf < 1e-12
+
+    # End-to-end public order=3 DSGE model with mixed real + complex-conjugate state dynamics
+    mixed_mod = """
+    var r1 r2 z1 z2 y;
+    varexo e_r1 e_r2 e1 e2;
+    parameters rho_r1 rho_r2 rho_c omega beta c3;
+    rho_r1 = 0.75;
+    rho_r2 = -0.55;
+    rho_c  = 0.80;
+    omega  = 0.60;
+    beta   = 0.92;
+    c3     = 0.90;
+    model;
+        r1 = rho_r1 * r1(-1) + e_r1;
+        r2 = rho_r2 * r2(-1) + e_r2;
+        z1 = rho_c * (cos(omega) * z1(-1) - sin(omega) * z2(-1)) + e1;
+        z2 = rho_c * (sin(omega) * z1(-1) + cos(omega) * z2(-1)) + e2;
+        y  = beta * y(+1) + c3 * r1 * r2 * z1 + 0.4 * r1^2 * z2;
+    end;
+    initval;
+        r1 = 0; r2 = 0; z1 = 0; z2 = 0; y = 0;
+    end;
+    steady;
+    """
+    sol3 = load_mod(mixed_mod, order=3)
+    diag = diagnose_perturbation(sol3)
+    assert diag.sylvester_residuals["ghxxx"] < 1e-12
+    assert not any("Sylvester residual" in w for w in diag.warnings)
+

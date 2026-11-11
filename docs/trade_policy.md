@@ -7,7 +7,15 @@ multilateral Nash search or welfare payoff matrix. This uses
 [consistent accounting](trade_accounting.md), lump-sum fiscal rebates and the
 [consumption expenditure function](trade_welfare.md). Historical defaults and
 the aliases `ev`, `equivalent_variation` and `consumption` retain their historical
-objectives. They do not select the new calculation.
+objectives. They do not select the new calculation. When evaluating real
+absorption under `metric="geary_khamis"` via `evaluate_national_welfare`,
+supplying `base_equilibrium` anchors valuation to fixed baseline Geary–Khamis
+international reference prices $\pi^{\text{base}}$, deflates net foreign lending
+into real investment units via `restore_capital_formation(..., p_fd=...)`, and
+routes raw equilibrium state arrays `(p_sol, y_sol, r_sol, w_sol, T_sol, XN_sol)`
+through the same consistent-accounting map as `TradeEquilibriumResult`, keeping
+baseline-anchored Geary–Khamis welfare comparisons invariant to counterfactual
+nominal price scaling.
 
 ```python
 from puremacro.trade import (

@@ -134,3 +134,78 @@ def test_proxy_svar_result_getitem():
     irf_target = res.irf_point[:, :, 0]
     assert np.array_equal(res[0], irf_target[0])
     assert np.array_equal(res[:3], irf_target[:3])
+
+
+def test_proxy_svar_mbb_nominal_coverage_non_identity_sigma():
+    """Jentsch & Lunsford (2019, 2022) centered MBB achieves nominal 90% coverage.
+
+    Under Rademacher wild bootstrap (w_t^2 = 1), sample Cov(u*, z*) and Sigma*
+    are invariant up to O_p(T^-1), collapsing impact (h=0) 90% CI coverage to ~15%.
+    """
+    B_true = np.array([[1.0, 0.0], [0.7, 1.0]])
+    A1_true = np.array([[0.5, 0.1], [0.0, 0.4]])
+    # True IRF at h=2: A1^2 @ B_true[:, 0]
+    irf_h2_true = A1_true @ (A1_true @ B_true[:, 0])
+
+    T = 200
+    reps = 60
+    covered_h0 = 0
+    covered_h2 = 0
+    h0_widths = []
+    for r in range(reps):
+        rng = np.random.default_rng(5000 + r)
+        eps = rng.standard_normal((T, 2))
+        u = eps @ B_true.T
+        Y = np.zeros((T, 2))
+        for t in range(1, T):
+            Y[t] = A1_true @ Y[t - 1] + u[t]
+        z = eps[:, 0] + 0.4 * rng.standard_normal(T)
+        res = proxy_svar(
+            Y, z=z, p=1, horizon=4, sign_var=0, sign=1.0, n_boot=150, ci=0.90, seed=r
+        )
+        if res.irf_lower[0, 1, 0] <= B_true[1, 0] <= res.irf_upper[0, 1, 0]:
+            covered_h0 += 1
+        if res.irf_lower[2, 1, 0] <= irf_h2_true[1] <= res.irf_upper[2, 1, 0]:
+            covered_h2 += 1
+        h0_widths.append(float(res.irf_upper[0, 1, 0] - res.irf_lower[0, 1, 0]))
+
+    rate_h0 = covered_h0 / reps
+    rate_h2 = covered_h2 / reps
+    assert 0.78 <= rate_h0 <= 0.98, f"h=0 MBB 90% CI coverage={rate_h0:.3f} out of [0.78, 0.98]"
+    assert 0.78 <= rate_h2 <= 0.98, f"h=2 MBB 90% CI coverage={rate_h2:.3f} out of [0.78, 0.98]"
+    assert float(np.median(h0_widths)) > 0.15
+
+
+def test_proxy_svar_bootstrap_modes_nan_instrument_and_validation():
+    Y, z = _synthetic_var_with_proxy(T=160, seed=99)
+
+    # Centered pairs bootstrap (iid, equivalent to MBB with block_size=1)
+    res_iid = proxy_svar(Y, z=z, p=2, horizon=6, n_boot=40, bootstrap="iid", seed=7)
+    res_mbb1 = proxy_svar(Y, z=z, p=2, horizon=6, n_boot=40, bootstrap="mbb", block_size=1, seed=7)
+    np.testing.assert_allclose(res_iid.irf_point, res_mbb1.irf_point, rtol=1e-12, atol=1e-12)
+    np.testing.assert_allclose(res_iid.irf_lower, res_mbb1.irf_lower, rtol=1e-12, atol=1e-12)
+    np.testing.assert_allclose(res_iid.irf_upper, res_mbb1.irf_upper, rtol=1e-12, atol=1e-12)
+
+    # Legacy wild bootstrap emits UserWarning
+    with pytest.warns(UserWarning, match="inconsistent for proxy-SVAR"):
+        res_wild = proxy_svar(Y, z=z, p=2, horizon=6, n_boot=30, bootstrap="wild", seed=7)
+    np.testing.assert_allclose(res_wild.irf_point, res_iid.irf_point, rtol=1e-12, atol=1e-12)
+
+    # NaN-padded instrument (proxy available on a subsample of VAR dates)
+    z_nan = z.copy()
+    z_nan[:40] = np.nan
+    res_nan = proxy_svar(Y, z=z_nan, p=2, horizon=6, n_boot=40, bootstrap="mbb", seed=7)
+    assert np.all(np.isfinite(res_nan.irf_point))
+    assert np.all(np.isfinite(res_nan.irf_lower))
+    assert np.all(np.isfinite(res_nan.irf_upper))
+    assert np.isfinite(res_nan.first_stage_F) and res_nan.first_stage_F > 0.0
+
+    # Input validation
+    with pytest.raises(ValueError, match="bootstrap"):
+        proxy_svar(Y, z=z, p=2, bootstrap="unknown")
+    with pytest.raises(ValueError, match="block_size"):
+        proxy_svar(Y, z=z, p=2, bootstrap="mbb", block_size=0)
+    with pytest.raises(ValueError, match="block_size"):
+        proxy_svar(Y, z=z, p=2, bootstrap="mbb", block_size=Y.shape[0] - 2)
+    with pytest.raises(ValueError, match="block_size"):
+        proxy_svar(Y, z=z, p=2, bootstrap="iid", block_size=4)

@@ -427,12 +427,51 @@ def test_no_vacuous_or_empty_tests():
 def test_kron_vec_identities_in_inference_and_dsge():
     """Verify Kronecker product and vec operations follow matrix calculus conventions.
 
-    1. vec(A X B) = (B.T kron A) vec(X).
-    2. vec(Z_t V_t') = V_t kron Z_t (weak_iv).
+    1. vec(A X B) = (B.T kron A) vec(X) (klein.py).
+    2. vec(Z_t V_t') = V_t kron Z_t in Kleibergen-Paap rk Wald covariance (weak_iv.py).
     """
+    import numpy as np
+    from puremacro.inference.weak_iv import kleibergen_paap_f
+
     root = Path(__file__).resolve().parents[1]
     weak_iv_src = (root / "puremacro" / "inference" / "weak_iv.py").read_text(encoding="utf-8")
-    assert "np.kron(V[t], Z[t])" in weak_iv_src, "weak_iv psi must be np.kron(V[t], Z[t]), not Z kron V"
+    assert "np.kron(Z[t], V[t])" not in weak_iv_src, (
+        "weak_iv psi must follow column-major vec(Z_t V_t') = V_t kron Z_t, never Z kron V"
+    )
+
+    # Numerical check on k=2, l=3 heteroskedastic design where V_t kron Z_t != Z_t kron V_t:
+    rng = np.random.default_rng(20261111)
+    n, k, l = 120, 2, 3
+    Z = rng.normal(size=(n, l))
+    Pi = np.array([[0.8, 0.2], [-0.4, 0.7], [0.3, -0.5]])
+    het = 0.5 + Z[:, 0] ** 2 + 0.7 * np.abs(Z[:, 2])
+    X = Z @ Pi + rng.normal(size=(n, k)) * het[:, None]
+    Y = X @ np.array([1.0, -0.5]) + rng.normal(size=n)
+
+    Q_Z, _ = np.linalg.qr(Z, mode="reduced")
+    V_res = X - Q_Z @ (Q_Z.T @ X)
+    Sigma_VV = (V_res.T @ V_res) / (n - l)
+    ew, ev = np.linalg.eigh(Sigma_VV)
+    F_scale = (ev * (ew ** -0.5)) @ ev.T
+    V_std = V_res @ F_scale
+    Theta_hat = (Q_Z.T @ X) @ F_scale
+    U, _, Vt = np.linalg.svd(Theta_hat, full_matrices=True)
+    U_2 = U[:, k - 1 :]
+    v_k = Vt[k - 1, :]
+    ell_q = U_2.T @ (Theta_hat @ v_k)
+    K_proj = np.kron(v_k[:, None], U_2)
+
+    psi_right = np.array([np.kron(V_std[t], Q_Z[t]) for t in range(n)])
+    omega_right = K_proj.T @ (psi_right.T @ psi_right) @ K_proj
+    kp_expected = float(ell_q @ np.linalg.solve(omega_right, ell_q)) / l
+
+    psi_wrong = np.array([np.kron(Q_Z[t], V_std[t]) for t in range(n)])
+    omega_wrong = K_proj.T @ (psi_wrong.T @ psi_wrong) @ K_proj
+    kp_wrong = float(ell_q @ np.linalg.solve(omega_wrong, ell_q)) / l
+
+    kp_actual = kleibergen_paap_f(Y, X, Z)
+    assert np.isclose(kp_actual, kp_expected, rtol=1e-12, atol=1e-12)
+    assert not np.isclose(kp_actual, kp_wrong, rtol=1e-3, atol=1e-3)
 
     klein_src = (root / "puremacro" / "dsge" / "klein.py").read_text(encoding="utf-8")
     assert "np.kron(G.T, A2)" in klein_src, "klein.py vectorization must use np.kron(G.T, A2)"

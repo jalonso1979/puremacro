@@ -218,6 +218,7 @@ class TestDSADeterministicDynamics:
             shocks=False,
             mu=mu,
             A=A,
+            frequency="annual",
             exact_compounding=True,
         )
 
@@ -230,6 +231,67 @@ class TestDSADeterministicDynamics:
             analytical[t] = analytical[t - 1] * (1.0 + r_t / 100.0) / (1.0 + g_t / 100.0) - (pb_t / 100.0)
 
         np.testing.assert_allclose(res.baseline_path, analytical, atol=1e-14, rtol=1e-12)
+
+    def test_exact_compounding_quarterly_apr_and_effective(self) -> None:
+        """Verify quarterly exact compounding converts annualized rates per quarter (APR and effective)."""
+        d0 = 0.65
+        horizon = 8
+        g, r, pb = 2.0, 6.0, -1.0
+        mu = (g, r, pb)
+        A = np.zeros((3, 3))
+
+        res_apr = simulate_stochastic_dsa(
+            d0=d0,
+            horizon=horizon,
+            n_sims=8,
+            shocks=False,
+            mu=mu,
+            A=A,
+            frequency="quarterly",
+            exact_compounding=True,
+            rate_convention="apr",
+        )
+        res_eff = simulate_stochastic_dsa(
+            d0=d0,
+            horizon=horizon,
+            n_sims=8,
+            shocks=False,
+            mu=mu,
+            A=A,
+            frequency="quarterly",
+            exact_compounding=True,
+            rate_convention="effective",
+        )
+        res_ann = simulate_stochastic_dsa(
+            d0=d0,
+            horizon=horizon,
+            n_sims=8,
+            shocks=False,
+            mu=mu,
+            A=A,
+            frequency="annual",
+            exact_compounding=True,
+        )
+
+        exp_apr = np.zeros(horizon + 1)
+        exp_eff = np.zeros(horizon + 1)
+        exp_apr[0] = d0
+        exp_eff[0] = d0
+        eff_factor = ((1.0 + r / 100.0) / (1.0 + g / 100.0)) ** 0.25
+        for t in range(1, horizon + 1):
+            exp_apr[t] = exp_apr[t - 1] * (1.0 + r / 400.0) / (1.0 + g / 400.0) - pb / 400.0
+            exp_eff[t] = exp_eff[t - 1] * eff_factor - pb / 400.0
+
+        np.testing.assert_allclose(res_apr.baseline_path, exp_apr, atol=1e-14, rtol=1e-12)
+        np.testing.assert_allclose(res_apr.paths[0], exp_apr, atol=1e-14, rtol=1e-12)
+        np.testing.assert_allclose(res_eff.baseline_path, exp_eff, atol=1e-14, rtol=1e-12)
+        np.testing.assert_allclose(res_eff.paths[0], exp_eff, atol=1e-14, rtol=1e-12)
+        assert abs(res_apr.baseline_path[-1] - res_ann.baseline_path[-1]) > 0.15
+        assert res_apr.metadata["rate_convention"] == "apr"
+        assert res_eff.metadata["rate_convention"] == "effective"
+
+        with pytest.raises(ValueError, match="rate_convention"):
+            simulate_stochastic_dsa(exact_compounding=True, rate_convention="continuous")
 
     def test_steady_state_invariance_linearized(self) -> None:
         """Verify debt remains constant across all periods when pb* = (r - g) * d*."""
@@ -269,11 +331,26 @@ class TestDSADeterministicDynamics:
             n_sims=30,
             shocks=False,
             mu=(g, r, pb_star),
+            frequency="annual",
             exact_compounding=True,
         )
 
         max_drift = np.max(np.abs(res.baseline_path - d_star))
         assert max_drift < 1e-12, f"Debt drifted from exact steady-state: max drift = {max_drift:.3e}"
+
+        # Quarterly APR exact steady state: pb* / 400 = d* * ((r - g)/400) / (1 + g/400)
+        pb_star_q = d_star * (r - g) / (1.0 + g / 400.0)
+        res_q = simulate_stochastic_dsa(
+            d0=d_star,
+            horizon=horizon,
+            n_sims=30,
+            shocks=False,
+            mu=(g, r, pb_star_q),
+            frequency="quarterly",
+            exact_compounding=True,
+        )
+        assert np.max(np.abs(res_q.baseline_path - d_star)) < 1e-12
+        assert np.max(np.abs(res_q.paths - d_star)) < 1e-12
 
     def test_snowball_divergence_unfavorable_differential(self) -> None:
         """Verify r > g with primary deficit causes explosive debt divergence."""

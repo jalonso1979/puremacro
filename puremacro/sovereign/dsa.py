@@ -113,6 +113,29 @@ class FiscalReactionFunction:
         return float(pb)
 
 
+def _step_debt_ratio(
+    d_prev: np.ndarray | float,
+    g_t: np.ndarray | float,
+    r_t: np.ndarray | float,
+    pb_t: np.ndarray | float,
+    *,
+    frequency: str,
+    exact_compounding: bool,
+    rate_convention: str,
+) -> np.ndarray | float:
+    """Advance debt-to-GDP ratio by one period under annualized percent macro inputs."""
+    periods = 4.0 if frequency == "quarterly" else 1.0
+    scale = 100.0 * periods
+    if not exact_compounding:
+        return d_prev * (1.0 + (r_t - g_t) / scale) - (pb_t / scale)
+    if frequency == "quarterly" and rate_convention == "effective":
+        num = np.power(np.maximum(1.0 + r_t / 100.0, 1e-6), 0.25)
+        denom = np.power(np.maximum(1.0 + g_t / 100.0, 1e-6), 0.25)
+        return d_prev * (num / denom) - (pb_t / scale)
+    denom = np.maximum(1.0 + g_t / scale, 1e-6)
+    return d_prev * (1.0 + r_t / scale) / denom - (pb_t / scale)
+
+
 def simulate_stochastic_dsa(
     *,
     d0: float = 0.65,
@@ -130,6 +153,7 @@ def simulate_stochastic_dsa(
     fiscal_reaction: FiscalReactionFunction | None = None,
     frequency: str = "quarterly",
     exact_compounding: bool = False,
+    rate_convention: str = "apr",
     store_macro_paths: bool = False,
 ) -> StochasticDSAResult:
     """Simulate stochastic sovereign debt trajectories and compute sustainability metrics.
@@ -173,10 +197,17 @@ def simulate_stochastic_dsa(
     frequency : str
         Simulation frequency: "quarterly" (default) or "annual".
     exact_compounding : bool
-        If True, uses exact non-linear compounding:
-            d_t = d_{t-1} * (1 + r_t/100) / (1 + g_t/100) - pb_t/100.
-        If False and frequency is "quarterly", uses linearized quarterly convention:
-            d_t = d_{t-1} * (1 + (r_t - g_t)/400) - pb_t/400.
+        If True, uses exact non-linear compounding scaled to ``frequency``:
+        for ``frequency="annual"``, ``(1 + r_t/100) / (1 + g_t/100) - pb_t/100``;
+        for ``frequency="quarterly"``, ``(1 + r_t/400) / (1 + g_t/400) - pb_t/400``
+        when ``rate_convention="apr"`` (or ``((1 + r_t/100)/(1 + g_t/100))**0.25 - pb_t/400``
+        when ``rate_convention="effective"``).
+        If False, uses linearized period accumulation ``d_{t-1} * (1 + (r_t - g_t)/s) - pb_t/s``
+        with ``s = 400`` (quarterly) or ``s = 100`` (annual).
+    rate_convention : str
+        Sub-annual compounding convention when ``frequency="quarterly"`` and
+        ``exact_compounding=True``: ``"apr"`` (default, ``r/400`` and ``g/400``)
+        or ``"effective"`` (geometric ``(1 + r/100)**0.25`` and ``(1 + g/100)**0.25``).
     store_macro_paths : bool
         If True, stores the simulated macro state variables [g, r, pb] in the result.
 
@@ -203,8 +234,11 @@ def simulate_stochastic_dsa(
         raise ValueError(f"threshold must be a finite float, got {threshold!r}")
     threshold_val = float(threshold)
 
-    if frequency not in ("quarterly", "annual"):
+    if not isinstance(frequency, str) or frequency not in ("quarterly", "annual"):
         raise ValueError(f"frequency must be 'quarterly' or 'annual', got {frequency!r}")
+
+    if not isinstance(rate_convention, str) or rate_convention not in ("apr", "effective"):
+        raise ValueError(f"rate_convention must be 'apr' or 'effective', got {rate_convention!r}")
 
     mu_arr = np.asarray(mu, dtype=float)
     if mu_arr.shape != (3,):
@@ -320,11 +354,15 @@ def simulate_stochastic_dsa(
             macro_paths[:, t, 2] = pb_t
 
         d_prev = paths[:, t - 1]
-        if frequency == "quarterly" and not exact_compounding:
-            paths[:, t] = d_prev * (1.0 + (r_t - g_t) / 400.0) - (pb_t / 400.0)
-        else:
-            denom = np.maximum(1.0 + g_t / 100.0, 1e-6)
-            paths[:, t] = d_prev * (1.0 + r_t / 100.0) / denom - (pb_t / 100.0)
+        paths[:, t] = _step_debt_ratio(
+            d_prev,
+            g_t,
+            r_t,
+            pb_t,
+            frequency=frequency,
+            exact_compounding=exact_compounding,
+            rate_convention=rate_convention,
+        )
 
     # 4. Deterministic Baseline Trajectory
     baseline_path = np.zeros(horizon_val + 1, dtype=float)
@@ -355,11 +393,17 @@ def simulate_stochastic_dsa(
             pb_prev_base = pb_t_b
 
         d_prev_b = baseline_path[t - 1]
-        if frequency == "quarterly" and not exact_compounding:
-            baseline_path[t] = d_prev_b * (1.0 + (r_t_b - g_t_b) / 400.0) - (pb_t_b / 400.0)
-        else:
-            denom_b = max(1.0 + g_t_b / 100.0, 1e-6)
-            baseline_path[t] = d_prev_b * (1.0 + r_t_b / 100.0) / denom_b - (pb_t_b / 100.0)
+        baseline_path[t] = float(
+            _step_debt_ratio(
+                d_prev_b,
+                g_t_b,
+                r_t_b,
+                pb_t_b,
+                frequency=frequency,
+                exact_compounding=exact_compounding,
+                rate_convention=rate_convention,
+            )
+        )
 
     # 5. Distributional & Fan Chart Metrics
     percentiles = [5, 10, 25, 50, 75, 90, 95]
@@ -383,6 +427,7 @@ def simulate_stochastic_dsa(
         "shocks": shocks,
         "frequency": frequency,
         "exact_compounding": exact_compounding,
+        "rate_convention": rate_convention,
     }
 
     return StochasticDSAResult(

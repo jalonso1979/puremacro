@@ -55,7 +55,7 @@ from __future__ import annotations
 
 import math
 import warnings
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from functools import lru_cache
 
 import numpy as np
@@ -1057,6 +1057,209 @@ def param_bounds(priors: dict) -> list[tuple[float, float]]:
 def param_names(priors: dict) -> tuple[str, ...]:
     """Return parameter names in priors-dict insertion order."""
     return tuple(priors.keys())
+
+
+def _nudge_open_interval(x: np.ndarray, lo: float, hi: float) -> np.ndarray:
+    """Ensure floating-point inversion never lands outside or on boundary atoms of (lo, hi)."""
+    out = np.asarray(x, dtype=float)
+    if math.isfinite(lo):
+        out = np.maximum(out, np.nextafter(lo, math.inf))
+    if math.isfinite(hi):
+        out = np.minimum(out, np.nextafter(hi, -math.inf))
+    return out
+
+
+def _sample_truncated_gamma(
+    a_shape: float,
+    theta_scale: float,
+    z_lo: float,
+    z_hi: float,
+    size: int,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Exact inverse-CDF sampling from Gamma(a_shape, scale=theta_scale) truncated to (z_lo, z_hi)."""
+    if z_lo == 0.0 and not math.isfinite(z_hi):
+        raw = stats.gamma.rvs(a=a_shape, scale=theta_scale, size=size, random_state=rng)
+        return np.maximum(np.asarray(raw, dtype=float), 1e-300)
+
+    u = np.clip(rng.random(size), 1e-16, 1.0 - 1e-16)
+    c_lo = float(stats.gamma.cdf(z_lo, a=a_shape, scale=theta_scale))
+    c_hi = 1.0 if not math.isfinite(z_hi) else float(stats.gamma.cdf(z_hi, a=a_shape, scale=theta_scale))
+
+    if c_lo < 0.5 and (c_hi - c_lo) > 1e-15:
+        p = c_lo + (c_hi - c_lo) * u
+        z = np.asarray(stats.gamma.ppf(p, a=a_shape, scale=theta_scale), dtype=float)
+    else:
+        s_hi = float(stats.gamma.sf(z_lo, a=a_shape, scale=theta_scale))
+        s_lo = 0.0 if not math.isfinite(z_hi) else float(stats.gamma.sf(z_hi, a=a_shape, scale=theta_scale))
+        if (s_hi - s_lo) > 1e-300:
+            p = s_lo + (s_hi - s_lo) * u
+            z = np.asarray(stats.gamma.isf(p, a=a_shape, scale=theta_scale), dtype=float)
+        else:
+            span = z_hi - z_lo
+            if math.isfinite(span):
+                z = z_lo - theta_scale * np.log1p(u * math.expm1(-span / theta_scale))
+            else:
+                z = z_lo - theta_scale * np.log1p(-u)
+
+    lo_guard = z_lo if z_lo > 0.0 else 1e-300
+    return _nudge_open_interval(z, lo_guard if z_lo > 0.0 else -math.inf, z_hi)
+
+
+def _sample_prior(
+    spec: Prior | Mapping,
+    size: int,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Draw exact truncated samples from any supported DSGE Prior or dict spec."""
+    n = int(size)
+    if n < 0:
+        raise ValueError(f"_sample_prior: size must be >= 0, got {size!r}")
+    if n == 0:
+        return np.empty(0, dtype=float)
+
+    if isinstance(spec, Prior):
+        prior = spec
+    elif isinstance(spec, Mapping):
+        if "dist" not in spec or not isinstance(spec["dist"], str):
+            raise ValueError(f"_sample_prior: prior spec must declare string 'dist', got {spec!r}")
+        dist_raw = spec["dist"].strip().lower()
+        if dist_raw == "uniform":
+            lb_raw = float(spec.get("lb", -math.inf))
+            ub_raw = float(spec.get("ub", math.inf))
+            if not (math.isfinite(lb_raw) and math.isfinite(ub_raw)):
+                mean_raw = float(spec.get("mean", math.nan))
+                std_raw = float(spec.get("std", math.nan))
+                if math.isfinite(mean_raw) and math.isfinite(std_raw) and std_raw > 0.0:
+                    half = math.sqrt(3.0) * std_raw
+                    spec = {**spec, "lb": mean_raw - half, "ub": mean_raw + half}
+                else:
+                    raise ValueError(
+                        f"_sample_prior: uniform prior requires finite lb < ub, got lb={lb_raw!r}, ub={ub_raw!r}"
+                    )
+        prior = ensure_prior(dict(spec))
+    else:
+        raise TypeError(f"_sample_prior: expected Prior or Mapping, got {type(spec).__name__}")
+
+    dist = prior.dist.lower()
+    if dist not in _DIST_LOGPDF:
+        raise ValueError(
+            f"_sample_prior: unknown distribution {prior.dist!r}; supported: {sorted(_DIST_LOGPDF)}"
+        )
+    if not (prior.lb < prior.ub):
+        raise ValueError(f"_sample_prior: empty bounds lb={prior.lb!r} >= ub={prior.ub!r}")
+
+    if dist == "uniform":
+        if not (math.isfinite(prior.lb) and math.isfinite(prior.ub)):
+            raise ValueError(
+                f"_sample_prior: uniform prior requires finite lb < ub, got lb={prior.lb!r}, ub={prior.ub!r}"
+            )
+        u = np.clip(rng.random(n), 1e-16, 1.0 - 1e-16)
+        return _nudge_open_interval(prior.lb + (prior.ub - prior.lb) * u, prior.lb, prior.ub)
+
+    if dist == "normal":
+        mean, std = prior.mean, prior.std
+        if not (math.isfinite(mean) and math.isfinite(std)) or std <= 0.0:
+            raise ValueError(f"_sample_prior: normal prior requires finite mean and std > 0, got ({mean!r}, {std!r})")
+        if not math.isfinite(prior.lb) and not math.isfinite(prior.ub):
+            return rng.normal(mean, std, size=n)
+        a_std = (prior.lb - mean) / std if math.isfinite(prior.lb) else -math.inf
+        b_std = (prior.ub - mean) / std if math.isfinite(prior.ub) else math.inf
+        draws = np.asarray(
+            stats.truncnorm.rvs(a_std, b_std, loc=mean, scale=std, size=n, random_state=rng),
+            dtype=float,
+        )
+        return _nudge_open_interval(draws, prior.lb, prior.ub)
+
+    if dist == "beta":
+        shift = float(prior.get("shift") or 0.0)
+        scale = float(prior.get("scale") or 1.0)
+        if scale <= 0.0:
+            raise ValueError(f"_sample_prior: beta scale must be > 0, got {scale!r}")
+        a_b, b_b = _beta_ab((prior.mean - shift) / scale, prior.std / scale)
+        lo = max(shift, prior.lb)
+        hi = min(shift + scale, prior.ub)
+        if not (lo < hi):
+            raise ValueError(f"_sample_prior: empty truncated beta support [{lo!r}, {hi!r}]")
+        u_lo = max(0.0, (lo - shift) / scale)
+        u_hi = min(1.0, (hi - shift) / scale)
+        if u_lo <= 0.0 and u_hi >= 1.0:
+            unit = np.asarray(stats.beta.rvs(a_b, b_b, size=n, random_state=rng), dtype=float)
+        else:
+            u = np.clip(rng.random(n), 1e-16, 1.0 - 1e-16)
+            c_lo = float(stats.beta.cdf(u_lo, a_b, b_b))
+            c_hi = float(stats.beta.cdf(u_hi, a_b, b_b))
+            if c_lo < 0.5 and (c_hi - c_lo) > 1e-15:
+                unit = np.asarray(stats.beta.ppf(c_lo + (c_hi - c_lo) * u, a_b, b_b), dtype=float)
+            else:
+                s_hi = float(stats.beta.sf(u_lo, a_b, b_b))
+                s_lo = float(stats.beta.sf(u_hi, a_b, b_b))
+                unit = np.asarray(stats.beta.isf(s_lo + (s_hi - s_lo) * u, a_b, b_b), dtype=float)
+        draws = shift + scale * unit
+        return _nudge_open_interval(draws, lo, hi)
+
+    if dist == "gamma":
+        shift = float(prior.get("shift") or 0.0)
+        adj_mean = prior.mean - shift
+        std = prior.std
+        if not (math.isfinite(adj_mean) and math.isfinite(std)) or adj_mean <= 0.0 or std <= 0.0:
+            raise ValueError(f"_sample_prior: invalid gamma moments mean={prior.mean!r}, std={std!r}, shift={shift!r}")
+        k_shape = (adj_mean / std) ** 2
+        theta_scale = (std ** 2) / adj_mean
+        lo = max(shift, prior.lb)
+        hi = prior.ub
+        if not (lo < hi):
+            raise ValueError(f"_sample_prior: empty truncated gamma support [{lo!r}, {hi!r}]")
+        z_lo = max(0.0, lo - shift)
+        z_hi = hi - shift if math.isfinite(hi) else math.inf
+        z = _sample_truncated_gamma(k_shape, theta_scale, z_lo, z_hi, n, rng)
+        return _nudge_open_interval(shift + z, lo, hi)
+
+    if dist == "invgamma":
+        kind = prior.get("kind") or "type1"
+        if kind not in _INVGAMMA_KINDS:
+            raise ValueError(f"_sample_prior: unknown invgamma kind {kind!r}")
+        s_val = prior.get("s")
+        nu_val = prior.get("nu")
+        if s_val is None or nu_val is None:
+            solve = _invgamma2_s_nu if kind == "type2" else _invgamma_s_nu
+            s_val, nu_val = solve(prior.mean, prior.std)
+        s, nu = float(s_val), float(nu_val)
+        if not (s > 0.0 and nu > 0.0):
+            raise ValueError(f"_sample_prior: invgamma requires s > 0 and nu > 0, got ({s!r}, {nu!r})")
+        lo = max(0.0, prior.lb)
+        hi = prior.ub
+        if not (lo < hi):
+            raise ValueError(f"_sample_prior: empty truncated invgamma support [{lo!r}, {hi!r}]")
+        power = 1.0 if kind == "type2" else 2.0
+        y_lo = 0.0 if not math.isfinite(hi) else (hi ** (-power))
+        y_hi = math.inf if lo <= 0.0 else (lo ** (-power))
+        y = _sample_truncated_gamma(nu / 2.0, 2.0 / s, y_lo, y_hi, n, rng)
+        draws = np.power(y, -1.0 / power)
+        return _nudge_open_interval(draws, lo if lo > 0.0 else 0.0, hi)
+
+    # dist == "weibull"
+    shift = float(prior.get("shift") or 0.0)
+    w_shape = prior.get("shape")
+    w_scale = prior.get("scale")
+    if w_shape is None or w_scale is None:
+        w_shape, w_scale = _weibull_shape_scale(prior.mean - shift, prior.std)
+    shape, scale = float(w_shape), float(w_scale)
+    lo = max(shift, prior.lb)
+    hi = prior.ub
+    if not (lo < hi):
+        raise ValueError(f"_sample_prior: empty truncated weibull support [{lo!r}, {hi!r}]")
+    z_lo = max(0.0, lo - shift)
+    z_hi = hi - shift if math.isfinite(hi) else math.inf
+    e_lo = (z_lo / scale) ** shape if z_lo > 0.0 else 0.0
+    e_hi = (z_hi / scale) ** shape if math.isfinite(z_hi) else math.inf
+    u = np.clip(rng.random(n), 1e-16, 1.0 - 1e-16)
+    if not math.isfinite(e_hi):
+        e_draws = e_lo - np.log1p(-u)
+    else:
+        e_draws = e_lo - np.log1p(u * math.expm1(-(e_hi - e_lo)))
+    draws = shift + scale * np.power(np.maximum(e_draws, 1e-300), 1.0 / shape)
+    return _nudge_open_interval(draws, lo, hi)
 
 
 __all__ = [

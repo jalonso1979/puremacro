@@ -154,6 +154,13 @@ no valida independientemente toda la economía de la reestructuración.
 - **Estructura temporal:** la valoración de supervivencia usa la distribución
   completa de decisiones de deuda. `risk_premium_component` es un ajuste de
   capitalización discreta, no una prima económica identificada.
+- **Análisis estocástico de sostenibilidad de la deuda (`simulate_stochastic_dsa`):**
+  con `frequency="quarterly"` y `exact_compounding=True`, las trayectorias de
+  tipos de interés y crecimiento capitalizan por trimestre mediante `r / 4` y
+  `g / 4` bajo la convención por defecto `rate_convention="apr"`, o mediante
+  `(1 + r)**(1/4) - 1` y `(1 + g)**(1/4) - 1` bajo
+  `rate_convention="effective"`. Las trayectorias anuales (`frequency="annual"`)
+  no cambian.
 
 Vea [ecuaciones y diagnósticos medidos](sovereign_extensions_validation.md)
 para umbrales, evidencia archivada y límites económicos.

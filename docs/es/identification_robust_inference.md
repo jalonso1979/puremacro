@@ -182,8 +182,15 @@ conjunto vacío puede reflejar momentos incompatibles; un conjunto pequeño,
 por sí solo, no establece identificación precisa. Esta primera versión no
 incluye diagnóstico automático de identificación débil, concentración
 arbitraria de parámetros de nuisance, QLR condicional, inferencia robusta a
-singularidad ni inversión continua de callbacks arbitrarios. Las API
-anteriores de bandas envolventes para IV débil no cambian.
+singularidad ni inversión continua de callbacks arbitrarios. En
+`puremacro.inference.weak_iv`, `kleibergen_paap_f` calcula el estadístico $F$
+de Wald `rk` de rango reducido de Kleibergen y Paap (2006) para $k \ge 1$
+regresores endógenos, y `anderson_rubin_band` devuelve `(nan, nan)` con un
+`RuntimeWarning` cuando el conjunto de aceptación de Anderson–Rubin es vacío en
+la malla suministrada en lugar de devolver los extremos de la malla. En
+`puremacro.narrative.validate`, `weak_iv_summary` parcializa la constante y
+cualquier matriz `controls` de `endog`, `outcome` y `Z` antes de evaluar los
+diagnósticos de Cragg–Donald, Kleibergen–Paap y Anderson–Rubin.
 
 Ejecute `python -m puremacro.examples.identification_robust_sets --output /tmp/weak-id`
 para obtener tablas de componentes, una demostración de islas no detectadas,

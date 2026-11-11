@@ -12,7 +12,11 @@ import numpy as np
 import pytest
 from scipy.stats import chi2
 
-from puremacro.inference.weak_iv import anderson_rubin_band, kleibergen_paap_f
+from puremacro.inference.weak_iv import (
+    anderson_rubin_band,
+    cragg_donald_f,
+    kleibergen_paap_f,
+)
 
 
 def _robust_first_stage_f(X, Z):
@@ -137,3 +141,46 @@ def test_anderson_rubin_cutoff_is_the_chi2_quantile_divided_by_df():
             f"of {hi:.5f}; expected chi2.ppf(0.9, {df})/{df} = {expected:.5f} "
             f"(the unscaled quantile is {chi2.ppf(0.90, df):.5f})"
         )
+
+
+def test_kleibergen_paap_f_collapses_on_rank_deficient_multi_endog_first_stage():
+    """With k = 2 endogenous regressors, a rank-1 sample projection must give KP F = 0."""
+    rng = np.random.default_rng(1234)
+    n = 400
+    Z = rng.standard_normal((n, 3))
+    v = rng.standard_normal((n, 2))
+    # Remove any accidental projection of v onto Z so sample rank(Pi_hat) == 1.
+    v_orth = v - Z @ np.linalg.lstsq(Z, v, rcond=None)[0]
+    signal = 3.0 * Z[:, 0] + 1.5 * Z[:, 1]
+    X = np.column_stack([signal + v_orth[:, 0], 2.0 * signal + v_orth[:, 1]])
+    y = X[:, 0] - 0.5 * X[:, 1] + rng.standard_normal(n)
+
+    cd_f = cragg_donald_f(y, X, Z)
+    kp_f = kleibergen_paap_f(y, X, Z)
+    assert cd_f < 1e-12
+    assert kp_f < 1e-12
+
+
+def test_kleibergen_paap_f_tracks_cragg_donald_under_homoskedastic_k2():
+    """Under homoskedasticity with k = 2, KP rk Wald F agrees asymptotically with Cragg-Donald F."""
+    rng = np.random.default_rng(2026)
+    n = 2000
+    W = np.column_stack([np.ones(n), rng.standard_normal(n)])
+    Z = rng.standard_normal((n, 3))
+    Pi = np.array([[0.8, 0.1], [-0.2, 0.7], [0.4, -0.5]])
+    V = rng.standard_normal((n, 2)) @ np.array([[1.0, 0.3], [0.3, 1.0]])
+    X = W @ np.array([[1.5, -1.0], [2.0, 3.0]]) + Z @ Pi + V
+    y = X @ np.array([1.0, -0.5]) + rng.standard_normal(n)
+
+    cd_f = cragg_donald_f(y, X, Z, W=W)
+    kp_f = kleibergen_paap_f(y, X, Z, W=W)
+    assert kp_f == pytest.approx(cd_f, rel=0.06)
+
+
+def test_anderson_rubin_band_empty_returns_nan_and_warns():
+    """An empty AR acceptance set must return (nan, nan) with RuntimeWarning, never grid endpoints."""
+    grid = np.linspace(-5.0, 5.0, 201)
+    with pytest.warns(RuntimeWarning, match="empty"):
+        lo, hi = anderson_rubin_band(grid, lambda b: 100.0 + b * b, ci=0.90, df=2)
+    assert np.isnan(lo) and np.isnan(hi)
+

@@ -34,7 +34,7 @@ $$
 0 = \phi_0 < \phi_1 < \dots < \phi_{N_\phi} = 1
 $$
 
-En la etapa inicial $n = 0$, $\pi_0(\theta) = p(\theta)$ representa la previa, de la cual se generan extracciones independientes exactas. En la etapa terminal $n = N_\phi$, $\pi_{N_\phi}(\theta) = p(\theta \mid Y)$ corresponde a la verdadera distribución posterior objetivo.
+En la etapa inicial $n = 0$, $\pi_0(\theta) = p(\theta)$ representa la previa, de la cual se generan extracciones independientes exactas truncadas al soporte efectivo `[lb, ub]` (sin átomos en la frontera por truncamiento con `clip`) tanto para instancias `Prior` como para especificaciones en diccionario (`uniform`, `normal`, `beta`, `gamma`, `invgamma` tipos 1 y 2, y `weibull`), preservando intacta la evaluación de densidades `Prior.logpdf`. En la etapa terminal $n = N_\phi$, $\pi_{N_\phi}(\theta) = p(\theta \mid Y)$ corresponde a la verdadera distribución posterior objetivo.
 
 Para transitar caídas pronunciadas de verosimilitud sin colapsar el enjambre de partículas, PureMacro determina el incremento de paso $\Delta \phi_n = \phi_n - \phi_{n-1}$ de forma adaptativa mediante búsqueda de raíces sobre el Tamaño Muestral Efectivo (ESS):
 
@@ -181,7 +181,7 @@ La siguiente tabla sintetiza los argumentos y propiedades clave del módulo `pur
 | Parámetro / Propiedad | Tipo / Firma | Descripción |
 |---|---|---|
 | `loglik_fn` | `Callable[[np.ndarray], tuple[float, np.ndarray]]` | Función objetivo que retorna la log-verosimilitud escalar y el vector analítico de gradientes. |
-| `priors` | `Mapping[str, Mapping[str, Any]]` | Diccionario de especificación de previas (`uniform`, `normal`, `beta`, `gamma`) con sus hiperparámetros. |
+| `priors` | `Mapping[str, Prior \| Mapping[str, Any]]` | Especificaciones de previas (instancias `Prior` o diccionarios para `uniform`, `normal`, `beta`, `gamma`, `invgamma`, `weibull`) muestreadas con truncamiento exacto en `[lb, ub]` en la etapa 0. |
 | `n_particles` | `int = 1000` | Número de partículas rastreadas a través de toda la secuencia de temperado. |
 | `mutation` | `str = "mala"` | Operador de mutación: `"mala"` (Langevin), `"hmc"` (Hamiltoniano) o `"rw"` (Paseo aleatorio). |
 | `target_ess` | `float = 0.50` | Fracción objetivo del tamaño muestral efectivo $\alpha \in (0, 1)$ para el temperado adaptativo. |

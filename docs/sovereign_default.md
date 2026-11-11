@@ -151,6 +151,12 @@ validation of all restructuring economics.
 - **Term structure:** survival-claim pricing uses the full debt-choice
   distribution. The legacy `risk_premium_component` is a discrete-compounding
   adjustment, not an identified economic risk premium.
+- **Stochastic debt-sustainability analysis (`simulate_stochastic_dsa`):** when
+  `frequency="quarterly"` and `exact_compounding=True`, interest and growth
+  paths compound per quarter using `r / 4` and `g / 4` under default
+  `rate_convention="apr"` or `(1 + r)**(1/4) - 1` and `(1 + g)**(1/4) - 1`
+  under `rate_convention="effective"`. Annual paths (`frequency="annual"`) are
+  unchanged.
 
 See [extension equations and measured diagnostics](sovereign_extensions_validation.md)
 for tolerances, frozen evidence and remaining economic limits.

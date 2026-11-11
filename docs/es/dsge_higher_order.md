@@ -70,9 +70,11 @@ Puremacro implementa **solucionadores recursivos de Schur real (Bartels–Stewar
 2. Transforma el miembro derecho a coordenadas de Schur a lo largo de los $k$ modos tensoriales: $\tilde{K} = K_{x^k} U_h^{\otimes k}$.
 3. Desacopla recursivamente el modo tensorial externo mediante sustitución regresiva por bloques sobre los bloques diagonales $B_p$ de $T_h$:
    - Para un bloque de $1 \times 1$, $B_p = [\lambda]$, resuelve el subproblema de Sylvester de orden $(k-1)$ con la matriz escalada $\lambda A_+$.
-   - Para un bloque de $2 \times 2$, $B_p = \begin{pmatrix} t_{00} & t_{01} \\ t_{10} & t_{11} \end{pmatrix}$, resuelve el sistema acoplado de dimensión $2 n_y$ y orden $(k-1)$ directamente en aritmética real, empleando caché acotada de factorizaciones LU (`solve_order1_sylvester`) en el nivel base.
+   - Para un bloque de $2 \times 2$, $B_p = \begin{pmatrix} t_{00} & t_{01} \\ t_{10} & t_{11} \end{pmatrix}$, resuelve el sistema acoplado de dimensión $2 n_y$ y orden $(k-1)$ directamente en aritmética real, empleando caché acotada de factorizaciones LU (`solve_order1_sylvester`) en el nivel base. En $k = 3$, las ternas mixtas de bloques diagonales $(1, 1, 2)$ escalan el subsistema real interno de dimensión $2 n_y$ mediante el producto escalar exacto $t_p t_q A_+$.
    - Propaga los acoplamientos estrictamente triangulares superiores $T_h[i, b]$ hacia las columnas anteriores antes de resolver el bloque $i$.
 4. Rota la solución de vuelta al espacio de estados en aritmética real: $g_{x^k} = \tilde{g}_{x^k} (U_h^\top)^{\otimes k}$.
+
+`diagnose_perturbation(solution, max_curvature_order=3, residual_warning=1e-8)` verifica los residuos normalizados de las ecuaciones de Sylvester (`ghxx`, `ghs2`, `ghxxx`, `ghxss`, `ghuss`) y añade una advertencia explícita en `diagnostics.warnings` cuando algún residuo supera `residual_warning`.
 
 En el modelo canónico de Smets y Wouters (2007), este solucionador converge en tan sólo **0,034 segundos** consumiendo **menos de 1 MB de memoria**, evitando por completo el ensamblado de tensores densos.
 

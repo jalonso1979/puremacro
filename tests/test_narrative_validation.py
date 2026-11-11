@@ -370,3 +370,29 @@ def test_spec_curve_dimensions_returns_isolated_copy():
     d2 = NarrativeSpecificationCurve.dimensions()
     assert "fake" not in d2["iv_kind"]
     assert set(d2["iv_kind"]) == {"announcement", "implementation"}
+
+
+def test_weak_iv_summary_partials_intercept_and_controls_consistently():
+    """weak_iv_summary must partial out [1, controls] across CD-F, KP-F, and 2SLS slope."""
+    from puremacro.inference.weak_iv import cragg_donald_f, kleibergen_paap_f
+    from puremacro.narrative.validate import weak_iv_summary
+
+    rng = np.random.default_rng(999)
+    n = 300
+    w = rng.standard_normal(n)
+    z = rng.standard_normal(n)
+    # Weak excluded instrument z, very strong exogenous control w + large intercept
+    x = 50.0 + 4.0 * w + 0.02 * z + rng.standard_normal(n)
+    y = -20.0 + 3.0 * w + 1.5 * x + rng.standard_normal(n)
+
+    out = weak_iv_summary(z, x, y, controls=w)
+    W_full = np.column_stack([np.ones(n), w])
+    expected_cd = cragg_donald_f(y, x, z, W=W_full)
+    expected_kp = kleibergen_paap_f(y, x, z, W=W_full)
+
+    assert out["first_stage_f_cd"] == pytest.approx(expected_cd, rel=1e-12)
+    assert out["first_stage_f_kp"] == pytest.approx(expected_kp, rel=1e-12)
+    assert out["first_stage_f_cd"] < 5.0
+    # Just-identified (l = k = 1): AR test evaluated at exact partialled 2SLS has F ~ 1e-14 => p = 1 - O(sqrt(eps))
+    assert out["AR_p_value_at_2sls"] == pytest.approx(1.0, abs=1e-6)
+

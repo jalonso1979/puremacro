@@ -668,7 +668,7 @@ def solve_order3_sylvester_schur(
                     X_tilde[:, i1, i2, i3] = sol
                     W[:, i1, i2, i3] = A_plus @ sol
                 else:
-                    S = np.kron(T12 if T12 is not None else T1, T3)
+                    S = (t12_scalar * T3) if T12 is None else np.kron(T12, T3)
                     D_blk = D_tilde[:, i1:e1, i2:e2, i3:e3].reshape(N, m1 * m2 * m3)
                     sol_blk = _solve_quasi_block(A_hat, A_plus, S, D_blk, tracker)
                     X_tilde[:, i1:e1, i2:e2, i3:e3] = sol_blk.reshape(N, m1, m2, m3)

@@ -311,3 +311,104 @@ def test_smc_integration_with_differentiable_model():
     assert isinstance(res, SMCResult)
     assert len(res.param_names) == 3
     assert res.stage_tempering[-1] >= 1.0 - 1e-6
+
+
+# ===========================================================================
+# 5. Exact Truncated Prior Sampling Across All 6 DSGE Families
+# ===========================================================================
+
+def test_smc_prior_sampling_all_families_exact_truncation_and_finite_logprior():
+    """Stage-0 prior sampler must support all 6 families without boundary atoms or -inf log-priors."""
+    import scipy.stats as st
+    from puremacro.dsge.priors import (
+        BetaPrior,
+        GammaPrior,
+        InvGammaPrior,
+        NormalPrior,
+        UniformPrior,
+        WeibullPrior,
+        ensure_prior,
+        log_prior,
+    )
+    from puremacro.inference.smc import _sample_from_prior
+
+    rng = np.random.default_rng(202611)
+    n = 4096
+
+    # 1. InvGamma type1 & type2 (class and dict without explicit lb)
+    ig1 = InvGammaPrior(mean=0.10, std=2.00)
+    d_ig1 = _sample_from_prior(ig1, n, rng)
+    assert np.sum(d_ig1 == ig1.lb) == 0
+    assert np.all(np.isfinite(ig1.logpdf(d_ig1)))
+    # Check exact CDF: 1/X^2 ~ Gamma(nu/2, scale=2/s) truncated to (0, 1/lb^2)
+    y_hi = ig1.lb ** -2.0
+    c_hi = st.gamma.cdf(y_hi, a=ig1.nu / 2.0, scale=2.0 / ig1.s)
+    ks_ig1 = st.kstest(
+        d_ig1,
+        lambda x: 1.0 - st.gamma.cdf(np.asarray(x) ** -2.0, a=ig1.nu / 2.0, scale=2.0 / ig1.s) / c_hi,
+    )
+    assert ks_ig1.pvalue > 0.01
+
+    ig_dict = {"dist": "invgamma", "mean": 0.10, "std": 2.00}
+    d_ig_dict = _sample_from_prior(ig_dict, n, rng)
+    ig_parsed = ensure_prior(ig_dict)
+    assert np.all(d_ig_dict > 0.0)
+    assert all(math.isfinite(log_prior({"s": float(v)}, {"s": ig_parsed})) for v in d_ig_dict[:256])
+
+    ig2 = InvGammaPrior(s=0.5, nu=5.0, kind="type2", lb=0.05, ub=2.0)
+    d_ig2 = _sample_from_prior(ig2, n, rng)
+    assert np.all((d_ig2 > 0.05) & (d_ig2 < 2.0))
+    assert np.all(np.isfinite(ig2.logpdf(d_ig2)))
+
+    # 2. Truncated Normal on [0, inf): half-normal with zero point-mass at 0
+    tn = NormalPrior(mean=0.0, std=1.0, lb=0.0, ub=math.inf)
+    d_tn = _sample_from_prior(tn, n, rng)
+    assert np.sum(d_tn == 0.0) == 0
+    assert np.all(d_tn > 0.0)
+    ks_tn = st.kstest(d_tn, lambda x: 2.0 * st.norm.cdf(x) - 1.0)
+    assert ks_tn.pvalue > 0.01
+
+    # 3. Truncated Beta, Gamma, Weibull, and Uniform
+    families = [
+        BetaPrior(mean=0.5, std=0.2, lb=0.3, ub=0.8),
+        GammaPrior(mean=1.5, std=0.6, lb=0.8, ub=3.0, shift=0.2),
+        WeibullPrior(mean=1.2, std=0.5, lb=0.4, ub=2.5, shift=0.1),
+        UniformPrior(lb=-1.5, ub=2.5),
+    ]
+    for p_obj in families:
+        draws = _sample_from_prior(p_obj, 2048, rng)
+        assert np.all((draws > p_obj.lb) & (draws < p_obj.ub))
+        assert np.all(np.isfinite(p_obj.logpdf(draws)))
+
+
+def test_smc_truncated_normal_analytical_mdd():
+    """Under a half-normal prior N+(0, 1) and Gaussian likelihood, SMC recovers exact truncated MDD."""
+    import scipy.stats as st
+    from puremacro.dsge.priors import NormalPrior
+
+    y_obs = 1.2
+    sig = 0.5
+    # Prior: theta ~ N(0, 1) truncated to [0, inf), density 2 * phi(theta) on theta >= 0.
+    # Likelihood: L(theta) = (2*pi*sig^2)^(-1/2) exp(-(y - theta)^2 / (2*sig^2)).
+    # Exact marginal likelihood = int_0^inf L(theta) * 2 * phi(theta) d theta.
+    v_post = 1.0 / (1.0 + 1.0 / (sig ** 2))
+    m_post = v_post * (y_obs / (sig ** 2))
+    log_norm_lik = st.norm.logpdf(y_obs, loc=0.0, scale=math.sqrt(1.0 + sig ** 2))
+    exact_log_mdd = math.log(2.0) + float(log_norm_lik) + float(st.norm.logsf(0.0, loc=m_post, scale=math.sqrt(v_post)))
+
+    def _ll_grad(theta: np.ndarray) -> tuple[float, np.ndarray]:
+        th = float(theta[0])
+        ll = -0.5 * math.log(2.0 * math.pi * sig * sig) - 0.5 * ((y_obs - th) / sig) ** 2
+        g = np.array([(y_obs - th) / (sig * sig)], dtype=float)
+        return ll, g
+
+    res = smc_sample(
+        _ll_grad,
+        {"theta": NormalPrior(mean=0.0, std=1.0, lb=0.0, ub=math.inf)},
+        n_particles=1500,
+        mutation="rw",
+        n_steps=3,
+        seed=123,
+    )
+    assert abs(res.log_mdd - exact_log_mdd) < 0.08
+

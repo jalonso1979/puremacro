@@ -32,6 +32,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize_scalar
 
+from puremacro.trade._accounting import evaluate as _evaluate_accounting
 from puremacro.trade._results import (
     NashTariffResult,
     OptimalTariffResult,
@@ -40,6 +41,7 @@ from puremacro.trade._results import (
     WelfarePayoffMatrixResult,
 )
 from puremacro.trade.data import EU_COUNTRY_CODES, synthetic_codes
+from puremacro.trade.equilibrium import pack_equilibrium_vector
 from puremacro.trade.geary_khamis import restore_capital_formation, solve_multilateral_ppp
 from puremacro.trade.postprocessing import postprocess_trade_equilibrium
 from puremacro.trade.solver import solve_trade_equilibrium
@@ -139,6 +141,37 @@ def get_country_code(calib: TradeCalibrationResult, country_idx: int | str | Seq
             "a sequence of multiple countries cannot be reduced to one country code."
         )
     return get_country_code(calib, seq[0])
+
+
+def _reshape_state_tensor(arr: Any, ns: int, nc: int) -> np.ndarray:
+    """Reshape a raw state input into ``(1, ns, nc)`` respecting Fortran vector packing."""
+    a = np.asarray(arr, dtype=float)
+    if a.shape == (1, ns, nc):
+        return a
+    if a.shape == (ns, nc):
+        return a[np.newaxis, :, :]
+    if a.ndim == 1 and a.size == ns * nc:
+        return a.reshape((1, ns, nc), order="F")
+    return a.reshape((1, ns, nc))
+
+
+def _equilibrium_gk_prices_and_quantities(
+    eq_obj: TradeEquilibriumResult,
+    nfd: int,
+    nc: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Extract purchaser final-demand prices and restored real national absorption volumes."""
+    c_eq = eq_obj.c_fd if eq_obj.c_fd is not None else eq_obj.c_sol
+    p_eq = getattr(eq_obj, "Pfd_final", None)
+    if p_eq is None:
+        p_eq = eq_obj.p_fd if eq_obj.p_fd is not None else eq_obj.pfd_sol
+    if c_eq is None or p_eq is None:
+        raise ValueError("Equilibrium object is missing final-demand prices or quantities.")
+    p_arr = np.asarray(p_eq, dtype=float)
+    p_2d = p_arr.reshape((nfd, nc)) if p_arr.ndim == 3 else p_arr
+    q_arr = restore_capital_formation(c_eq, eq_obj.XN_sol, p_fd=p_2d)
+    q_2d = q_arr.reshape((nfd, nc)) if q_arr.ndim == 3 else q_arr
+    return p_2d, q_2d
 
 
 # ==============================================================================
@@ -261,51 +294,71 @@ def evaluate_national_welfare(
         XN_vec = eq.XN_sol
         c_fd = eq.c_fd if eq.c_fd is not None else eq.c_sol
         p_fd = eq.p_fd if eq.p_fd is not None else eq.pfd_sol
+        p_purchaser = getattr(eq, "Pfd_final", None)
+        if p_purchaser is None:
+            p_purchaser = p_fd
         cpi = eq.cpi
         tot = eq.terms_of_trade
     else:
-        # Extract and reshape raw arrays
+        # Extract, reshape, and evaluate raw state arrays through consistent accounting
         if p_sol is None or y_sol is None or r_sol is None or w_sol is None or T_sol is None or XN_sol is None:
             raise ValueError("All state arrays (p, y, r, w, T, XN) are required when not passing TradeEquilibriumResult.")
-        p_vec = np.asarray(p_sol, dtype=float).reshape((1, ns, nc))
-        y_vec = np.asarray(y_sol, dtype=float).reshape((1, ns, nc))
-        r_vec = np.asarray(r_sol, dtype=float).reshape((1, 1, nc))
-        w_vec = np.asarray(w_sol, dtype=float).reshape((1, 1, nc))
-        T_vec = np.asarray(T_sol, dtype=float).reshape((1, 1, nc))
+        p_vec = _reshape_state_tensor(p_sol, ns, nc)
+        y_vec = _reshape_state_tensor(y_sol, ns, nc)
+        r_vec = _reshape_state_tensor(r_sol, 1, nc)
+        w_vec = _reshape_state_tensor(w_sol, 1, nc)
+        T_vec = _reshape_state_tensor(T_sol, 1, nc)
         XN_vec = np.asarray(XN_sol, dtype=float).ravel()
+        if len(XN_vec) not in (nc - 1, nc):
+            raise ValueError(f"Expected XN_sol length {nc - 1} or {nc} for {nc} countries, got {len(XN_vec)}.")
 
-        # Construct purchaser prices and absorption volumes
-        tau_a = np.ones((ns * nc, ns, nc), dtype=float) if tau is None else (
-            tau.transpose(1, 0, 2, 3).reshape(ns * nc, ns, nc) if tau.ndim == 4 else tau
+        x_raw = pack_equilibrium_vector(
+            p_vec, y_vec, r_vec, w_vec, T_vec, XN_vec[: nc - 1], log_transformed=True
         )
-        taufd_a = np.ones((ns * nc, nfd, nc), dtype=float) if tau_fd is None else (
-            tau_fd.transpose(1, 0, 2, 3).reshape(ns * nc, nfd, nc) if tau_fd.ndim == 4 else tau_fd
+        blocks = _evaluate_accounting(
+            x_raw,
+            calib,
+            tau,
+            tau_fd,
+            kwargs.get("tauf"),
+            kwargs.get("tauf_fd"),
+            sigma=float(kwargs.get("sigma", 0.0)),
+            foreign_saving_units=str(kwargs.get("foreign_saving_units", "numeraire")),
         )
-
-        p_flat = p_vec.flatten(order="F")
-        p_fd = np.tensordot(p_flat, calib.afd * taufd_a, axes=(0, 0))[np.newaxis, :, :]
-        Ycon = w_vec * calib.l_endow + r_vec * calib.k_endow + T_vec
-        theta = calib.theta if calib.theta is not None else (np.ones((1, nfd, nc)) / float(nfd))
-        c_fd = theta * Ycon / np.maximum(p_fd, 1e-12)
+        c_fd = blocks["c"]
+        p_fd = blocks["Q"]
+        p_purchaser = blocks["P"]
         cpi = None
         tot = None
 
-    assert c_fd is not None and p_fd is not None
+    assert c_fd is not None and p_fd is not None and p_purchaser is not None
 
     # --------------------------------------------------------------------------
     # 1. Geary-Khamis PPP Real GDP
     # --------------------------------------------------------------------------
     if metric_clean in ("geary_khamis", "gk", "real_gdp", "ppp"):
-        if eq is not None and "gk_real_gdp" in eq.metadata:
+        if base_equilibrium is not None:
+            if "_gk_pi_linear" in base_equilibrium.metadata:
+                pi_base = np.asarray(base_equilibrium.metadata["_gk_pi_linear"], dtype=float)
+            else:
+                p_base_2d, q_base_2d = _equilibrium_gk_prices_and_quantities(base_equilibrium, nfd, nc)
+                pi_base, _, _, _ = solve_multilateral_ppp(p=p_base_2d, q=q_base_2d, method="linear")
+                base_equilibrium.metadata["_gk_pi_linear"] = pi_base
+            p_cf_2d = p_purchaser.reshape((nfd, nc)) if p_purchaser.ndim == 3 else p_purchaser
+            q_cf = restore_capital_formation(c_fd, XN_vec, p_fd=p_cf_2d)
+            q_cf_2d = q_cf.reshape((nfd, nc)) if q_cf.ndim == 3 else q_cf
+            real_gdp = np.sum(q_cf_2d * pi_base[:, np.newaxis], axis=0)
+        elif eq is not None and "gk_real_gdp" in eq.metadata:
             real_gdp = np.asarray(eq.metadata["gk_real_gdp"], dtype=float)
         else:
-            q = restore_capital_formation(c_fd, XN_vec)
-            p_use = p_fd.reshape((nfd, nc)) if p_fd.ndim == 3 else p_fd
+            p_use = p_purchaser.reshape((nfd, nc)) if p_purchaser.ndim == 3 else p_purchaser
+            q = restore_capital_formation(c_fd, XN_vec, p_fd=p_use)
             q_use = q.reshape((nfd, nc)) if q.ndim == 3 else q
-            pi, ppp, _, _ = solve_multilateral_ppp(p=p_use, q=q_use, method="linear")
+            pi, _, _, _ = solve_multilateral_ppp(p=p_use, q=q_use, method="linear")
             real_gdp = np.sum(q_use * pi[:, np.newaxis], axis=0)
             if eq is not None:
                 eq.metadata["gk_real_gdp"] = real_gdp
+                eq.metadata["_gk_pi_linear"] = pi
 
         total_welfare = float(np.sum([real_gdp[i] for i in c_indices]))
         return total_welfare

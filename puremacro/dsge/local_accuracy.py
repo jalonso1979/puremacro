@@ -452,6 +452,7 @@ def diagnose_perturbation(
     *,
     unit_root_band: float = 1e-5,
     condition_warning: float = 1e10,
+    residual_warning: float = 1e-8,
     max_curvature_order: int | None = None,
     max_exact_curvature_dim: int = 1024,
 ) -> LocalDiagnostics:
@@ -468,6 +469,8 @@ def diagnose_perturbation(
         raise ValueError("unit_root_band must be finite and positive")
     if not np.isfinite(condition_warning) or condition_warning <= 1:
         raise ValueError("condition_warning must exceed one")
+    if not np.isfinite(residual_warning) or residual_warning <= 0:
+        raise ValueError("residual_warning must be finite and positive")
     if max_curvature_order is not None and (
         isinstance(max_curvature_order, (bool, np.bool_)) or max_curvature_order not in (1, 2, 3)
     ):
@@ -578,6 +581,12 @@ def diagnose_perturbation(
                         )
 
         residuals = _compute_sylvester_residuals(solution, A_hat, A_plus, transition)
+        for r_name, r_val in residuals.items():
+            if not np.isfinite(r_val) or r_val > residual_warning:
+                messages.append(
+                    f"perturbation Sylvester residual for {r_name} exceeds warning threshold "
+                    f"(residual={r_val:.3e} > {residual_warning:.3e})"
+                )
 
     curv_rows = [
         {

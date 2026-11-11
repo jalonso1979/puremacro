@@ -75,10 +75,11 @@ This is worth stating because the two axes that are not the horizon are both
 length `n` and a transposition is silent: it produces plausible-looking impulse
 responses with the roles of response and shock swapped. `ProxySVARResult`
 shipped as `(n, n, H+1)` until 0.47.0 flipped it to match the other result
-dataclasses. The inference layer still uses the other convention —
-`inference.wild_bootstrap.wild_bootstrap_var` returns `(n, n, H+1)` and
-`proxy_svar` transposes it back on the way out — so if you write your own
-`impact_fn` and call that layer directly, you must transpose yourself.
+dataclasses. The low-level wild-bootstrap helper still uses the other convention —
+`inference.wild_bootstrap.wild_bootstrap_var` returns `(n, n, H+1)` and the
+legacy `bootstrap="wild"` branch of `proxy_svar` transposes it back on the way
+out — so if you write your own `impact_fn` and call that layer directly, you
+must transpose yourself.
 
 The exceptions are the results that have no `n` shocks to report.
 `GKRobustBandsResult`'s arrays are `(H+1, n)` — it describes a single named
@@ -298,6 +299,17 @@ labels it `WEAK` at or below 23.0 — the published 5%-worst-case-bias cutoff fo
 a single instrument is 23.1, rounded down in the flag — and below it the
 bootstrap bands understate the uncertainty and weak-IV-robust inference is the
 honest answer.
+
+Confidence bands default to `bootstrap="mbb"`, the Jentsch & Lunsford (2019,
+2022) position-wise centered moving-block bootstrap on joint `(resid, z)` pairs
+with default `block_size = min(max(1, T_eff - 1), max(1, int(5.03 * T_eff**0.25)))`.
+`bootstrap="iid"` runs an i.i.d. pairs bootstrap (`block_size=1`), and
+`bootstrap="wild"` retains the legacy Rademacher wild bootstrap while emitting a
+`UserWarning` that residual wild bootstrap does not consistently estimate the
+joint `(u_t, z_t)` covariance distribution in proxy SVARs. Subsample proxies
+padded with `NaN` on dates where the external instrument is unavailable are
+supported natively: the VAR is estimated on the full `T - p` sample while proxy
+covariance and first-stage diagnostics use the non-missing instrument dates.
 
 ### Max-share
 

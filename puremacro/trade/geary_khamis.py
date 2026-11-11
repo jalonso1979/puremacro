@@ -25,14 +25,18 @@ if TYPE_CHECKING:
 def restore_capital_formation(
     c: np.ndarray,
     XN: np.ndarray,
+    p_fd: np.ndarray | None = None,
 ) -> np.ndarray:
     """Restore foreign investment XN to the investment category.
 
     In the open-economy model the investment category (index 1; index 0 when
     there is a single final-use category) holds purely domestic investment:
-    ``I_domestic = cd(2) - invforT / ppfd(2)``. Adding net foreign investment ``XN``
-    restores gross national capital formation:
-    ``I_national = I_domestic + XN``, so that final expenditure equals national GDP.
+    ``I_domestic = cd(2) - invforT / P_fd(2)``. Adding net foreign investment
+    deflated by the investment-category purchaser price ``XN / P_fd(2)``
+    (or nominal ``XN`` when ``p_fd`` is omitted at unit baseline prices)
+    restores gross national capital formation so that ``sum_m P_fd(m) * q(m)``
+    equals national GDP identically and real quantities remain homogeneous of
+    degree zero in nominal prices and incomes.
 
     Parameters
     ----------
@@ -42,6 +46,11 @@ def restore_capital_formation(
         Net foreign balances. With ``nc - 1`` entries the last country's balance
         is ``-sum(XN)`` (balances add to zero); with ``nc`` entries they are used
         as given.
+    p_fd : np.ndarray, optional
+        Final-demand purchaser price tensor, shape ``(nfd, nc)`` or ``(1, nfd, nc)``.
+        When provided, ``XN`` is deflated by ``p_fd[..., investment, :]`` into
+        real investment-category quantity units. When ``None`` (default), ``XN``
+        is added directly (unit-price baseline convention).
 
     Returns
     -------
@@ -68,7 +77,20 @@ def restore_capital_formation(
     if c_arr.ndim not in (2, 3):
         raise ValueError(f"Expected c to have 2 or 3 dimensions, got ndim={c_arr.ndim}.")
     investment = 1 if c_arr.shape[-2] >= 2 else 0
-    c_arr[..., investment, :] += xn_full
+    if p_fd is None:
+        c_arr[..., investment, :] += xn_full
+    else:
+        p_arr = np.asarray(p_fd, dtype=float)
+        p_2d = p_arr[0] if (p_arr.ndim == 3 and p_arr.shape[0] == 1) else p_arr
+        expected_shape = (c_arr.shape[-2], nc)
+        if p_2d.shape != expected_shape:
+            raise ValueError(
+                f"Expected p_fd shape {expected_shape} (or (1, {expected_shape[0]}, {nc})), got {p_arr.shape}."
+            )
+        p_inv = p_2d[investment, :]
+        if not np.all(np.isfinite(p_inv)) or np.any(p_inv <= 0.0):
+            raise ValueError("Investment-category purchaser prices p_fd must be finite and strictly positive.")
+        c_arr[..., investment, :] += xn_full / p_inv
 
     return c_arr
 
@@ -351,7 +373,9 @@ def compute_geary_khamis(
 
     # Case B: Input is TradeEquilibriumResult
     sol = equilibrium_sol
-    p_raw = getattr(sol, "p_fd", None)
+    p_raw = getattr(sol, "Pfd_final", None)
+    if p_raw is None:
+        p_raw = getattr(sol, "p_fd", None)
     if p_raw is None:
         p_raw = getattr(sol, "pfd_sol", None)
 
@@ -361,7 +385,7 @@ def compute_geary_khamis(
 
     if p_raw is None or c_raw is None:
         raise ValueError(
-            "equilibrium_sol must provide final demand prices (p_fd/pfd_sol) and quantities (c_fd/c_sol)."
+            "equilibrium_sol must provide final demand prices (Pfd_final/p_fd/pfd_sol) and quantities (c_fd/c_sol)."
         )
 
     xn = getattr(sol, "XN_sol", None)
@@ -369,7 +393,7 @@ def compute_geary_khamis(
         raise ValueError("equilibrium_sol must provide XN_sol.")
 
     p = np.asarray(p_raw, dtype=float)
-    q = restore_capital_formation(c_raw, xn)
+    q = restore_capital_formation(c_raw, xn, p_fd=p)
 
     base_quantities = None
     if base_sol is not None:
@@ -378,7 +402,13 @@ def compute_geary_khamis(
             c_base_raw = getattr(base_sol, "c_sol", None)
         xn_base = getattr(base_sol, "XN_sol", None)
         if c_base_raw is not None and xn_base is not None:
-            base_quantities = restore_capital_formation(c_base_raw, xn_base)
+            p_base_raw = getattr(base_sol, "Pfd_final", None)
+            if p_base_raw is None:
+                p_base_raw = getattr(base_sol, "p_fd", None)
+            if p_base_raw is None:
+                p_base_raw = getattr(base_sol, "pfd_sol", None)
+            p_base_use = np.asarray(p_base_raw, dtype=float) if p_base_raw is not None else None
+            base_quantities = restore_capital_formation(c_base_raw, xn_base, p_fd=p_base_use)
         elif isinstance(base_sol, np.ndarray):
             base_quantities = np.asarray(base_sol, dtype=float)
 

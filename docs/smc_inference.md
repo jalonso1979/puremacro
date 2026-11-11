@@ -34,7 +34,7 @@ $$
 0 = \phi_0 < \phi_1 < \dots < \phi_{N_\phi} = 1
 $$
 
-At stage $n = 0$, $\pi_0(\theta) = p(\theta)$ is the prior, from which exact independent draws are generated. At the terminal stage $n = N_\phi$, $\pi_{N_\phi}(\theta) = p(\theta \mid Y)$ is the true target posterior.
+At stage $n = 0$, $\pi_0(\theta) = p(\theta)$ is the prior, from which exact independent draws truncated to the effective parameter bounds `[lb, ub]` (without boundary-clipping atoms) are generated across `Prior` instances and dictionary specifications (`uniform`, `normal`, `beta`, `gamma`, `invgamma` types 1 and 2, and `weibull`), while preserving `Prior.logpdf` density evaluations. At the terminal stage $n = N_\phi$, $\pi_{N_\phi}(\theta) = p(\theta \mid Y)$ is the true target posterior.
 
 To navigate steep likelihood drops without particle collapse, PureMacro determines the step size $\Delta \phi_n = \phi_n - \phi_{n-1}$ adaptively using root-finding on the Effective Sample Size (ESS):
 
@@ -181,7 +181,7 @@ The following table summarizes the arguments and outputs of the `puremacro.infer
 | Parameter / Property | Type / Signature | Description |
 |---|---|---|
 | `loglik_fn` | `Callable[[np.ndarray], tuple[float, np.ndarray]]` | Objective returning scalar log-likelihood and analytical gradient vector. |
-| `priors` | `Mapping[str, Mapping[str, Any]]` | Prior specifications dictionary defining distribution type (`uniform`, `normal`, `beta`, `gamma`) and hyper-parameters. |
+| `priors` | `Mapping[str, Prior \| Mapping[str, Any]]` | Prior specifications (`Prior` instances or dictionaries for `uniform`, `normal`, `beta`, `gamma`, `invgamma`, `weibull`) sampled with exact `[lb, ub]` truncation at Stage 0. |
 | `n_particles` | `int = 1000` | Number of particle configurations tracked across the tempering sequence. |
 | `mutation` | `str = "mala"` | Mutation operator: `"mala"` (Langevin), `"hmc"` (Hamiltonian), or `"rw"` (Random-Walk). |
 | `target_ess` | `float = 0.50` | Target effective sample size fraction $\alpha \in (0, 1)$ for adaptive tempering. |

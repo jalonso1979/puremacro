@@ -314,3 +314,36 @@ def test_local_order_1_2_3_accuracy_map_zero_risk_vs_stochastic_information():
     k_ord3 = evaluate_perturbation(s_sol3, probe_states[:, :1], probe_states[:, 1:2], sigma=1.0, order=3)[:, k_idx]
     assert np.max(np.abs(k_ord3 - k_global)) < np.max(np.abs(k_ord2 - k_global)) < np.max(np.abs(k_ord1 - k_global))
 
+
+def test_diagnose_perturbation_warns_on_elevated_sylvester_residual():
+    """Corrupted higher-order decision rules trigger a warning in diagnose_perturbation."""
+    mod_src = """
+    var z x;
+    varexo e;
+    parameters r b c3;
+    r = 0.75; b = 0.90; c3 = 0.6;
+    model;
+        z = r * z(-1) + e;
+        x = b * x(+1) + (1/6) * c3 * z^3;
+    end;
+    initval;
+        z = 0; x = 0;
+    end;
+    steady;
+    """
+    sol3 = load_mod(mod_src, order=3)
+    clean_diag = diagnose_perturbation(sol3)
+    assert clean_diag.sylvester_residuals["ghxxx"] < 1e-12
+    assert not any("Sylvester residual" in w for w in clean_diag.warnings)
+
+    for bad_thr in (0.0, -1e-8, np.nan, np.inf):
+        with pytest.raises(ValueError, match="residual_warning"):
+            diagnose_perturbation(sol3, residual_warning=bad_thr)
+
+    # Perturb ghxxx slightly and verify residual warning fires
+    corrupted = SimpleNamespace(**{**vars(sol3), "ghxxx": sol3.ghxxx + 1e-3})
+    bad_diag = diagnose_perturbation(corrupted, residual_warning=1e-8)
+    assert bad_diag.sylvester_residuals["ghxxx"] > 1e-5
+    assert any("Sylvester residual for ghxxx" in w for w in bad_diag.warnings)
+
+

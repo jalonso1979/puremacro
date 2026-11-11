@@ -62,15 +62,21 @@ def anderson_rubin_band(
     crit = chi2.ppf(ci, df) / df
     accepted = np.array([f_stat_fn(b) <= crit for b in beta_grid], dtype=bool)
     if not accepted.any():
-        warnings.warn("AR band is empty on the given grid; returning grid endpoints.")
-        return float(beta_grid[0]), float(beta_grid[-1])
+        warnings.warn(
+            "AR band is empty on the given grid; returning (nan, nan).",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return float("nan"), float("nan")
     idx = np.where(accepted)[0]
     lo = float(beta_grid[idx[0]])
     hi = float(beta_grid[idx[-1]])
     # Check for disconnectedness (holes in accepted region).
     if not accepted[idx[0] : idx[-1] + 1].all():
         warnings.warn(
-            "AR confidence set is disconnected; reporting enclosing interval [lo, hi]."
+            "AR confidence set is disconnected; reporting enclosing interval [lo, hi].",
+            RuntimeWarning,
+            stacklevel=2,
         )
     return lo, hi
 
@@ -188,11 +194,14 @@ def kleibergen_paap_f(
     Z: np.ndarray,
     W: np.ndarray | None = None,
 ) -> float:
-    """Kleibergen-Paap (2006) rk F-statistic for weak instruments.
+    """Kleibergen-Paap (2006) rk Wald F-statistic for weak instruments.
 
-    A heteroskedasticity-robust analog of the Cragg-Donald statistic.
-    Returns the rk Wald statistic divided by k (number of endogenous regressors),
-    suitable for comparison with Stock-Yogo critical values as an approximation.
+    A heteroskedasticity-robust analog of the Cragg-Donald minimum-eigenvalue
+    statistic testing ``H0: rank(Pi) = k - 1`` against ``H1: rank(Pi) = k``.
+    Returns the Kleibergen-Paap ``rk`` Wald statistic divided by ``l`` (the
+    number of excluded instruments), matching the Stock-Yogo scaling of
+    :func:`cragg_donald_f` and reducing identically to the HC0 first-stage
+    Wald F when ``k = 1``.
 
     Parameters
     ----------
@@ -208,87 +217,87 @@ def kleibergen_paap_f(
     Returns
     -------
     float
-        Kleibergen-Paap rk F-statistic.
+        Kleibergen-Paap rk Wald F-statistic.
 
     References
     ----------
     Kleibergen, F. and Paap, R. (2006). Generalized reduced rank tests using
         the singular value decomposition. Journal of Econometrics, 133(1), 97-126.
     """
-    n = len(Y) if hasattr(Y, '__len__') else X.shape[0]
-    X = np.atleast_2d(X if X.ndim > 1 else X[:, None])
-    Z = np.atleast_2d(Z if Z.ndim > 1 else Z[:, None])
-    k = X.shape[1]
-    l = Z.shape[1]
-
-    if l < k:
+    X_arr = np.asarray(X, dtype=float)
+    Z_arr = np.asarray(Z, dtype=float)
+    X_arr = X_arr.reshape(-1, 1) if X_arr.ndim == 1 else X_arr
+    Z_arr = Z_arr.reshape(-1, 1) if Z_arr.ndim == 1 else Z_arr
+    n, k = X_arr.shape
+    l = Z_arr.shape[1]
+    if Z_arr.shape[0] != n:
+        raise ValueError(
+            f"kleibergen_paap_f: X has {n} rows but Z has {Z_arr.shape[0]}"
+        )
+    if l < k or k < 1:
         raise ValueError(
             f"Need at least as many instruments (l={l}) as endogenous regressors (k={k})."
         )
 
-    # Partial out included exogenous regressors W if provided.
+    m = 0
     if W is not None:
-        W = np.atleast_2d(W if W.ndim > 1 else W[:, None])
-        Mw = np.eye(n) - W @ np.linalg.solve(W.T @ W, W.T)
-        X = Mw @ X
-        Z = Mw @ Z
+        W_arr = np.asarray(W, dtype=float)
+        W_arr = W_arr.reshape(-1, 1) if W_arr.ndim == 1 else W_arr
+        if W_arr.shape[0] != n:
+            raise ValueError(
+                f"kleibergen_paap_f: X has {n} rows but W has {W_arr.shape[0]}"
+            )
+        m = W_arr.shape[1]
+        WtW_inv = inv_xtx(W_arr, name="kleibergen_paap_f (partialling W)")
+        X_arr = X_arr - W_arr @ (WtW_inv @ (W_arr.T @ X_arr))
+        Z_arr = Z_arr - W_arr @ (WtW_inv @ (W_arr.T @ Z_arr))
 
-    # First-stage: Pi = (Z'Z)^{-1} Z'X  (l x k matrix of reduced-form coefficients).
-    # Compute the inverse first so a singular Z'Z surfaces a named
-    # diagnostic instead of a bare "Singular matrix" from np.linalg.solve.
-    ZtZ_inv = inv_xtx(Z, name="kleibergen_paap_f")
-    Pi_hat = ZtZ_inv @ (Z.T @ X)   # (l, k)
+    dof = n - l - m
+    if dof <= 0:
+        raise ValueError(
+            f"kleibergen_paap_f: n - l - m = {dof} <= 0; not enough observations"
+        )
 
-    # Residuals of X projected on Z.
-    X_hat = Z @ Pi_hat
-    V = X - X_hat   # (n, k) first-stage residuals
+    # Validate full column rank of Z via inv_xtx so singular designs surface a
+    # named diagnostic ("kleibergen_paap_f").
+    _ = inv_xtx(Z_arr, name="kleibergen_paap_f")
 
-    # Heteroskedastic sandwich for vec(Pi_hat).
-    # Influence function: psi_t = Z_t ⊗ v_t  for each observation.
-    # Omega = (1/n) * sum_t psi_t psi_t'.
-    # We compute the robust variance of vec(Pi_hat).
-    # `vec` here stacks COLUMNS (`ravel(order='F')` below), and
-    # vec(Z'V) = sum_t vec(Z_t V_t') = sum_t (V_t kron Z_t), since
-    # vec(a b') = b kron a. The operands used to be the other way round,
-    # `kron(Z[t], V[t])`, which disagrees with both the column-major `vec`
-    # and the `kron(I_k, (Z'Z)^-1)` bread below. For k = 1 the two coincide
-    # (V_t is a scalar), so the error only appears with two or more
-    # endogenous regressors -- the case no fixture exercised.
-    meat = np.zeros((l * k, l * k))
-    for t in range(n):
-        psi = np.kron(V[t], Z[t])   # length l*k
-        meat += np.outer(psi, psi)
+    # Orthonormalize partialled instruments: Z_arr = Q_Z @ R_Z, Q_Z' Q_Z = I_l.
+    Q_Z, _ = np.linalg.qr(Z_arr, mode="reduced")
+    X_hat = Q_Z @ (Q_Z.T @ X_arr)
+    V = X_arr - X_hat
 
-    # Var(vec(Pi_hat)) = (I_k ⊗ (Z'Z)^{-1}) [sum_t psi psi'] (I_k ⊗ (Z'Z)^{-1}).
-    #
-    # `ZtZ_inv` inverts the RAW cross-product Z'Z, so the sum must be raw too:
-    # the bread already carries both factors of 1/n. Dividing `meat` by n and
-    # then the sandwich by n again made V_Pi exactly n^2 too small, and the
-    # Wald statistic built from its inverse exactly n^2 too LARGE. Measured
-    # against the heteroskedasticity-robust first-stage F -- which the rk Wald
-    # F equals at k = 1 -- the returned value was 235,470 against 5.89 at
-    # n = 200, and 8,755,485 against 13.68 at n = 800: ratios of 40,000,
-    # 160,000 and 640,000, i.e. n^2 to the digit.
-    #
-    # The direction is the dangerous one. Stock-Yogo thresholds sit between
-    # about 4 and 86 (near 10 for the 10% bias test),
-    # so an F of six or seven figures reads as "instruments overwhelmingly
-    # strong" for every dataset, and the weak-instrument diagnostic this
-    # function exists to provide could never fire.
-    Ik_ZZinv = np.kron(np.eye(k), ZtZ_inv)
-    V_Pi = Ik_ZZinv @ meat @ Ik_ZZinv
+    Sigma_VV = (V.T @ V) / dof
+    eigvals, eigvecs = np.linalg.eigh(Sigma_VV)
+    if np.min(eigvals) <= 0:
+        raise np.linalg.LinAlgError(
+            "kleibergen_paap_f: first-stage residual covariance is singular "
+            "(an endogenous regressor is perfectly explained by the "
+            "instruments/controls, or two endogenous regressors are collinear)"
+        )
+    F_scale = (eigvecs * (eigvals ** -0.5)) @ eigvecs.T
 
-    # rk statistic: minimum singular value of Pi_hat scaled by its s.e.
-    # Approximation: Wald statistic for H0: rank(Pi) < k.
-    # Use vec(Pi_hat)' V_Pi^{-1} vec(Pi_hat) / (l * k) as a summary F-stat.
-    try:
-        vec_pi = Pi_hat.ravel(order='F')   # vec in Fortran (column-major) order
-        V_Pi_inv = np.linalg.pinv(V_Pi)
-        rk_stat = float(vec_pi @ V_Pi_inv @ vec_pi) / (l * k)
-    except np.linalg.LinAlgError:
+    # Standardized reduced-form matrix Theta_hat = Q_Z' X F_scale (l x k)
+    # and full SVD Theta_hat = U S V_svd' for reduced-rank null q = k - 1.
+    Theta_hat = (Q_Z.T @ X_arr) @ F_scale
+    U, svals, Vt = np.linalg.svd(Theta_hat, full_matrices=True)
+    if svals[-1] <= 1e-15 * max(1.0, float(svals[0])):
         return 0.0
 
-    return rk_stat
+    U_2 = U[:, k - 1 :]          # (l, l - k + 1)
+    v_k = Vt[k - 1, :]           # (k,)
+    ell_q = U_2.T @ (Theta_hat @ v_k)  # (l - k + 1,)
+
+    # Observation-level score for ell_q: g_i = (Q_Z U_2)_i * (V F_scale v_k)_i.
+    Z_rot = Q_Z @ U_2            # (n, l - k + 1)
+    e_rot = V @ (F_scale @ v_k)  # (n,)
+    Omega_q = (Z_rot * (e_rot ** 2)[:, None]).T @ Z_rot
+
+    try:
+        rk_wald = float(ell_q @ np.linalg.solve(Omega_q, ell_q))
+    except np.linalg.LinAlgError:
+        rk_wald = float(ell_q @ np.linalg.pinv(Omega_q) @ ell_q)
+    return max(0.0, rk_wald / l)
 
 
 def olea_pflueger_f(
