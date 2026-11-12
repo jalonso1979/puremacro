@@ -10,7 +10,7 @@ def fit_ar_garch11(series: pd.Series, rescale: bool = False) -> pd.Series:
     s = series.dropna().astype(float)
     if len(s) < 50:
         raise ValueError(f"need ≥ 50 obs to fit AR(1)-GARCH(1,1); got {len(s)}")
-    res = arch_model(s, mean="AR", lags=1, vol="GARCH", p=1, q=1, rescale=rescale).fit(disp="off")
+    res = arch_model(s, mean="ar", lags=1, vol="garch", p=1, q=1, rescale=rescale).fit(disp="off")
     sigma: pd.Series = pd.Series(res.conditional_volatility).dropna()
     # Re-index to the tail of the input series so σ_t lines up with y_t.
     sigma.index = s.index[-len(sigma):]

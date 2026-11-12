@@ -126,7 +126,7 @@ def fetch_state_employment_garch_sigma(refresh: bool = False) -> pd.DataFrame:
         if len(growth) < 60:
             continue
         try:
-            fit = _arch_model(growth, mean="AR", lags=1, vol="GARCH", p=1, q=1,
+            fit = _arch_model(growth, mean="ar", lags=1, vol="garch", p=1, q=1,
                               dist="normal", rescale=False).fit(disp="off")
             sigma = pd.Series(fit.conditional_volatility).dropna()
         except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):

@@ -84,10 +84,10 @@ def fit_garch(
     clean = series.dropna()
 
     if model == "GARCH11":
-        am = arch_model(clean, vol="GARCH", p=1, q=1, dist=dist, rescale=rescale)
+        am = arch_model(clean, vol="garch", p=1, q=1, dist=dist, rescale=rescale)
     elif model == "GJR11":
-        # arch >= 5 uses vol="GARCH" with o=1 for the asymmetric (GJR) term.
-        am = arch_model(clean, vol="GARCH", p=1, o=1, q=1, dist=dist, rescale=rescale)
+        # arch >= 5 uses vol="garch" with o=1 for the asymmetric (GJR) term.
+        am = arch_model(clean, vol="garch", p=1, o=1, q=1, dist=dist, rescale=rescale)
     else:
         raise ValueError(f"model must be 'GARCH11' or 'GJR11', got {model!r}")
 

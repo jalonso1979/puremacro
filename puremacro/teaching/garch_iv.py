@@ -50,7 +50,7 @@ def _fit_arch_model(y: pd.Series, X: pd.DataFrame | None = None) -> GarchFit:
         common = X.dropna().index.intersection(y.index)
         y = y.loc[common]
         X = X.loc[common]
-    am = arch_model(y, mean="AR", lags=1, vol="GARCH", p=1, q=1,
+    am = arch_model(y, mean="ar", lags=1, vol="garch", p=1, q=1,
                     x=(X.values if X is not None else None),
                     rescale=False)
     res = am.fit(disp="off")

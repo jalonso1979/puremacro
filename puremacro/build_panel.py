@@ -355,7 +355,7 @@ def compute_garch_sigma(panel: pd.DataFrame, proxy: str) -> pd.DataFrame:
         # For uncertainty indices we use first differences scaled by 100.
         x = 100 * s.diff().dropna()
         try:
-            res = arch_model(x, mean="Zero", vol="GARCH", p=1, q=1, rescale=False).fit(disp="off")
+            res = arch_model(x, mean="zero", vol="garch", p=1, q=1, rescale=False).fit(disp="off")
             sigma: pd.Series = pd.Series(res.conditional_volatility / 100.0)
             # Align sigma to the date index of the input
             sigma.index = x.index

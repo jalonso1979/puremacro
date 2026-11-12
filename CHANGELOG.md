@@ -125,8 +125,9 @@ SMC, proxy-SVAR and trade.**
   `smc_sample` and `models` lazily loads `TradePolicySimulator` and
   `TradePolicySimulationResult`, decoupling `import puremacro.lp` from the DSGE
   and trade module graphs; `gar.skewt` uses its `_trapz` shim consistently for
-  `numpy>=1.26` compatibility; and Colab offload examples import
-  `from puremacro.dsge import estimate_sw07`.
+  `numpy>=1.26` compatibility; GARCH wrappers pass lowercase `mean`/`vol`
+  literals (`"ar"`, `"zero"`, `"garch"`) required by `arch>=9.0` typing; and
+  Colab offload examples import `from puremacro.dsge import estimate_sw07`.
 
 ## 6.3.0 (2026-11-10)
 
