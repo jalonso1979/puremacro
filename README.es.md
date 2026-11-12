@@ -25,9 +25,10 @@ python -m pip install puremacro
 | **Redactar un informe de política** | Ejecute un [experimento arancelario con datos públicos](docs/es/first_brief_tariffs.md) y lea los efectos de bienestar nacionales y por hogares. |
 | **Aprender o enseñar** | Elija una [ruta de cuadernos](docs/es/notebooks.md) o use el [curso bilingüe y sus laboratorios interactivos](curso/README.md). Use la edición fija del curso indicada abajo. |
 
-**Estado comprobado 2026-11-10:** **6.3.0** está publicada en [PyPI](https://pypi.org/project/puremacro/6.3.0/). Instale con `python -m pip install puremacro==6.3.0` y use la documentación de su versión instalada.
+**Guía de versiones:** este código y su documentación corresponden a **6.4.0**. Consulte [PyPI](https://pypi.org/project/puremacro/) para ver las versiones publicadas y use la documentación de su versión instalada.
 Consulte las [pruebas recomendadas y próximos hitos](docs/es/research_reliability.md).
-En 6.3.0, las [API de investigación](docs/es/research_api.md) incorporan derivadas y continuación de equilibrios, SMM con incertidumbre de simulación e inferencia robusta a identificación. También se incluye [HANK experimental de segundo orden](docs/es/hank_second_order.md), con su dominio admitido y sus límites numéricos documentados.
+En 6.4.0, el [informe fiscal](docs/es/first_brief_fiscal.md) admite bases trimestrales propias, el [informe de frescura de conectores](docs/es/CONNECTOR_HEALTH.md) audita procedencia y revisiones acotadas, las [proyecciones locales](docs/es/lp.md) imponen contratos cronológicos y de especificación con IV de panel de efectos fijos bidireccionales, y se corrigen defectos numéricos y de datos (véanse los [avisos de corrección](docs/es/ADVISORY.md)).
+Desde 6.3.0, las [API de investigación](docs/es/research_api.md) incorporan derivadas y continuación de equilibrios, SMM con incertidumbre de simulación e inferencia robusta a identificación, junto con [HANK experimental de segundo orden](docs/es/hank_second_order.md).
 
 Los nuevos flujos DSGE comparten [ecuaciones no lineales](docs/es/dsge_nonlinear.md)
 entre [transiciones y anuncios](docs/es/dsge_transitions.md) y
@@ -897,7 +898,7 @@ verificación y la orden que reconstruye el archivo, se distribuye como
 
 ## Estado
 
-El **código fuente 6.3.0** incluye `puremacro.trade` y sus módulos MRIO, reincorporados
+El **código fuente 6.4.0** incluye `puremacro.trade` y sus módulos MRIO, reincorporados
 en 5.2.0, junto con las adiciones y correcciones del
 [historial de cambios](CHANGELOG.md). Instale la
 [distribución disponible en PyPI](https://pypi.org/project/puremacro/). La versión 4.8.1 es la última con los estudios de investigación

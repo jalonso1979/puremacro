@@ -14,6 +14,29 @@ sin volver a correrla) y qué hacer.
 
 ---
 
+## 2026-11-12 — Correcciones econométricas, estructurales y de procedencia de datos en 6.4.0, versiones hasta 6.3.0
+
+**Corregido en la versión fuente 6.4.0** (véase `CHANGELOG.md` para el detalle completo).
+Once condiciones de números incorrectos o sustitución silenciosa en conectores de datos,
+proyecciones locales, solucionadores estructurales e inferencia con IV débiles/bootstrap
+quedan corregidas en 6.4.0:
+
+| Superficie | Condición afectada | No afectada cuando | Indicaciones |
+|---|---|---|---|
+| Listas deterministas `shocks; ... values` en `.mod` | Literales con signo separados por espacios (`values .02 -.01 -.01;`) o expresiones entre paréntesis sucesivas se sumaban en un único escalar | Especificaciones separadas por comas, entre corchetes o de un solo periodo | Vuelva a ejecutar escenarios deterministas multiperiodo con valores con signo separados por espacios. |
+| `var.identify.sign_zero` | La orientación de columnas y la verificación conjunta de restricciones de signo/cero/ortogonalidad podían aceptar una columna que violaba una restricción | Identificación de Cholesky pura o casos verificados externamente | Vuelva a verificar matrices de impacto de signo/cero aceptadas previamente. |
+| BLS LAUS (`fetch.bls` / paneles laborales estatales y por condado) | Los códigos de medida `04` (desempleo) y `06` (fuerza laboral) estaban intercambiados | Empleo (`05`) y tasa de desempleo (`03`) | Reconstruya los paneles LAUS guardados y las series derivadas de fuerza laboral desde los insumos crudos. |
+| Descargas de transición energética (`fetch.energy`) | Países faltantes o fallos de descarga de Ember sustituían en silencio datos de prueba del repositorio | Uso explícito de `csv_path` fuera de línea o descargas completas en vivo | Vuelva a descargar tablas guardadas de transición energética que pudieran contener filas implícitas de prueba. |
+| `dsge._sylvester.solve_generalized_sylvester_order3` | La perturbación de tercer orden con bloques de Schur estables reales (`1x1`) y complejos conjugados (`2x2`) omitía `T1[0,0] * T2[0,0]` en ternas `(1,1,2)` | Perturbación de primer o segundo orden, o tercer orden con eigenvalores puramente reales | Vuelva a resolver modelos DSGE de tercer orden con raíces complejas y revise `diagnose_perturbation`. |
+| `sovereign.dsa.simulate_stochastic_dsa` | El modo predeterminado `frequency="quarterly"` con `exact_compounding=True` dividía tasas porcentuales entre `100` en lugar de `/400` trimestral (APR) o `(1 + r/100)**0.25 - 1` | `exact_compounding=False` o simulaciones anuales | Vuelva a ejecutar trayectorias trimestrales de DSA con capitalización exacta; pase `frequency="annual"` para horizontes anuales. |
+| `inference.weak_iv.kleibergen_paap_f` y `narrative.validate.weak_iv_summary` | Con múltiples regresores endógenos ($k > 1$) no se formaba el estadístico de Wald de rango reducido (`rk`) de Kleibergen y Paap (2006); `weak_iv_summary` mezclaba controles parcializados y sin parcializar | Un único endógeno ($k = 1$) en `kleibergen_paap_f` sin controles exógenos en `weak_iv_summary` | Recalcule estadísticos $F$ de Kleibergen–Paap multiendógenos y cuadros resumen de IV débiles. |
+| Inicialización de previas en `inference.smc` / `dsge.bayesian` | Las previas acotadas recortaban simulaciones fuera de rango con `np.clip`, concentrando masa puntual en `lb`/`ub` | Previas no acotadas o con masa despreciable fuera de `[lb, ub]` | Vuelva a ejecutar SMC cuando la masa previa cerca de `lb`/`ub` sea relevante. |
+| `var.identify.proxy.proxy_svar` | El bootstrap wild predeterminado bajo covarianza en forma reducida $\Sigma_u$ no escalar distorsionaba la amplitud asintótica de las bandas (Jentsch y Lunsford 2019) | IRF puntuales o covarianza escalar homocedástica | Reestime bandas de confianza de proxy-SVAR con el modo predeterminado `bootstrap="mbb"`. |
+| `trade.optimal_tariffs.evaluate_national_welfare(..., metric="geary_khamis")` | Vectores de estado crudos, el deflactor de `XN` y los precios de referencia contrafactuales no se anclaban a $\pi^{\text{base}}$ ni a precios de comprador de inversión | Métricas de bienestar distintas de Geary–Khamis | Recalcule comparaciones contrafactuales de PIB real Geary–Khamis suministrando `base_equilibrium`. |
+| `lp.panel_lp_iv` | Empleaba un regresor ajustado en dos etapas en lugar de 2SLS genuino con efectos fijos bidireccionales por horizonte y residuos estructurales de segunda etapa | LP de panel lineal (`panel_lp`) y `lp_iv` de series de tiempo | Reestime regresiones LP-IV de panel para obtener estimadores 2SLS con efectos fijos bidireccionales y errores agrupados por entidad. |
+
+---
+
 ## 2026-10-22 — `STEADY_STATE()` usaba valores de la trayectoria, reproducido en 5.4.2
 
 **Corregido en la [versión 5.5.0 publicada](https://pypi.org/project/puremacro/5.5.0/).** En una trayectoria no lineal, `STEADY_STATE(expr)`

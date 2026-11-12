@@ -9,7 +9,12 @@ additions are included in 5.4.2. Versions 5.8.0, 5.9.0 and 6.0.0 were tagged
 but not published; their additions are included in 6.0.1, published on
 2026-10-29. See the [release procedure](RELEASING.md).
 
-## Unreleased
+## 6.4.0 (2026-11-12)
+
+**Reusable own-data fiscal policy briefs, bounded connector provenance and
+freshness reporting, local-projection contracts and two-way fixed-effects panel
+IV, and numerical/data correctness fixes across DSGE, sovereign DSA, weak-IV,
+SMC, proxy-SVAR and trade.**
 
 ### Added
 

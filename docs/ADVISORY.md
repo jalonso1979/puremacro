@@ -14,6 +14,29 @@ without re-running it), and what to do.
 
 ---
 
+## 2026-11-12 — Econometric, structural and data-provenance corrections in 6.4.0, versions up to 6.3.0
+
+**Fixed in the 6.4.0 source release** (see `CHANGELOG.md` for full details).
+Eleven wrong-number or silent-substitution conditions across data connectors,
+local projections, structural solvers and weak-IV/bootstrap inference are
+corrected in 6.4.0:
+
+| Surface | Affected condition | Unaffected when | Guidance |
+|---|---|---|---|
+| Deterministic `.mod` `shocks; ... values` lists | Space-separated signed literals (`values .02 -.01 -.01;`) or successive parenthesized expressions were summed into one broadcast scalar | Comma-separated, bracketed or single-period shock specifications | Re-run multi-period deterministic scenarios that used space-separated signed values. |
+| `var.identify.sign_zero` | Column orientation and full sign/zero/orthogonality verification could accept an impact column violating one restriction | Pure Cholesky or exact single-sign setups verified post hoc | Re-verify previously accepted sign/zero impact matrices. |
+| BLS LAUS (`fetch.bls` / state-county labor panels) | Measure codes `04` (unemployment) and `06` (labor force) were swapped | Employment (`05`) and unemployment rate (`03`) | Rebuild saved LAUS panels and derived labor-force series from raw inputs. |
+| Energy-transition fetch (`fetch.energy`) | Missing countries or failed Ember downloads silently substituted bundled repository test fixtures | Explicit offline `csv_path` or complete live downloads | Re-fetch saved energy-transition tables that could contain implicit fixture rows. |
+| `dsge._sylvester.solve_generalized_sylvester_order3` | Third-order perturbation with mixed real (`1x1`) and complex-conjugate (`2x2`) stable Schur blocks omitted `T1[0,0] * T2[0,0]` on `(1,1,2)` triples | First/second-order perturbation, or third-order models with purely real Schur blocks | Re-solve third-order DSGE models with complex eigenvalues and check `diagnose_perturbation`. |
+| `sovereign.dsa.simulate_stochastic_dsa` | Default `frequency="quarterly"` with `exact_compounding=True` divided percentage rates by `100` instead of quarterly `/400` (APR) or `(1 + r/100)**0.25 - 1` | `exact_compounding=False` or annual simulations | Re-run quarterly exact-compounding DSA trajectories; pass `frequency="annual"` explicitly for annual horizons. |
+| `inference.weak_iv.kleibergen_paap_f` and `narrative.validate.weak_iv_summary` | Multi-endogenous ($k > 1$) calls did not form the Kleibergen–Paap (2006) reduced-rank (`rk`) Wald statistic; `weak_iv_summary` mixed partialled and unpartialled controls | Single-endogenous ($k = 1$) `kleibergen_paap_f` without exogenous controls in `weak_iv_summary` | Recompute multi-endogenous Kleibergen–Paap $F$-statistics and weak-IV summary tables. |
+| `inference.smc` / `dsge.bayesian` prior initialization | Bounded priors clipped out-of-bounds draws via `np.clip`, placing point-mass atoms at `lb`/`ub` | Unbounded priors or priors with negligible tail mass outside `[lb, ub]` | Re-run SMC estimation when prior mass near `lb`/`ub` is material. |
+| `var.identify.proxy.proxy_svar` | Default wild bootstrap under non-scalar reduced-form covariance $\Sigma_u$ misstated asymptotic band width (Jentsch & Lunsford 2019) | Point IRFs, or homoskedastic scalar covariance | Re-estimate proxy-SVAR confidence bands with default `bootstrap="mbb"`. |
+| `trade.optimal_tariffs.evaluate_national_welfare(..., metric="geary_khamis")` | Raw state vectors, `XN` deflators and counterfactual reference prices were not anchored to baseline $\pi^{\text{base}}$ and investment purchaser prices | Non-GK welfare metrics | Recompute Geary–Khamis real-GDP counterfactual comparisons supplying `base_equilibrium`. |
+| `lp.panel_lp_iv` | Used a two-step fitted-regressor plug-in instead of genuine horizon-matched two-way FE 2SLS with structural second-stage residuals | Linear panel LP (`panel_lp`) and time-series `lp_iv` | Re-estimate panel LP-IV regressions to obtain genuine two-way FE 2SLS point estimates and entity-clustered SEs. |
+
+---
+
 ## 2026-10-22 — `STEADY_STATE()` used trajectory values, reproduced in 5.4.2
 
 **Fixed in the published [5.5.0 release](https://pypi.org/project/puremacro/5.5.0/).** In a nonlinear trajectory, `STEADY_STATE(expr)` could

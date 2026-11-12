@@ -23,9 +23,10 @@ python -m pip install puremacro
 | **Write a policy brief** | Run a [tariff experiment on public data](first_brief_tariffs.md) and read national and household welfare effects. |
 | **Learn or teach** | Choose a [notebook learning path](notebooks.md) or use the [bilingual course and interactive labs](https://github.com/jalonso1979/puremacro/tree/main/curso). Use the pinned course edition below. |
 
-**Status checked 2026-11-10:** **6.3.0** is published on [PyPI](https://pypi.org/project/puremacro/6.3.0/). Install with `python -m pip install puremacro==6.3.0` and use the documentation for your installed version.
+**Version guide:** this source and its documentation target **6.4.0**. See [PyPI](https://pypi.org/project/puremacro/) for published versions and match the documentation to your installed version.
 See the [recommended tests and next milestones](research_reliability.md).
-In 6.3.0, the [research APIs](research_api.md) add equilibrium derivatives and continuation, simulation-aware SMM and identification-robust inference. The release also includes [experimental second-order HANK](hank_second_order.md), with its supported domain and numerical limits documented.
+In 6.4.0, the [fiscal brief](first_brief_fiscal.md) accepts own-data quarterly datasets, [connector freshness reporting](CONNECTOR_HEALTH.md) audits bounded provenance and revisions, [local projections](lp.md) enforce chronological and specification contracts with two-way fixed-effects panel IV, and numerical/data defects are corrected (see [correctness advisories](ADVISORY.md)).
+Since 6.3.0, the [research APIs](research_api.md) add equilibrium derivatives and continuation, simulation-aware SMM and identification-robust inference, alongside [experimental second-order HANK](hank_second_order.md).
 
 Available since 6.0.1 (introduced in the 6.0.0 source tag): [Forward AD & Differentiable Model Protocol](autodiff_and_protocol.md), [Vectorized Tempered SMC](smc_inference.md), [Nonlinear HANK & 2nd-Order Aggregate Risk](hank_ssj_and_aggregate_risk.md), [Quantitative Sovereign Default](sovereign_default.md), [Distributional Local Projections](distributional_lp.md), and [Production Networks, Spatial Climate IAM & PolicyStudio](network_spatial_climate_iam.md).
 
