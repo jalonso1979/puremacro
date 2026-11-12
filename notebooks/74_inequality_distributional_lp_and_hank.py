@@ -111,17 +111,25 @@ print(f"Horizon 0 Share Responses: {res_dlp.irf_matrix[0] * 100.0} (sum = {np.su
 # %% [markdown]
 # ### 2. Quantile LPs
 #
-# Estimate responses at five quantiles of synthetic income. Ordered responses in this constructed example are not a universal restriction on quantile treatment effects.
+# Estimate single-series quantile local projections at five quantiles of synthetic aggregate income. Ordered responses in this constructed example are not a universal restriction on quantile treatment effects.
 
 # %%
+rng_qlp = np.random.default_rng(74)
+T_qlp = 240
+shock_qlp = rng_qlp.normal(0, 1, size=T_qlp)
+df_qlp = pd.DataFrame({
+    "t": np.arange(T_qlp),
+    "shock": shock_qlp,
+    "y_income": 10.0 + 1.5 * shock_qlp + rng_qlp.normal(0, 0.5, size=T_qlp),
+})
+
 res_qlp = estimate_quantile_lp(
-    df_micro,
+    df_qlp,
     outcome="y_income",
     shock="shock",
     quantiles=[0.10, 0.25, 0.50, 0.75, 0.90],
     horizons=range(8),
     time_col="t",
-    unit_col="i",
 )
 
 # Median impact recovery vs data-generating process (1.5)

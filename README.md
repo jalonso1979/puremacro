@@ -211,8 +211,8 @@ from puremacro.runtime.colab import (
 #    included). The task's `result` variable is exported as a .pmz cartridge.
 nb = generate_colab_notebook(
     """
-import puremacro as pm
-result = pm.dsge.estimate_sw07(n_draws=10000, n_chains=4)
+from puremacro.dsge import estimate_sw07
+result = estimate_sw07(n_draws=10000, n_chains=4)
 """,
     mount_drive=True,
     save_path="sw07_offload.ipynb",
@@ -894,8 +894,8 @@ from puremacro.runtime.colab import (
 #    included). The task's `result` variable is exported as a .pmz cartridge.
 nb = generate_colab_notebook(
     """
-import puremacro as pm
-result = pm.dsge.estimate_sw07(n_draws=5000, n_chains=2)
+from puremacro.dsge import estimate_sw07
+result = estimate_sw07(n_draws=5000, n_chains=2)
 """,
     mount_drive=True,
     save_path="offload.ipynb",
@@ -1175,7 +1175,7 @@ command that rebuilds the file, ships as `puremacro/trade/_datafiles/SOURCES.md`
 
 ## Status
 
-The **6.0.0 source tree** includes `puremacro.trade` and its MRIO modules, restored in
+The **6.3.0 source tree** includes `puremacro.trade` and its MRIO modules, restored in
 5.2.0, plus the additions and fixes listed in the [changelog](CHANGELOG.md).
 For published distributions, check [PyPI](https://pypi.org/project/puremacro/).
 Release 4.8.1 is the last one with the research

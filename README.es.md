@@ -216,8 +216,8 @@ from puremacro.runtime.colab import (
 #    y montaje de Drive). La variable `result` de la tarea se exporta como cartucho .pmz.
 nb = generate_colab_notebook(
     """
-import puremacro as pm
-result = pm.dsge.estimate_sw07(n_draws=10000, n_chains=4)
+from puremacro.dsge import estimate_sw07
+result = estimate_sw07(n_draws=10000, n_chains=4)
 """,
     mount_drive=True,
     save_path="sw07_offload.ipynb",
@@ -897,7 +897,7 @@ verificación y la orden que reconstruye el archivo, se distribuye como
 
 ## Estado
 
-El **código fuente 6.0.0** incluye `puremacro.trade` y sus módulos MRIO, reincorporados
+El **código fuente 6.3.0** incluye `puremacro.trade` y sus módulos MRIO, reincorporados
 en 5.2.0, junto con las adiciones y correcciones del
 [historial de cambios](CHANGELOG.md). Instale la
 [distribución disponible en PyPI](https://pypi.org/project/puremacro/). La versión 4.8.1 es la última con los estudios de investigación

@@ -48,13 +48,13 @@ Niveles de tolerancia: `EXACT` (rtol 1e-10) · `TIGHT` (1e-6) · `NUMERIC` (1e-2
 
 ## Cobertura
 
-**113 casos en 16 subsistemas — todos pasan.** Por mecanismo: internal 62,
-analytical 31, package 13, scipy 5, published 2.
+**116 casos en 16 subsistemas — todos pasan.** Por mecanismo: internal 63,
+analytical 31, package 15, scipy 5, published 2.
 
 | Subsistema | Casos | Referencia(s) |
 |---|---|---|
 | `var` | 15 | FIR de Cholesky vs `orth_irfs` de statsmodels; FEVD-suma-1 y estabilidad ⇔ radio espectral del companion < 1 (identidades); restricciones narrativas de signo; medias posteriores del BVAR Minnesota frente a formas cerradas construidas a mano de Theil (λ₂ = 0.5) y de la normal-Wishart inversa de la ec. (5) de Bańbura–Giannone–Reichlin; identidades del GVAR — con pesos comerciales nulos los bloques por país se desacoplan, el sistema global resuelto los reproduce, el perfil de persistencia vale 1 en el impacto, las filas normalizadas del GFEVD suman 1, y las FIRG de un GVAR de un solo país igualan las FIR generalizadas de `var` |
-| `lp` | 6 | Coeficientes/EE-HAC de la PL de Jordà vs OLS-HAC de statsmodels; PL-IV vs `IV2SLS` de linearmodels; EF a dos vías vs `PanelOLS`; identidad IV-se-reduce-a-OLS |
+| `lp` | 9 | Coeficientes/EE-HAC de la PL de Jordà vs OLS-HAC de statsmodels; PL-IV β, EE-HAC de Bartlett y F efectivo de MOP vs `IV2SLS` de linearmodels / HAC de statsmodels; EF a dos vías `panel_lp` vs `PanelOLS` y `panel_lp_iv` β/EE agrupados vs `IV2SLS`; identidades IV-se-reduce-a-OLS en serie temporal y panel |
 | `garch` | 7 | Parámetros/volatilidades GARCH(1,1) vs `arch`; simular-y-recuperar; descomposición de varianza de GARCH-MIDAS |
 | `inference` | 9 | EE de Newey–West / OLS-HAC vs HAC de statsmodels; valores críticos de sesgo y tamaño de MC2E de los cuadros 1–2 de Stock–Yogo (2002, NBER TWP 284) (publicados); valores críticos de b fijo con núcleo de Bartlett del cuadro I de Kiefer–Vogelsang (2005) (publicados); valor crítico plug-in sup-t vs su forma cerrada i.i.d.; monotonía de sup-t sobre valores críticos puntuales |
 | `state_space` | 6 | Estados del filtro/suavizador de Kalman + log-verosimilitud vs el espacio de estados de statsmodels; identidades de varianza del suavizador |

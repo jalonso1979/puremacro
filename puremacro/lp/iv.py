@@ -19,7 +19,16 @@ from scipy.optimize import brentq, minimize_scalar
 from scipy.stats import chi2, ncx2, norm
 
 from ..inference._ols_helpers import ols_hac, tsls_hac
-from ._common import check_regular_index, cumulative_windows, resolve_lp_kwargs
+from ._common import (
+    _DEFAULT_ALPHA_10,
+    _DEFAULT_HORIZONS_21,
+    _DEFAULT_N_LAGS_2,
+    check_regular_index,
+    cumulative_windows,
+    format_sample_bounds,
+    resolve_lp_kwargs,
+    validate_lp_columns_finite,
+)
 
 
 def mop_critical_values(
@@ -476,10 +485,10 @@ def lp_iv(
     y: str,
     x: str,
     z: str | Sequence[str],
-    horizons: Iterable[int] = range(0, 21),
-    n_lags: int = 2,
+    horizons: Iterable[int] = _DEFAULT_HORIZONS_21,
+    n_lags: int = _DEFAULT_N_LAGS_2,
     controls: Sequence[str] | None = None,
-    alpha: float = 0.10,
+    alpha: float = _DEFAULT_ALPHA_10,
     *,
     anderson_rubin: bool = False,
     weak_iv_robust: bool = False,
@@ -487,6 +496,7 @@ def lp_iv(
     lags: int | None = None,
     horizon: int | None = None,
     ci: float | None = None,
+    allow_index_gaps: bool = False,
 ) -> pd.DataFrame:
     """Single-country local projections with instrumental variables (LP-IV).
 
@@ -532,6 +542,10 @@ def lp_iv(
         If provided, sets ``horizons = range(0, horizon + 1)``.
     ci : float, optional
         Confidence level in (0, 1), e.g. 0.90 for 90% CI. Sets ``alpha = 1.0 - ci``.
+    allow_index_gaps : bool, default False
+        When False (default), dated ``DatetimeIndex`` / ``PeriodIndex`` inputs with
+        skipped periods raise ``ValueError``. Set True only when ``cumulative=False``
+        and excluded periods were dropped after pre-building lag/horizon columns.
 
     Returns
     -------
@@ -546,25 +560,60 @@ def lp_iv(
         one of ``"bounded"``, ``"unbounded_rays"`` (set ``(-inf, ar_hi] U [ar_lo, inf)``),
         ``"all_real"`` or ``"empty"``.
     """
-    horizons, n_lags, alpha = resolve_lp_kwargs(
-        horizons, n_lags, alpha, lags=lags, horizon=horizon, ci=ci, name="lp_iv"
-    )
+    if not isinstance(df, pd.DataFrame):
+        raise ValueError("lp_iv: df must be a pandas DataFrame.")
 
-    horizons = list(horizons)
-    ctl = list(controls or [])
-    z_names = [z] if isinstance(z, str) else list(z)
+    horizons_list, n_lags_int, alpha_val = resolve_lp_kwargs(
+        horizons,
+        n_lags,
+        alpha,
+        lags=lags,
+        horizon=horizon,
+        ci=ci,
+        name="lp_iv",
+        strict_aliases=True,
+    )
+    if not horizons_list:
+        raise ValueError("lp_iv: horizons cannot be empty.")
+    if any(h < 0 for h in horizons_list):
+        raise ValueError(
+            f"lp_iv: horizons must be non-negative integers >= 0; got {horizons_list!r}"
+        )
+
+    ctl = [str(c) for c in (controls or [])]
+    z_names = [z] if isinstance(z, str) else [str(zi) for zi in z]
     k_z = len(z_names)
+    if k_z == 0:
+        raise ValueError("lp_iv: z must name at least one instrument column.")
+
+    check_regular_index(
+        df.index,
+        "lp_iv",
+        cumulative=bool(cumulative),
+        allow_gaps=bool(allow_index_gaps and not cumulative),
+    )
+    validate_lp_columns_finite(df, [y, x] + z_names + ctl, "lp_iv")
+
     cv_10, cv_20 = mop_critical_values(k_z)
-    z_crit = norm.ppf(1 - alpha / 2)
-    do_ar = anderson_rubin or weak_iv_robust
-    if cumulative:
-        check_regular_index(df.index, "lp_iv")
+    z_crit = norm.ppf(1 - alpha_val / 2)
+    do_ar = bool(anderson_rubin or weak_iv_robust)
 
     rows = []
-    for h in horizons:
-        sub = df[[y, x] + z_names + ctl].copy()
+    n_obs_by_h: dict[int, int] = {}
+    start_by_h: dict[int, str | int | None] = {}
+    end_by_h: dict[int, str | int | None] = {}
+    bw_by_h: dict[int, int] = {}
+    f_by_h: dict[int, float] = {}
+    mop_by_h: dict[int, float] = {}
+    ar_type_by_h: dict[int, str] = {}
+    weak_iv_hs: list[int] = []
+
+    req_cols = list(dict.fromkeys([y, x] + z_names + ctl))
+    for h in horizons_list:
+        bw_by_h[h] = int(h + 1)
+        sub = df[req_cols].copy()
         # Lags come from the original x and y, before any window replaces them.
-        for lag in range(1, n_lags + 1):
+        for lag in range(1, n_lags_int + 1):
             sub[f"{x}_L{lag}"] = sub[x].shift(lag)
             sub[f"{y}_L{lag}"] = sub[y].shift(lag)
             for c in ctl:
@@ -575,7 +624,14 @@ def lp_iv(
             sub["dy_h"] = sub[y].shift(-h) - sub[y].shift(1)
             sub["__x_w__"] = sub[x]
         sub = sub.dropna()
+        n = int(len(sub))
+        n_obs_by_h[h] = n
+        s_lo, s_hi = format_sample_bounds(sub.index)
+        start_by_h[h] = s_lo
+        end_by_h[h] = s_hi
         if sub.empty:
+            f_by_h[h] = float("nan")
+            mop_by_h[h] = float("nan")
             row: dict[str, Any] = {
                 "h": h,
                 "beta": np.nan,
@@ -590,13 +646,13 @@ def lp_iv(
             }
             if do_ar:
                 row.update({"ar_lo": np.nan, "ar_hi": np.nan, "ar_set_type": "empty"})
+                ar_type_by_h[h] = "empty"
             rows.append(row)
             continue
 
-        n = len(sub)
         # Exogenous controls (without instruments)
         W_ctl_list = [np.ones(n)]
-        for lag in range(1, n_lags + 1):
+        for lag in range(1, n_lags_int + 1):
             W_ctl_list.append(sub[f"{x}_L{lag}"].values)
             W_ctl_list.append(sub[f"{y}_L{lag}"].values)
             for c in ctl:
@@ -606,13 +662,13 @@ def lp_iv(
         W_ctl_mat = np.column_stack(W_ctl_list)
 
         # Instruments
-        Z_mat = sub[z_names].values
+        Z_mat = np.column_stack([sub[zn].values for zn in z_names])
 
         # First stage regressor matrix:
         # If single instrument, keep standard order [ones, z, lags...] for exact backward compat
         if k_z == 1:
             W_mat_list = [np.ones(n), sub[z_names[0]].values]
-            for lag in range(1, n_lags + 1):
+            for lag in range(1, n_lags_int + 1):
                 W_mat_list.append(sub[f"{x}_L{lag}"].values)
                 W_mat_list.append(sub[f"{y}_L{lag}"].values)
                 for c in ctl:
@@ -637,9 +693,14 @@ def lp_iv(
         else:
             first_stage_f = mop_f
 
+        f_by_h[h] = float(first_stage_f)
+        mop_by_h[h] = float(mop_f)
+        if np.isfinite(mop_f) and mop_f < cv_10:
+            weak_iv_hs.append(int(h))
+
         # Second stage: x_hat for the estimate, actual x for the residuals behind the SE.
         X2 = [np.ones(n), x_hat]
-        for lag in range(1, n_lags + 1):
+        for lag in range(1, n_lags_int + 1):
             X2.append(sub[f"{x}_L{lag}"].values)
             X2.append(sub[f"{y}_L{lag}"].values)
             for c in ctl:
@@ -669,7 +730,7 @@ def lp_iv(
         if do_ar:
             if k_z == 1:
                 ar_lo, ar_hi, ar_kind = _compute_anderson_rubin_ci(
-                    sub["dy_h"].values, sub["__x_w__"].values, W_mat, lags=h + 1, alpha=alpha
+                    sub["dy_h"].values, sub["__x_w__"].values, W_mat, lags=h + 1, alpha=alpha_val
                 )
             else:
                 ar_lo, ar_hi, ar_kind = _compute_anderson_rubin_multi(
@@ -678,24 +739,66 @@ def lp_iv(
                     W_ctl_mat,
                     Z_mat,
                     lags=h + 1,
-                    alpha=alpha,
+                    alpha=alpha_val,
                     beta_hat=beta_h,
                     se_hat=se_h,
                 )
             row.update({"ar_lo": ar_lo, "ar_hi": ar_hi, "ar_set_type": ar_kind})
+            ar_type_by_h[h] = ar_kind
 
         rows.append(row)
 
     from ._results import LPResult
 
+    method_str = "LP-IV (cumulative)" if cumulative else "LP-IV"
     res = LPResult(rows)
     if "h" in res.columns:
         res.index = res["h"]
     res.y_name = str(y)
     res.x_name = str(x)
-    res.method = "LP-IV (cumulative)" if cumulative else "LP-IV"
+    res.method = method_str
     res.is_cumulative = bool(cumulative)
-    res.ci_level = 1.0 - alpha
+    res.ci_level = 1.0 - alpha_val
+    spec: dict[str, Any] = {
+        "estimator": "lp_iv",
+        "method": method_str,
+        "y_name": str(y),
+        "x_name": str(x),
+        "z_names": list(z_names),
+        "controls": list(ctl),
+        "n_lags": int(n_lags_int),
+        "horizons": list(horizons_list),
+        "cumulative": bool(cumulative),
+        "estimand": "cumulative_multiplier" if cumulative else "diff_from_t_minus_1",
+        "outcome_formula": (
+            "sum_{j=0..h}(y_{t+j} - y_{t-1}) / sum_{j=0..h} x_{t+j}"
+            if cumulative
+            else "y_{t+h} - y_{t-1}"
+        ),
+        "cov_type": "HAC",
+        "kernel": "bartlett",
+        "bandwidth_rule": "h + 1",
+        "bandwidth_by_horizon": bw_by_h,
+        "small_sample_correction": False,
+        "cov_summary": "2SLS HAC Bartlett(h+1)",
+        "alpha": float(alpha_val),
+        "ci_level": float(1.0 - alpha_val),
+        "interval_method": "normal_wald_plus_anderson_rubin" if do_ar else "normal_wald",
+        "anderson_rubin": bool(do_ar),
+        "index_type": type(df.index).__name__,
+        "allow_index_gaps": bool(allow_index_gaps and not cumulative),
+        "n_obs_by_horizon": n_obs_by_h,
+        "sample_start_by_horizon": start_by_h,
+        "sample_end_by_horizon": end_by_h,
+        "first_stage_f_by_horizon": f_by_h,
+        "mop_f_by_horizon": mop_by_h,
+        "mop_cv_10": float(cv_10),
+        "mop_cv_20": float(cv_20),
+        "weak_iv_horizons_10": weak_iv_hs,
+    }
+    if do_ar:
+        spec["ar_set_type_by_horizon"] = ar_type_by_h
+    res._set_specification(spec)
     return res
 
 

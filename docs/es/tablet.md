@@ -152,8 +152,8 @@ from puremacro.runtime.colab import (
 #    output_filename es el cartucho que el cuaderno guardará al terminar.
 nb = generate_colab_notebook(
     """
-import puremacro as pm
-result = pm.dsge.estimate_sw07(n_draws=10000, n_chains=4)
+from puremacro.dsge import estimate_sw07
+result = estimate_sw07(n_draws=10000, n_chains=4)
 """,
     mount_drive=True,
     save_path="sw07_colab.ipynb",

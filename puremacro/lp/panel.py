@@ -20,17 +20,22 @@ from ._panel_helpers import (
     as_panel_index,
     panel_lp_horizon_loop,
 )
-from ._common import resolve_lp_kwargs
+from ._common import (
+    _DEFAULT_ALPHA_10,
+    _DEFAULT_HORIZONS_21,
+    _DEFAULT_N_LAGS_2,
+    resolve_lp_kwargs,
+)
 
 
 def panel_lp(
     df_wide: pd.DataFrame,
     y: str,
     x: str,
-    horizons: Iterable[int] = range(0, 21),
-    n_lags: int = 2,
+    horizons: Iterable[int] = _DEFAULT_HORIZONS_21,
+    n_lags: int = _DEFAULT_N_LAGS_2,
     controls: Sequence[str] = (),
-    alpha: float = 0.10,
+    alpha: float = _DEFAULT_ALPHA_10,
     entity_level: str = "code",
     time_level: str = "date",
     *,
@@ -88,7 +93,7 @@ def panel_lp(
     Returns LPResult (subclass of DataFrame) with columns ``[h, beta, se, t, lo, hi]``.
     """
     horizons, n_lags, alpha = resolve_lp_kwargs(
-        horizons, n_lags, alpha, lags=lags, horizon=horizon, ci=ci, name="panel_lp")
+        horizons, n_lags, alpha, lags=lags, horizon=horizon, ci=ci, name="panel_lp", strict_aliases=True)
     cov = cov_type.lower().replace("_", "-")
     if cov in ("cluster", "clustered", "entity"):
         se_fn = _focal_cluster_se

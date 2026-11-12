@@ -129,11 +129,27 @@ def test_lp_iv_two_instruments():
     assert set(res["ar_set_type"]) <= {"bounded", "unbounded_rays", "all_real", "empty"}
 
 
-def test_lp_iv_rejects_gapped_index_only_when_cumulative(rz):
+def test_lp_iv_rejects_gapped_index_by_default_and_allows_opt_in_only_when_noncumulative(rz):
+    from puremacro.lp import lp_hac
+
     gapped = rz.drop(rz.index[100])
+    # Cumulative LP-IV unconditionally rejects gapped dated indexes even with allow_index_gaps=True
     with pytest.raises(ValueError, match="lp_iv: cumulative=True"):
         lp_iv(gapped, horizons=[8], cumulative=True, **KW)
-    lp_iv(gapped, horizons=[8], **KW)                                  # default path unchanged
+    with pytest.raises(ValueError, match="lp_iv: cumulative=True"):
+        lp_iv(gapped, horizons=[8], cumulative=True, allow_index_gaps=True, **KW)
+    # Non-cumulative LP-IV and LP-HAC also reject gapped dated indexes by default
+    with pytest.raises(ValueError, match="allow_index_gaps=True"):
+        lp_iv(gapped, horizons=[8], **KW)
+    with pytest.raises(ValueError, match="allow_index_gaps=True"):
+        lp_hac(gapped, y="y", x="g", horizons=[8], n_lags=0, controls=RZ_CTL)
+    # Explicit allow_index_gaps=True permits pre-constructed non-cumulative estimation
+    res_iv = lp_iv(gapped, horizons=[8], allow_index_gaps=True, **KW)
+    res_ols = lp_hac(
+        gapped, y="y", x="g", horizons=[8], n_lags=0, controls=RZ_CTL, allow_index_gaps=True
+    )
+    assert len(res_iv) == 1 and res_iv.attrs["specification"]["allow_index_gaps"] is True
+    assert len(res_ols) == 1 and res_ols.attrs["specification"]["allow_index_gaps"] is True
 
 
 def test_cumulative_metadata(rz):

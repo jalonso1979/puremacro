@@ -61,8 +61,9 @@ The returned `res` is an `LPResult` (subclassing `pd.DataFrame`). You can treat 
 | `res.t_stat` | $\hat{\beta}_h / \hat{\text{se}}$ (NaN where no SE is available) |
 | `res.horizons` | Array of horizons evaluated `[0, 1, ..., H]` |
 | `res.labels` | `[]` for single-coefficient results; `['H', 'L']` / `['pos', 'neg']` for regime or sign results |
+| `res.attrs["specification"]` / `res.metadata` | Reconstructible specification provenance dictionary (variables, instruments, controls, lag order, horizons, estimand, HAC kernel/bandwidth, per-horizon `N` and sample bounds, and weak-IV flags; survives DataFrame slicing) |
 | `res.plot()` | Renders an impulse response plot with shaded confidence bands (one line and band per regime for regime results, one line per quantile for `lp_quantile`) |
-| `res.summary()` | Formatted tabular summary string with significance flags: `***` p<0.01, `**` p<0.05, `*` p<0.10 (two-sided normal z-test); for band-only estimators a single `*` marks bands that exclude zero |
+| `res.summary()` | Self-describing tabular summary string reporting lag/control/SE/sample metadata, significance flags (`***` p<0.01, `**` p<0.05, `*` p<0.10), and an explicit weak-IV warning footer whenever `mop_f < mop_cv_10` or `first_stage_f < 10` |
 | `res.to_markdown()` | Renders table formatted for Quarto, GitHub, or Obsidian |
 | `res.to_latex()` | Generates a clean `\begin{tabular}` for LaTeX / Overleaf |
 | `res.to_typst()` | Generates a `#table(...)` block for modern Typst documents |
@@ -362,9 +363,9 @@ print(st[["beta_H", "beta_L", "first_stage_f_H", "first_stage_f_L", "p_diff_HL"]
 
 ---
 
-## Panel Local Projections (`panel_lp` & `panel_lp_dk`)
+## Panel Local Projections (`panel_lp`, `panel_lp_dk` & `panel_lp_iv`)
 
-For cross-country or regional panel datasets, `puremacro` provides two-way fixed-effects panel local projections with cluster-robust (`panel_lp`) or Driscoll-Kraay (1998) standard errors (`panel_lp_dk`, or `panel_lp(..., cov_type="driscoll-kraay")`) robust to cross-sectional spatial correlation and arbitrary serial correlation.
+For cross-country or regional panel datasets, `puremacro` provides two-way fixed-effects panel local projections with cluster-robust (`panel_lp`), Driscoll-Kraay (1998) standard errors (`panel_lp_dk`, or `panel_lp(..., cov_type="driscoll-kraay")`), and horizon-matched two-way fixed-effects 2SLS (`panel_lp_iv` with structural 2SLS residuals and entity-clustered sandwich standard errors).
 
 The panel can be a **long-form** frame whose entity and time identifiers are columns (`unit_col=` / `time_col=`), or a frame already indexed by an `(entity, time)` `MultiIndex` whose level names are given by `entity_level=` / `time_level=`:
 
@@ -426,7 +427,22 @@ Every estimator exported by `puremacro.lp` (including `lp_state_dep` and `lp_did
 | `horizon` | `horizons` | `20`, i.e. $h = 0 \dots 20$ — except `lp_iv_lewbel` and `lp_did` (`12`) | Max projection horizon (computes $h = 0 \dots H$) |
 | `ci` | `alpha` | `0.90` — except `smooth_lp` (`0.95`) | Confidence interval coverage (e.g. `ci=0.95` $\leftrightarrow$ `alpha=0.05`) |
 
-`ci` and `alpha` must be probabilities in $(0, 1)$: passing a percentage by mistake (`ci=90`) or `alpha=1.5` raises a `ValueError` instead of silently producing NaN bands. `lp_state_dep` additionally accepts `state_var=` as an alias of `state=`.
+`ci` and `alpha` must be probabilities in $(0, 1)$: passing a percentage by mistake (`ci=90`) or `alpha=1.5` raises a `ValueError` instead of silently producing NaN bands. Passing both a canonical argument and its alias with disagreeing values (for example `n_lags=4, lags=1` or `alpha=0.05, ci=0.90`) raises a `ValueError` rather than silently overwriting one with the other. `lp_state_dep` additionally accepts `state_var=` as an alias of `state=`.
+
+### Chronological Index & Provenance Contracts
+
+When `df` (or a `Series` input) carries a `DatetimeIndex` or `PeriodIndex`, `lp_hac`, `lp_iv`, `estimate_distributional_lp`, and `estimate_quantile_lp` enforce chronological regularity before shifting rows:
+
+- **Duplicate or unsorted/reversed dates** raise `ValueError` immediately (suggesting `df = df.sort_index()`).
+- **Skipped periods (gaps)** raise `ValueError` by default so `.shift(-h)` and `.shift(lag)` never bridge missing quarters or months silently. Exclude episodes by setting the series to `NaN` while keeping the rows, or pass `allow_index_gaps=True` in non-cumulative `lp_hac` / `lp_iv` only when lag/horizon columns were pre-constructed (`cumulative=True` always requires gap-free spacing).
+- **`±np.inf` values** raise `ValueError` naming the offending column and index label; `NaN` continues to mark missing observations dropped per horizon.
+
+```python
+# Inspect reconstructible specification provenance on any flagship LP result
+spec = res.attrs["specification"]
+assert spec["estimator"] == "lp_hac"
+assert spec["n_lags"] == 4 and spec["bandwidth_rule"] == "h + 1"
+```
 
 ---
 

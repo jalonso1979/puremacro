@@ -33,16 +33,19 @@ from puremacro.models.monetary_transmission import (
     MonetaryTransmissionResult,
     MonetaryTransmissionSimulator,
 )
+from typing import TYPE_CHECKING
+
 from puremacro.models.one_asset_hank import (
     OneAssetHANKResult,
     OneAssetHANKSteadyState,
     calibrate_one_asset_hank,
     solve_one_asset_hank,
 )
-from puremacro.models.trade_policy import (
-    TradePolicySimulationResult,
-    TradePolicySimulator,
-)
+if TYPE_CHECKING:
+    from puremacro.models.trade_policy import (
+        TradePolicySimulationResult as TradePolicySimulationResult,
+        TradePolicySimulator as TradePolicySimulator,
+    )
 from puremacro.models.hank_scenario_tree import (
     HANKScenarioTreeResult, monetary_scenario_tree, solve_hank_scenario_tree,
 )
@@ -74,6 +77,21 @@ from puremacro.models.information_nk import (
     InformationNKParameters, InformationNKSolution, InformationNKPath,
     solve_information_nk, audit_information_nk,
 )
+
+_LAZY_TRADE_POLICY = ("TradePolicySimulationResult", "TradePolicySimulator")
+
+
+def __getattr__(name: str):
+    if name in _LAZY_TRADE_POLICY:
+        from puremacro.models import trade_policy as _tp_mod
+        for attr in _LAZY_TRADE_POLICY:
+            globals()[attr] = getattr(_tp_mod, attr)
+        return globals()[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(__all__))
 
 __all__ = [
     "DMPParameters",

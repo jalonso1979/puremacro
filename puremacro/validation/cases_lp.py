@@ -104,6 +104,33 @@ def lp_panel_demo() -> pd.DataFrame:
     return pd.DataFrame(rows).set_index(["code", "date"]).sort_index()
 
 
+def lp_panel_iv_demo() -> pd.DataFrame:
+    """A stable balanced panel with endogenous ``x`` and valid instrument ``z``.
+
+    8 entities x 50 quarters with entity and time fixed effects, endogenous
+    shock ``x`` correlated with outcome innovation ``nu``, and strong external
+    instrument ``z``. Seeded -> byte-identical every call.
+    """
+    rng = np.random.default_rng(7788)
+    N, T = 8, 50
+    codes = [f"C{i}" for i in range(N)]
+    dates = pd.period_range("2000Q1", periods=T, freq="Q").to_timestamp()
+    mu = rng.standard_normal(N) * 0.5
+    tau = rng.standard_normal(T) * 0.3
+    rows = []
+    for i, c in enumerate(codes):
+        y_prev = x_prev = 0.0
+        for t in range(T):
+            z = rng.standard_normal()
+            nu = rng.standard_normal() * 0.5
+            x = 0.85 * z + 0.3 * x_prev + nu
+            eps = rng.standard_normal() * 0.5
+            y = mu[i] + tau[t] + 0.45 * y_prev + 0.65 * x + 0.2 * x_prev + 0.4 * nu + eps
+            rows.append({"code": c, "date": dates[t], "y": y, "x": x, "z": z})
+            y_prev, x_prev = y, x
+    return pd.DataFrame(rows).set_index(["code", "date"]).sort_index()
+
+
 # --------------------------------------------------------------------------- #
 # Compute callables (puremacro side)
 # --------------------------------------------------------------------------- #
@@ -128,6 +155,16 @@ def _lp_iv_beta() -> dict:
     return {"beta": res["beta"].to_numpy(dtype=float)}
 
 
+def _lp_iv_se_and_mop_f() -> dict:
+    from puremacro.lp import lp_iv
+
+    res = lp_iv(lp_iv_demo(), "y", "x", "z", horizons=LP_HORIZONS, n_lags=LP_N_LAGS)
+    return {
+        "se": res["se"].to_numpy(dtype=float),
+        "mop_f": res["mop_f"].to_numpy(dtype=float),
+    }
+
+
 def _panel_lp_beta() -> dict:
     from puremacro.lp import panel_lp
 
@@ -135,6 +172,24 @@ def _panel_lp_beta() -> dict:
         lp_panel_demo(), "y", "x", horizons=LP_HORIZONS, n_lags=LP_N_LAGS, controls=()
     )
     return {"beta": res["beta"].to_numpy(dtype=float)}
+
+
+def _panel_lp_iv_beta_and_se() -> dict:
+    from puremacro.lp import panel_lp_iv
+
+    res = panel_lp_iv(
+        lp_panel_iv_demo(),
+        "y",
+        "x",
+        "z",
+        horizons=LP_HORIZONS,
+        n_lags=LP_N_LAGS,
+        controls=(),
+    )
+    return {
+        "beta": res["beta"].to_numpy(dtype=float),
+        "se": res["se"].to_numpy(dtype=float),
+    }
 
 
 def _lp_iv_equals_ols_when_instrument_is_regressor() -> dict:
@@ -145,6 +200,19 @@ def _lp_iv_equals_ols_when_instrument_is_regressor() -> dict:
     df["z"] = df["x"]  # instrument == endogenous regressor
     ols = lp_hac(df, "y", "x", horizons=LP_HORIZONS, n_lags=LP_N_LAGS)
     iv = lp_iv(df, "y", "x", "z", horizons=LP_HORIZONS, n_lags=LP_N_LAGS)
+    return {
+        "beta_gap": np.abs(iv["beta"].to_numpy(float) - ols["beta"].to_numpy(float)),
+        "se_gap": np.abs(iv["se"].to_numpy(float) - ols["se"].to_numpy(float)),
+    }
+
+
+def _panel_lp_iv_equals_panel_lp_when_instrument_is_regressor() -> dict:
+    """Panel LP-IV with z == x collapses to two-way FE Panel LP (β and SE)."""
+    from puremacro.lp import panel_lp, panel_lp_iv
+
+    df = lp_panel_demo()
+    ols = panel_lp(df, "y", "x", horizons=LP_HORIZONS, n_lags=LP_N_LAGS)
+    iv = panel_lp_iv(df, "y", "x", "x", horizons=LP_HORIZONS, n_lags=LP_N_LAGS)
     return {
         "beta_gap": np.abs(iv["beta"].to_numpy(float) - ols["beta"].to_numpy(float)),
         "se_gap": np.abs(iv["se"].to_numpy(float) - ols["se"].to_numpy(float)),
@@ -207,6 +275,24 @@ CASES: list[ValidationCase] = [
         notes="2SLS point estimate matches to machine precision.",
     ),
     ValidationCase(
+        id="lp.iv_se_and_mop_f_vs_reference_packages",
+        subsystem="lp",
+        title="LP-IV Bartlett-HAC standard errors and MOP effective F match linearmodels/statsmodels",
+        title_es="Los errores estándar HAC de Bartlett y el F efectivo de MOP en PL-VI coinciden con linearmodels/statsmodels",
+        mechanism=Mechanism.PACKAGE,
+        compute=_lp_iv_se_and_mop_f,
+        reference="lp:iv_se_and_mop_f_vs_reference_packages",
+        tol=Tol.TIGHT,
+        citation=(
+            "Montiel Olea & Pflueger (2013, JBES 31(3):358-369); Newey & West (1987). "
+            "Reference: linearmodels 7.0 IV2SLS.fit(cov_type='kernel', kernel='bartlett', "
+            "bandwidth=h+1, debiased=False) for 2SLS HAC SE, and statsmodels 0.14.6 "
+            "first-stage OLS.fit(cov_type='HAC', maxlags=h+1, use_correction=False) "
+            "squared excluded-instrument t-statistic for K=1 MOP effective F."
+        ),
+        notes="2SLS Bartlett-HAC SE and K=1 MOP effective F match independent packages to ~1e-12.",
+    ),
+    ValidationCase(
         id="lp.panel_two_way_fe_beta_vs_linearmodels",
         subsystem="lp",
         title="Panel LP coefficients match linearmodels PanelOLS two-way FE",
@@ -222,6 +308,23 @@ CASES: list[ValidationCase] = [
             "equals panel_lp's point estimate."
         ),
         notes="Iterative within-demeaning reproduces linearmodels' FE β to machine precision.",
+    ),
+    ValidationCase(
+        id="lp.panel_iv_vs_linearmodels_iv2sls",
+        subsystem="lp",
+        title="Panel LP-IV coefficients and entity-clustered SEs match linearmodels IV2SLS two-way FE",
+        title_es="Los coeficientes y EE agrupados por entidad de PL-VI de panel coinciden con IV2SLS bidireccional de linearmodels",
+        mechanism=Mechanism.PACKAGE,
+        compute=_panel_lp_iv_beta_and_se,
+        reference="lp:panel_iv_vs_linearmodels_iv2sls",
+        tol=Tol.TIGHT,
+        citation=(
+            "Two-way fixed-effects 2SLS with structural residuals and entity-clustered "
+            "sandwich covariance (Wooldridge 2010, §11.2). Reference: linearmodels 7.0 "
+            "IV2SLS with explicit entity and time indicator columns and "
+            "fit(cov_type='clustered', debiased=False)."
+        ),
+        notes="Horizon-matched two-way FE 2SLS β and entity-clustered SE match IV2SLS to ~1e-15.",
     ),
     ValidationCase(
         id="lp.iv_reduces_to_ols_when_instrument_is_regressor",
@@ -241,6 +344,25 @@ CASES: list[ValidationCase] = [
             "IV estimator collapses to OLS (Wooldridge 2010, §5.1)."
         ),
         notes="Cross-method identity — no external reference package needed.",
+    ),
+    ValidationCase(
+        id="lp.panel_iv_reduces_to_panel_lp_when_instrument_is_regressor",
+        subsystem="lp",
+        title="Panel LP-IV reduces to Panel LP when the instrument equals the regressor",
+        title_es="La PL-VI de panel se reduce a PL de panel cuando el instrumento coincide con el regresor",
+        mechanism=Mechanism.INTERNAL,
+        compute=_panel_lp_iv_equals_panel_lp_when_instrument_is_regressor,
+        reference=lambda: {
+            "beta_gap": np.zeros(len(LP_HORIZONS)),
+            "se_gap": np.zeros(len(LP_HORIZONS)),
+        },
+        tol=Tol.TIGHT,
+        citation=(
+            "Two-way FE 2SLS identity: when z = x, within-transformed first-stage "
+            "projection is exact (x̂_w = x_w), so β_2SLS and entity-clustered SE "
+            "collapse to two-way FE OLS (Wooldridge 2010, §11.2)."
+        ),
+        notes="Cross-method identity verifying horizon-matched two-way FE 2SLS.",
     ),
     ValidationCase(
         id="lp.panel_dk_positive_definite",

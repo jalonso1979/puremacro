@@ -67,6 +67,26 @@ but not published; their additions are included in 6.0.1, published on
   in `restore_capital_formation(..., p_fd=...)`, and anchors counterfactual
   Geary–Khamis real GDP to baseline international reference prices
   $\pi^{\text{base}}$ whenever `base_equilibrium` is supplied.
+- `lp.lp_hac`, `lp.lp_iv`, `lp.estimate_distributional_lp`, and
+  `lp.estimate_quantile_lp` enforce chronological regularity on `DatetimeIndex`
+  and `PeriodIndex` inputs (rejecting duplicate, unsorted/reversed, or gapped
+  dates by default unless `allow_index_gaps=True` with `cumulative=False`),
+  reject `±np.inf` entries and conflicting canonical/alias arguments
+  (`horizons`/`horizon`, `n_lags`/`lags`, `alpha`/`ci`), and record full
+  specification provenance in `LPResult.attrs["specification"]` and
+  `LPResult.metadata` alongside explicit weak-IV warnings in `LPResult.summary()`.
+- `lp.panel_lp_iv` estimates genuine horizon-matched two-way fixed-effects 2SLS
+  with structural second-stage residuals and entity-clustered sandwich standard
+  errors instead of a two-step fitted-regressor plug-in, and
+  `lp.estimate_quantile_lp` rejects unsupported panel (`unit_col` / `MultiIndex`)
+  and non-HAC `cov_type` inputs instead of pooling rows and mislabeling
+  `res.cov_type`.
+- `inference` lazily loads `AdaptiveTemperingSchedule`, `SMCResult`, and
+  `smc_sample` and `models` lazily loads `TradePolicySimulator` and
+  `TradePolicySimulationResult`, decoupling `import puremacro.lp` from the DSGE
+  and trade module graphs; `gar.skewt` uses its `_trapz` shim consistently for
+  `numpy>=1.26` compatibility; and Colab offload examples import
+  `from puremacro.dsge import estimate_sw07`.
 
 ## 6.3.0 (2026-11-10)
 

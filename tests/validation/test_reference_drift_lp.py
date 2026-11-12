@@ -17,6 +17,7 @@ def test_lp_goldens_match_live_references():
         _ref_lp_hac,
         _ref_lp_iv,
         _ref_panel_lp,
+        _ref_panel_lp_iv,
     )
 
     from puremacro.validation.cases_lp import (
@@ -24,6 +25,7 @@ def test_lp_goldens_match_live_references():
         LP_N_LAGS,
         lp_iv_demo,
         lp_panel_demo,
+        lp_panel_iv_demo,
         lp_ts_demo,
     )
     from puremacro.validation._goldens import load_golden
@@ -46,12 +48,25 @@ def test_lp_goldens_match_live_references():
         atol=1e-12,
     )
 
-    b_iv = _ref_lp_iv(lp_iv_demo(), "y", "x", "z", H, NL)
+    b_iv, se_iv, mop_iv = _ref_lp_iv(lp_iv_demo(), "y", "x", "z", H, NL)
     np.testing.assert_allclose(
         b_iv,
         np.asarray(load_golden("lp:iv_beta_vs_linearmodels_iv2sls")["beta"], float),
         rtol=1e-9,
         atol=1e-12,
+    )
+    iv_se_g = load_golden("lp:iv_se_and_mop_f_vs_reference_packages")
+    np.testing.assert_allclose(
+        se_iv,
+        np.asarray(iv_se_g["se"], float),
+        rtol=1e-9,
+        atol=1e-12,
+    )
+    np.testing.assert_allclose(
+        mop_iv,
+        np.asarray(iv_se_g["mop_f"], float),
+        rtol=1e-9,
+        atol=1e-10,
     )
 
     b_panel = _ref_panel_lp(lp_panel_demo(), "y", "x", H, NL)
@@ -60,6 +75,21 @@ def test_lp_goldens_match_live_references():
         np.asarray(
             load_golden("lp:panel_two_way_fe_beta_vs_linearmodels")["beta"], float
         ),
+        rtol=1e-9,
+        atol=1e-12,
+    )
+
+    b_pan_iv, se_pan_iv = _ref_panel_lp_iv(lp_panel_iv_demo(), "y", "x", "z", H, NL)
+    pan_iv_g = load_golden("lp:panel_iv_vs_linearmodels_iv2sls")
+    np.testing.assert_allclose(
+        b_pan_iv,
+        np.asarray(pan_iv_g["beta"], float),
+        rtol=1e-9,
+        atol=1e-12,
+    )
+    np.testing.assert_allclose(
+        se_pan_iv,
+        np.asarray(pan_iv_g["se"], float),
         rtol=1e-9,
         atol=1e-12,
     )

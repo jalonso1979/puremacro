@@ -35,9 +35,10 @@ from .diagnostics import durbin_watson
 # products, rotation / feasible-onset references, and the GLS matched filter on
 # discrete ice-core samples. Exposed as a submodule; the headline callables
 # are also re-exported here.
+from typing import TYPE_CHECKING
+
 from . import proxy
 from .proxy import effective_sample_size, matched_filter, stacked_matched_filter
-from .smc import AdaptiveTemperingSchedule, SMCResult, smc_sample
 # Generic GMM. As with newey_west above, load the submodule first so that a
 # later ``import puremacro.inference.gmm`` finds it in sys.modules and does
 # not rebind this package attribute: ``puremacro.inference.gmm`` is the
@@ -47,17 +48,36 @@ from .gmm import gmm
 from ._results import GMMFitResult
 from .giv import GIVResult, estimate_giv
 
-# quandt_andrews_supF is loaded lazily because quandt_andrews.py depends on
-# puremacro.tests.breaks, which can fail to resolve when the project root is
-# on sys.path and creates a namespace-package shadow (e.g. pytest rootdir
-# injection).  Use __getattr__ (PEP 562) so the import is deferred until first
-# access, at which point sys.path is clean.
+if TYPE_CHECKING:
+    from .quandt_andrews import quandt_andrews_supF as quandt_andrews_supF
+    from .smc import (
+        AdaptiveTemperingSchedule as AdaptiveTemperingSchedule,
+        SMCResult as SMCResult,
+        smc_sample as smc_sample,
+    )
+
+_LAZY_SMC = ("AdaptiveTemperingSchedule", "SMCResult", "smc_sample")
+
+
+# quandt_andrews_supF and SMC symbols are loaded lazily via PEP 562:
+# - quandt_andrews depends on puremacro.tests.breaks (avoids namespace shadow);
+# - smc depends on puremacro.dsge.priors, so deferring it keeps puremacro.lp /
+#   puremacro.inference imports decoupled from the 73-module DSGE & trade graphs.
 def __getattr__(name: str):
     if name == "quandt_andrews_supF":
         from .quandt_andrews import quandt_andrews_supF
         globals()["quandt_andrews_supF"] = quandt_andrews_supF
         return quandt_andrews_supF
+    if name in _LAZY_SMC:
+        from . import smc as _smc_mod
+        for attr in _LAZY_SMC:
+            globals()[attr] = getattr(_smc_mod, attr)
+        return globals()[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(__all__))
 
 __all__ = [
     "newey_west",

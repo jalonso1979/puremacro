@@ -73,7 +73,7 @@ class LPResult(pd.DataFrame):
     """
 
     _metadata = [
-        "y_name", "x_name", "method", "ci_level", "is_cumulative",
+        "y_name", "x_name", "method", "ci_level", "is_cumulative", "_spec",
         # la_lp / la_lp_iv lag specification (also mirrored in ``attrs``)
         "n_lags", "extra_lags", "control_lags",
         # smooth_lp estimation metadata (must survive pandas operations)
@@ -86,6 +86,19 @@ class LPResult(pd.DataFrame):
     @property
     def _constructor(self):
         return LPResult
+
+    def __finalize__(self, other: Any, method: str | None = None, **kwargs: Any) -> LPResult:
+        super().__finalize__(other, method=method, **kwargs)
+        spec = getattr(self, "_spec", None)
+        if isinstance(spec, dict) and spec and "specification" not in self.attrs:
+            self.attrs["specification"] = dict(spec)
+        return self
+
+    def _set_specification(self, spec: dict[str, Any]) -> None:
+        """Attach reconstructible specification metadata to ``_spec`` and ``attrs``."""
+        clean = dict(spec)
+        object.__setattr__(self, "_spec", clean)
+        self.attrs["specification"] = dict(clean)
 
     # ------------------------------------------------------------------
     # Column layout helpers
@@ -197,12 +210,22 @@ class LPResult(pd.DataFrame):
 
     @property
     def metadata(self) -> dict[str, Any]:
-        """Estimation metadata dictionary."""
-        return {
+        """Estimation metadata and specification provenance dictionary."""
+        base: dict[str, Any] = {
             "y_name": getattr(self, "y_name", None),
             "x_name": getattr(self, "x_name", None),
             "method": getattr(self, "method", "LP"),
         }
+        ci_level = getattr(self, "ci_level", None)
+        if ci_level is not None:
+            base["ci_level"] = float(ci_level)
+        spec = getattr(self, "_spec", None) or self.attrs.get("specification")
+        if isinstance(spec, dict) and spec:
+            merged = dict(spec)
+            merged.update({k: v for k, v in base.items() if v is not None})
+            merged["specification"] = dict(spec)
+            return merged
+        return base
 
     def to_frame(self) -> pd.DataFrame:
         """Convert to a standard pandas.DataFrame."""
@@ -230,6 +253,41 @@ class LPResult(pd.DataFrame):
 
         return plot_irf_single(self, title=title, ylabel=ylabel, scale=scale, ax=ax)
 
+    def _weak_iv_footer(self) -> str | None:
+        """Build a weak-IV diagnostic warning line when first-stage F falls below threshold."""
+        if "mop_f" in self.columns and "mop_cv_10" in self.columns:
+            mop_vals = pd.to_numeric(self["mop_f"], errors="coerce")
+            cv_vals = pd.to_numeric(self["mop_cv_10"], errors="coerce")
+            mask = mop_vals.notna() & cv_vals.notna() & (mop_vals < cv_vals)
+            if bool(mask.any()):
+                h_vals = self.loc[mask, "h"].astype(int).tolist() if "h" in self.columns else list(self.index[mask])
+                min_f = float(mop_vals[mask].min())
+                cv_ref = float(cv_vals[mask].iloc[0])
+                h_str = ", ".join(str(h) for h in h_vals)
+                if "ar_lo" in self.columns:
+                    return (
+                        f"Weak-IV warning: MOP effective F < 10% critical value ({cv_ref:.2f}) "
+                        f"at h=[{h_str}] (min F={min_f:.2f}); use ar_lo/ar_hi/ar_set_type "
+                        "rather than normal Wald bands."
+                    )
+                return (
+                    f"Weak-IV warning: MOP effective F < 10% critical value ({cv_ref:.2f}) "
+                    f"at h=[{h_str}] (min F={min_f:.2f}); re-run with anderson_rubin=True "
+                    "for weak-IV-robust confidence sets."
+                )
+        elif "first_stage_f" in self.columns:
+            f_vals = pd.to_numeric(self["first_stage_f"], errors="coerce")
+            mask = f_vals.notna() & (f_vals < 10.0)
+            if bool(mask.any()):
+                h_vals = self.loc[mask, "h"].astype(int).tolist() if "h" in self.columns else list(self.index[mask])
+                min_f = float(f_vals[mask].min())
+                h_str = ", ".join(str(h) for h in h_vals)
+                return (
+                    f"Weak-IV warning: first-stage F < 10 at h=[{h_str}] "
+                    f"(min F={min_f:.2f}); normal 2SLS Wald bands may under-cover."
+                )
+        return None
+
     def summary(self) -> str:
         """Formatted text summary of the estimates actually present.
 
@@ -244,6 +302,7 @@ class LPResult(pd.DataFrame):
         labs = _coef_labels(self.columns)
         multi = labs not in ([""], [])
         ci_level = getattr(self, "ci_level", None)
+        spec = getattr(self, "_spec", None) or self.attrs.get("specification")
         head = f"Local Projection Result (method: {method})"
         info = []
         y_name = getattr(self, "y_name", None)
@@ -254,6 +313,29 @@ class LPResult(pd.DataFrame):
             info.append(f"bands: {100 * float(ci_level):.0f}%")
         if multi:
             info.append("coefficients: " + ", ".join(labs))
+        if isinstance(spec, dict) and spec:
+            if "n_lags" in spec and spec["n_lags"] is not None:
+                info.append(f"lags: {int(spec['n_lags'])}")
+            ctls = spec.get("controls") or []
+            if ctls:
+                if len(ctls) <= 3:
+                    info.append("controls: " + ", ".join(str(c) for c in ctls))
+                else:
+                    shown = ", ".join(str(c) for c in ctls[:3])
+                    info.append(f"controls: {len(ctls)} ({shown}, ...)")
+            cov_desc = spec.get("cov_summary")
+            if cov_desc:
+                info.append(f"SE: {cov_desc}")
+            n_map = spec.get("n_obs_by_horizon")
+            if isinstance(n_map, dict) and n_map:
+                if "h" in self.columns:
+                    active_hs = [int(h) for h in self["h"].dropna().tolist()]
+                    counts = [int(n_map[h]) for h in active_hs if h in n_map and int(n_map[h]) > 0]
+                else:
+                    counts = [int(v) for v in n_map.values() if int(v) > 0]
+                if counts:
+                    lo_n, hi_n = min(counts), max(counts)
+                    info.append(f"N: {lo_n}" if lo_n == hi_n else f"N: {lo_n}..{hi_n}")
         lines = [head]
         if info:
             lines.append("   ".join(info))
@@ -316,6 +398,9 @@ class LPResult(pd.DataFrame):
                 lines.append(line.rstrip())
         lines.append("Significance: *** p<0.01, ** p<0.05, * p<0.10 (two-sided normal); "
                      "band-only estimators: * = band excludes 0")
+        weak_note = self._weak_iv_footer()
+        if weak_note is not None:
+            lines.append(weak_note)
         return "\n".join(lines)
 
     def to_markdown(self, index: bool = False) -> str:

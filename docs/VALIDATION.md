@@ -61,13 +61,13 @@ Tolerance tiers: `EXACT` (rtol 1e-10) · `TIGHT` (1e-6) · `NUMERIC` (1e-2) ·
 
 ## Coverage
 
-**113 cases across 16 subsystems — all passing.** By mechanism: internal 62,
-analytical 31, package 13, scipy 5, published 2.
+**116 cases across 16 subsystems — all passing.** By mechanism: internal 63,
+analytical 31, package 15, scipy 5, published 2.
 
 | Subsystem | Cases | Reference(s) |
 |---|---|---|
 | `var` | 15 | Cholesky IRF vs statsmodels `orth_irfs`; FEVD-sums-to-1 and stability ⇔ companion spectral radius < 1 (identities); narrative sign restrictions; Minnesota BVAR posterior means vs hand-built Theil (λ₂ = 0.5) and Bańbura–Giannone–Reichlin eq. (5) Normal-inverse-Wishart closed forms; GVAR identities — zero trade weights decouple the country blocks, the solved global system reproduces them, the persistence profile is 1 at impact, normalised GFEVD rows sum to 1, and a one-country GVAR's GIRFs equal the `var` generalised IRFs |
-| `lp` | 6 | Jordà LP coefficients/HAC SE vs statsmodels OLS-HAC; LP-IV vs linearmodels `IV2SLS`; two-way FE vs `PanelOLS`; IV-reduces-to-OLS identity |
+| `lp` | 9 | Jordà LP coefficients/HAC SE vs statsmodels OLS-HAC; LP-IV β, Bartlett-HAC SE, and MOP effective F vs linearmodels `IV2SLS` / statsmodels HAC; two-way FE `panel_lp` vs `PanelOLS` and `panel_lp_iv` β/clustered SE vs `IV2SLS`; single-series and panel IV-reduces-to-OLS identities |
 | `garch` | 7 | GARCH(1,1) params/vols vs `arch`; simulate-then-recover; GARCH-MIDAS variance decomposition identity |
 | `inference` | 9 | Newey–West / OLS-HAC SE vs statsmodels HAC; Stock–Yogo (2002, NBER TWP 284) Tables 1–2 TSLS bias and size critical values (published); Kiefer–Vogelsang (2005) Table I Bartlett fixed-b critical values (published); sup-t plug-in critical value vs its i.i.d. closed form; sup-t monotonicity over pointwise critical values |
 | `state_space` | 6 | Kalman filter/smoother states + log-likelihood vs statsmodels state space; smoother-variance identities |

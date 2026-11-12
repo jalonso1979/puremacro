@@ -33,8 +33,81 @@ from scipy.stats import norm
 
 from puremacro._linalg import inv_xtx
 from puremacro.inference.dk import driscoll_kraay
+from puremacro.lp._common import (
+    _DefaultFloat,
+    _DefaultHorizons,
+    _DefaultInt,
+    _is_int_like,
+    check_regular_index,
+    validate_lp_columns_finite,
+)
 from puremacro.lp._panel_helpers import two_way_fe_within
 from puremacro.reports import _df_to_latex, _df_to_markdown, _df_to_typst
+
+_DEFAULT_HORIZONS_16: Iterable[int] = _DefaultHorizons(16)
+_DEFAULT_N_LAGS_2: int = _DefaultInt(2)
+_DEFAULT_CI_90: float = _DefaultFloat(0.90)
+
+
+def _resolve_distributional_kwargs(
+    horizons: Iterable[int],
+    n_lags: int,
+    ci: float,
+    *,
+    lags: int | None = None,
+    horizon: int | None = None,
+    alpha: float | None = None,
+    name: str,
+) -> tuple[list[int], int, float]:
+    """Validate and resolve canonical vs alias options for distributional/quantile LPs."""
+    horizons_explicit = type(horizons) is not _DefaultHorizons
+    n_lags_explicit = type(n_lags) is not _DefaultInt
+    ci_explicit = type(ci) is not _DefaultFloat
+
+    if not _is_int_like(n_lags) or int(n_lags) < 0:
+        raise ValueError(f"{name}: lags must be a non-negative integer; got {n_lags!r}")
+    if not (0.0 < float(ci) < 1.0):
+        raise ValueError(f"{name}: ci must be a coverage probability in (0, 1); got {ci!r}")
+    h_list = [int(h) for h in horizons]
+
+    if lags is not None:
+        if not _is_int_like(lags) or int(lags) < 0:
+            raise ValueError(f"{name}: lags must be a non-negative integer; got {lags!r}")
+        if n_lags_explicit and int(n_lags) != int(lags):
+            raise ValueError(
+                f"{name}: received conflicting lag arguments n_lags={int(n_lags)} "
+                f"and lags={int(lags)}; pass only one."
+            )
+        n_lags = int(lags)
+
+    if horizon is not None:
+        if not _is_int_like(horizon) or int(horizon) < 0:
+            raise ValueError(
+                f"{name}: horizon must be a non-negative integer; got {horizon!r}"
+            )
+        alias_hs = list(range(0, int(horizon) + 1))
+        if horizons_explicit and h_list != alias_hs:
+            raise ValueError(
+                f"{name}: received conflicting horizon arguments "
+                f"horizons={h_list!r} and horizon={int(horizon)}; pass only one."
+            )
+        h_list = alias_hs
+
+    if alpha is not None:
+        if not (0.0 < float(alpha) < 1.0):
+            raise ValueError(
+                f"{name}: alpha must be a two-sided significance level in (0, 1); got {alpha!r}"
+            )
+        implied_ci = 1.0 - float(alpha)
+        if ci_explicit and abs(float(ci) - implied_ci) > 1e-12:
+            raise ValueError(
+                f"{name}: received conflicting confidence arguments "
+                f"ci={float(ci)} and alpha={float(alpha)} "
+                f"(implies ci={implied_ci:.6g}); pass only one."
+            )
+        ci = implied_ci
+
+    return h_list, int(n_lags), float(ci)
 
 __all__ = [
     "DistributionalBridgeResult",
@@ -347,13 +420,13 @@ def estimate_distributional_lp(
     shock: str,
     bin_cols: Sequence[str],
     *,
-    horizons: Iterable[int] = range(0, 16),
-    n_lags: int = 2,
+    horizons: Iterable[int] = _DEFAULT_HORIZONS_16,
+    n_lags: int = _DEFAULT_N_LAGS_2,
     controls: Sequence[str] = (),
     cov_type: str = "hac",
     time_col: str | None = None,
     unit_col: str | None = None,
-    ci: float = 0.90,
+    ci: float = _DEFAULT_CI_90,
     distribution_type: str = "shares",
     bin_widths: Sequence[float] | None = None,
     enforce_adding_up: bool = True,
@@ -419,25 +492,27 @@ def estimate_distributional_lp(
         Container with estimated IRF matrix, standard errors, confidence bands,
         and adding-up verification.
     """
-    if lags is not None:
-        n_lags = int(lags)
-    if horizon is not None:
-        horizons = range(0, int(horizon) + 1)
-    if alpha is not None:
-        ci = 1.0 - float(alpha)
+    h_list, n_lags, ci = _resolve_distributional_kwargs(
+        horizons,
+        n_lags,
+        ci,
+        lags=lags,
+        horizon=horizon,
+        alpha=alpha,
+        name="estimate_distributional_lp",
+    )
 
     bins_tuple = tuple(str(b) for b in bin_cols)
     B = len(bins_tuple)
     if B < 2:
         raise ValueError(f"bin_cols must contain at least 2 bins, got {B}")
 
-    h_list = [int(h) for h in horizons]
     H = len(h_list)
     if H == 0:
         raise ValueError("horizons cannot be empty.")
 
     ctl_list = [str(c) for c in controls]
-    cov_type = str(cov_type).lower().strip()
+    cov_type = str(cov_type).lower().strip().replace("-", "_")
     if cov_type in ("newey_west", "nw"):
         cov_type = "hac"
     if cov_type not in ("hac", "driscoll_kraay"):
@@ -469,6 +544,13 @@ def estimate_distributional_lp(
         df_work = df.copy()
         if not (isinstance(df_work.index, pd.MultiIndex) and df_work.index.nlevels == 2):
             df_work = df_work.set_index([u_name, t_name])
+        if df_work.index.has_duplicates:
+            raise ValueError(
+                "estimate_distributional_lp: panel index contains duplicate (unit, time) rows."
+            )
+        validate_lp_columns_finite(
+            df_work, [shock, *bins_tuple, *ctl_list], "estimate_distributional_lp"
+        )
         df_work = df_work.sort_index()
 
         grouped = df_work.groupby(level=0)
@@ -536,7 +618,24 @@ def estimate_distributional_lp(
 
     else:
         # Time-series dimension
+        if unit_col is not None or isinstance(df.index, pd.MultiIndex):
+            raise ValueError(
+                "estimate_distributional_lp: panel input requires both unit_col and time_col "
+                "(or a 2-level MultiIndex with cov_type='driscoll_kraay')."
+            )
         data = df.copy()
+        if time_col is not None:
+            if time_col not in data.columns:
+                raise KeyError(
+                    f"estimate_distributional_lp: time_col={time_col!r} not found in DataFrame."
+                )
+            data = data.set_index(time_col)
+        check_regular_index(
+            data.index, "estimate_distributional_lp", cumulative=False, allow_gaps=False
+        )
+        validate_lp_columns_finite(
+            data, [shock, *bins_tuple, *ctl_list], "estimate_distributional_lp"
+        )
         for lag in range(1, n_lags + 1):
             data[f"__x_L{lag}__"] = data[shock].shift(lag)
             for c in ctl_list:
@@ -550,7 +649,7 @@ def estimate_distributional_lp(
 
         for i_h, h in enumerate(h_list):
             y_dict = {
-                f"__dy_{b_col}_h{h}__": df[b_col].shift(-h) - df[b_col].shift(1)
+                f"__dy_{b_col}_h{h}__": data[b_col].shift(-h) - data[b_col].shift(1)
                 for b_col in bins_tuple
             }
             y_df_h = pd.DataFrame(y_dict, index=data.index)
@@ -648,18 +747,18 @@ def estimate_quantile_lp(
     y: str | None = None,
     x: str | None = None,
     quantiles: Sequence[float] = (0.10, 0.25, 0.50, 0.75, 0.90),
-    horizons: Iterable[int] = range(0, 16),
-    n_lags: int = 2,
+    horizons: Iterable[int] = _DEFAULT_HORIZONS_16,
+    n_lags: int = _DEFAULT_N_LAGS_2,
     controls: Sequence[str] = (),
     cov_type: str = "hac",
     time_col: str | None = None,
     unit_col: str | None = None,
-    ci: float = 0.90,
+    ci: float = _DEFAULT_CI_90,
     lags: int | None = None,
     horizon: int | None = None,
     alpha: float | None = None,
 ) -> DistributionalLPResult:
-    r"""Estimate horizon-by-horizon quantile local projections for an outcome variable.
+    r"""Estimate horizon-by-horizon quantile local projections for a single time series.
 
     For each quantile $\tau \in (0, 1)$ and horizon $h \in \{0, 1, \dots, H-1\}$:
 
@@ -673,7 +772,7 @@ def estimate_quantile_lp(
     Parameters
     ----------
     df : pd.DataFrame
-        Data containing shock, outcome, and controls.
+        Single-series time-series data containing shock, outcome, and controls.
     shock : str | None, optional
         Focal shock column (alias `x`).
     outcome : str | None, optional
@@ -691,11 +790,14 @@ def estimate_quantile_lp(
     controls : Sequence[str], default ()
         Additional macroeconomic controls.
     cov_type : str, default "hac"
-        Covariance type ("hac" | "driscoll_kraay").
+        Covariance type ("hac" | "newey_west" | "nw"). Panel covariance types
+        such as `"driscoll_kraay"` are not supported and raise `ValueError`.
     time_col : str | None, default None
-        Time identifier column.
+        Optional single-series time identifier column validated for chronological
+        regularity.
     unit_col : str | None, default None
-        Panel identifier column.
+        Must be `None`; panel quantile LP is not implemented and passing
+        `unit_col` or a `MultiIndex` raises `ValueError`.
     ci : float, default 0.90
         Confidence coverage level.
 
@@ -706,24 +808,53 @@ def estimate_quantile_lp(
     """
     from puremacro.lp.quantile import _qreg
 
+    if shock is not None and x is not None and shock != x:
+        raise ValueError(
+            f"estimate_quantile_lp: received conflicting shock arguments "
+            f"shock={shock!r} and x={x!r}; pass only one."
+        )
+    if outcome is not None and y is not None and outcome != y:
+        raise ValueError(
+            f"estimate_quantile_lp: received conflicting outcome arguments "
+            f"outcome={outcome!r} and y={y!r}; pass only one."
+        )
     focal_shock = shock if shock is not None else x
     focal_outcome = outcome if outcome is not None else y
     if focal_shock is None or focal_outcome is None:
         raise ValueError("Must provide both shock (or x) and outcome (or y).")
 
-    if lags is not None:
-        n_lags = int(lags)
-    if horizon is not None:
-        horizons = range(0, int(horizon) + 1)
-    if alpha is not None:
-        ci = 1.0 - float(alpha)
+    if unit_col is not None or isinstance(df.index, pd.MultiIndex):
+        raise ValueError(
+            "estimate_quantile_lp: panel inputs (unit_col or MultiIndex) are not "
+            "supported; estimate_quantile_lp estimates single-series quantile local projections."
+        )
+
+    cov_norm = str(cov_type).lower().strip().replace("-", "_")
+    if cov_norm in ("hac", "newey_west", "nw"):
+        cov_type = "hac"
+    else:
+        raise ValueError(
+            f"estimate_quantile_lp: cov_type={cov_type!r} is not supported; "
+            "only time-series Newey-West HAC ('hac' / 'newey_west') is implemented."
+        )
+
+    h_list, n_lags, ci = _resolve_distributional_kwargs(
+        horizons,
+        n_lags,
+        ci,
+        lags=lags,
+        horizon=horizon,
+        alpha=alpha,
+        name="estimate_quantile_lp",
+    )
+    if len(h_list) == 0:
+        raise ValueError("horizons cannot be empty.")
 
     tau_list = [float(q) for q in quantiles]
     for q in tau_list:
         if not (0.0 < q < 1.0):
             raise ValueError(f"Quantiles must lie strictly in (0, 1), got {q}")
 
-    h_list = [int(h) for h in horizons]
     H = len(h_list)
     Q = len(tau_list)
     q_names = tuple(f"q{int(round(q * 100)):02d}" for q in tau_list)
@@ -735,6 +866,19 @@ def estimate_quantile_lp(
     se_matrix = np.zeros((H, Q), dtype=np.float64)
 
     data = df.copy()
+    if time_col is not None:
+        if time_col not in data.columns:
+            raise KeyError(
+                f"estimate_quantile_lp: time_col={time_col!r} not found in DataFrame "
+                f"(available: {list(data.columns)!r})."
+            )
+        data = data.set_index(time_col)
+    check_regular_index(
+        data.index, "estimate_quantile_lp", cumulative=False, allow_gaps=False
+    )
+    validate_lp_columns_finite(
+        data, [focal_shock, focal_outcome, *ctl_list], "estimate_quantile_lp"
+    )
     for lag in range(1, n_lags + 1):
         data[f"__x_L{lag}__"] = data[focal_shock].shift(lag)
         data[f"__y_L{lag}__"] = data[focal_outcome].shift(lag)

@@ -59,8 +59,9 @@ res.plot(title="Respuesta del PIB ante Choque Estructural")
 | `res.t_stat` | $\hat{\beta}_h / \hat{\text{se}}$ (NaN donde no hay error estándar) |
 | `res.horizons` | Arreglo de horizontes evaluados `[0, 1, ..., H]` |
 | `res.labels` | `[]` para resultados de un solo coeficiente; `['H', 'L']` / `['pos', 'neg']` en resultados por régimen o signo |
+| `res.attrs["specification"]` / `res.metadata` | Diccionario reconstruible con la procedencia completa de la especificación (variables, instrumentos, controles, rezagos, horizontes, estimando, núcleo/ancho de banda HAC, `N` y fechas muestrales por horizonte, y alertas de instrumentos débiles; se conserva al recortar el DataFrame) |
 | `res.plot()` | Genera el gráfico de la FRI con bandas de confianza sombreadas (una línea y banda por régimen en resultados por régimen; una línea por cuantil en `lp_quantile`) |
-| `res.summary()` | Resumen tabular en texto plano con indicadores de significancia: `***` p<0,01, `**` p<0,05, `*` p<0,10 (contraste z normal bilateral); en estimadores que solo reportan bandas, un `*` marca las bandas que excluyen el cero |
+| `res.summary()` | Resumen tabular autodescriptivo con metadatos de rezagos/controles/EE/muestra, indicadores de significancia (`***` p<0,01, `**` p<0,05, `*` p<0,10) y advertencia explícita al pie cuando `mop_f < mop_cv_10` o `first_stage_f < 10` |
 | `res.to_markdown()` | Renderiza la tabla formateada para Quarto, GitHub o notas de investigación |
 | `res.to_latex()` | Genera un entorno `\begin{tabular}` limpio para LaTeX |
 | `res.to_typst()` | Genera un bloque `#table(...)` nativo para Typst |
@@ -262,9 +263,9 @@ print(st[["beta_H", "beta_L", "first_stage_f_H", "first_stage_f_L", "p_diff_HL"]
 
 ---
 
-## 4. Proyecciones locales para paneles (`panel_lp` y `panel_lp_dk`)
+## 4. Proyecciones locales para paneles (`panel_lp`, `panel_lp_dk` y `panel_lp_iv`)
 
-Estime proyecciones locales sobre paneles de datos con efectos fijos bidireccionales y errores estándar agrupados por unidad (`panel_lp`) o robustos a correlación espacial y temporal mediante Driscoll y Kraay (1998) (`panel_lp_dk`, o `panel_lp(..., cov_type="driscoll-kraay")`).
+Estime proyecciones locales sobre paneles de datos con efectos fijos bidireccionales y errores estándar agrupados por unidad (`panel_lp`), robustos a correlación espacial y temporal mediante Driscoll y Kraay (1998) (`panel_lp_dk`, o `panel_lp(..., cov_type="driscoll-kraay")`), o MC2E/2SLS bidireccional exacto por horizonte (`panel_lp_iv`, con residuos estructurales 2SLS y errores estándar agrupados por entidad).
 
 El panel puede ser un DataFrame **largo** cuyas columnas identifican la unidad y el periodo (`unit_col=` / `time_col=`), o un DataFrame ya indexado por un `MultiIndex` `(unidad, tiempo)` cuyos niveles se nombran con `entity_level=` / `time_level=`:
 
@@ -315,4 +316,19 @@ Todos los estimadores exportados por `puremacro.lp` (incluidos `lp_state_dep` y 
 | `horizon` | `horizons` | `20`, es decir $h = 0 \dots 20$ — salvo `lp_iv_lewbel` y `lp_did` (`12`) | Horizonte máximo de proyección (calcula $h = 0 \dots H$) |
 | `ci` | `alpha` | `0.90` — salvo `smooth_lp` (`0.95`) | Cobertura del intervalo de confianza (p. ej. `ci=0.95` $\leftrightarrow$ `alpha=0.05`) |
 
-`ci` y `alpha` deben ser probabilidades en $(0, 1)$: pasar un porcentaje por error (`ci=90`) o `alpha=1.5` lanza un `ValueError` en lugar de producir bandas NaN en silencio. `lp_state_dep` acepta además `state_var=` como alias de `state=`.
+`ci` y `alpha` deben ser probabilidades en $(0, 1)$: pasar un porcentaje por error (`ci=90`) o `alpha=1.5` lanza un `ValueError` en lugar de producir bandas NaN en silencio. Pasar simultáneamente un parámetro canónico y su alias con valores distintos (por ejemplo `n_lags=4, lags=1` o `alpha=0.05, ci=0.90`) lanza `ValueError` en lugar de sobrescribir uno en silencio. `lp_state_dep` acepta además `state_var=` como alias de `state=`.
+
+### Contratos de índice cronológico y procedencia de especificación
+
+Cuando `df` (o una `Series`) tiene un `DatetimeIndex` o `PeriodIndex`, `lp_hac`, `lp_iv`, `estimate_distributional_lp` y `estimate_quantile_lp` verifican la regularidad cronológica antes de desplazar filas:
+
+- **Fechas duplicadas, desordenadas o invertidas** lanzan `ValueError` de inmediato (sugiriendo `df = df.sort_index()`).
+- **Saltos temporales (huecos)** lanzan `ValueError` por defecto para evitar que `.shift(-h)` y `.shift(lag)` crucen trimestres o meses omitidos en silencio. Para excluir un episodio, fije las series en `NaN` conservando las filas, o pase `allow_index_gaps=True` en `lp_hac` / `lp_iv` no acumulados únicamente cuando las columnas rezagadas/adelantadas ya hayan sido preconstruidas (`cumulative=True` exige siempre espaciado sin huecos).
+- **Valores `±np.inf`** lanzan `ValueError` indicando la columna y la fecha afectadas; `NaN` sigue representando observaciones faltantes omitidas por horizonte.
+
+```python
+# Inspeccionar la procedencia completa de la especificación en LPResult
+spec = res.attrs["specification"]
+assert spec["estimator"] == "lp_hac"
+assert spec["n_lags"] == 4 and spec["bandwidth_rule"] == "h + 1"
+```

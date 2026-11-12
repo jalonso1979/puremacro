@@ -231,7 +231,7 @@ class SkewTFit:
         q = self.ppf(tau)
         xs = np.linspace(self.mu - 30 * self.sigma, q, n_grid)
         f = self.pdf(xs)
-        num = float(np.trapezoid(xs * f, xs))
+        num = float(_trapz(xs * f, xs))
         return num / max(tau, 1e-12)
 
     def downside_entropy(self, *, n_grid: int = 500) -> float:
@@ -253,7 +253,7 @@ class SkewTFit:
         q_med = self.ppf(0.5)
         xs = np.linspace(self.mu - 30 * self.sigma, q_med, n_grid)
         f = np.maximum(self.pdf(xs), 1e-12)
-        return float(np.trapezoid(-np.log(f) * f, xs))
+        return float(_trapz(-np.log(f) * f, xs))
 
 
 def fit_skewt_to_quantiles(

@@ -19,6 +19,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import statsmodels
 import statsmodels.api as sm
 import linearmodels
@@ -30,6 +31,7 @@ from puremacro.validation.cases_lp import (
     LP_N_LAGS,
     lp_iv_demo,
     lp_panel_demo,
+    lp_panel_iv_demo,
     lp_ts_demo,
 )
 
@@ -59,8 +61,8 @@ def _ref_lp_hac(df, y, x, horizons, n_lags):
 
 
 def _ref_lp_iv(df, y, x, z, horizons, n_lags):
-    """linearmodels IV2SLS β on the endogenous shock (lags are exogenous)."""
-    betas = []
+    """linearmodels IV2SLS β and Bartlett-HAC SE + statsmodels HAC first-stage F."""
+    betas, ses, mop_fs = [], [], []
     for h in horizons:
         sub = df[[y, x, z]].copy()
         sub["dy_h"] = sub[y].shift(-h) - sub[y].shift(1)
@@ -79,9 +81,70 @@ def _ref_lp_iv(df, y, x, z, horizons, n_lags):
             exog=sub[exog_cols],
             endog=sub[[x]],
             instruments=sub[[z]],
-        ).fit(cov_type="unadjusted")
+        ).fit(
+            cov_type="kernel",
+            kernel="bartlett",
+            bandwidth=h + 1,
+            debiased=False,
+        )
         betas.append(float(fit.params[x]))
-    return np.asarray(betas)
+        ses.append(float(fit.std_errors[x]))
+
+        X_fs = np.column_stack(
+            [sub["const"].to_numpy(), sub[z].to_numpy()]
+            + [sub[c].to_numpy() for c in exog_cols[1:]]
+        )
+        fs_fit = sm.OLS(sub[x].to_numpy(), X_fs).fit(
+            cov_type="HAC", cov_kwds={"maxlags": h + 1, "use_correction": False}
+        )
+        mop_fs.append(float(fs_fit.tvalues[1] ** 2))
+    return np.asarray(betas), np.asarray(ses), np.asarray(mop_fs)
+
+
+def _ref_panel_lp_iv(df_wide, y, x, z, horizons, n_lags):
+    """linearmodels IV2SLS with explicit entity + time indicators and entity clustering."""
+    df = df_wide.copy()
+    g = df.groupby(level="code")
+    for lag in range(1, n_lags + 1):
+        df[f"xL{lag}"] = g[x].shift(lag)
+        df[f"yL{lag}"] = g[y].shift(lag)
+    betas, ses = [], []
+    for h in horizons:
+        d = df.copy()
+        d["dy_h"] = g[y].shift(-h) - g[y].shift(1)
+        lag_cols = [
+            col
+            for lag in range(1, n_lags + 1)
+            for col in (f"xL{lag}", f"yL{lag}")
+        ]
+        s = d[["dy_h", x, z, *lag_cols]].dropna()
+        ent = s.index.get_level_values("code")
+        tim = s.index.get_level_values("date")
+        fe_dummies = pd.concat(
+            [
+                pd.get_dummies(ent, prefix="e", drop_first=False, dtype=float).set_index(
+                    s.index
+                ),
+                pd.get_dummies(tim, prefix="t", drop_first=True, dtype=float).set_index(
+                    s.index
+                ),
+            ],
+            axis=1,
+        )
+        exog = pd.concat([s[lag_cols], fe_dummies], axis=1)
+        fit = IV2SLS(
+            dependent=s["dy_h"],
+            exog=exog,
+            endog=s[[x]],
+            instruments=s[[z]],
+        ).fit(
+            cov_type="clustered",
+            clusters=pd.Series(ent, index=s.index),
+            debiased=False,
+        )
+        betas.append(float(fit.params[x]))
+        ses.append(float(fit.std_errors[x]))
+    return np.asarray(betas), np.asarray(ses)
 
 
 def _ref_panel_lp(df_wide, y, x, horizons, n_lags):
@@ -112,8 +175,9 @@ def main() -> None:
     H, NL = LP_HORIZONS, LP_N_LAGS
 
     b_hac, se_hac = _ref_lp_hac(lp_ts_demo(), "y", "x", H, NL)
-    b_iv = _ref_lp_iv(lp_iv_demo(), "y", "x", "z", H, NL)
+    b_iv, se_iv, mop_iv = _ref_lp_iv(lp_iv_demo(), "y", "x", "z", H, NL)
     b_panel = _ref_panel_lp(lp_panel_demo(), "y", "x", H, NL)
+    b_pan_iv, se_pan_iv = _ref_panel_lp_iv(lp_panel_iv_demo(), "y", "x", "z", H, NL)
 
     out = {
         "_meta": {
@@ -121,19 +185,27 @@ def main() -> None:
             "reference": (
                 f"statsmodels {statsmodels.__version__} OLS(cov_type='HAC', "
                 f"use_correction=False); linearmodels {linearmodels.__version__} "
-                "IV2SLS and PanelOLS(EntityEffects+TimeEffects)"
+                "IV2SLS (kernel Bartlett & entity-clustered) and PanelOLS(EntityEffects+TimeEffects)"
             ),
             "dgp": (
                 "puremacro.validation.cases_lp: lp_ts_demo (seed=424242), "
-                "lp_iv_demo (seed=20260531), lp_panel_demo (seed=7777); "
-                f"horizons={H}, n_lags={NL}"
+                "lp_iv_demo (seed=20260531), lp_panel_demo (seed=7777), "
+                f"lp_panel_iv_demo (seed=7788); horizons={H}, n_lags={NL}"
             ),
             "regenerate": "python tools/gen_validation_goldens_lp.py",
         },
         "jorda_hac_beta_vs_statsmodels": {"beta": b_hac.tolist()},
         "jorda_hac_se_vs_statsmodels": {"se": se_hac.tolist()},
         "iv_beta_vs_linearmodels_iv2sls": {"beta": b_iv.tolist()},
+        "iv_se_and_mop_f_vs_reference_packages": {
+            "se": se_iv.tolist(),
+            "mop_f": mop_iv.tolist(),
+        },
         "panel_two_way_fe_beta_vs_linearmodels": {"beta": b_panel.tolist()},
+        "panel_iv_vs_linearmodels_iv2sls": {
+            "beta": b_pan_iv.tolist(),
+            "se": se_pan_iv.tolist(),
+        },
     }
 
     dest = (
