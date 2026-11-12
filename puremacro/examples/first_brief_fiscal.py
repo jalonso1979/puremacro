@@ -151,7 +151,8 @@ import sys
 import textwrap
 import time
 import warnings
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from dataclasses import asdict, dataclass, fields, replace
 from pathlib import Path
 from typing import Any, Literal
 
@@ -170,9 +171,10 @@ from .ramey_zubairy_2018_multipliers import RZ_CONTROLS, load_rz_data
 
 __all__ = [
     "HORIZONS", "HEADLINE_HORIZONS", "ALPHA", "WWII", "DATA_FILE", "CITATION",
-    "CONCENTRATION_REPORT_SHARE", "DEFAULT_OUTPUT", "parse_exclude", "load_brief_data",
-    "exclude_period", "estimate", "concentration", "compute_brief", "page_block",
-    "summary_text", "write_outputs", "run_brief", "main",
+    "CONCENTRATION_REPORT_SHARE", "SHORT_SAMPLE_OBS", "SHORT_REGIME_OBS",
+    "DEFAULT_OUTPUT", "FiscalBriefConfig", "parse_quarterly_index", "prepare_fiscal_data",
+    "parse_exclude", "load_brief_data", "exclude_period", "estimate", "concentration",
+    "compute_brief", "page_block", "summary_text", "write_outputs", "run_brief", "main",
 ]
 
 #: Horizons of the paths: the windows t..t+h for h = 0..20.
@@ -194,12 +196,117 @@ CITATION = (
 #: A regime's top quarter is reported when it carries at least this share of
 #: the regime's residual instrument variation.
 CONCENTRATION_REPORT_SHARE = 0.25
+#: Effective linear estimation rows below which the brief emits a short-sample caution.
+SHORT_SAMPLE_OBS = 120
+#: Effective regime estimation rows below which the brief emits a short-regime caution.
+SHORT_REGIME_OBS = 40
 
 _MASKED = ("y", "g", "newsy")       # outcome, policy variable and instrument
 _RUNNING_SUMS = ("cumy", "cumg")    # summed before any masking
 #: Regime -> (suffix of its ``lp_state_dep_iv`` columns, its value of ``slack_l``).
 _REGIMES: dict[str, tuple[str, float]] = {"slack": ("H", 1.0), "no_slack": ("L", 0.0)}
-_EXCLUDE = re.compile(r"\s*([0-9]{4})Q([1-4])\s*:\s*([0-9]{4})Q([1-4])\s*", re.IGNORECASE)
+_EXCLUDE = re.compile(r"\s*([0-9]{4})[QT]([1-4])\s*:\s*([0-9]{4})[QT]([1-4])\s*", re.IGNORECASE)
+_QUARTER_TOKEN = re.compile(r"^\s*([0-9]{4})\s*[-/\s]?\s*[QT]\s*([1-4])\s*$", re.IGNORECASE)
+_SHOCK_MODES = ("external_instrument", "blanchard_perotti")
+_SCALING_MODES = ("pre_scaled", "potential_col", "hp_trend", "poly_trend")
+_STATE_OPS = (">=", ">", "<=", "<", "==")
+
+
+@dataclass(frozen=True)
+class FiscalBriefConfig:
+    """Explicit configuration for running the fiscal multiplier brief on user data.
+
+    Causal identification is never inferred from column names: callers must either supply
+    an external shock/instrument column (``shock_mode="external_instrument"``) or opt in
+    explicitly to ``shock_mode="blanchard_perotti"`` (contemporaneous fiscal policy
+    predetermined within the quarter conditional on lags, with no fiscal foresight).
+    """
+
+    outcome: str = "y"
+    policy: str = "g"
+    instrument: str | None = None
+    shock_mode: Literal["external_instrument", "blanchard_perotti"] = "external_instrument"
+    date_col: str | None = None
+    filter_col: str | None = None
+    filter_value: str | None = None
+    deflator_col: str | None = None
+    potential_col: str | None = None
+    scaling: Literal["pre_scaled", "potential_col", "hp_trend", "poly_trend"] = "pre_scaled"
+    poly_degree: int = 2
+    hp_lambda: float = 1600.0
+    state: str | None = None
+    state_threshold: float = 0.5
+    state_op: Literal[">=", ">", "<=", "<", "=="] = ">="
+    state_lag: int = 0
+    slack_rule: str | None = None
+    n_lags: int = 4
+    controls: tuple[str, ...] | None = None
+    horizons: tuple[int, ...] = HORIZONS
+    headline_horizons: tuple[int, int] = HEADLINE_HORIZONS
+    alpha: float = ALPHA
+    title_en: str | None = None
+    title_es: str | None = None
+    units_en: str | None = None
+    units_es: str | None = None
+    citation: str = "User-supplied fiscal dataset"
+    shock_source: str | None = None
+    identifying_assumption_en: str | None = None
+    identifying_assumption_es: str | None = None
+    dataset_label: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.shock_mode not in _SHOCK_MODES:
+            raise ValueError(
+                f"shock_mode must be one of {_SHOCK_MODES}, got {self.shock_mode!r}"
+            )
+        if self.shock_mode == "external_instrument" and not self.instrument:
+            raise ValueError(
+                "shock_mode='external_instrument' requires an explicit instrument column "
+                "(e.g. instrument='narrative_shock'), or opt in explicitly to "
+                "shock_mode='blanchard_perotti'."
+            )
+        if self.shock_mode == "blanchard_perotti" and self.instrument is not None:
+            raise ValueError(
+                "shock_mode='blanchard_perotti' cannot be combined with an external instrument "
+                f"({self.instrument!r}); set instrument=None or shock_mode='external_instrument'."
+            )
+        if self.scaling not in _SCALING_MODES:
+            raise ValueError(
+                f"scaling must be one of {_SCALING_MODES}, got {self.scaling!r}"
+            )
+        if self.scaling == "potential_col" and not self.potential_col:
+            raise ValueError(
+                "scaling='potential_col' requires potential_col to name a potential-output column."
+            )
+        if self.state_op not in _STATE_OPS:
+            raise ValueError(f"state_op must be one of {_STATE_OPS}, got {self.state_op!r}")
+        if self.state_lag < 0:
+            raise ValueError(f"state_lag must be >= 0, got {self.state_lag}")
+        if self.n_lags < 0:
+            raise ValueError(f"n_lags must be >= 0, got {self.n_lags}")
+        if self.poly_degree < 1:
+            raise ValueError(f"poly_degree must be >= 1, got {self.poly_degree}")
+        if self.hp_lambda <= 0:
+            raise ValueError(f"hp_lambda must be > 0, got {self.hp_lambda}")
+        if not (0.0 < self.alpha < 1.0):
+            raise ValueError(f"alpha must lie in (0, 1), got {self.alpha}")
+        object.__setattr__(self, "horizons", tuple(int(h) for h in self.horizons))
+        object.__setattr__(
+            self, "headline_horizons", tuple(int(h) for h in self.headline_horizons)  # type: ignore[arg-type]
+        )
+        if len(self.headline_horizons) != 2:
+            raise ValueError(
+                f"headline_horizons must have exactly two horizons, got {self.headline_horizons}"
+            )
+        if len(self.horizons) == 0 or any(h < 0 for h in self.horizons):
+            raise ValueError(f"horizons must be non-empty non-negative integers, got {self.horizons}")
+        missing_h = [h for h in self.headline_horizons if h not in self.horizons]
+        if missing_h:
+            raise ValueError(
+                f"headline_horizons {missing_h} must be included in horizons {self.horizons}"
+            )
+        if self.controls is not None:
+            object.__setattr__(self, "controls", tuple(str(c) for c in self.controls))
 #: Why an excluded period is rejected, in each language; ``example`` is ``WWII``.
 _MESSAGES: dict[str, dict[str, str]] = {
     "en": {
@@ -253,10 +360,374 @@ def _quarters(index: pd.Index) -> pd.PeriodIndex:
     raise TypeError(f"the brief needs a DatetimeIndex or PeriodIndex, got {type(index).__name__}")
 
 
+def parse_quarterly_index(
+    values: pd.Index | pd.Series | Sequence[Any],
+    *,
+    name: str = "first_brief_fiscal",
+) -> pd.DatetimeIndex:
+    """Parse quarterly dates (``YYYYQn``, ``YYYYTn``, ISO dates, or Period/DatetimeIndex).
+
+    Accepts English (``1999Q1``, ``1999-Q1``), Spanish/French/Portuguese *trimestre*
+    (``1999T1``, ``1999-T1``), calendar ISO dates (``1999-01-01``), ``PeriodIndex`` (must be
+    quarterly), or ``DatetimeIndex``. Enforces chronological order, unique quarters, and no
+    missing quarters via :func:`check_regular_index`.
+
+    Returns a regular quarterly-start ``DatetimeIndex``.
+    """
+    if isinstance(values, pd.PeriodIndex):
+        freq_str = str(values.freqstr or "").upper()
+        if not freq_str.startswith("Q"):
+            raise ValueError(
+                f"{name}: expected a quarterly PeriodIndex, got frequency {values.freqstr!r}"
+            )
+        periods = values.asfreq("Q")
+    elif isinstance(values, pd.DatetimeIndex):
+        if values.isna().any():
+            raise ValueError(f"{name}: date index contains missing (NaT) timestamps")
+        periods = values.to_period("Q")
+    else:
+        seq = list(values)
+        if len(seq) == 0:
+            raise ValueError(f"{name}: cannot parse an empty date sequence")
+        parsed_periods: list[pd.Period] = []
+        for raw in seq:
+            if pd.isna(raw):
+                raise ValueError(f"{name}: date column contains missing values")
+            if isinstance(raw, pd.Period):
+                if not str(raw.freqstr or "").upper().startswith("Q"):
+                    raise ValueError(f"{name}: non-quarterly Period {raw!r}")
+                parsed_periods.append(raw.asfreq("Q"))
+                continue
+            if isinstance(raw, pd.Timestamp):
+                parsed_periods.append(raw.to_period("Q"))
+                continue
+            token = str(raw).strip()
+            m = _QUARTER_TOKEN.match(token)
+            if m is not None:
+                parsed_periods.append(pd.Period(f"{m.group(1)}Q{m.group(2)}", freq="Q"))
+            else:
+                try:
+                    ts = pd.Timestamp(token)
+                except Exception as exc:
+                    raise ValueError(
+                        f"{name}: could not parse quarterly date {raw!r}; expected YYYYQn, "
+                        "YYYYTn, or ISO YYYY-MM-DD"
+                    ) from exc
+                if pd.isna(ts):
+                    raise ValueError(f"{name}: invalid timestamp {raw!r}")
+                parsed_periods.append(ts.to_period("Q"))
+        periods = pd.PeriodIndex(parsed_periods, freq="Q")
+
+    if periods.has_duplicates:
+        dups = periods[periods.duplicated()].unique().astype(str).tolist()[:5]
+        raise ValueError(
+            f"{name}: duplicate quarterly dates {dups}; if using a multi-country panel, "
+            "pass filter_col/filter_value (e.g. filter_col='code', filter_value='DEU')."
+        )
+    dt_index = periods.to_timestamp(how="start")
+    check_regular_index(dt_index, name)
+    return dt_index
+
+
+def _hp_trend_positive(series: pd.Series, lam: float) -> pd.Series:
+    """Two-sided Hodrick-Prescott trend exp(HP(log(series))) on strictly positive segments."""
+    out = pd.Series(np.nan, index=series.index, dtype=float)
+    vals = pd.to_numeric(series, errors="coerce").to_numpy(dtype=float)
+    valid = np.isfinite(vals)
+    if not valid.any():
+        raise ValueError("scaling='hp_trend' requires non-missing outcome observations")
+    if np.any(vals[valid] <= 0.0):
+        raise ValueError(
+            "scaling='hp_trend' requires strictly positive real outcome levels (log trend); "
+            "use scaling='pre_scaled' or scaling='potential_col' instead."
+        )
+    idx = np.flatnonzero(valid)
+    if idx.size < 4:
+        raise ValueError(
+            f"scaling='hp_trend' needs at least 4 valid observations, got {idx.size}"
+        )
+    # Require contiguous positive span or solve on valid interior
+    log_y = np.log(vals[valid])
+    n = log_y.size
+    d2 = np.zeros((n - 2, n), dtype=float)
+    ar = np.arange(n - 2)
+    d2[ar, ar] = 1.0
+    d2[ar, ar + 1] = -2.0
+    d2[ar, ar + 2] = 1.0
+    penalty = np.eye(n, dtype=float) + float(lam) * (d2.T @ d2)
+    trend = np.linalg.solve(penalty, log_y)
+    out.iloc[idx] = np.exp(trend)
+    return out
+
+
+def _poly_trend_positive(series: pd.Series, degree: int) -> pd.Series:
+    """Log-polynomial trend exp(P_d(t)) on strictly positive observations."""
+    out = pd.Series(np.nan, index=series.index, dtype=float)
+    vals = pd.to_numeric(series, errors="coerce").to_numpy(dtype=float)
+    valid = np.isfinite(vals)
+    if not valid.any():
+        raise ValueError("scaling='poly_trend' requires non-missing outcome observations")
+    if np.any(vals[valid] <= 0.0):
+        raise ValueError(
+            "scaling='poly_trend' requires strictly positive real outcome levels (log trend); "
+            "use scaling='pre_scaled' or scaling='potential_col' instead."
+        )
+    idx = np.flatnonzero(valid)
+    if idx.size <= degree + 1:
+        raise ValueError(
+            f"scaling='poly_trend' with degree={degree} needs more than {degree + 1} valid rows, "
+            f"got {idx.size}"
+        )
+    if degree >= 4 and idx.size < 200:
+        warnings.warn(
+            f"poly_trend degree={degree} on a {idx.size}-quarter sample risks severe endpoint "
+            "overfitting (Ramey & Zubairy's degree-6 trend spans 504 quarters); prefer "
+            "scaling='hp_trend' or poly_degree<=2 on postwar/short samples.",
+            UserWarning,
+            stacklevel=2,
+        )
+    t_norm = np.linspace(-1.0, 1.0, len(series), dtype=float)
+    vander = np.vander(t_norm[valid], N=degree + 1, increasing=True)
+    coef = np.linalg.lstsq(vander, np.log(vals[valid]), rcond=None)[0]
+    full_vander = np.vander(t_norm[valid], N=degree + 1, increasing=True)
+    out.iloc[idx] = np.exp(full_vander @ coef)
+    return out
+
+
+def _coerce_config(
+    config: FiscalBriefConfig | Mapping[str, Any] | str | Path | None,
+) -> tuple[FiscalBriefConfig, dict[str, Any]]:
+    """Normalize ``config`` into ``(FiscalBriefConfig, extra_cli_fields)``.
+
+    A JSON file or mapping may optionally carry ``"data"`` and ``"exclude"`` alongside
+    :class:`FiscalBriefConfig` fields so a single JSON file can drive the CLI.
+    """
+    if config is None:
+        return FiscalBriefConfig(instrument="newsy", state="slack_l"), {}
+    if isinstance(config, FiscalBriefConfig):
+        return config, {}
+    raw: dict[str, Any]
+    if isinstance(config, (str, Path)):
+        cfg_path = Path(config)
+        loaded = json.loads(cfg_path.read_text(encoding="utf-8"))
+        if not isinstance(loaded, dict):
+            raise ValueError(f"config file {cfg_path.name!r} must contain a JSON object")
+        raw = dict(loaded)
+    elif isinstance(config, Mapping):
+        raw = dict(config)
+    else:
+        raise TypeError(
+            f"config must be FiscalBriefConfig, mapping, or JSON path, got {type(config).__name__}"
+        )
+    extras: dict[str, Any] = {}
+    for extra_key in ("data", "exclude"):
+        if extra_key in raw:
+            extras[extra_key] = raw.pop(extra_key)
+    valid_fields = {f.name for f in fields(FiscalBriefConfig)}
+    unknown = sorted(set(raw) - valid_fields)
+    if unknown:
+        raise ValueError(
+            f"unknown FiscalBriefConfig keys {unknown}; valid keys are {sorted(valid_fields)}"
+        )
+    return FiscalBriefConfig(**raw), extras
+
+
+def _eval_state_indicator(series: pd.Series, op: str, threshold: float) -> pd.Series:
+    """Binary 1.0/0.0 regime indicator preserving NaN where ``series`` is missing."""
+    vals = pd.to_numeric(series, errors="coerce")
+    out = pd.Series(np.nan, index=vals.index, dtype=float)
+    ok = vals.notna()
+    v = vals.loc[ok]
+    if op == ">=":
+        cond = v >= threshold
+    elif op == ">":
+        cond = v > threshold
+    elif op == "<=":
+        cond = v <= threshold
+    elif op == "<":
+        cond = v < threshold
+    elif op == "==":
+        cond = v == threshold
+    else:
+        raise ValueError(f"unsupported state_op {op!r}")
+    out.loc[ok] = cond.astype(float)
+    return out
+
+
+def prepare_fiscal_data(
+    data: pd.DataFrame | str | Path,
+    config: FiscalBriefConfig,
+) -> tuple[pd.DataFrame, list[str], dict[str, Any]]:
+    """Validate and transform user fiscal data into the brief's estimation frame.
+
+    Returns ``(frame, control_cols, data_meta)`` where ``frame`` is indexed by a regular
+    quarterly ``DatetimeIndex`` and carries canonical columns ``"y"``, ``"g"``, ``"newsy"``,
+    optional ``"slack_l"``, and lag controls ``control_cols``.
+    """
+    import hashlib
+
+    if isinstance(data, (str, Path)):
+        src_path = Path(data)
+        raw_bytes = src_path.read_bytes()
+        data_sha = hashlib.sha256(raw_bytes).hexdigest()
+        file_label = config.dataset_label or src_path.name
+        raw_df = pd.read_csv(io.BytesIO(raw_bytes))
+    elif isinstance(data, pd.DataFrame):
+        raw_df = data.copy()
+        csv_bytes = raw_df.to_csv(index=True).encode("utf-8")
+        data_sha = hashlib.sha256(csv_bytes).hexdigest()
+        file_label = config.dataset_label or "dataframe"
+    else:
+        raise TypeError(
+            f"data must be a pandas DataFrame or CSV file path, got {type(data).__name__}"
+        )
+
+    if config.filter_col is not None:
+        if config.filter_col not in raw_df.columns:
+            raise ValueError(
+                f"filter_col {config.filter_col!r} not found in columns {list(raw_df.columns)}"
+            )
+        if config.filter_value is None:
+            raise ValueError("filter_value must be provided when filter_col is set")
+        mask = raw_df[config.filter_col].astype(str).str.strip() == str(config.filter_value).strip()
+        raw_df = raw_df.loc[mask].copy()
+        if raw_df.empty:
+            raise ValueError(
+                f"no rows matched {config.filter_col} == {config.filter_value!r}"
+            )
+
+    if config.date_col is not None:
+        if config.date_col not in raw_df.columns:
+            raise ValueError(
+                f"date_col {config.date_col!r} not found in columns {list(raw_df.columns)}"
+            )
+        dt_index = parse_quarterly_index(raw_df[config.date_col], name="first_brief_fiscal")
+    else:
+        if isinstance(raw_df.index, (pd.DatetimeIndex, pd.PeriodIndex)):
+            dt_index = parse_quarterly_index(raw_df.index, name="first_brief_fiscal")
+        elif "date" in raw_df.columns:
+            dt_index = parse_quarterly_index(raw_df["date"], name="first_brief_fiscal")
+        else:
+            raise ValueError(
+                "data must have a quarterly DatetimeIndex/PeriodIndex or specify date_col"
+            )
+
+    work = raw_df.copy()
+    work.index = dt_index
+
+    required_cols = [config.outcome, config.policy]
+    if config.shock_mode == "external_instrument":
+        assert config.instrument is not None
+        required_cols.append(config.instrument)
+    if config.deflator_col is not None:
+        required_cols.append(config.deflator_col)
+    if config.potential_col is not None:
+        required_cols.append(config.potential_col)
+    if config.state is not None:
+        required_cols.append(config.state)
+    if config.controls is not None:
+        required_cols.extend(config.controls)
+
+    missing_cols = [c for c in required_cols if c not in work.columns]
+    if missing_cols:
+        raise ValueError(
+            f"missing required column(s) {missing_cols}; available columns: {list(work.columns)}"
+        )
+
+    y_raw = pd.to_numeric(work[config.outcome], errors="coerce").astype(float)
+    g_raw = pd.to_numeric(work[config.policy], errors="coerce").astype(float)
+
+    if config.deflator_col is not None:
+        defl = pd.to_numeric(work[config.deflator_col], errors="coerce").astype(float)
+        if np.any(defl.dropna() <= 0.0):
+            raise ValueError(f"deflator_col {config.deflator_col!r} must be strictly positive")
+        y_real = y_raw / defl
+        g_real = g_raw / defl
+    else:
+        y_real = y_raw
+        g_real = g_raw
+
+    if config.scaling == "pre_scaled":
+        y_scaled = y_real
+        g_scaled = g_real
+    elif config.scaling == "potential_col":
+        assert config.potential_col is not None
+        pot = pd.to_numeric(work[config.potential_col], errors="coerce").astype(float)
+        if np.any(pot.dropna() <= 0.0):
+            raise ValueError(f"potential_col {config.potential_col!r} must be strictly positive")
+        y_scaled = y_real / pot
+        g_scaled = g_real / pot
+    elif config.scaling == "hp_trend":
+        pot = _hp_trend_positive(y_real, config.hp_lambda)
+        y_scaled = y_real / pot
+        g_scaled = g_real / pot
+    elif config.scaling == "poly_trend":
+        pot = _poly_trend_positive(y_real, config.poly_degree)
+        y_scaled = y_real / pot
+        g_scaled = g_real / pot
+    else:
+        raise ValueError(f"unsupported scaling {config.scaling!r}")
+
+    out = pd.DataFrame(index=dt_index)
+    out["y"] = y_scaled
+    out["g"] = g_scaled
+    if config.shock_mode == "external_instrument":
+        assert config.instrument is not None
+        out["newsy"] = pd.to_numeric(work[config.instrument], errors="coerce").astype(float)
+    else:
+        # Blanchard-Perotti (2002) in 1-step cumulative LP-IV (Ramey & Zubairy 2018, p. 859):
+        # contemporaneous policy g_t instruments cumulative sum_{j=0}^h g_{t+j} conditional on
+        # lags of y and g.
+        out["newsy"] = g_scaled.copy()
+
+    if config.state is not None:
+        s_raw = pd.to_numeric(work[config.state], errors="coerce").astype(float)
+        if config.state_lag > 0:
+            s_raw = s_raw.shift(config.state_lag)
+        out["slack_l"] = _eval_state_indicator(s_raw, config.state_op, config.state_threshold)
+
+    control_cols: list[str] = []
+    if config.controls is not None:
+        for col in config.controls:
+            cname = f"_ctrl_{col}"
+            out[cname] = pd.to_numeric(work[col], errors="coerce").astype(float)
+            control_cols.append(cname)
+    else:
+        lag_bases = ["y", "g"]
+        if config.shock_mode == "external_instrument":
+            lag_bases.append("newsy")
+        for k in range(1, config.n_lags + 1):
+            for base in lag_bases:
+                lname = f"{base}_l{k}"
+                out[lname] = out[base].shift(k)
+                control_cols.append(lname)
+
+    if config.state is not None:
+        valid_base = out[["y", "g", "newsy", *control_cols]].notna().all(axis=1)
+        n_hi = int((valid_base & (out["slack_l"] == 1.0)).sum())
+        n_lo = int((valid_base & (out["slack_l"] == 0.0)).sum())
+        min_needed = len(control_cols) + 3
+        if n_hi < min_needed or n_lo < min_needed:
+            raise ValueError(
+                f"state rule produced too few usable quarters by regime "
+                f"(slack={n_hi}, no_slack={n_lo}; need at least {min_needed} in each). "
+                "Adjust state_threshold/state_op or use state=None for linear-only estimation."
+            )
+
+    meta: dict[str, Any] = {
+        "file": file_label,
+        "sha256": data_sha,
+        "citation": config.citation,
+    }
+    if config.filter_col is not None:
+        meta["filter"] = {"column": config.filter_col, "value": str(config.filter_value)}
+    return out, control_cols, meta
+
+
 def parse_exclude(text: str) -> tuple[pd.Period, pd.Period]:
     """``"1941Q3:1945Q4"`` -> the first and last excluded quarters, both inclusive.
 
-    Raises ``ValueError`` unless ``text`` is ``START:END`` in ``YYYYQn``
+    Raises ``ValueError`` unless ``text`` is ``START:END`` in ``YYYYQn`` (or ``YYYYTn``)
     quarters with START no later than END.
     """
     match = _EXCLUDE.fullmatch(str(text))
@@ -284,14 +755,19 @@ def load_brief_data() -> pd.DataFrame:
     return df
 
 
-def exclude_period(df: pd.DataFrame, period: tuple[pd.Period, pd.Period]) -> pd.DataFrame:
+def exclude_period(
+    df: pd.DataFrame,
+    period: tuple[pd.Period, pd.Period],
+    *,
+    controls: Sequence[str] | None = None,
+) -> pd.DataFrame:
     """Ramey and Zubairy's exclusion of ``period``, both ends inclusive, on a copy of ``df``.
 
     The copy keeps every row. ``y``, ``g`` and ``newsy`` are NaN in the
-    period, and the lag controls ``RZ_CONTROLS`` are rebuilt from the masked
-    series. The running sums ``cumy`` and ``cumg`` were summed before the
-    masking, so they are dropped. ``cumulative=True`` then forms the window
-    sums from the masked series: a quarter drops out of horizon h when
+    period, and the lag controls ``RZ_CONTROLS`` (or ``controls``) are rebuilt
+    from the masked series. The running sums ``cumy`` and ``cumg`` were summed
+    before the masking, so they are dropped. ``cumulative=True`` then forms the
+    window sums from the masked series: a quarter drops out of horizon h when
     ``y_{t-1}``, any of ``y_t..y_{t+h}`` or ``g_t..g_{t+h}``, ``newsy_t`` or
     a lag control falls in the period.
 
@@ -303,65 +779,105 @@ def exclude_period(df: pd.DataFrame, period: tuple[pd.Period, pd.Period]) -> pd.
     if not inside.any():
         raise _ExcludeError("no_overlap", start=start, end=end, first=quarters[0],
                             last=quarters[-1])
+    ctrl_list = list(RZ_CONTROLS) if controls is None else list(controls)
     out = df.copy().drop(columns=list(_RUNNING_SUMS), errors="ignore")
     out.loc[inside, list(_MASKED)] = np.nan
-    for name in RZ_CONTROLS:                 # "{series}_l{k}" is series.shift(k)
-        series, lag = name.rsplit("_l", 1)
-        out[name] = out[series].shift(int(lag))
+    for name in ctrl_list:                   # "{series}_l{k}" is series.shift(k)
+        if "_l" in name and not name.startswith("_ctrl_"):
+            series, lag = name.rsplit("_l", 1)
+            if series in out.columns and lag.isdigit():
+                out[name] = out[series].shift(int(lag))
+        elif name in out.columns:
+            out.loc[inside, name] = np.nan
     return out
 
 
-def estimate(df: pd.DataFrame) -> dict[str, LPResult]:
-    """The brief's four estimator calls on one sample, h = 0..20, 90% bands.
+def estimate(
+    df: pd.DataFrame,
+    *,
+    controls: Sequence[str] | None = None,
+    horizons: Sequence[int] = HORIZONS,
+    alpha: float = ALPHA,
+    has_state: bool = True,
+) -> dict[str, LPResult]:
+    """The brief's estimator calls on one sample, 90% bands by default.
 
     Returns ``linear`` (:func:`lp_iv` with the HAC effective F and
-    Anderson-Rubin set), ``state`` (:func:`lp_state_dep_iv` by regime of
-    ``slack_l``), and ``ar_slack`` / ``ar_no_slack`` (:func:`lp_iv` with
-    ``newsy`` NaN outside the regime; a missing ``slack_l`` counts as
-    outside). All four are cumulative, on ``RZ_CONTROLS`` and the full frame.
+    Anderson-Rubin set) and, when ``has_state=True``, ``state``
+    (:func:`lp_state_dep_iv` by regime of ``slack_l``) plus ``ar_slack`` /
+    ``ar_no_slack`` (:func:`lp_iv` with ``newsy`` NaN outside the regime; a
+    missing ``slack_l`` counts as outside). All calls are cumulative on the
+    full frame.
     """
+    ctrl_list = list(RZ_CONTROLS) if controls is None else list(controls)
+    hs = tuple(int(h) for h in horizons)
     out: dict[str, LPResult] = {
-        "linear": lp_iv(df, y="y", x="g", z="newsy", horizons=HORIZONS, n_lags=0,
-                        controls=RZ_CONTROLS, alpha=ALPHA, cumulative=True,
+        "linear": lp_iv(df, y="y", x="g", z="newsy", horizons=hs, n_lags=0,
+                        controls=ctrl_list, alpha=alpha, cumulative=True,
                         anderson_rubin=True),
-        "state": lp_state_dep_iv(df, y="y", x="g", z="newsy", state="slack_l",
-                                 horizons=HORIZONS, n_lags=0, transition="threshold",
-                                 threshold=0.5, controls=RZ_CONTROLS, alpha=ALPHA,
-                                 interact="all", cumulative=True),
     }
-    for name, (_, value) in _REGIMES.items():
-        masked = df.copy()
-        masked.loc[masked["slack_l"] != value, "newsy"] = np.nan
-        out[f"ar_{name}"] = lp_iv(masked, y="y", x="g", z="newsy", horizons=HORIZONS,
-                                  n_lags=0, controls=RZ_CONTROLS, alpha=ALPHA,
-                                  cumulative=True, anderson_rubin=True)
+    if has_state:
+        out["state"] = lp_state_dep_iv(
+            df, y="y", x="g", z="newsy", state="slack_l",
+            horizons=hs, n_lags=0, transition="threshold",
+            threshold=0.5, controls=ctrl_list, alpha=alpha,
+            interact="all", cumulative=True,
+        )
+        for name, (_, value) in _REGIMES.items():
+            masked = df.copy()
+            masked.loc[masked["slack_l"] != value, "newsy"] = np.nan
+            out[f"ar_{name}"] = lp_iv(
+                masked, y="y", x="g", z="newsy", horizons=hs,
+                n_lags=0, controls=ctrl_list, alpha=alpha,
+                cumulative=True, anderson_rubin=True,
+            )
     return out
 
 
-def concentration(df: pd.DataFrame, regime: float, h: int) -> dict[str, Any]:
+def concentration(
+    df: pd.DataFrame,
+    regime: float | None,
+    h: int,
+    *,
+    controls: Sequence[str] | None = None,
+) -> dict[str, Any]:
     """The quarter that carries the most of a regime's residual instrument variation at ``h``.
 
-    The rows are horizon ``h``'s estimation rows with ``slack_l == regime``:
-    both window sums present, and ``newsy`` and every ``RZ_CONTROLS`` column
-    non-missing. ``newsy`` is regressed on a constant and ``RZ_CONTROLS`` by
-    least squares on those rows. Returns ``{"share": max(e^2) / sum(e^2),
-    "date": "YYYYQn"}``, where ``date`` is the quarter of the largest
-    squared residual.
+    The rows are horizon ``h``'s estimation rows with ``slack_l == regime`` (or all estimation
+    rows when ``regime is None``): both window sums present, and ``newsy`` and every control
+    column non-missing. ``newsy`` is regressed on a constant and controls by least squares on
+    those rows. Returns ``{"share": max(e^2) / sum(e^2), "date": "YYYYQn"}``, where ``date`` is
+    the quarter of the largest squared residual.
 
     Raises ``ValueError`` when the regime has no more rows than regressors.
     """
+    ctrl_list = list(RZ_CONTROLS) if controls is None else list(controls)
     y_w, x_w = cumulative_windows(df["y"], df["g"], h)
-    present = pd.concat([y_w, x_w, df["newsy"], df[RZ_CONTROLS]], axis=1).notna().all(axis=1)
-    rows = df.loc[present & (df["slack_l"] == regime)]
-    design = np.column_stack([np.ones(len(rows)), rows[RZ_CONTROLS].to_numpy(dtype=float)])
+    pieces = [y_w, x_w, df["newsy"]]
+    if ctrl_list:
+        pieces.append(df[ctrl_list])
+    present = pd.concat(pieces, axis=1).notna().all(axis=1)
+    if regime is None:
+        rows = df.loc[present]
+        label_desc = "linear"
+    else:
+        rows = df.loc[present & (df["slack_l"] == regime)]
+        label_desc = f"slack_l == {regime:g}"
+    cols = [np.ones(len(rows))]
+    if ctrl_list:
+        cols.append(rows[ctrl_list].to_numpy(dtype=float))
+    design = np.column_stack(cols)
     if len(rows) <= design.shape[1]:
-        raise ValueError(f"concentration: slack_l == {regime:g} has {len(rows)} estimation rows "
+        raise ValueError(f"concentration: {label_desc} has {len(rows)} estimation rows "
                          f"at h = {h}, too few for {design.shape[1]} regressors")
     z = rows["newsy"].to_numpy(dtype=float)
     coef = np.linalg.lstsq(design, z, rcond=None)[0]
     e2 = (z - design @ coef) ** 2
+    denom = float(e2.sum())
+    if denom <= 0.0:
+        return {"share": 0.0, "date": str(_quarters(rows.index)[0])}
     top = int(np.argmax(e2))
-    return {"share": float(e2[top] / e2.sum()), "date": str(_quarters(rows.index)[top])}
+    return {"share": float(e2[top] / denom), "date": str(_quarters(rows.index)[top])}
 
 
 def _cell(row: pd.Series, suffix: str, f_column: str, ar: pd.Series,
@@ -385,8 +901,14 @@ def _cells(fit: dict[str, LPResult], concentrations: dict[str, dict[str, Any]], 
            cutoff: float) -> dict[str, Any]:
     """Every headline cell of one sample at horizon ``h``."""
     linear = fit["linear"].loc[h]
-    state = fit["state"].loc[h]
     cells: dict[str, Any] = {"linear": _cell(linear, "", "mop_f", linear, cutoff)}
+    if "state" not in fit:
+        cells["slack"] = None
+        cells["no_slack"] = None
+        cells["difference"] = None
+        cells["concentration"] = concentrations
+        return cells
+    state = fit["state"].loc[h]
     for name, (label, _) in _REGIMES.items():
         cells[name] = {**_cell(state, f"_{label}", f"first_stage_f_{label}",
                                fit[f"ar_{name}"].loc[h], cutoff),
@@ -401,30 +923,91 @@ def _cells(fit: dict[str, LPResult], concentrations: dict[str, dict[str, Any]], 
     return cells
 
 
-def _sample_record(df: pd.DataFrame, fit: dict[str, LPResult],
-                   concentrations: dict[int, dict[str, dict[str, Any]]],
-                   cutoff: float) -> dict[str, Any]:
+def _linear_n_obs_at_horizon(
+    df: pd.DataFrame,
+    fit: dict[str, LPResult],
+    h: int,
+    controls: Sequence[str] | None = None,
+) -> int:
+    """Effective linear estimation quarters at horizon ``h``."""
+    spec_attr = fit["linear"].attrs.get("specification")
+    if isinstance(spec_attr, dict):
+        n_by_h = spec_attr.get("n_obs_by_horizon")
+        if isinstance(n_by_h, dict) and h in n_by_h and n_by_h[h] is not None:
+            return int(n_by_h[h])
+    if "n_obs" in fit["linear"].columns and pd.notna(fit["linear"].loc[h, "n_obs"]):
+        return int(fit["linear"].loc[h, "n_obs"])
+    y_w, x_w = cumulative_windows(df["y"], df["g"], h)
+    ctrl_list = list(RZ_CONTROLS) if controls is None else list(controls)
+    pieces = [y_w, x_w, df["newsy"]]
+    present_ctrls = [c for c in ctrl_list if c in df.columns]
+    if present_ctrls:
+        pieces.append(df[present_ctrls])
+    return int(pd.concat(pieces, axis=1).notna().all(axis=1).sum())
+
+
+def _sample_record(
+    df: pd.DataFrame,
+    fit: dict[str, LPResult],
+    concentrations: dict[int, dict[str, dict[str, Any]]],
+    cutoff: float,
+    *,
+    headline_horizons: Sequence[int] = HEADLINE_HORIZONS,
+    controls: Sequence[str] | None = None,
+    include_guards: bool = False,
+) -> dict[str, Any]:
     """One sample's first and last quarters and its cells at each headline horizon."""
     quarters = _quarters(df.index)
-    return {"start": str(quarters[0]), "end": str(quarters[-1]),
-            "horizons": {str(h): _cells(fit, concentrations[h], h, cutoff)
-                         for h in HEADLINE_HORIZONS}}
+    hs = [int(h) for h in headline_horizons]
+    rec: dict[str, Any] = {
+        "start": str(quarters[0]),
+        "end": str(quarters[-1]),
+        "horizons": {str(h): _cells(fit, concentrations[h], h, cutoff) for h in hs},
+    }
+    if include_guards:
+        lin_n = [_linear_n_obs_at_horizon(df, fit, h, controls=controls) for h in hs]
+        min_lin = min(lin_n) if lin_n else 0
+        min_reg: int | None = None
+        if "state" in fit:
+            reg_ns: list[int] = []
+            for h in hs:
+                for _, (label, _) in _REGIMES.items():
+                    val = fit["state"].loc[h, f"n_eff_{label}"]
+                    if pd.notna(val):
+                        reg_ns.append(int(val))
+            min_reg = min(reg_ns) if reg_ns else 0
+        short_sample = min_lin < SHORT_SAMPLE_OBS
+        short_regime = min_reg is not None and min_reg < SHORT_REGIME_OBS
+        rec["n_obs"] = int(len(df))
+        rec["sample_guard"] = {
+            "short_sample": short_sample,
+            "short_regime": short_regime,
+            "min_linear_n_obs": min_lin,
+            "min_regime_n_eff": min_reg,
+        }
+    return rec
 
 
-def _paths(sample: str, fit: dict[str, LPResult]) -> pd.DataFrame:
-    """One row per horizon: the three multipliers with their bands and F, and ``p_diff``."""
-    hs = list(HORIZONS)
+def _paths(
+    sample: str,
+    fit: dict[str, LPResult],
+    *,
+    horizons: Sequence[int] = HORIZONS,
+) -> pd.DataFrame:
+    """One row per horizon: the multipliers with their bands and F, and ``p_diff``."""
+    hs = [int(h) for h in horizons]
     linear = fit["linear"].loc[hs]
-    state = fit["state"].loc[hs]
     frame = pd.DataFrame({"sample": sample, "h": hs})
     for column, source in (("linear", "beta"), ("linear_lo", "lo"), ("linear_hi", "hi"),
                            ("linear_f", "mop_f")):
         frame[column] = linear[source].to_numpy(dtype=float)
-    for name, (label, _) in _REGIMES.items():
-        for column, source in ((name, "beta"), (f"{name}_lo", "lo"), (f"{name}_hi", "hi"),
-                               (f"{name}_f", "first_stage_f")):
-            frame[column] = state[f"{source}_{label}"].to_numpy(dtype=float)
-    frame["p_diff"] = state["p_diff_HL"].to_numpy(dtype=float)
+    if "state" in fit:
+        state = fit["state"].loc[hs]
+        for name, (label, _) in _REGIMES.items():
+            for column, source in ((name, "beta"), (f"{name}_lo", "lo"), (f"{name}_hi", "hi"),
+                                   (f"{name}_f", "first_stage_f")):
+                frame[column] = state[f"{source}_{label}"].to_numpy(dtype=float)
+        frame["p_diff"] = state["p_diff_HL"].to_numpy(dtype=float)
     return frame
 
 
@@ -445,73 +1028,270 @@ def _json_ready(value: Any) -> Any:
     raise TypeError(f"the record has no JSON form for {type(value).__name__}")
 
 
-def compute_brief(*, exclude: str | None = None) -> tuple[dict[str, Any], pd.DataFrame]:
+def _resolve_custom_spec(
+    cfg: FiscalBriefConfig,
+    control_cols: Sequence[str],
+    cutoff: float,
+) -> dict[str, Any]:
+    """Build the self-describing ``specification`` dictionary for an own-data run."""
+    if cfg.shock_mode == "blanchard_perotti":
+        default_source = f"Blanchard-Perotti recursive shock on '{cfg.policy}' conditional on lags"
+        default_id_en = (
+            "Blanchard-Perotti (2002) recursive timing assumption: fiscal policy does not "
+            "respond within the same quarter to contemporaneous non-fiscal output shocks "
+            "conditional on lags, and policy changes are unanticipated prior to implementation."
+        )
+        default_id_es = (
+            "Supuesto recursivo de Blanchard y Perotti (2002): la política fiscal no responde "
+            "dentro del mismo trimestre a choques contemporáneos no fiscales del producto "
+            "condicional en los rezagos, y los cambios fiscales no son anticipados antes de "
+            "su ejecución."
+        )
+        inst_name = cfg.policy
+    else:
+        assert cfg.instrument is not None
+        default_source = f"External instrument column '{cfg.instrument}'"
+        default_id_en = (
+            f"External-instrument LP-IV assumption: '{cfg.instrument}' is relevant and "
+            "contemporaneously/lead-lag exogenous to non-fiscal output innovations conditional "
+            "on the lag controls."
+        )
+        default_id_es = (
+            f"Supuesto LP-IV con instrumento externo: '{cfg.instrument}' es relevante y exógeno "
+            "frente a innovaciones no fiscales del producto condicional en los controles "
+            "rezagados."
+        )
+        inst_name = cfg.instrument
+
+    if cfg.state is None:
+        slack_rule = None
+        interact = None
+    elif cfg.slack_rule is not None:
+        slack_rule = cfg.slack_rule
+        interact = "all"
+    else:
+        lag_tag = f"{{t-{cfg.state_lag}}}" if cfg.state_lag > 0 else "t"
+        slack_rule = f"{cfg.state}_{lag_tag} {cfg.state_op} {cfg.state_threshold:g}"
+        interact = "all"
+
+    spec: dict[str, Any] = {
+        "custom": True,
+        "outcome": cfg.outcome,
+        "policy": cfg.policy,
+        "instrument": inst_name,
+        "shock_mode": cfg.shock_mode,
+        "shock_source": cfg.shock_source or default_source,
+        "identifying_assumption": {
+            "en": cfg.identifying_assumption_en or default_id_en,
+            "es": cfg.identifying_assumption_es or default_id_es,
+        },
+        "scaling": cfg.scaling,
+        "deflator_col": cfg.deflator_col,
+        "potential_col": cfg.potential_col,
+        "state": cfg.state,
+        "slack_rule": slack_rule,
+        "n_lags": cfg.n_lags,
+        "controls": list(control_cols),
+        "horizons": list(cfg.horizons),
+        "headline_horizons": list(cfg.headline_horizons),
+        "alpha": cfg.alpha,
+        "hac_lags": "h + 1",
+        "interact": interact,
+        "weak_cutoff": cutoff,
+    }
+    if cfg.title_en or cfg.title_es:
+        spec["title"] = {"en": cfg.title_en, "es": cfg.title_es}
+    if cfg.units_en or cfg.units_es:
+        spec["units"] = {"en": cfg.units_en, "es": cfg.units_es}
+    return spec
+
+
+def compute_brief(
+    *,
+    exclude: str | None = None,
+    data: pd.DataFrame | str | Path | None = None,
+    config: FiscalBriefConfig | Mapping[str, Any] | str | Path | None = None,
+) -> tuple[dict[str, Any], pd.DataFrame]:
     """Estimate the brief on the full sample and, with ``exclude``, on the experiment.
 
-    ``exclude`` is a period ``START:END`` (see :func:`parse_exclude`),
-    removed by Ramey and Zubairy's rule (:func:`exclude_period`).
-
-    Returns ``(record, paths)``. ``record`` is JSON-ready: non-finite
-    numbers are None, and ``ar_set_type`` says why an Anderson-Rubin bound
-    is None. Its keys are ``puremacro_version``, ``data`` (``file``,
-    ``sha256``, ``citation``), ``specification``, ``full`` and
-    ``experiment`` (None without ``exclude``). Each sample holds ``start``,
-    ``end`` and, under ``horizons["7"]`` and ``horizons["15"]``, the cells
-    ``linear``, ``slack`` and ``no_slack`` (``multiplier, se, lo, hi, f_eff,
-    ar_lo, ar_hi, ar_set_type, weak``, plus ``n_eff`` by regime),
-    ``difference`` (``estimate, se, p_value, reliable``) and
-    ``concentration`` (``share``, ``date`` by regime). ``paths`` has one row
-    per sample and horizon h = 0..20.
-
-    Warnings issued while a sample is computed are kept in
-    ``_LAST_WARNINGS`` for the run's manifest, and re-issued once the sample
-    is done, or has failed. The call's wall time is kept in ``_LAST_TIMINGS``.
+    Without ``data`` or ``config``, estimates Ramey and Zubairy's (2018) specification on the
+    bundled historical US dataset. Passing ``data`` and ``config`` (a :class:`FiscalBriefConfig`,
+    mapping, or JSON path) runs the same cumulative 1-step LP-IV diagnostics, weak-instrument
+    Anderson-Rubin sets, concentration checks, and short-sample guards on user data.
     """
     _LAST_WARNINGS.clear()
     _LAST_TIMINGS.clear()
     started = time.perf_counter()
-    full = load_brief_data()
+
+    is_custom = data is not None or config is not None
+    if not is_custom:
+        full = load_brief_data()
+        frames = {"full": full}
+        period = None
+        if exclude is not None:
+            period = parse_exclude(exclude)
+            frames["experiment"] = exclude_period(full, period)
+
+        fits: dict[str, dict[str, LPResult]] = {}
+        concentrations: dict[str, dict[int, dict[str, dict[str, Any]]]] = {}
+        for sample, frame in frames.items():
+            caught: list[warnings.WarningMessage] = []
+            try:
+                with warnings.catch_warnings(record=True) as caught:
+                    warnings.simplefilter("always")
+                    fits[sample] = estimate(frame)
+                    concentrations[sample] = {
+                        h: {name: concentration(frame, value, h)
+                            for name, (_, value) in _REGIMES.items()}
+                        for h in HEADLINE_HORIZONS
+                    }
+            finally:   # also when the sample fails: its warnings may say why
+                for w in caught:
+                    _LAST_WARNINGS.append(f"{sample}: {w.category.__name__}: {w.message}")
+                    warnings.warn_explicit(w.message, w.category, w.filename, w.lineno,
+                                           source=w.source)
+
+        cutoff = float(fits["full"]["linear"]["mop_cv_10"].iloc[0])
+        record = {
+            "puremacro_version": puremacro.__version__,
+            "data": {"file": DATA_FILE, "sha256": sha256(_data_path()), "citation": CITATION},
+            "specification": {
+                "outcome": "y", "policy": "g", "instrument": "newsy", "state": "slack_l",
+                "slack_rule": "unemp_{t-1} >= 6.5", "controls": list(RZ_CONTROLS),
+                "horizons": list(HORIZONS), "headline_horizons": list(HEADLINE_HORIZONS),
+                "alpha": ALPHA, "hac_lags": "h + 1", "interact": "all", "weak_cutoff": cutoff,
+            },
+            "full": _sample_record(full, fits["full"], concentrations["full"], cutoff),
+            "experiment": None if period is None else {
+                "exclude": [str(period[0]), str(period[1])],
+                **_sample_record(frames["experiment"], fits["experiment"],
+                                 concentrations["experiment"], cutoff),
+            },
+        }
+        paths = pd.concat([_paths(sample, fits[sample]) for sample in frames], ignore_index=True)
+        ready = _json_ready(record)
+        _LAST_TIMINGS["compute_seconds"] = time.perf_counter() - started
+        return ready, paths
+
+    # Own-data / custom-configuration execution path
+    cfg, extras = _coerce_config(config)
+    resolved_data = data if data is not None else extras.get("data")
+    if resolved_data is None:
+        raise ValueError(
+            "custom fiscal brief requires 'data' (DataFrame, CSV path, or 'data' key in config)"
+        )
+    resolved_exclude = exclude if exclude is not None else extras.get("exclude")
+
+    prep_caught: list[warnings.WarningMessage] = []
+    try:
+        with warnings.catch_warnings(record=True) as prep_caught:
+            warnings.simplefilter("always")
+            full, control_cols, data_meta = prepare_fiscal_data(resolved_data, cfg)
+    finally:
+        for w in prep_caught:
+            _LAST_WARNINGS.append(f"prepare: {w.category.__name__}: {w.message}")
+            warnings.warn_explicit(w.message, w.category, w.filename, w.lineno, source=w.source)
+
     frames = {"full": full}
     period = None
-    if exclude is not None:
-        period = parse_exclude(exclude)
-        frames["experiment"] = exclude_period(full, period)
+    if resolved_exclude is not None:
+        period = parse_exclude(resolved_exclude)
+        frames["experiment"] = exclude_period(full, period, controls=control_cols)
 
-    fits: dict[str, dict[str, LPResult]] = {}
-    concentrations: dict[str, dict[int, dict[str, dict[str, Any]]]] = {}
+    has_state = cfg.state is not None
+    fits = {}
+    concentrations = {}
     for sample, frame in frames.items():
-        caught: list[warnings.WarningMessage] = []
+        caught = []
         try:
             with warnings.catch_warnings(record=True) as caught:
                 warnings.simplefilter("always")
-                fits[sample] = estimate(frame)
-                concentrations[sample] = {h: {name: concentration(frame, value, h)
-                                              for name, (_, value) in _REGIMES.items()}
-                                          for h in HEADLINE_HORIZONS}
-        finally:   # also when the sample fails: its warnings may say why
+                fits[sample] = estimate(
+                    frame,
+                    controls=control_cols,
+                    horizons=cfg.horizons,
+                    alpha=cfg.alpha,
+                    has_state=has_state,
+                )
+                conc_sample: dict[int, dict[str, dict[str, Any]]] = {}
+                for h in cfg.headline_horizons:
+                    if has_state:
+                        conc_h: dict[str, dict[str, Any]] = {}
+                        for name, (_, value) in _REGIMES.items():
+                            try:
+                                conc_h[name] = concentration(
+                                    frame, value, h, controls=control_cols
+                                )
+                            except ValueError:
+                                conc_h[name] = {"share": None, "date": None}
+                        conc_sample[h] = conc_h
+                    else:
+                        try:
+                            conc_sample[h] = {
+                                "linear": concentration(frame, None, h, controls=control_cols)
+                            }
+                        except ValueError:
+                            conc_sample[h] = {"linear": {"share": None, "date": None}}
+                concentrations[sample] = conc_sample
+
+                # Emit short-sample / short-regime warnings inside the sample capture block
+                lin_ns = [
+                    _linear_n_obs_at_horizon(frame, fits[sample], h, controls=control_cols)
+                    for h in cfg.headline_horizons
+                ]
+                min_lin = min(lin_ns) if lin_ns else 0
+                if min_lin < SHORT_SAMPLE_OBS:
+                    warnings.warn(
+                        f"short sample at headline horizons (min n_obs={min_lin} < "
+                        f"{SHORT_SAMPLE_OBS}); HAC standard errors and Montiel Olea-Pflueger "
+                        "effective-F cutoffs rely on large-T asymptotics.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+                if has_state:
+                    reg_ns = [
+                        int(fits[sample]["state"].loc[h, f"n_eff_{label}"])
+                        for h in cfg.headline_horizons
+                        for _, (label, _) in _REGIMES.items()
+                        if pd.notna(fits[sample]["state"].loc[h, f"n_eff_{label}"])
+                    ]
+                    min_reg = min(reg_ns) if reg_ns else 0
+                    if min_reg < SHORT_REGIME_OBS:
+                        warnings.warn(
+                            f"short regime sample at headline horizons (min n_eff={min_reg} < "
+                            f"{SHORT_REGIME_OBS}); state-dependent bands and regime comparisons "
+                            "have low finite-sample reliability.",
+                            UserWarning,
+                            stacklevel=2,
+                        )
+        finally:
             for w in caught:
                 _LAST_WARNINGS.append(f"{sample}: {w.category.__name__}: {w.message}")
                 warnings.warn_explicit(w.message, w.category, w.filename, w.lineno,
                                        source=w.source)
 
     cutoff = float(fits["full"]["linear"]["mop_cv_10"].iloc[0])
+    spec_dict = _resolve_custom_spec(cfg, control_cols, cutoff)
     record = {
         "puremacro_version": puremacro.__version__,
-        "data": {"file": DATA_FILE, "sha256": sha256(_data_path()), "citation": CITATION},
-        "specification": {
-            "outcome": "y", "policy": "g", "instrument": "newsy", "state": "slack_l",
-            "slack_rule": "unemp_{t-1} >= 6.5", "controls": list(RZ_CONTROLS),
-            "horizons": list(HORIZONS), "headline_horizons": list(HEADLINE_HORIZONS),
-            "alpha": ALPHA, "hac_lags": "h + 1", "interact": "all", "weak_cutoff": cutoff,
-        },
-        "full": _sample_record(full, fits["full"], concentrations["full"], cutoff),
+        "data": data_meta,
+        "specification": spec_dict,
+        "full": _sample_record(
+            full, fits["full"], concentrations["full"], cutoff,
+            headline_horizons=cfg.headline_horizons, controls=control_cols, include_guards=True,
+        ),
         "experiment": None if period is None else {
             "exclude": [str(period[0]), str(period[1])],
-            **_sample_record(frames["experiment"], fits["experiment"],
-                             concentrations["experiment"], cutoff),
+            **_sample_record(
+                frames["experiment"], fits["experiment"], concentrations["experiment"], cutoff,
+                headline_horizons=cfg.headline_horizons, controls=control_cols, include_guards=True,
+            ),
         },
     }
-    paths = pd.concat([_paths(sample, fits[sample]) for sample in frames], ignore_index=True)
+    paths = pd.concat(
+        [_paths(sample, fits[sample], horizons=cfg.horizons) for sample in frames],
+        ignore_index=True,
+    )
     ready = _json_ready(record)
     _LAST_TIMINGS["compute_seconds"] = time.perf_counter() - started
     return ready, paths
@@ -688,6 +1468,114 @@ def _text(lang: str) -> dict[str, str]:
     return _TEXT[lang]
 
 
+def _is_custom(record: dict[str, Any]) -> bool:
+    return bool(record.get("specification", {}).get("custom", False))
+
+
+def _has_state(record: dict[str, Any]) -> bool:
+    return record.get("specification", {}).get("state") is not None
+
+
+def _active_rows(record: dict[str, Any], lang: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    words = _READING[lang]
+    if _has_state(record):
+        return _ROWS, words["rows"]
+    return ("linear",), (words["rows"][0],)
+
+
+def _horizon_label(h: int, lang: str) -> str:
+    quarters = int(h) + 1
+    if quarters % 4 == 0:
+        years = quarters // 4
+        if lang == "en":
+            return "1 year" if years == 1 else f"{years} years"
+        return "1 año" if years == 1 else f"{years} años"
+    if lang == "en":
+        return "1 quarter" if quarters == 1 else f"{quarters} quarters"
+    return "1 trimestre" if quarters == 1 else f"{quarters} trimestres"
+
+
+def _title_text(record: dict[str, Any], lang: str) -> str:
+    if not _is_custom(record):
+        return _TEXT[lang]["title"]
+    custom_title = (record["specification"].get("title") or {}).get(lang)
+    if custom_title:
+        return str(custom_title)
+    if lang == "en":
+        return "Fiscal policy brief: cumulative fiscal multipliers by horizon"
+    return "Informe de política fiscal: multiplicadores fiscales acumulados por horizonte"
+
+
+def _units_text(record: dict[str, Any], lang: str) -> str:
+    if not _is_custom(record):
+        return _READING[lang]["units"]
+    custom_units = (record["specification"].get("units") or {}).get(lang)
+    if custom_units:
+        return str(custom_units)
+    if lang == "en":
+        return (
+            "Multipliers are cumulative units of the outcome per cumulative unit of the fiscal "
+            "policy variable over the horizon."
+        )
+    return (
+        "Los multiplicadores son unidades acumuladas del producto por unidad acumulada de la "
+        "variable de política fiscal en el horizonte."
+    )
+
+
+def _identification_lines(record: dict[str, Any], lang: str) -> list[str]:
+    if not _is_custom(record):
+        return []
+    spec = record["specification"]
+    shock_src = spec.get("shock_source") or spec.get("shock_mode")
+    assumption = (spec.get("identifying_assumption") or {}).get(lang) or ""
+    if lang == "en":
+        return [
+            f"Shock source: {shock_src}",
+            f"Identifying assumption: {assumption}",
+        ]
+    return [
+        f"Fuente del choque: {shock_src}",
+        f"Supuesto de identificación: {assumption}",
+    ]
+
+
+def _sample_caution(sample: dict[str, Any], lang: str) -> list[str]:
+    guard = sample.get("sample_guard")
+    if not isinstance(guard, dict):
+        return []
+    out: list[str] = []
+    if guard.get("short_sample"):
+        n_lin = guard.get("min_linear_n_obs")
+        if lang == "en":
+            out.append(
+                f"Short-sample caution: only {n_lin} effective quarters enter at the headline "
+                f"horizons (benchmark {SHORT_SAMPLE_OBS}), so HAC bands and Montiel "
+                "Olea-Pflueger F cutoffs should be interpreted conservatively."
+            )
+        else:
+            out.append(
+                f"Advertencia de muestra corta: solo entran {n_lin} trimestres efectivos en los "
+                f"horizontes principales (referencia {SHORT_SAMPLE_OBS}), por lo que las bandas "
+                "HAC y los umbrales de F de Montiel Olea-Pflueger deben interpretarse con cautela."
+            )
+    if guard.get("short_regime"):
+        n_reg = guard.get("min_regime_n_eff")
+        if lang == "en":
+            out.append(
+                f"Short-regime caution: at least one regime has only {n_reg} effective quarters "
+                f"(benchmark {SHORT_REGIME_OBS}); state-dependent bands have limited finite-sample "
+                "precision."
+            )
+        else:
+            out.append(
+                f"Advertencia de régimen corto: al menos un régimen cuenta con solo {n_reg} "
+                f"trimestres efectivos (referencia {SHORT_REGIME_OBS}); las bandas dependientes "
+                "del estado tienen precisión finita limitada."
+            )
+    return out
+
+
 def _fmt(value: float | None, digits: int = 2) -> str:
     """``value`` to ``digits`` decimals, with a decimal point in both languages; ``n/a`` if missing."""
     if value is None or not math.isfinite(value):
@@ -698,10 +1586,14 @@ def _fmt(value: float | None, digits: int = 2) -> str:
 def _horizons(record: dict[str, Any], lang: str) -> list[tuple[str, str, int]]:
     """``(record key, label, h)`` of the headline horizons, in order."""
     hs = [int(h) for h in record["specification"]["headline_horizons"]]
-    labels = _READING[lang]["horizons"]
-    if len(hs) != len(labels):
+    if not _is_custom(record):
+        labels = _READING[lang]["horizons"]
+        if len(hs) != len(labels):
+            raise ValueError(f"the brief words two headline horizons; the record has {hs}")
+        return [(str(h), label, h) for h, label in zip(hs, labels)]
+    if len(hs) != 2:
         raise ValueError(f"the brief words two headline horizons; the record has {hs}")
-    return [(str(h), label, h) for h, label in zip(hs, labels)]
+    return [(str(h), _horizon_label(h, lang), h) for h in hs]
 
 
 def _sections(record: dict[str, Any], lang: str) -> list[tuple[str, str]]:
@@ -715,8 +1607,15 @@ def _sections(record: dict[str, Any], lang: str) -> list[tuple[str, str]]:
     return out
 
 
-def _no_experiment(lang: str) -> str:
-    return _TEXT[lang]["no_experiment"].format(period=WWII)
+def _no_experiment(lang: str, *, custom: bool = False) -> str:
+    if not custom:
+        return _TEXT[lang]["no_experiment"].format(period=WWII)
+    if lang == "en":
+        return "No experiment was run. Pass `--exclude START:END` to re-estimate excluding an episode."
+    return (
+        "No se ejecutó ningún experimento. Use `--exclude INICIO:FIN` para reestimar excluyendo "
+        "un episodio."
+    )
 
 
 def _finite(value: float | None) -> bool:
@@ -768,7 +1667,9 @@ def _concentration(sample: dict[str, Any], name: str, row: str,
     """A regime's top quarter at each horizon where it carries at least the reporting share."""
     found: list[tuple[str, str, int]] = []
     for key, label, _ in horizons:
-        top = sample["horizons"][key]["concentration"][name]
+        top = sample["horizons"][key]["concentration"].get(name)
+        if not top:
+            continue
         if top["share"] is not None and top["share"] >= CONCENTRATION_REPORT_SHARE:
             found.append((label, top["date"], round(100 * top["share"])))
     if not found:
@@ -788,7 +1689,8 @@ def _comparisons(record: dict[str, Any], horizons: list[tuple[str, str, int]],
                  words: dict[str, Any]) -> list[str]:
     """Each strong experiment cell against the same full-sample cell, or why there is none."""
     out: list[str] = []
-    for name, row in zip(_ROWS, words["rows"]):
+    row_names, row_labels = _active_rows(record, "en" if words is _READING["en"] else "es")
+    for name, row in zip(row_names, row_labels):
         for key, label, _ in horizons:
             cell = record["experiment"]["horizons"][key][name]
             if cell["weak"]:
@@ -808,30 +1710,53 @@ def _reading(record: dict[str, Any], sample_name: str, lang: str) -> str:
     """The reading of one sample, sentence by sentence in the rule's order.
 
     1. the excluded period (experiment only); 2. the units; 3. one sentence per row,
-    linear, slack and no slack, with a clause per headline horizon; 4. the test of equal
-    multipliers; 5. each regime's top quarter, when it carries at least
-    ``CONCENTRATION_REPORT_SHARE``; 6. the strong experiment cells against the full sample
-    and 7. the three-step note (experiment only).
+    linear (and slack / no slack when state-dependent), with a clause per headline horizon;
+    4. the test of equal multipliers; 5. each regime's top quarter, when it carries at least
+    ``CONCENTRATION_REPORT_SHARE``; 6. the strong experiment cells against the full sample;
+    and 7. the three-step note (bundled RZ experiment) or identification/short-sample notes.
     """
     words = _READING[lang]
     sample = record[sample_name]
     horizons = _horizons(record, lang)
     cutoff = _fmt(record["specification"]["weak_cutoff"], 1)
+    custom = _is_custom(record)
+    has_state = _has_state(record)
+    row_names, row_labels = _active_rows(record, lang)
     parts: list[str] = []
     if sample_name == "experiment":
         start, end = sample["exclude"]
-        parts.append(words["exp_head"].format(a=start, b=end))
-    parts.append(words["units"])
-    for name, row in zip(_ROWS, words["rows"]):
+        if not custom:
+            parts.append(words["exp_head"].format(a=start, b=end))
+        elif lang == "en":
+            parts.append(
+                f"Excluding {start}-{end}: every quarter whose window, shock or lags touch the "
+                "period is dropped."
+            )
+        else:
+            parts.append(
+                f"Excluyendo {start}-{end}: se descarta todo trimestre cuya ventana, choque o "
+                "rezagos tocan el periodo."
+            )
+    parts.append(_units_text(record, lang))
+    for name, row in zip(row_names, row_labels):
         c1, c2 = (_clause(sample["horizons"][key][name], label, words, cutoff)
                   for key, label, _ in horizons)
         parts.append(words["row"].format(R=row, c1=c1, c2=c2))
-    parts += _differences(sample, horizons, words)
-    for name, row in zip(_ROWS[1:], words["rows"][1:]):
-        parts += _concentration(sample, name, row, horizons, words)
+    if has_state:
+        parts += _differences(sample, horizons, words)
+        for name, row in zip(row_names[1:], row_labels[1:]):
+            parts += _concentration(sample, name, row, horizons, words)
+    else:
+        parts += _concentration(sample, "linear", row_labels[0], horizons, words)
     if sample_name == "experiment":
         parts += _comparisons(record, horizons, words)
-        parts.append(words["three_step"])
+        if not custom:
+            parts.append(words["three_step"])
+    if custom:
+        assumption = (record["specification"].get("identifying_assumption") or {}).get(lang)
+        if assumption:
+            parts.append(str(assumption))
+        parts += _sample_caution(sample, lang)
     return " ".join(parts)
 
 
@@ -857,7 +1782,8 @@ def _entry(cell: dict[str, Any], t: dict[str, str], *, tex: bool = False) -> str
 def _table(record: dict[str, Any], sample: dict[str, Any], lang: str, *,
            tex: bool = False) -> tuple[list[str], list[list[str]], bool]:
     """Header, rows and whether any cell is weak, for one sample's headline table."""
-    t, words = _TEXT[lang], _READING[lang]
+    t = _TEXT[lang]
+    row_names, row_labels = _active_rows(record, lang)
     esc = latex_escape if tex else str
     horizons = _horizons(record, lang)
     header = [esc(t["multiplier"])]
@@ -865,19 +1791,20 @@ def _table(record: dict[str, Any], sample: dict[str, Any], lang: str, *,
         header += [esc(t["horizon"].format(H=label, h=h)), esc(t["f_eff"])]
     rows: list[list[str]] = []
     weak = False
-    for name, row in zip(_ROWS, words["rows"]):
+    for name, row in zip(row_names, row_labels):
         line = [esc(row)]
         for key, _, _ in horizons:
             cell = sample["horizons"][key][name]
             weak = weak or bool(cell["weak"])
             line += [_entry(cell, t, tex=tex), _fmt(cell["f_eff"], 1)]
         rows.append(line)
-    line = [esc(t["difference"])]
-    for key, _, _ in horizons:
-        test = sample["horizons"][key]["difference"]
-        line += [f"{_fmt(test['estimate'])} (p = {_fmt(test['p_value'])})" if test["reliable"]
-                 else esc(t["not_reliable"]), ""]
-    rows.append(line)
+    if _has_state(record):
+        line = [esc(t["difference"])]
+        for key, _, _ in horizons:
+            test = sample["horizons"][key]["difference"]
+            line += [f"{_fmt(test['estimate'])} (p = {_fmt(test['p_value'])})" if test["reliable"]
+                     else esc(t["not_reliable"]), ""]
+        rows.append(line)
     return header, rows, weak
 
 
@@ -888,11 +1815,19 @@ def _markdown_table(header: Sequence[str], rows: Sequence[Sequence[str]]) -> str
     return "\n".join(lines)
 
 
+def _table_note_text(record: dict[str, Any], lang: str) -> str:
+    if _has_state(record):
+        return _TEXT[lang]["table_note"]
+    if lang == "en":
+        return "Estimate [90% band]."
+    return "Estimación [banda al 90%]."
+
+
 def _table_block(record: dict[str, Any], sample: dict[str, Any], lang: str) -> str:
     """One sample's markdown table and its note; the weak-cell note only when a cell is weak."""
     t = _TEXT[lang]
     header, rows, weak = _table(record, sample, lang)
-    note = t["table_note"]
+    note = _table_note_text(record, lang)
     if weak:
         cutoff = _fmt(record["specification"]["weak_cutoff"], 1)
         note += f" {_MARK} " + t["weak_note"].format(c=cutoff)
@@ -917,7 +1852,7 @@ def page_block(record: dict[str, Any],
         return _reading(record, "full", lang)
     if block in ("experiment", "experiment_reading"):
         if record["experiment"] is None:
-            return _no_experiment(lang)
+            return _no_experiment(lang, custom=_is_custom(record))
         if block == "experiment":
             return _table_block(record, record["experiment"], lang)
         return _reading(record, "experiment", lang)
@@ -946,11 +1881,12 @@ def summary_text(record: dict[str, Any], lang: str = "en") -> str:
     ``(-inf, b] U [a, inf)``, so that any console can print them; the files keep the signs.
     """
     t = _text(lang)
-    parts = [t["title"], t["source"].format(citation=record["data"]["citation"])]
+    parts = [_title_text(record, lang), t["source"].format(citation=record["data"]["citation"])]
+    parts += _identification_lines(record, lang)
     for name, heading in _sections(record, lang):
         parts += [heading, _table_block(record, record[name], lang), _reading(record, name, lang)]
     if record["experiment"] is None:
-        parts.append(_no_experiment(lang))
+        parts.append(_no_experiment(lang, custom=_is_custom(record)))
     text = "\n\n".join(_wrap(p) for p in "\n\n".join(parts).split("\n\n")) + "\n"
     return text.translate(_TERMINAL)
 
@@ -958,12 +1894,16 @@ def summary_text(record: dict[str, Any], lang: str = "en") -> str:
 def _markdown_page(record: dict[str, Any], lang: str) -> str:
     """``headline.md``: each sample's table and reading under its heading."""
     t = _TEXT[lang]
-    parts = [f"# {t['title']}", t["source"].format(citation=record["data"]["citation"])]
+    parts = [
+        f"# {_title_text(record, lang)}",
+        t["source"].format(citation=record["data"]["citation"]),
+    ]
+    parts += _identification_lines(record, lang)
     for name, heading in _sections(record, lang):
         parts += [f"## {heading}", _table_block(record, record[name], lang),
                   _reading(record, name, lang)]
     if record["experiment"] is None:
-        parts.append(_no_experiment(lang))
+        parts.append(_no_experiment(lang, custom=_is_custom(record)))
     return "\n\n".join(parts) + "\n"
 
 
@@ -975,21 +1915,22 @@ _CSV_COLUMNS = ["sample", "h", "row", "label", "estimate", "se", "lo", "hi", "f_
 def _headline_frame(record: dict[str, Any], lang: str) -> pd.DataFrame:
     """``headline.csv``: the headline table's cells, one row per sample, horizon and estimate.
 
-    The rows ``linear``, ``slack`` and ``no_slack`` hold a cell (``estimate`` is its
-    multiplier), and ``difference`` the test of equal multipliers (slack minus no slack).
-    ``label`` is the row's name in ``lang``. Like the markdown and LaTeX tables, it shows a
-    weak cell by its Anderson-Rubin set and effective F only, leaving ``estimate``, ``se``,
-    ``lo`` and ``hi`` empty, and an unreliable difference without ``estimate``, ``se`` or
-    ``p_value``. Numbers are at full precision.
+    The rows ``linear`` (and ``slack`` / ``no_slack`` when state-dependent) hold a cell
+    (``estimate`` is its multiplier), and ``difference`` the test of equal multipliers.
+    Like the markdown and LaTeX tables, it shows a weak cell by its Anderson-Rubin set and
+    effective F only, leaving ``estimate``, ``se``, ``lo`` and ``hi`` empty, and an unreliable
+    difference without ``estimate``, ``se`` or ``p_value``. Numbers are at full precision.
     """
-    t, words = _TEXT[lang], _READING[lang]
+    t = _TEXT[lang]
+    row_names, row_labels = _active_rows(record, lang)
+    has_state = _has_state(record)
     rows: list[dict[str, Any]] = []
     for sample_name, _ in _sections(record, lang):
         for key, _, h in _horizons(record, lang):
             cells = record[sample_name]["horizons"][key]
-            for name, label in zip(_ROWS, words["rows"]):
+            for name, label in zip(row_names, row_labels):
                 cell = cells[name]
-                top = cells["concentration"].get(name, {})
+                top = (cells["concentration"] or {}).get(name) or {}
                 point = {} if cell["weak"] else {"estimate": cell["multiplier"], "se": cell["se"],
                                                  "lo": cell["lo"], "hi": cell["hi"]}
                 rows.append({"sample": sample_name, "h": h, "row": name, "label": label, **point,
@@ -997,11 +1938,15 @@ def _headline_frame(record: dict[str, Any], lang: str) -> pd.DataFrame:
                              "ar_lo": cell["ar_lo"], "ar_hi": cell["ar_hi"],
                              "ar_set_type": cell["ar_set_type"], "n_eff": cell.get("n_eff"),
                              "top_quarter": top.get("date"), "top_share": top.get("share")})
-            test = cells["difference"]
-            quoted = {} if not test["reliable"] else {"estimate": test["estimate"],
-                                                      "se": test["se"], "p_value": test["p_value"]}
-            rows.append({"sample": sample_name, "h": h, "row": "difference",
-                         "label": t["difference"], **quoted, "reliable": test["reliable"]})
+            if has_state:
+                test = cells["difference"]
+                quoted = {} if not test["reliable"] else {
+                    "estimate": test["estimate"],
+                    "se": test["se"],
+                    "p_value": test["p_value"],
+                }
+                rows.append({"sample": sample_name, "h": h, "row": "difference",
+                             "label": t["difference"], **quoted, "reliable": test["reliable"]})
     return pd.DataFrame(rows, columns=_CSV_COLUMNS)
 
 
@@ -1013,7 +1958,7 @@ def _latex_table(record: dict[str, Any], sample: dict[str, Any], lang: str) -> s
     lines = ["\\begin{tabular}{l" + "r" * (width - 1) + "}", " & ".join(header) + " \\\\",
              "\\hline"]
     lines += [" & ".join(row) + " \\\\" for row in rows]
-    notes = [latex_escape(t["table_note"])]
+    notes = [latex_escape(_table_note_text(record, lang))]
     if weak:
         cutoff = _fmt(record["specification"]["weak_cutoff"], 1)
         notes.append("$^\\dagger$ " + latex_escape(t["weak_note"].format(c=cutoff)))
@@ -1026,7 +1971,12 @@ def _latex_table(record: dict[str, Any], sample: dict[str, Any], lang: str) -> s
 def _latex_page(record: dict[str, Any], lang: str) -> str:
     """``headline.tex``: a ``tabular`` per sample, each under a comment with its heading."""
     t = _TEXT[lang]
-    lines = [f"% {t['title']}", f"% {t['source'].format(citation=record['data']['citation'])}"]
+    lines = [
+        f"% {_title_text(record, lang)}",
+        f"% {t['source'].format(citation=record['data']['citation'])}",
+    ]
+    for extra in _identification_lines(record, lang):
+        lines.append(f"% {extra}")
     for name, heading in _sections(record, lang):
         lines += ["", f"% {heading}", _latex_table(record, record[name], lang)]
     return "\n".join(lines) + "\n"
@@ -1101,18 +2051,20 @@ def _panel(ax: Any, frame: pd.DataFrame, name: str, title: str, cutoff: float,
 
 
 def _figure_png(record: dict[str, Any], paths: pd.DataFrame, lang: str) -> bytes:
-    """``multipliers.png``: linear, slack and no slack over h = 0..20, a row per sample."""
+    """``multipliers.png``: linear (and slack / no slack when present), a row per sample."""
     from matplotlib.backends.backend_agg import FigureCanvasAgg
     from matplotlib.figure import Figure
     from matplotlib.lines import Line2D
     from matplotlib.patches import Patch
 
-    t, words = _TEXT[lang], _READING[lang]
+    t = _TEXT[lang]
+    row_names, row_labels = _active_rows(record, lang)
     cutoff = float(record["specification"]["weak_cutoff"])
     sections = _sections(record, lang)
     hs = sorted(int(h) for h in paths["h"].unique())
     ticks = sorted({hs[0], *(h for _, _, h in _horizons(record, lang)), hs[-1]})
-    fig = Figure(figsize=(11.0, 1.0 + 3.1 * len(sections)), dpi=120, facecolor=_SURFACE,
+    fig_width = 11.0 if len(row_names) > 1 else 5.5
+    fig = Figure(figsize=(fig_width, 1.0 + 3.1 * len(sections)), dpi=120, facecolor=_SURFACE,
                  layout="constrained")
     FigureCanvasAgg(fig)
     off_axis = False
@@ -1121,8 +2073,8 @@ def _figure_png(record: dict[str, Any], paths: pd.DataFrame, lang: str) -> bytes
         subfig.set_facecolor(_SURFACE)
         subfig.suptitle(heading, x=0.01, ha="left", fontsize=10.5, color=_INK)
         frame = paths.loc[paths["sample"] == name].sort_values("h")
-        axes = subfig.subplots(1, len(_ROWS))
-        for ax, row, title in zip(axes, _ROWS, words["rows"]):
+        axes = np.atleast_1d(subfig.subplots(1, len(row_names))).ravel()
+        for ax, row, title in zip(axes, row_names, row_labels):
             off_axis = _panel(ax, frame, row, title, cutoff, ticks) or off_axis
             ax.set_xlabel(t["fig_x"], fontsize=8.5, color=_INK_2)
         axes[0].set_ylabel(t["fig_y"], fontsize=8.5, color=_INK_2)
@@ -1137,8 +2089,8 @@ def _figure_png(record: dict[str, Any], paths: pd.DataFrame, lang: str) -> bytes
     if off_axis:
         handles.append(Line2D([], [], color=_INK_2, ls="none", marker="v", ms=6))
         labels.append(t["fig_off"])
-    fig.legend(handles, labels, loc="outside lower center", ncols=2, frameon=False,
-               fontsize=8.5, labelcolor=_INK_2)
+    fig.legend(handles, labels, loc="outside lower center", ncols=2 if len(row_names) > 1 else 1,
+               frameon=False, fontsize=8.5, labelcolor=_INK_2)
     fig.suptitle(t["fig_title"], fontsize=11.5, color=_INK)
     buffer = io.BytesIO()
     fig.savefig(buffer, format="png", facecolor=_SURFACE, metadata={"Software": None})
@@ -1203,15 +2155,21 @@ def write_outputs(record: dict[str, Any], paths: pd.DataFrame, output: str | Pat
     return manifest
 
 
-def run_brief(output: str | Path, *, exclude: str | None = None,
-              lang: str = "en") -> dict[str, Any]:
+def run_brief(
+    output: str | Path,
+    *,
+    exclude: str | None = None,
+    lang: str = "en",
+    data: pd.DataFrame | str | Path | None = None,
+    config: FiscalBriefConfig | Mapping[str, Any] | str | Path | None = None,
+) -> dict[str, Any]:
     """Compute the brief (:func:`compute_brief`), then write its files (:func:`write_outputs`).
 
     Nothing is created or written unless the computation succeeds. Returns
     ``{"record", "paths", "manifest"}``.
     """
     _text(lang)
-    record, paths = compute_brief(exclude=exclude)
+    record, paths = compute_brief(exclude=exclude, data=data, config=config)
     manifest = write_outputs(record, paths, output, lang=lang)
     return {"record": record, "paths": paths, "manifest": manifest}
 
@@ -1233,12 +2191,105 @@ def _echo(text: str) -> None:
     print(text)
 
 
+def _build_cli_config(args: argparse.Namespace) -> tuple[Path | None, FiscalBriefConfig | None]:
+    """Assemble ``(data_path, config)`` from CLI flags, or ``(None, None)`` for the bundled run."""
+    custom_flags = (
+        args.config, args.data, args.date_col, args.filter_col, args.filter_value,
+        args.outcome, args.policy, args.instrument, args.shock_mode, args.deflator,
+        args.potential, args.scaling, args.poly_degree, args.hp_lambda, args.state,
+        args.state_threshold, args.state_op, args.state_lag, args.slack_rule,
+        args.lags, args.headline_horizons, args.max_horizon, args.citation,
+        args.shock_source, args.identifying_assumption, args.title, args.units,
+    )
+    if not any(v is not None for v in custom_flags) and not args.linear_only:
+        return None, None
+
+    base_dict: dict[str, Any] = {}
+    data_from_cfg: Path | None = None
+    if args.config is not None:
+        cfg_obj, extras = _coerce_config(args.config)
+        base_dict = asdict(cfg_obj)
+        if "data" in extras and extras["data"] is not None:
+            raw_p = Path(str(extras["data"]))
+            data_from_cfg = raw_p if raw_p.is_absolute() else (args.config.parent / raw_p)
+        if args.exclude is None and extras.get("exclude") is not None:
+            args.exclude = str(extras["exclude"])
+
+    overrides: dict[str, Any] = {}
+    if args.date_col is not None:
+        overrides["date_col"] = args.date_col
+    if args.filter_col is not None:
+        overrides["filter_col"] = args.filter_col
+    if args.filter_value is not None:
+        overrides["filter_value"] = args.filter_value
+    if args.outcome is not None:
+        overrides["outcome"] = args.outcome
+    if args.policy is not None:
+        overrides["policy"] = args.policy
+    if args.instrument is not None:
+        overrides["instrument"] = args.instrument
+    if args.shock_mode is not None:
+        overrides["shock_mode"] = args.shock_mode
+    if args.deflator is not None:
+        overrides["deflator_col"] = args.deflator
+    if args.potential is not None:
+        overrides["potential_col"] = args.potential
+    if args.scaling is not None:
+        overrides["scaling"] = args.scaling
+    if args.poly_degree is not None:
+        overrides["poly_degree"] = args.poly_degree
+    if args.hp_lambda is not None:
+        overrides["hp_lambda"] = args.hp_lambda
+    if args.linear_only:
+        overrides["state"] = None
+    elif args.state is not None:
+        overrides["state"] = args.state
+    if args.state_threshold is not None:
+        overrides["state_threshold"] = args.state_threshold
+    if args.state_op is not None:
+        overrides["state_op"] = args.state_op
+    if args.state_lag is not None:
+        overrides["state_lag"] = args.state_lag
+    if args.slack_rule is not None:
+        overrides["slack_rule"] = args.slack_rule
+    if args.lags is not None:
+        overrides["n_lags"] = args.lags
+    if args.max_horizon is not None:
+        if args.max_horizon < 1:
+            raise ValueError("--max-horizon must be >= 1")
+        overrides["horizons"] = tuple(range(args.max_horizon + 1))
+    if args.headline_horizons is not None:
+        parts = [p.strip() for p in str(args.headline_horizons).split(",") if p.strip()]
+        if len(parts) != 2 or not all(p.isdigit() for p in parts):
+            raise ValueError("--headline-horizons must be H1,H2 (e.g. 7,15 or 3,7)")
+        overrides["headline_horizons"] = (int(parts[0]), int(parts[1]))
+    if args.citation is not None:
+        overrides["citation"] = args.citation
+    if args.shock_source is not None:
+        overrides["shock_source"] = args.shock_source
+    if args.identifying_assumption is not None:
+        overrides["identifying_assumption_en"] = args.identifying_assumption
+        overrides["identifying_assumption_es"] = args.identifying_assumption
+    if args.title is not None:
+        overrides["title_en"] = args.title
+        overrides["title_es"] = args.title
+    if args.units is not None:
+        overrides["units_en"] = args.units
+        overrides["units_es"] = args.units
+
+    merged = {**base_dict, **overrides}
+    data_path = args.data if args.data is not None else data_from_cfg
+    if data_path is None:
+        raise ValueError("own-data fiscal brief requires --data CSV_PATH (or 'data' in --config)")
+    return data_path, FiscalBriefConfig(**merged)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """The command line: check the arguments, run the brief, print its summary in ``--lang``."""
     parser = argparse.ArgumentParser(
         prog="python -m puremacro.examples.first_brief_fiscal",
-        description=("Fiscal policy brief: the US government spending multiplier at two and "
-                     "four years, with and without slack, on Ramey and Zubairy's data."))
+        description=("Fiscal policy brief: cumulative government spending multipliers with "
+                     "weak-IV Anderson-Rubin sets on bundled RZ2018 or user quarterly data."))
     parser.add_argument("--exclude", metavar="START:END", default=None,
                         help=("also estimate without this period, both quarters included, "
                               f"by Ramey and Zubairy's rule (World War II: {WWII})"))
@@ -1246,13 +2297,86 @@ def main(argv: Sequence[str] | None = None) -> int:
                         help=f"output directory (default {DEFAULT_OUTPUT})")
     parser.add_argument("--lang", choices=("en", "es"), default="en",
                         help="language of the outputs (default en)")
+    parser.add_argument("--config", metavar="JSON", type=Path, default=None,
+                        help="JSON configuration file for own-data estimation")
+    parser.add_argument("--data", metavar="CSV", type=Path, default=None,
+                        help="quarterly CSV dataset for own-data estimation")
+    parser.add_argument("--date-col", metavar="COL", default=None,
+                        help="date column (YYYYQn, YYYYTn, or ISO YYYY-MM-DD)")
+    parser.add_argument("--filter-col", metavar="COL", default=None,
+                        help="optional panel filter column (e.g. code)")
+    parser.add_argument("--filter-value", metavar="VAL", default=None,
+                        help="value to keep in --filter-col (e.g. DEU)")
+    parser.add_argument("--outcome", metavar="COL", default=None,
+                        help="outcome column name (e.g. gdp_real)")
+    parser.add_argument("--policy", metavar="COL", default=None,
+                        help="fiscal policy column name (e.g. cons_gov_real)")
+    parser.add_argument("--instrument", metavar="COL", default=None,
+                        help="external shock/instrument column")
+    parser.add_argument("--shock-mode", choices=_SHOCK_MODES, default=None,
+                        help="shock identification mode (external_instrument or blanchard_perotti)")
+    parser.add_argument("--deflator", metavar="COL", default=None,
+                        help="optional price deflator column applied to outcome and policy")
+    parser.add_argument("--potential", metavar="COL", default=None,
+                        help="optional potential output column for Gordon-Krenn scaling")
+    parser.add_argument("--scaling", choices=_SCALING_MODES, default=None,
+                        help="scaling transformation (pre_scaled, potential_col, hp_trend, poly_trend)")
+    parser.add_argument("--poly-degree", type=int, default=None,
+                        help="polynomial degree when --scaling poly_trend (default 2)")
+    parser.add_argument("--hp-lambda", type=float, default=None,
+                        help="Hodrick-Prescott smoothing when --scaling hp_trend (default 1600)")
+    parser.add_argument("--state", metavar="COL", default=None,
+                        help="state variable column for slack/no-slack regimes")
+    parser.add_argument("--linear-only", action="store_true",
+                        help="estimate only the linear cumulative multiplier (no state split)")
+    parser.add_argument("--state-threshold", type=float, default=None,
+                        help="threshold defining the slack regime (default 0.5)")
+    parser.add_argument("--state-op", choices=_STATE_OPS, default=None,
+                        help="comparison operator for slack regime (default >=)")
+    parser.add_argument("--state-lag", type=int, default=None,
+                        help="quarters to lag --state before thresholding (default 0)")
+    parser.add_argument("--slack-rule", metavar="TEXT", default=None,
+                        help="human-readable slack rule label")
+    parser.add_argument("--lags", type=int, default=None,
+                        help="lag length for automatic control construction (default 4)")
+    parser.add_argument("--headline-horizons", metavar="H1,H2", default=None,
+                        help="two comma-separated headline horizons (default 7,15)")
+    parser.add_argument("--max-horizon", type=int, default=None,
+                        help="maximum horizon H for path estimation 0..H (default 20)")
+    parser.add_argument("--citation", metavar="TEXT", default=None,
+                        help="dataset citation recorded in outputs and manifest")
+    parser.add_argument("--shock-source", metavar="TEXT", default=None,
+                        help="explicit shock source description")
+    parser.add_argument("--identifying-assumption", metavar="TEXT", default=None,
+                        help="explicit causal identifying assumption recorded in the brief")
+    parser.add_argument("--title", metavar="TEXT", default=None,
+                        help="custom brief title")
+    parser.add_argument("--units", metavar="TEXT", default=None,
+                        help="custom multiplier units description")
+
     args = parser.parse_args(argv)
-    if args.exclude is not None:          # checked before anything is computed or written
+    try:
+        data_path, cfg = _build_cli_config(args)
+    except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+        parser.error(str(exc))
+
+    if data_path is None and cfg is None:
+        if args.exclude is not None:      # checked before anything is computed or written
+            try:
+                exclude_period(load_brief_data(), parse_exclude(args.exclude))
+            except _ExcludeError as exc:
+                parser.error(exc.text(args.lang))
+        study = run_brief(args.output, exclude=args.exclude, lang=args.lang)
+    else:
         try:
-            exclude_period(load_brief_data(), parse_exclude(args.exclude))
+            study = run_brief(
+                args.output, exclude=args.exclude, lang=args.lang, data=data_path, config=cfg
+            )
         except _ExcludeError as exc:
             parser.error(exc.text(args.lang))
-    study = run_brief(args.output, exclude=args.exclude, lang=args.lang)
+        except (OSError, ValueError, TypeError) as exc:
+            parser.error(str(exc))
+
     _echo(summary_text(study["record"], args.lang))
     _echo(_TEXT[args.lang]["written"].format(path=args.output))
     return 0

@@ -17,7 +17,9 @@ puremacro's cached data layer.
 """
 from __future__ import annotations
 
+import warnings
 from collections.abc import Sequence
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -201,6 +203,37 @@ def _aggregate_quarterly_to_annual(
     return out.drop_duplicates(subset=["code", "date", "variable"], keep="first")
 
 
+def _status_entry(
+    status: str,
+    df: pd.DataFrame | None = None,
+    *,
+    error: str | None = None,
+) -> dict[str, Any]:
+    if df is not None and not df.empty:
+        dates = pd.to_datetime(df["date"], errors="coerce").dropna()
+        obs_start = str(dates.min().date()) if not dates.empty else None
+        obs_end = str(dates.max().date()) if not dates.empty else None
+        return {
+            "status": status,
+            "rows": int(len(df)),
+            "obs_start": obs_start,
+            "obs_end": obs_end,
+            "error": error,
+        }
+    return {
+        "status": status,
+        "rows": 0,
+        "obs_start": None,
+        "obs_end": None,
+        "error": error,
+    }
+
+
+def _attach_status(df: pd.DataFrame, source_status: dict[str, dict[str, Any]]) -> pd.DataFrame:
+    df.attrs["source_status"] = source_status
+    return df
+
+
 def build_climate_panel(
     codes: Sequence[str] | None = None,
     *,
@@ -208,6 +241,9 @@ def build_climate_panel(
     end_year: int | None = None,
     frequency: str = "A",
     harmonization: str = "repeat",
+    include_emissions: bool = True,
+    include_energy: bool = True,
+    include_gdp: bool = True,
     wide: bool = False,
     refresh: bool = False,
 ) -> pd.DataFrame:
@@ -227,6 +263,12 @@ def build_climate_panel(
         Frequency projection method for quarterly frequency:
         ``'repeat'`` (repeat annual value across Q1-Q4) or
         ``'interpolate'`` (linear interpolation across quarters).
+    include_emissions : bool, default True
+        If True, fetches greenhouse gas emissions indicators.
+    include_energy : bool, default True
+        If True, fetches primary energy consumption and electricity transition shares.
+    include_gdp : bool, default True
+        If True, includes national real GDP and population from the local macro panel when present.
     wide : bool, default False
         If True, returns a pivoted matrix where index is date and columns are formatted
         as ``{code}_{variable}``.
@@ -236,7 +278,9 @@ def build_climate_panel(
     Returns
     -------
     pd.DataFrame
-        Aligned climate panel in long-form (or wide matrix if ``wide=True``).
+        Aligned climate panel in long-form (or wide matrix if ``wide=True``), with
+        ``panel.attrs['source_status']`` recording per-block status, row counts,
+        observation bounds, and any upstream errors.
     """
     freq_norm = frequency.strip().upper()
     if freq_norm not in ("A", "Q"):
@@ -248,67 +292,111 @@ def build_climate_panel(
             f"Unsupported harmonization: '{harmonization}'. Must be 'repeat' or 'interpolate'."
         )
 
+    source_status: dict[str, dict[str, Any]] = {}
+
     if codes is not None:
         codes = [str(c).strip().upper() for c in codes]
         if len(codes) == 0:
-            return pd.DataFrame() if wide else _EMPTY.copy()
+            empty_out = pd.DataFrame() if wide else _EMPTY.copy()
+            return _attach_status(empty_out, source_status)
 
     annual_frames: list[pd.DataFrame] = []
     quarterly_frames: list[pd.DataFrame] = []
 
     # 1. Fetch emissions (annual baseline)
-    try:
-        from .fetch.emissions import fetch_emissions_panel
-        em_df = fetch_emissions_panel(
-            codes=codes,
-            start_year=start_year,
-            end_year=end_year,
-            frequency="A",
-            refresh=refresh,
-        )
-        if not em_df.empty:
-            if "is_imputed" not in em_df.columns:
-                em_df["is_imputed"] = False
-            annual_frames.append(em_df)
-    except Exception:
-        pass
+    if not include_emissions:
+        source_status["emissions"] = _status_entry("skipped")
+    else:
+        try:
+            from .fetch.emissions import fetch_emissions_panel
+            em_df = fetch_emissions_panel(
+                codes=codes,
+                start_year=start_year,
+                end_year=end_year,
+                frequency="A",
+                refresh=refresh,
+            )
+            if not em_df.empty:
+                if "is_imputed" not in em_df.columns:
+                    em_df["is_imputed"] = False
+                annual_frames.append(em_df)
+                source_status["emissions"] = _status_entry("ok", em_df)
+            else:
+                source_status["emissions"] = _status_entry("empty")
+        except Exception as exc:
+            err_msg = f"{type(exc).__name__}: {exc}"
+            source_status["emissions"] = _status_entry("failed", error=err_msg)
+            warnings.warn(
+                f"build_climate_panel: upstream 'emissions' fetch failed ({err_msg}); "
+                "continuing with remaining blocks.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
 
     # 2. Fetch energy transition (annual baseline)
-    try:
-        from .fetch.energy_transition import fetch_energy_transition
-        et_df = fetch_energy_transition(
-            codes=codes,
-            start_year=start_year,
-            refresh=refresh,
-        )
-        if not et_df.empty:
-            if "is_imputed" not in et_df.columns:
-                et_df["is_imputed"] = False
-            annual_frames.append(et_df)
-    except Exception:
-        pass
+    if not include_energy:
+        source_status["energy_transition"] = _status_entry("skipped")
+    else:
+        try:
+            from .fetch.energy_transition import fetch_energy_transition
+            et_df = fetch_energy_transition(
+                codes=codes,
+                start_year=start_year,
+                refresh=refresh,
+            )
+            if not et_df.empty:
+                if "is_imputed" not in et_df.columns:
+                    et_df["is_imputed"] = False
+                annual_frames.append(et_df)
+                source_status["energy_transition"] = _status_entry("ok", et_df)
+            else:
+                source_status["energy_transition"] = _status_entry("empty")
+        except Exception as exc:
+            err_msg = f"{type(exc).__name__}: {exc}"
+            source_status["energy_transition"] = _status_entry("failed", error=err_msg)
+            warnings.warn(
+                f"build_climate_panel: upstream 'energy_transition' fetch failed ({err_msg}); "
+                "continuing with remaining blocks.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
 
     # 3. National macro output (real GDP, population) if available
-    from ._optional import MissingEngineError, require_engines
-    try:
-        from .build_panel import PANEL_Q_PATH
-        if PANEL_Q_PATH.exists():
-            # An existing macro panel must not vanish into the `except` below
-            # just because no parquet engine is installed.
-            require_engines("parquet", feature="build_climate_panel (reading the macro panel)")
-            macro_q = pd.read_parquet(PANEL_Q_PATH)
-            macro_vars = {"log_gdp_real", "gdp_real", "pop", "population"}
-            macro_sub = macro_q[macro_q["variable"].isin(macro_vars)].copy()
-            if codes is not None:
-                macro_sub = macro_sub[macro_sub["code"].isin(set(codes))]
-            if not macro_sub.empty:
-                if "is_imputed" not in macro_sub.columns:
-                    macro_sub["is_imputed"] = False
-                quarterly_frames.append(macro_sub)
-    except MissingEngineError:
-        raise
-    except Exception:
-        pass
+    if not include_gdp:
+        source_status["macro_output"] = _status_entry("skipped")
+    else:
+        from ._optional import MissingEngineError, require_engines
+        try:
+            from .build_panel import PANEL_Q_PATH
+            if PANEL_Q_PATH.exists():
+                # An existing macro panel must not vanish into the `except` below
+                # just because no parquet engine is installed.
+                require_engines("parquet", feature="build_climate_panel (reading the macro panel)")
+                macro_q = pd.read_parquet(PANEL_Q_PATH)
+                macro_vars = {"log_gdp_real", "gdp_real", "pop", "population"}
+                macro_sub = macro_q[macro_q["variable"].isin(macro_vars)].copy()
+                if codes is not None:
+                    macro_sub = macro_sub[macro_sub["code"].isin(set(codes))]
+                if not macro_sub.empty:
+                    if "is_imputed" not in macro_sub.columns:
+                        macro_sub["is_imputed"] = False
+                    quarterly_frames.append(macro_sub)
+                    source_status["macro_output"] = _status_entry("ok", macro_sub)
+                else:
+                    source_status["macro_output"] = _status_entry("empty")
+            else:
+                source_status["macro_output"] = _status_entry("unavailable")
+        except MissingEngineError:
+            raise
+        except Exception as exc:
+            err_msg = f"{type(exc).__name__}: {exc}"
+            source_status["macro_output"] = _status_entry("failed", error=err_msg)
+            warnings.warn(
+                f"build_climate_panel: upstream 'macro_output' read failed ({err_msg}); "
+                "continuing with remaining blocks.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
 
     final_frames: list[pd.DataFrame] = []
 
@@ -331,9 +419,12 @@ def build_climate_panel(
                 final_frames.append(a_from_q)
 
     if not final_frames:
-        if wide:
-            return pd.DataFrame(index=pd.DatetimeIndex([], name="date"))
-        return _EMPTY.copy()
+        empty_res = (
+            pd.DataFrame(index=pd.DatetimeIndex([], name="date"))
+            if wide
+            else _EMPTY.copy()
+        )
+        return _attach_status(empty_res, source_status)
 
     panel = pd.concat(final_frames, ignore_index=True)
 
@@ -344,14 +435,24 @@ def build_climate_panel(
         panel = panel[panel["date"] <= pd.Timestamp(f"{end_year}-12-31")]
 
     if panel.empty:
-        return pd.DataFrame(index=pd.DatetimeIndex([], name="date")) if wide else _EMPTY.copy()
+        empty_res = (
+            pd.DataFrame(index=pd.DatetimeIndex([], name="date"))
+            if wide
+            else _EMPTY.copy()
+        )
+        return _attach_status(empty_res, source_status)
 
     # Filter to requested country codes
     if codes is not None:
         panel = panel[panel["code"].isin(set(codes))]
 
     if panel.empty:
-        return pd.DataFrame(index=pd.DatetimeIndex([], name="date")) if wide else _EMPTY.copy()
+        empty_res = (
+            pd.DataFrame(index=pd.DatetimeIndex([], name="date"))
+            if wide
+            else _EMPTY.copy()
+        )
+        return _attach_status(empty_res, source_status)
 
     panel = panel.drop_duplicates(subset=["code", "date", "variable"], keep="first")
     panel = panel.sort_values(["code", "variable", "date"]).reset_index(drop=True)
@@ -361,9 +462,9 @@ def build_climate_panel(
         piv.columns = [f"{c}_{v}" for c, v in piv.columns]
         piv.columns.name = None
         piv = piv.sort_index()
-        return piv
+        return _attach_status(piv, source_status)
 
-    return panel
+    return _attach_status(panel, source_status)
 
 
 __all__ = ["build_climate_panel"]

@@ -11,6 +11,31 @@ but not published; their additions are included in 6.0.1, published on
 
 ## Unreleased
 
+### Added
+
+- `examples.first_brief_fiscal` adds reusable own-data quarterly fiscal brief
+  configuration (`FiscalBriefConfig`, `prepare_fiscal_data`, `parse_quarterly_index`,
+  `SHORT_SAMPLE_OBS`, `SHORT_REGIME_OBS`, and CLI flags `--config`, `--data`,
+  `--date-col`, `--filter-col`, `--filter-value`, `--outcome`, `--policy`,
+  `--instrument`, `--shock-mode`, `--deflator`, `--potential`, `--scaling`,
+  `--state`, `--linear-only`, `--state-threshold`, `--state-op`, `--state-lag`,
+  `--lags`, `--headline-horizons`, `--max-horizon`, `--citation`, `--title`,
+  `--units`) supporting custom quarterly datasets, Gordon–Krenn trend/potential
+  scaling, explicit `external_instrument` vs opt-in `blanchard_perotti`
+  identification, linear-only or lagged state-dependent estimation, short-sample
+  and short-regime guards, and portable bilingual (`en`/`es`) output bundles
+  while preserving exact reproduction of the bundled Ramey–Zubairy (2018) brief.
+- `fetch.freshness` (`connector_freshness_report`, `write_freshness_report`,
+  `SUPPORTED_CONNECTOR_COHORT`, `FRESHNESS_STATUSES`, `RateBudget`, and
+  `python -m puremacro.fetch.freshness`) adds bounded connector provenance,
+  vintage-semantics, revision, and domain-identity reporting (`LF = E + U` on
+  BLS LAUS, nominal/real/deflator consistency on OECD QNA, `[0, 100]%` share
+  bounds and non-fixture provenance on energy transition) across `cache`,
+  `recorded`, and rate-budgeted `live` modes, and `fetch.registry` registers the
+  maintained cross-country panel builders (`wdi.panel`, `oecd.ana_panel`,
+  `oecd.stes_panel`, `eurostat.na_panel`, `imf.nea_panel`, `bis.panel`,
+  `rates.panel`, `ilostat.panel`, `pwt.panel`, `emissions.panel`).
+
 ### Fixed
 
 - Deterministic Dynare shock lists retain space-separated signed values and
@@ -81,6 +106,16 @@ but not published; their additions are included in 6.0.1, published on
   `lp.estimate_quantile_lp` rejects unsupported panel (`unit_col` / `MultiIndex`)
   and non-HAC `cov_type` inputs instead of pooling rows and mislabeling
   `res.cov_type`.
+- `narrative.sources._telemetry.connector_health()` no longer misclassifies
+  live Latin American snapshot successes (`outcome="success", fallback_used="none"`)
+  as fallbacks (`n_fallback=0`, preserving `n_fallback=1` for genuine fallbacks
+  and non-success outcomes); `build_climate_panel` and `build_financial_panel`
+  accept their documented block-selection flags (`include_emissions`,
+  `include_energy`, `include_gdp`, `include_credit`), emit `RuntimeWarning` when
+  an upstream block raises, and populate `panel.attrs["source_status"]` on every
+  return path; and `fetch.realtime.bcb.fetch_bcb_vintages` applies a `<=10`-year
+  `dataInicial`/`dataFinal` window by default for daily BCB SGS series (`'432'`)
+  and accepts explicit `start_date`/`end_date` bounds.
 - `inference` lazily loads `AdaptiveTemperingSchedule`, `SMCResult`, and
   `smc_sample` and `models` lazily loads `TradePolicySimulator` and
   `TradePolicySimulationResult`, decoupling `import puremacro.lp` from the DSGE

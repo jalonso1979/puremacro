@@ -44,6 +44,53 @@ BCB_SGS_URL = (
 )
 
 _UA = "puremacro (real-time vintage reader)"
+_DAILY_BCB_IDS = frozenset(
+    spec.series_id for spec in BCB_SERIES.values() if spec.freq == "D"
+)
+
+
+def _format_bcb_date_param(value: str | pd.Timestamp) -> str:
+    """Format a date bound as ``dd/mm/yyyy`` for BCB SGS query parameters."""
+    if isinstance(value, str):
+        text = value.strip()
+        parts = text.split("/")
+        if len(parts) == 3 and len(parts[0]) == 2 and len(parts[1]) == 2 and len(parts[2]) == 4:
+            return text
+    return pd.Timestamp(value).strftime("%d/%m/%Y")
+
+
+def _build_bcb_url(
+    series_id: str,
+    *,
+    vintage_date: str | pd.Timestamp | None = None,
+    start_date: str | pd.Timestamp | None = None,
+    end_date: str | pd.Timestamp | None = None,
+) -> str:
+    """Construct the BCB SGS request URL, applying a <=10-year window for daily series."""
+    url = BCB_SGS_URL.format(series_id=series_id)
+    sid = str(series_id).strip()
+    needs_window = (
+        start_date is not None
+        or end_date is not None
+        or sid in _DAILY_BCB_IDS
+    )
+    if not needs_window:
+        return url
+    if end_date is not None:
+        end_str = _format_bcb_date_param(end_date)
+        end_ts = pd.to_datetime(end_str, format="%d/%m/%Y")
+    elif vintage_date is not None:
+        end_ts = pd.Timestamp(vintage_date).normalize()
+        end_str = end_ts.strftime("%d/%m/%Y")
+    else:
+        end_ts = pd.Timestamp.today().normalize()
+        end_str = end_ts.strftime("%d/%m/%Y")
+    if start_date is not None:
+        start_str = _format_bcb_date_param(start_date)
+    else:
+        start_ts = end_ts - pd.DateOffset(years=10) + pd.Timedelta(days=1)
+        start_str = start_ts.strftime("%d/%m/%Y")
+    return f"{url}&dataInicial={start_str}&dataFinal={end_str}"
 
 
 def _parse_bcb_date(text: str) -> pd.Timestamp | None:
@@ -120,6 +167,8 @@ def fetch_bcb_vintages(
     series_id: str,
     *,
     vintage_date: str | None = None,
+    start_date: str | pd.Timestamp | None = None,
+    end_date: str | pd.Timestamp | None = None,
     timeout: float = 60.0,
     use_cache: bool = True,
     history: bool = True,
@@ -135,6 +184,12 @@ def fetch_bcb_vintages(
     vintage_date : str | None
         Snapshot date to stamp on *this* fetch. Defaults to today. It is
         a capture date, not a publication date.
+    start_date, end_date : str | pd.Timestamp | None
+        Optional query window bounds (formatted as ``dd/mm/yyyy`` in the
+        SGS query string). Daily SGS series (such as ``'432'``, Selic)
+        require a query window of at most 10 years; when omitted on a
+        catalogued daily series, ``fetch_bcb_vintages`` defaults to the
+        10-year window ending at ``vintage_date`` (or today).
     timeout : float
         HTTP request timeout in seconds.
     use_cache : bool
@@ -157,7 +212,12 @@ def fetch_bcb_vintages(
     pd.DataFrame
         Columns ``["date", "vintage", "value"]``.
     """
-    url = BCB_SGS_URL.format(series_id=series_id)
+    url = _build_bcb_url(
+        series_id,
+        vintage_date=vintage_date,
+        start_date=start_date,
+        end_date=end_date,
+    )
     req = urllib.request.Request(url, headers={"User-Agent": _UA})
     return fetch_snapshot_vintages(
         provider="bcb", country="BRA", series_id=series_id, request=req,
@@ -170,6 +230,8 @@ def fetch_bcb_panel(
     countries,
     variables,
     *,
+    start_date: str | pd.Timestamp | None = None,
+    end_date: str | pd.Timestamp | None = None,
     timeout: float = 60.0,
     use_cache: bool = True,
     history: bool = True,
@@ -190,6 +252,8 @@ def fetch_bcb_panel(
             try:
                 long = fetch_bcb_vintages(
                     series_id,
+                    start_date=start_date,
+                    end_date=end_date,
                     timeout=timeout,
                     use_cache=use_cache,
                     history=history,

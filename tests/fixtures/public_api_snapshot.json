@@ -1083,6 +1083,8 @@
       "ANA_LABOR_UNITS",
       "APPROACH_GDP",
       "BIS_SERIES",
+      "FRESHNESS_STATUSES",
+      "FreshnessReport",
       "IDENTITY_TERMS",
       "ILOSTAT_VARS",
       "INCOME_TERMS",
@@ -1101,7 +1103,9 @@
       "QNA_LABOR_UNITS",
       "QNA_VA_ADDITIVE",
       "QNA_VA_MEMO",
+      "RateBudget",
       "STES_CONCEPTS",
+      "SUPPORTED_CONNECTOR_COHORT",
       "VINTAGE_SEMANTICS",
       "VintagePanel",
       "WDI_INDICATORS",
@@ -1121,6 +1125,7 @@
       "chain_volume",
       "commodity_prices_monthly",
       "compute_sovereign_spreads",
+      "connector_freshness_report",
       "drop_unadjusted_editions",
       "ecb_get",
       "eurostat_codes",
@@ -1190,7 +1195,8 @@
       "vintage_panel",
       "wdi_countries",
       "wdi_meta",
-      "wdi_panel"
+      "wdi_panel",
+      "write_freshness_report"
     ],
     "puremacro.fetch._classic": [
       "fetch_fred",
@@ -1272,6 +1278,23 @@
       "fetch_financial_conditions",
       "fetch_policy_rates",
       "fetch_sovereign_yields"
+    ],
+    "puremacro.fetch.freshness": [
+      "CohortConnectorSpec",
+      "ConnectorStatusRecord",
+      "FRESHNESS_STATUSES",
+      "FreshnessReport",
+      "OUTAGE_STATUSES",
+      "RateBudget",
+      "SUPPORTED_CONNECTOR_COHORT",
+      "VALID_MODES",
+      "check_energy_identity",
+      "check_laus_identity",
+      "check_qna_identity",
+      "cohort_table",
+      "connector_freshness_report",
+      "main",
+      "write_freshness_report"
     ],
     "puremacro.fetch.hrs_mpu": [
       "fetch"
@@ -7119,6 +7142,61 @@
       "date",
       "label",
       "loading"
+    ],
+    "puremacro.fetch.freshness.CohortConnectorSpec": [
+      "auth",
+      "cache_url_substrings",
+      "credential",
+      "freq",
+      "identity_check",
+      "max_staleness_days",
+      "provider",
+      "series_key",
+      "source_id",
+      "telemetry_source",
+      "transformations",
+      "units",
+      "vintage_meaning",
+      "workflow"
+    ],
+    "puremacro.fetch.freshness.ConnectorStatusRecord": [
+      "error",
+      "fallback_used",
+      "freq",
+      "identity_check",
+      "identity_detail",
+      "identity_ok",
+      "max_abs_revision",
+      "max_staleness_days",
+      "mode",
+      "n_obs",
+      "n_vintages",
+      "note",
+      "obs_end",
+      "obs_start",
+      "provider",
+      "retrieved_at",
+      "revision_detected",
+      "series_key",
+      "source_id",
+      "staleness_days",
+      "status",
+      "transformations",
+      "units",
+      "vintage_meaning",
+      "workflow"
+    ],
+    "puremacro.fetch.freshness.FreshnessReport": [
+      "as_of",
+      "mode",
+      "rate_budget",
+      "records",
+      "requests_used"
+    ],
+    "puremacro.fetch.freshness.RateBudget": [
+      "max_requests",
+      "min_interval_seconds",
+      "timeout_seconds"
     ],
     "puremacro.fetch.longpanel._splice.Seam": [
       "date",

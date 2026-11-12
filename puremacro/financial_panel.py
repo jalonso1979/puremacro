@@ -23,7 +23,8 @@ puremacro's cached data layer.
 """
 from __future__ import annotations
 
-from typing import Sequence
+import warnings
+from typing import Any, Sequence
 
 import numpy as np
 import pandas as pd
@@ -182,6 +183,37 @@ def _project_quarterly_to_monthly(
     return out.drop_duplicates(subset=["code", "date", "variable"], keep="first")
 
 
+def _status_entry(
+    status: str,
+    df: pd.DataFrame | None = None,
+    *,
+    error: str | None = None,
+) -> dict[str, Any]:
+    if df is not None and not df.empty:
+        dates = pd.to_datetime(df["date"], errors="coerce").dropna()
+        obs_start = str(dates.min().date()) if not dates.empty else None
+        obs_end = str(dates.max().date()) if not dates.empty else None
+        return {
+            "status": status,
+            "rows": int(len(df)),
+            "obs_start": obs_start,
+            "obs_end": obs_end,
+            "error": error,
+        }
+    return {
+        "status": status,
+        "rows": 0,
+        "obs_start": None,
+        "obs_end": None,
+        "error": error,
+    }
+
+
+def _attach_status(df: pd.DataFrame, source_status: dict[str, dict[str, Any]]) -> pd.DataFrame:
+    df.attrs["source_status"] = source_status
+    return df
+
+
 def build_financial_panel(
     codes: Sequence[str] | None = None,
     *,
@@ -193,6 +225,7 @@ def build_financial_panel(
     benchmark_code: str = "USA",
     include_commodities: bool = True,
     include_conditions: bool = True,
+    include_credit: bool = True,
     wide: bool = False,
     refresh: bool = False,
 ) -> pd.DataFrame:
@@ -218,6 +251,8 @@ def build_financial_panel(
         If True, includes global commodity benchmark prices under code ``'WLD'``.
     include_conditions : bool, default True
         If True, includes financial conditions and spreads (TED rate, HY OAS, NFCI, etc.).
+    include_credit : bool, default True
+        If True, includes BIS macroprudential credit-to-GDP gaps, total credit, and property prices.
     wide : bool, default False
         If True, returns pivoted matrix format where index is date and columns are formatted
         as ``{code}_{variable}``.
@@ -227,7 +262,9 @@ def build_financial_panel(
     Returns
     -------
     pd.DataFrame
-        Aligned financial panel in long-form (or wide matrix if ``wide=True``).
+        Aligned financial panel in long-form (or wide matrix if ``wide=True``), with
+        ``panel.attrs['source_status']`` recording per-block status, row counts,
+        observation bounds, and any upstream errors.
     """
     freq_norm = frequency.strip().upper()
     if freq_norm not in ("M", "Q"):
@@ -237,10 +274,17 @@ def build_financial_panel(
     if harm_norm not in ("mean", "last"):
         raise ValueError(f"Unsupported harmonization: '{harmonization}'. Must be 'mean' or 'last'.")
 
+    source_status: dict[str, dict[str, Any]] = {}
+
     if codes is not None:
         codes = [str(c).strip().upper() for c in codes]
         if len(codes) == 0:
-            return pd.DataFrame(index=pd.DatetimeIndex([], name="date")) if wide else _EMPTY.copy()
+            empty_out = (
+                pd.DataFrame(index=pd.DatetimeIndex([], name="date"))
+                if wide
+                else _EMPTY.copy()
+            )
+            return _attach_status(empty_out, source_status)
 
     start_ts = pd.Timestamp(start_date)
     end_ts = pd.Timestamp(end_date) if end_date is not None else None
@@ -270,8 +314,18 @@ def build_financial_panel(
                 if not spreads_df.empty:
                     monthly_frames.append(spreads_df)
             monthly_frames.append(y_df)
-    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
-        pass
+            source_status["sovereign_yields"] = _status_entry("ok", y_df)
+        else:
+            source_status["sovereign_yields"] = _status_entry("empty")
+    except Exception as exc:
+        err_msg = f"{type(exc).__name__}: {exc}"
+        source_status["sovereign_yields"] = _status_entry("failed", error=err_msg)
+        warnings.warn(
+            f"build_financial_panel: upstream 'sovereign_yields' fetch failed ({err_msg}); "
+            "continuing with remaining blocks.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
 
     # 2. Policy Rates (monthly)
     try:
@@ -283,11 +337,23 @@ def build_financial_panel(
         )
         if not p_df.empty:
             monthly_frames.append(p_df)
-    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
-        pass
+            source_status["policy_rates"] = _status_entry("ok", p_df)
+        else:
+            source_status["policy_rates"] = _status_entry("empty")
+    except Exception as exc:
+        err_msg = f"{type(exc).__name__}: {exc}"
+        source_status["policy_rates"] = _status_entry("failed", error=err_msg)
+        warnings.warn(
+            f"build_financial_panel: upstream 'policy_rates' fetch failed ({err_msg}); "
+            "continuing with remaining blocks.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
 
     # 3. Financial Conditions (monthly, USA / WLD)
-    if include_conditions and (codes is None or "USA" in codes):
+    if not include_conditions or not (codes is None or "USA" in codes):
+        source_status["financial_conditions"] = _status_entry("skipped")
+    else:
         try:
             from .fetch.financial import fetch_financial_conditions
             fc_df = fetch_financial_conditions(
@@ -296,24 +362,49 @@ def build_financial_panel(
             )
             if not fc_df.empty:
                 monthly_frames.append(fc_df)
-        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
-            pass
+                source_status["financial_conditions"] = _status_entry("ok", fc_df)
+            else:
+                source_status["financial_conditions"] = _status_entry("empty")
+        except Exception as exc:
+            err_msg = f"{type(exc).__name__}: {exc}"
+            source_status["financial_conditions"] = _status_entry("failed", error=err_msg)
+            warnings.warn(
+                f"build_financial_panel: upstream 'financial_conditions' fetch failed ({err_msg}); "
+                "continuing with remaining blocks.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
 
     # 4. BIS Macroprudential (quarterly)
-    try:
-        from .fetch.financial import fetch_bis_macroprudential
-        bis_df = fetch_bis_macroprudential(
-            codes=codes,
-            start_date=start_date,
-            refresh=refresh,
-        )
-        if not bis_df.empty:
-            quarterly_frames.append(bis_df)
-    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
-        pass
+    if not include_credit:
+        source_status["bis_macroprudential"] = _status_entry("skipped")
+    else:
+        try:
+            from .fetch.financial import fetch_bis_macroprudential
+            bis_df = fetch_bis_macroprudential(
+                codes=codes,
+                start_date=start_date,
+                refresh=refresh,
+            )
+            if not bis_df.empty:
+                quarterly_frames.append(bis_df)
+                source_status["bis_macroprudential"] = _status_entry("ok", bis_df)
+            else:
+                source_status["bis_macroprudential"] = _status_entry("empty")
+        except Exception as exc:
+            err_msg = f"{type(exc).__name__}: {exc}"
+            source_status["bis_macroprudential"] = _status_entry("failed", error=err_msg)
+            warnings.warn(
+                f"build_financial_panel: upstream 'bis_macroprudential' fetch failed ({err_msg}); "
+                "continuing with remaining blocks.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
 
     # 5. Global Commodities (code='WLD')
-    if include_commodities:
+    if not include_commodities:
+        source_status["commodities"] = _status_entry("skipped")
+    else:
         try:
             from .fetch.wb_pink_sheet import fetch_commodity_benchmarks
             if freq_norm == "Q" and harm_norm == "last":
@@ -325,6 +416,9 @@ def build_financial_panel(
                 )
                 if not comm_df.empty:
                     monthly_frames.append(comm_df)
+                    source_status["commodities"] = _status_entry("ok", comm_df)
+                else:
+                    source_status["commodities"] = _status_entry("empty")
             else:
                 comm_df = fetch_commodity_benchmarks(
                     frequency=freq_norm,
@@ -336,8 +430,18 @@ def build_financial_panel(
                         monthly_frames.append(comm_df)
                     else:
                         quarterly_frames.append(comm_df)
-        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
-            pass
+                    source_status["commodities"] = _status_entry("ok", comm_df)
+                else:
+                    source_status["commodities"] = _status_entry("empty")
+        except Exception as exc:
+            err_msg = f"{type(exc).__name__}: {exc}"
+            source_status["commodities"] = _status_entry("failed", error=err_msg)
+            warnings.warn(
+                f"build_financial_panel: upstream 'commodities' fetch failed ({err_msg}); "
+                "continuing with remaining blocks.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
 
     # Harmonize to target frequency
     final_frames: list[pd.DataFrame] = []
@@ -368,9 +472,12 @@ def build_financial_panel(
             final_frames.append(m_all)
 
     if not final_frames:
-        if wide:
-            return pd.DataFrame(index=pd.DatetimeIndex([], name="date"))
-        return _EMPTY.copy()
+        empty_res = (
+            pd.DataFrame(index=pd.DatetimeIndex([], name="date"))
+            if wide
+            else _EMPTY.copy()
+        )
+        return _attach_status(empty_res, source_status)
 
     panel = pd.concat(final_frames, ignore_index=True)
 
@@ -381,7 +488,12 @@ def build_financial_panel(
         panel = panel[panel["date"] <= end_ts]
 
     if panel.empty:
-        return pd.DataFrame(index=pd.DatetimeIndex([], name="date")) if wide else _EMPTY.copy()
+        empty_res = (
+            pd.DataFrame(index=pd.DatetimeIndex([], name="date"))
+            if wide
+            else _EMPTY.copy()
+        )
+        return _attach_status(empty_res, source_status)
 
     # Code filter: preserve requested country codes + global benchmarks (WLD)
     if codes is not None:
@@ -389,7 +501,12 @@ def build_financial_panel(
         panel = panel[panel["code"].isin(allowed)]
 
     if panel.empty:
-        return pd.DataFrame(index=pd.DatetimeIndex([], name="date")) if wide else _EMPTY.copy()
+        empty_res = (
+            pd.DataFrame(index=pd.DatetimeIndex([], name="date"))
+            if wide
+            else _EMPTY.copy()
+        )
+        return _attach_status(empty_res, source_status)
 
     panel = panel.drop_duplicates(subset=["code", "date", "variable"], keep="first")
     panel = panel.sort_values(["code", "variable", "date"]).reset_index(drop=True)
@@ -399,9 +516,9 @@ def build_financial_panel(
         piv.columns = [f"{c}_{v}" for c, v in piv.columns]
         piv.columns.name = None
         piv = piv.sort_index()
-        return piv
+        return _attach_status(piv, source_status)
 
-    return panel
+    return _attach_status(panel, source_status)
 
 
 __all__ = ["build_financial_panel"]

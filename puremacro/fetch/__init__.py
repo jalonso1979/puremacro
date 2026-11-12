@@ -222,6 +222,14 @@ from .pwt import (
     fetch_maddison,
     pwt_variables,
 )
+from .freshness import (
+    FRESHNESS_STATUSES,
+    SUPPORTED_CONNECTOR_COHORT,
+    FreshnessReport,
+    RateBudget,
+    connector_freshness_report,
+    write_freshness_report,
+)
 
 __all__ = [
     "fetch_fred",
@@ -337,4 +345,10 @@ __all__ = [
     "fetch_pwt",
     "fetch_maddison",
     "pwt_variables",
+    "FRESHNESS_STATUSES",
+    "SUPPORTED_CONNECTOR_COHORT",
+    "FreshnessReport",
+    "RateBudget",
+    "connector_freshness_report",
+    "write_freshness_report",
 ]

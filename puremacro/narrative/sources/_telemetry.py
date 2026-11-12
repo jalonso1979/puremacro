@@ -103,9 +103,11 @@ def connector_health(
       - n_total      = rows for the source in the window
       - n_success    = rows with outcome='success'
       - success_rate = n_success / n_total
-      - n_fallback   = rows with fallback_used != 'live'
-                       (i.e., served by wayback or playwright,
-                       or — for parser_schema_mismatch — 'none')
+      - n_fallback   = rows where a fallback was used (fallback_used not in
+                       ('live', 'none')) or where fallback_used == 'none' on a
+                       non-success outcome (e.g., parser_schema_mismatch,
+                       timeout); live snapshot successes ('success', 'none')
+                       are NOT counted as fallbacks
       - fallback_rate = n_fallback / n_total
       - last_seen    = max(ts) for the source
 
@@ -124,7 +126,9 @@ def connector_health(
     sql = (
         "SELECT source, COUNT(*) AS n_total, "
         "SUM(CASE WHEN outcome='success' THEN 1 ELSE 0 END) AS n_success, "
-        "SUM(CASE WHEN fallback_used <> 'live' THEN 1 ELSE 0 END) AS n_fallback, "
+        "SUM(CASE WHEN fallback_used NOT IN ('live', 'none') "
+        "OR (outcome <> 'success' AND fallback_used = 'none') "
+        "THEN 1 ELSE 0 END) AS n_fallback, "
         "MAX(ts) AS last_seen_ts "
         "FROM connector_events WHERE ts >= ?"
     )

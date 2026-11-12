@@ -82,7 +82,7 @@ anterior:
 
 | `outcome` | `fallback_used` | Qué ocurrió |
 |---|---|---|
-| `success` | `none` | la respuesta en vivo se interpretó correctamente y la instantánea se devolvió (y se almacenó, salvo que la escritura fallara) |
+| `success` | `none` | la respuesta en vivo se interpretó correctamente y la instantánea se devolvió (y se almacenó, salvo que la escritura fallara); cuenta como `n_success=1, n_fallback=0` |
 | `fallback` | `sqlite_cache` | la descarga, el análisis o el canario de esquema fallaron, o la respuesta venía vacía, y se sirvieron las instantáneas almacenadas localmente |
 | `schema_drift` | `none` | deriva bajo `on_drift="raise"`: se lanzó un `SchemaDriftError`, que la capa de descarga convierte después en una fila `fallback` si dispone de caché |
 | `schema_drift` | `warning_emitted` | deriva bajo `on_drift="warn"`: se emitió un `SchemaDriftWarning` y el analizador continuó |
@@ -97,6 +97,44 @@ aumento y no como una serie que se acortó de forma inexplicable.
 
 La telemetría nunca interrumpe la descarga que la emitió: una escritura fallida
 se reporta como `UserWarning` y los datos se devuelven igualmente.
+
+## Informe acotado de procedencia y frescura (`puremacro.fetch.freshness`)
+
+Mientras `connector_health()` resume eventos de telemetría ya registrados en
+SQLite, `puremacro.fetch.freshness.connector_freshness_report()` audita una
+cohorte acotada de conectores principales (`SUPPORTED_CONNECTOR_COHORT`:
+`fred.csv`, `fred.alfred`, `bls.laus_state`, `oecd.qna_panel`, `wdi.panel`,
+`worldbank.energy_transition`, `vintage.oecd_stes`, `vintage.bcb` y
+`vintage.banxico`) en tres modos explícitos:
+
+- `mode="cache"` (por defecto, cero red): inspecciona `http_cache`,
+  `alfred_vintages`, `realtime_vintages` y `connector_events`, verifica
+  identidades de dominio (`LF = E + U` en BLS LAUS, consistencia
+  nominal/real/deflactor en OCDE QNA, cotas `[0, 100]%` y ausencia de fixtures en
+  transición energética) y detecta revisiones entre vintages.
+- `mode="recorded"` (cero red): valida analizadores, metadatos de procedencia e
+  identidades sobre cargas grabadas deterministas y el snapshot QNA incluido.
+- `mode="live"` (acotado por presupuesto): consulta endpoints bajo
+  `RateBudget(max_requests=5)` sin saturar proveedores externos.
+
+Cada conector recibe uno de nueve estados explícitos: `fresh`, `stale`,
+`revised`, `empty`, `degraded_fallback`, `schema_drift`, `credential_missing`,
+`failed` o `not_cached`.
+
+```python
+from puremacro.fetch.freshness import connector_freshness_report
+
+report = connector_freshness_report(mode="recorded")
+print(report.summary(lang="es"))
+df_status = report.to_frame()
+```
+
+Desde la terminal (código de salida `0` por defecto, o `1` con
+`--fail-on-outage` si algún conector presenta incidencia o deriva):
+
+```bash
+python -m puremacro.fetch.freshness --mode cache --lang es --output auditoria_conectores
+```
 
 ## Interruptor de emergencia
 

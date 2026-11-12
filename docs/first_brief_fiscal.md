@@ -257,6 +257,66 @@ What your frame needs, and what the calls assume:
   and Zubairy find this shock relevant at short horizons and often weak
   beyond a year or two.
 
+### Running the reusable brief on another dataset
+
+`compute_brief`, `run_brief`, and the CLI accept user quarterly data through
+`FiscalBriefConfig` (or a JSON config file) without editing library code.
+Dates can be ISO (`1995-01-01`), English quarters (`1995Q1`), or Spanish
+*trimestres* (`1995T1`). Causal identification is never guessed from column
+names: you must either pass an external shock column
+(`shock_mode="external_instrument"`, `instrument="..."`) or opt in explicitly
+to `shock_mode="blanchard_perotti"`. When effective estimation quarters at the
+headline horizons fall below `SHORT_SAMPLE_OBS` (120) or `SHORT_REGIME_OBS`
+(40), the brief records a `sample_guard` diagnostic, emits a warning into
+`manifest.json`, and prints a finite-sample caution in the reading.
+
+The snippet below runs the linear cumulative brief on Germany (`DEU`,
+1995Q1-2026Q1) from the bundled OECD quarterly national accounts snapshot
+(`qna40_panel.csv`) with Gordon-Krenn HP-trend scaling:
+
+```python
+from pathlib import Path
+import warnings
+import puremacro
+from puremacro.examples.first_brief_fiscal import FiscalBriefConfig, compute_brief
+
+qna_csv = Path(puremacro.__file__).resolve().parent / "replication" / "data" / "qna40_panel.csv"
+cfg = FiscalBriefConfig(
+    filter_col="code",
+    filter_value="DEU",
+    date_col="date",
+    outcome="gdp_real",
+    policy="cons_gov_real",
+    shock_mode="blanchard_perotti",
+    scaling="hp_trend",
+    state=None,  # linear-only mode; or pass state="...", state_threshold=..., state_lag=1
+    headline_horizons=(3, 7),
+    horizons=tuple(range(13)),
+    citation="OECD QNA snapshot (DEU, 1995Q1-2026Q2)",
+    units_en="Multipliers are euros of real GDP per euro of real government consumption over the horizon.",
+)
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", UserWarning)
+    deu_record, deu_paths = compute_brief(data=qna_csv, config=cfg)
+assert deu_record["data"]["file"] == "qna40_panel.csv"
+assert deu_record["full"]["sample_guard"]["short_sample"] is True
+```
+
+From the command line (or via `--config config.json`):
+
+```bash
+python -m puremacro.examples.first_brief_fiscal \
+  --data my_country_fiscal.csv \
+  --date-col trimestre \
+  --outcome pib_real \
+  --policy gasto_real \
+  --instrument choque_narrativo \
+  --scaling hp_trend \
+  --state desempleo --state-lag 1 --state-op ">=" --state-threshold 7.5 \
+  --citation "National Accounts & Fiscal Narrative Archive" \
+  --lang es --output custom_brief_es
+```
+
 ## 6. Assumptions and limits
 
 - **US historical data dominated by wars.** The sample is 1890-2015, and the

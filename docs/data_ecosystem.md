@@ -264,5 +264,5 @@ including the `.pmz` cartridge workflow and the news-vs-noise test, is in
    Importing `puremacro`, `puremacro.fetch`, or any panel builder never triggers network calls or requires `requests` at module scope.
 2. **Deterministic Offline Fixtures**:
    Every collector includes recorded mock fixtures in `tests/data/`, allowing unit tests and CI suites to execute 100% offline without live network dependencies.
-3. **Unified Caching**:
-   Live calls store timestamped cache entries under `data/raw/` with automatic TTL management and stale-data warnings. The exception is the four Latin American snapshot connectors of section 6, which cache parsed snapshots in the `realtime_vintages` SQLite table instead of caching HTTP responses — see [`docs/CACHE_DB.md`](CACHE_DB.md).
+3. **Unified Caching & Provenance Reporting**:
+   Live calls store timestamped cache entries under SQLite (`~/.cache/puremacro/cache.db`) with TTL management and explicit `panel.attrs["source_status"]` diagnostics on `build_climate_panel` and `build_financial_panel` (emitting `RuntimeWarning` when an upstream block fails rather than silently returning an empty frame). Use `puremacro.fetch.connector_freshness_report()` (or `python -m puremacro.fetch.freshness`) to audit provenance, vintage semantics, and domain identities across the supported connector cohort — see [`docs/CONNECTOR_HEALTH.md`](CONNECTOR_HEALTH.md) and [`docs/CACHE_DB.md`](CACHE_DB.md).

@@ -238,6 +238,30 @@ _s("financial.policy_rates", "bis", "financial:fetch_policy_rates",
    "Central bank policy rates", kind="panel", freq="M")
 _s("financial.conditions", "fred", "financial:fetch_financial_conditions",
    "Financial conditions and credit spreads", freq="M")
+_s("wdi.panel", "worldbank", "wdi:wdi_panel",
+   "World Bank WDI annual macroeconomic panel (217 economies)", kind="panel", freq="A")
+_s("oecd.ana_panel", "oecd", "oecd_ana_panel:ana_panel",
+   "OECD annual national accounts panel (nominal + deflators)", kind="panel", freq="A")
+_s("oecd.stes_panel", "oecd", "oecd_stes_panel:stes_panel",
+   "OECD Short-Term Economic Statistics harmonised monthly panel", kind="panel", freq="M")
+_s("eurostat.na_panel", "eurostat", "eurostat:eurostat_na_panel",
+   "Eurostat quarterly and annual national accounts panel", kind="panel", freq="Q")
+_s("imf.nea_panel", "imf", "imf:imf_nea_panel",
+   "IMF National Economic Accounts panel (api.imf.org)", kind="panel", freq="Q")
+_s("bis.panel", "bis", "bis:bis_panel",
+   "BIS effective exchange rates, policy rates, credit and property prices",
+   kind="panel", freq="M")
+_s("rates.panel", "oecd", "rates:rates_panel",
+   "Cross-country monthly policy/short rates, 10Y yields, stocks and commodities",
+   kind="panel", freq="M")
+_s("ilostat.panel", "ilostat", "ilostat:ilostat_panel",
+   "ILOSTAT harmonised labour market panel", kind="panel", freq="A")
+_s("pwt.panel", "pwt", "pwt:fetch_pwt",
+   "Penn World Table 11.0 cross-country national accounts and productivity",
+   kind="panel", freq="A")
+_s("emissions.panel", "worldbank", "emissions:fetch_emissions_panel",
+   "Unified cross-country greenhouse gas emissions panel (WDI + OECD)",
+   kind="panel", freq="A")
 
 # --- Uncertainty and research series --------------------------------------
 _s("epu.country", "policyuncertainty", "epu:fetch",

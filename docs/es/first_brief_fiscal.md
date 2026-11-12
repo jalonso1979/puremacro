@@ -272,6 +272,68 @@ Lo que necesita su marco, y lo que suponen las llamadas:
   Zubairy encuentran este choque relevante en horizontes cortos y a menudo
   débil pasados uno o dos años.
 
+### Ejecución reutilizable con otros datos trimestrales
+
+`compute_brief`, `run_brief` y la interfaz de línea de comandos aceptan series
+trimestrales propias mediante `FiscalBriefConfig` (o un archivo JSON) sin
+editar el código de la librería. Las fechas pueden venir en formato ISO
+(`1995-01-01`), trimestres en inglés (`1995Q1`) o en español (`1995T1`). La
+identificación causal nunca se infiere por el nombre de las columnas: debe
+indicarse una columna de instrumento externo
+(`shock_mode="external_instrument"`, `instrument="..."`) o elegir de forma
+explícita `shock_mode="blanchard_perotti"`. Cuando los trimestres efectivos en
+los horizontes principales quedan por debajo de `SHORT_SAMPLE_OBS` (120) o
+`SHORT_REGIME_OBS` (40), el informe registra `sample_guard`, guarda la
+advertencia en `manifest.json` e incluye una nota de cautela por muestra corta.
+
+El siguiente bloque ejecuta el informe lineal acumulado para Alemania (`DEU`,
+1995Q1-2026Q1) a partir del snapshot incluido de cuentas nacionales
+trimestrales de la OCDE (`qna40_panel.csv`) con escalamiento HP de
+Gordon-Krenn:
+
+```python
+from pathlib import Path
+import warnings
+import puremacro
+from puremacro.examples.first_brief_fiscal import FiscalBriefConfig, compute_brief
+
+qna_csv = Path(puremacro.__file__).resolve().parent / "replication" / "data" / "qna40_panel.csv"
+cfg = FiscalBriefConfig(
+    filter_col="code",
+    filter_value="DEU",
+    date_col="date",
+    outcome="gdp_real",
+    policy="cons_gov_real",
+    shock_mode="blanchard_perotti",
+    scaling="hp_trend",
+    state=None,
+    headline_horizons=(3, 7),
+    horizons=tuple(range(13)),
+    citation="Snapshot OCDE QNA (DEU, 1995Q1-2026Q2)",
+    units_es="Los multiplicadores son euros de PIB real por euro de consumo público real en el horizonte.",
+)
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", UserWarning)
+    deu_record, deu_paths = compute_brief(data=qna_csv, config=cfg)
+assert deu_record["data"]["file"] == "qna40_panel.csv"
+assert deu_record["full"]["sample_guard"]["short_sample"] is True
+```
+
+Desde la terminal (o pasando `--config config.json`):
+
+```bash
+python -m puremacro.examples.first_brief_fiscal \
+  --data mis_datos_fiscales.csv \
+  --date-col trimestre \
+  --outcome pib_real \
+  --policy gasto_real \
+  --instrument choque_narrativo \
+  --scaling hp_trend \
+  --state desempleo --state-lag 1 --state-op ">=" --state-threshold 7.5 \
+  --citation "Cuentas Nacionales y Choque Fiscal Narrativo" \
+  --lang es --output informe_fiscal_es
+```
+
 ## 6. Supuestos y límites
 
 - **Datos históricos de Estados Unidos dominados por guerras.** La muestra es
