@@ -5,7 +5,7 @@ models and policy applications**, then **teaching and usability**.
 
 ## Published corrections and current release
 
-Source version **6.4.0** succeeds published versions 6.3.0 (2026-11-10), 6.2.0
+Version **6.4.0** (published to [PyPI](https://pypi.org/project/puremacro/6.4.0/) on 2026-11-12) succeeds published versions 6.3.0 (2026-11-10), 6.2.0
 and 6.1.0 (published to PyPI on 2026-11-03 after 6.0.1 on 2026-10-29),
 incorporating the corrections below and those recorded in the
 [changelog](https://github.com/jalonso1979/puremacro/blob/main/CHANGELOG.md). The 5.8.0, 5.9.0 and 6.0.0 source tags

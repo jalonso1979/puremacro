@@ -16,7 +16,7 @@ sin volver a correrla) y qué hacer.
 
 ## 2026-11-12 — Correcciones econométricas, estructurales y de procedencia de datos en 6.4.0, versiones hasta 6.3.0
 
-**Corregido en la versión fuente 6.4.0** (véase `CHANGELOG.md` para el detalle completo).
+**Corregido en la [versión 6.4.0 publicada](https://pypi.org/project/puremacro/6.4.0/)** (véase `CHANGELOG.md` para el detalle completo).
 Once condiciones de números incorrectos o sustitución silenciosa en conectores de datos,
 proyecciones locales, solucionadores estructurales e inferencia con IV débiles/bootstrap
 quedan corregidas en 6.4.0:

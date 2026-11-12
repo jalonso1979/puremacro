@@ -5,7 +5,7 @@ aplicaciones de política**, y finalmente **docencia y facilidad de uso**.
 
 ## Correcciones publicadas y versión actual
 
-La versión fuente **6.4.0** sucede a las versiones publicadas 6.3.0
+La versión **6.4.0** (publicada en [PyPI](https://pypi.org/project/puremacro/6.4.0/) el 2026-11-12) sucede a las versiones publicadas 6.3.0
 (2026-11-10), 6.2.0 y 6.1.0 (publicada en PyPI el 2026-11-03 tras la 6.0.1 del
 2026-10-29), incorporando las correcciones siguientes y las registradas en el
 [registro de cambios](https://github.com/jalonso1979/puremacro/blob/main/CHANGELOG.md). Las etiquetas 5.8.0, 5.9.0 y 6.0.0

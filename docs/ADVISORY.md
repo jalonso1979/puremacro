@@ -16,7 +16,7 @@ without re-running it), and what to do.
 
 ## 2026-11-12 — Econometric, structural and data-provenance corrections in 6.4.0, versions up to 6.3.0
 
-**Fixed in the 6.4.0 source release** (see `CHANGELOG.md` for full details).
+**Fixed in the published [6.4.0 release](https://pypi.org/project/puremacro/6.4.0/)** (see `CHANGELOG.md` for full details).
 Eleven wrong-number or silent-substitution conditions across data connectors,
 local projections, structural solvers and weak-IV/bootstrap inference are
 corrected in 6.4.0:
