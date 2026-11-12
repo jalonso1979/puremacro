@@ -48,6 +48,7 @@ SUBSYSTEM = {
     "dsge": "Linear RE / DSGE",
     "vfi": "Dynamic programming",
     "cointegration": "Cointegration",
+    "Trade": "Quantitative trade",
     "unit_root": "Unit roots",
 }
 INK, INK_2, MUTED, GRID, AXIS, SURFACE = (

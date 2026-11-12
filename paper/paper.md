@@ -25,22 +25,22 @@ bibliography: paper.bib
 
 
 <!-- Evidence snapshot. The validation-gallery counts (checks, subsystems, kinds
-     of reference) and `scorecard.png` were recomputed from `validation.scorecard()`
-     on the 5.0 development tree on 2026-10-13, after the trade modules left the
-     package: 113 checks, 16 subsystems, 20 external (13 package + 5 SciPy +
-     2 published) / 31 analytical / 62 internal, all passing (4.6.0 had 114 with
-     four trade cases; 4.4.0 had 110: 20 / 31 / 59; 3.4.0 had 107: 19 / 29 / 59).
-     The module, line and test counts of the "Scale" paragraph and the Pyodide
-     sentence were recomputed on the 5.4.0 candidate on 2026-10-18 (RELEASING 6.5
-     recipe: 837 package modules, approximately 299,000 lines; more than 20,000 tests).
-     The dated browser evidence remains Pyodide 0.28.3 and 314.0.5 110/110. The
-     swept-library-module (631), notebook-pair (70) and commit counts (369 of 555)
-     also come from the 5.3.0 tree (commit d74eb7cb, 2026-10-17). The text was extended on
-     2026-10-12 to cover `dp`, the survey microdata and `puremacro.text`
-     (unreleased at the time). The krusellsmith1998 and dolo entries in paper.bib
-     were not checked against Crossref (no access from the drafting session).
-     Re-run the commands in RELEASING.md §6.5 on the chosen submission commit
-     before submitting. -->
+     of reference), Pyodide 0.28.3 gallery run, `scorecard.png` and the scale
+     counts below were recomputed on 2026-11-12 on the 6.4.0 release tree
+     (commit 49975437): 116 checks, 16 subsystems, 22 external (15 package +
+     5 SciPy + 2 published) / 31 analytical / 63 internal, all passing (5.4.0
+     had 113: 20 / 31 / 62; 4.6.0 had 114 with four trade cases; 4.4.0 had
+     110: 20 / 31 / 59; 3.4.0 had 107: 19 / 29 / 59); 978 package Python
+     modules, 357,863 lines of Python, 756 shippable library modules swept by
+     the import invariant, 24,099 default / 24,359 total collected tests, 77
+     bilingual showcase notebook pairs (plus 2 non-numbered research pairs), 22
+     course lesson notebooks (20 importing puremacro), and 513 of 918 commits
+     on origin/main carrying a Claude co-author trailer. On 2026-11-12 Pyodide
+     0.28.3 passed all 116 gallery checks in Node.js (plus 121 smoke tests);
+     Pyodide 314.0.5 had earlier passed the 110-check gallery on 2026-10-13.
+     The krusellsmith1998 and dolo entries in paper.bib were not checked
+     against Crossref from this session. Re-run the commands in RELEASING.md
+     §6.5 on the chosen submission commit before submitting. -->
 
 # Summary
 
@@ -147,7 +147,7 @@ The overall modular architecture is illustrated in \autoref{fig:architecture}.
 Matplotlib (plus requests, in the data layer) at module scope; anything else is
 imported only when available. Two tests enforce the rule against the packages most
 likely to leak in.
-The first imports each of the 632 shippable library modules (examples, teaching helpers,
+The first imports each of the 756 shippable library modules (examples, teaching helpers,
 text-scraping sources and optional Numba kernels are excluded) and fails if
 statsmodels, linearmodels, arch or the scraping packages bs4, pdfplumber and pypdf
 have entered `sys.modules`. The second repeats the sweep with those packages
@@ -176,12 +176,12 @@ problems slower than in JIT-compiled toolkits, and derivatives that other librar
 obtain by automatic differentiation must be coded by hand. The browser is a
 best-effort target rather than a supported one: Parquet and Excel files need
 engines that not every Pyodide distribution provides. On
-13 October 2026 a headless Node.js harness ran the whole validation gallery inside Pyodide 0.28.3
-and 314.0.5 (the playground's version): every check passed on both.
+12 November 2026 a headless Node.js harness ran the full validation gallery inside
+Pyodide 0.28.3: all 116 checks passed (as did 121 smoke tests).
 
-**Scale.** Version 5.4.0 contains 837 package Python modules and approximately
-299,000 lines of Python, including 632 shippable library modules checked by the
-import sweep. More than 20,000 automated tests cover the package. CI runs the
+**Scale.** Version 6.4.0 contains 978 package Python modules and approximately
+358,000 lines of Python, including 756 shippable library modules checked by the
+import sweep. More than 24,000 automated tests cover the package. CI runs the
 default selection on Linux, macOS and Windows under Python 3.11–3.13; slow,
 reference and replication tests run weekly and on release tags, where they gate publication.
 Before each release tag, a script checks the suite against a recorded baseline,
@@ -190,18 +190,18 @@ the import invariant and a snapshot of the public API.
 ## Verification
 
 The gallery counts below and the scale measurements above were recomputed on
-2026-10-18 on the 5.4.0 candidate.
+2026-11-12 on release 6.4.0.
 
-The validation gallery, `puremacro.validation.scorecard()`, runs 113 checks across
+The validation gallery, `puremacro.validation.scorecard()`, runs 116 checks across
 16 subsystems in under a minute, with none of the oracle packages installed; all
 pass (\autoref{fig:scorecard}). The checks differ in strength, and each records
-its reference. Twenty compare against an external reference: stored outputs of
+its reference. Twenty-two compare against an external reference: stored outputs of
 statsmodels, arch, linearmodels and esda, SciPy results computed at run time, or a
 published table. Agreement with independent implementations is typically at
 machine precision (median relative difference of order $10^{-15}$); the exception
 is GARCH, whose estimates differ from arch's by up to 0.35% because the two
 packages use different optimisers. Thirty-one checks compare against analytical
-results and 62 test internal consistency.
+results and 63 test internal consistency.
 
 A separate replication gallery, `puremacro.replication.scorecard()`, reproduces
 published estimates of the return to schooling [@card1995], a textbook logit of
@@ -211,7 +211,7 @@ incomplete-markets models [@huggett1993; @aiyagari1994]: the equilibrium interes
 rate lies below the rate of time preference and falls as income risk rises. Most model solvers (sequence-space, continuous-time, spatial,
 and climate) are covered by unit tests but not yet by gallery checks.
 
-![The validation gallery of `puremacro`: 113 checks in 16 subsystems, by kind of reference; all pass. *External reference*: stored outputs of statsmodels, arch, linearmodels or esda, SciPy computed at run time, or a published table. *Analytical result*: a closed form, or an effect planted in simulated data. *Internal consistency*: agreement between alternative algorithms, identities that correct output must satisfy, or recovery of parameters from simulated data. Regenerate with `python paper/make_scorecard_fig.py`.\label{fig:scorecard}](scorecard.png){ width=80% }
+![The validation gallery of `puremacro`: 116 checks in 16 subsystems, by kind of reference; all pass. *External reference*: stored outputs of statsmodels, arch, linearmodels or esda, SciPy computed at run time, or a published table. *Analytical result*: a closed form, or an effect planted in simulated data. *Internal consistency*: agreement between alternative algorithms, identities that correct output must satisfy, or recovery of parameters from simulated data. Regenerate with `python paper/make_scorecard_fig.py`.\label{fig:scorecard}](scorecard.png){ width=80% }
 
 # Research impact statement
 
@@ -224,7 +224,7 @@ on evidence a reviewer can check.
 material on it. The course's 22 Spanish lesson notebooks are in the repository
 (`notebooks/course`), and 20 of them call `puremacro` directly.
 
-*Reproducible material.* The repository contains 70 bilingual (English/Spanish)
+*Reproducible material.* The repository contains 77 bilingual (English/Spanish)
 pairs of worked-example notebooks; all of them, with the lesson notebooks, are also
 published as a JupyterLite [@jupyterlite] site that runs them in the browser.
 
@@ -237,8 +237,8 @@ guidelines, and CI on three operating systems.
 Generative AI was used extensively in writing `puremacro`, its documentation and
 this paper. Anthropic's Claude models, used through the Claude Code agent (Claude
 Opus 5, Claude Opus 5.5, Claude Fable 5, Claude Fable 5.1 and Claude Sonnet 5.5), generated or
-co-wrote much of the code, tests, documentation and notebooks: 389 of the 558
-commits in the public repository carry a Claude co-author trailer. Google's Jules coding agent
+co-wrote much of the code, tests, documentation and notebooks: 513 of the 918
+commits in the 6.4.0 public repository carry a Claude co-author trailer. Google's Jules coding agent
 contributed 20 pull requests (refactoring, performance and test improvements),
 each reviewed and merged by the author. Claude also drafted and revised this
 paper, including checking its claims against the code and its references against
@@ -255,12 +255,12 @@ and CI.
      disclosure as an ethical breach). Only you can confirm items 1-4; do not
      submit with this comment still here.
      (1) TOOLS AND MODELS, PUBLIC PERIOD (2026-07-20 onward). The commit trailers
-         on origin/main at d74eb7cb (5.3.0) name: Claude Opus 5 (105 commits),
-         Claude Opus 5.5 (99), Claude Opus 5.5 (1M context) (62), Claude Fable 5.1 (52),
+         on origin/main at 49975437 (6.4.0) name: Claude Opus 5.5 (226 commits),
+         Claude Opus 5 (105), Claude Fable 5.1 (69), Claude Opus 5.5 (1M context) (62),
          Claude Opus 5 (1M context) (26), Claude Fable 5 (14) and Claude Sonnet 5.5 (12);
-         the sentence above now names all five model
-         families. Confirm that no other assistant (Copilot, ChatGPT, Cursor,
-         Gemini, ...) was used without leaving a trailer.
+         the sentence above names all five model families. Confirm any additional
+         assistants (OpenAI Codex, Gemini/Antigravity, Copilot, ChatGPT, Cursor, ...)
+         used without leaving commit trailers (notably between 5.4.0 and 6.4.0).
      (2) TOOLS AND MODELS, PRIVATE PERIOD (2026-04-28 to 2026-07-20, inside the
          private monorepo and squashed into the first
          public commit, so no trailer records it): list every AI tool and model
@@ -273,11 +273,11 @@ and CI.
      (4) REVIEW ASSERTION: confirm that "reviewed, edited and validated all
          AI-assisted output before it was merged" is literally true, including
          for multi-agent workflow commits; if not, soften it to what is true.
-     (5) COUNTS ("369 of the 555 commits"): recomputed on 2026-10-17 at
-         d74eb7cb with RELEASING.md §6.5, i.e.
+     (5) COUNTS ("513 of the 918 commits"): recomputed on 2026-11-12 at
+         49975437 (6.4.0) with RELEASING.md §6.5, i.e.
          `git rev-list --count origin/main` and
          `git log origin/main -i --grep='co-authored-by: claude' --oneline | wc -l`.
-         Re-run on the submitted commit; commits after 5.3.0 will move both. -->
+         Re-run on the submitted commit; commits after 6.4.0 will move both. -->
 
 # Acknowledgements
 

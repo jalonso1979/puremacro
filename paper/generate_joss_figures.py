@@ -112,10 +112,10 @@ def generate_graphical_abstract():
         "• Pure Python wheel; requests for data",
         "• NumPy, SciPy, pandas, Matplotlib core",
         "• In-Browser Pyodide / WebAssembly Support",
-        "• 113 Scorecard Self-Validation Checks",
+        "• 116 Scorecard Self-Validation Checks",
         "• External Reference Oracles (SciPy, statsmodels)",
-        "• 20,300+ Automated Test Suite",
-        "• 70 Bilingual Notebook Pairs"
+        "• 24,000+ Automated Test Suite",
+        "• 77 Bilingual Notebook Pairs"
     ]
     for idx, feat in enumerate(arch_features):
         ax.text(9.9, 3.95 - idx * 0.48, feat, color=SLATE, fontsize=9.5, va="center")
@@ -216,7 +216,7 @@ def generate_architecture_schematic():
         ("Core Stack", "NumPy, SciPy, pandas, Matplotlib", BLUE),
         ("CPython", "Python 3.11, 3.12, 3.13 (macOS, Linux, Win)", NAVY),
         ("WebAssembly (Pyodide)", "Runs directly in client browser", CRIMSON),
-        ("Validation Gallery", "113 Scorecard self-contained checks", DARK_TEAL),
+        ("Validation Gallery", "116 Scorecard self-contained checks", DARK_TEAL),
     ]
     for i, (title, sub, col) in enumerate(targets):
         x = 0.9 + i * 2.85
