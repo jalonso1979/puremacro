@@ -20,3 +20,7 @@
 ## 2024-11-28 - Vectorized group aggregation for frequency conversion in Pandas
 **Learning:** Iterating over large pandas groups and using `.resample().mean()` per variable slice on a wide, long-form dataframe (e.g., in `_aggregate_monthly_to_quarterly`) generates immense overhead due to individual object creation and Python loop execution. This caused a 5.0-second delay for 400k rows.
 **Action:** Replace `df.groupby(...).resample(...)` iterations with purely vectorized mappings. Map exact dates to period starts (e.g. `.dt.to_period('Q').dt.start_time`), slice exact aggregation needs first, and use a single `groupby(['code', 'variable', 'q_date']).agg()` for speedups exceeding 10x.
+
+## 2024-11-20 - Vectorized Chained Matrices in Pandas DataFrames
+**Learning:** When needing to perform chained matrix multiplication on rows of a Pandas DataFrame grouped by time (e.g. chaining 3 monthly transition matrices to create a quarterly matrix), iterating through `groupby()` and using `iterrows()` to manually construct and multiply arrays incurs massive Python overhead.
+**Action:** Instead, assign a sequence index (e.g., `cumcount()`) to the grouped rows, filter out only the required N rows per group, sort appropriately, and extract the required columns into a single flat NumPy array. Reshape this array to `(num_groups, N, rows, cols)` and perform batched matrix multiplication (`data[:, 0] @ data[:, 1] ...`) for >25x performance gains.
