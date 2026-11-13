@@ -134,8 +134,8 @@ class TestVARMetamorphic:
     def test_var_time_shift_invariance(self, var_data: np.ndarray):
         """Uniform time shifts leave dynamic coefficients and residuals invariant."""
         Y = var_data
-        dates_base = pd.date_range("2000-01-01", periods=len(Y), freq="QE")
-        dates_shifted = pd.date_range("2015-01-01", periods=len(Y), freq="QE")
+        dates_base = pd.date_range("2000-01-01", periods=len(Y), freq="QS")
+        dates_shifted = pd.date_range("2015-01-01", periods=len(Y), freq="QS")
 
         df_base = pd.DataFrame(Y, index=dates_base)
         df_shifted = pd.DataFrame(Y, index=dates_shifted)

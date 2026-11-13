@@ -83,7 +83,7 @@ def test_lp_hac_returns_lp_result():
 def test_panel_lp_standardized_keywords_and_result():
     rng = np.random.default_rng(123)
     codes = ["US", "DE"]
-    dates = pd.date_range("2010-01-01", periods=30, freq="QE")
+    dates = pd.date_range("2010-01-01", periods=30, freq="QS")
     idx = pd.MultiIndex.from_product([codes, dates], names=["code", "date"])
     df = pd.DataFrame(
         {
@@ -105,7 +105,7 @@ def test_panel_lp_standardized_keywords_and_result():
 def test_panel_lp_dk_standardized_keywords_and_result():
     rng = np.random.default_rng(123)
     codes = ["US", "DE"]
-    dates = pd.date_range("2010-01-01", periods=30, freq="QE")
+    dates = pd.date_range("2010-01-01", periods=30, freq="QS")
     idx = pd.MultiIndex.from_product([codes, dates], names=["code", "date"])
     df = pd.DataFrame(
         {

@@ -180,4 +180,4 @@ jobs:
           OMP_NUM_THREADS: "1"
           OPENBLAS_NUM_THREADS: "1"
         run: |
-          pytest tests/test_lp/ tests/test_conformance/ tests/test_research_benchmarks.py -q
+          python -m pytest tests/test_lp/ tests/test_conformance/ tests/test_research_benchmarks.py -q

@@ -43,7 +43,7 @@ def ts_data():
     """Synthetic time-series dataset with datetime index."""
     rng = np.random.default_rng(42)
     n = 100
-    idx = pd.date_range("2010-01-01", periods=n, freq="QE")
+    idx = pd.date_range("2010-01-01", periods=n, freq="QS")
     x = rng.standard_normal(n)
     z = 0.8 * x + 0.2 * rng.standard_normal(n)
     c1 = rng.standard_normal(n)
@@ -61,7 +61,7 @@ def panel_data():
     n_entities = 5
     n_periods = 40
     rows = []
-    dates = pd.date_range("2015-01-01", periods=n_periods, freq="ME")
+    dates = pd.date_range("2015-01-01", periods=n_periods, freq="MS")
     for i in range(n_entities):
         code = f"C{i}"
         x = rng.standard_normal(n_periods)
