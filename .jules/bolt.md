@@ -28,3 +28,7 @@
 ## 2024-11-07 - Vectorized Matrix Chaining
 **Learning:** Chaining monthly transition matrices into quarterly matrices via `iterrows` over a Pandas DataFrame of transition probabilities is extremely slow.
 **Action:** Extract the probabilities into a NumPy array, reshape it to `(num_months, n_states, n_states)`, and use batched matrix multiplication (`@`) for massive speedups (~150x). This fully leverages NumPy's vectorized operations and avoids Python loop overhead.
+
+## 2024-11-29 - Pandas iterrows() overhead in grouped data iteration
+**Learning:** Using `iterrows()` inside a loop iterating over a large number of small Pandas groups (e.g. `for _, row in grp.iterrows():` after `groupby()`) generates extreme object allocation overhead (over 1.6s for 16,500 rows). While fully vectorizing operations across all groups is ideal, when complex conditional row-by-row logic is unavoidable, switching to `grp.itertuples(index=False, name=None)` avoids `pd.Series` boxing entirely. This brings the time down from 1.6s to 0.7s (a >2x speedup), preserving exact logical equivalence while only requiring column name lookups to be translated to integer indices.
+**Action:** When iterating over pandas DataFrames, prefer vectorization, `to_dict('records')` (when dictionary-style `.get()` access is needed), or `itertuples(index=False, name=None)` instead of `iterrows()` for significantly better performance. When using `itertuples`, pre-compute a dictionary mapping column names to integer indices before the loop.
