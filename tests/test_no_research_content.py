@@ -842,7 +842,7 @@ _IMPORT_SCAN_SKIP = ("playground/dist/",)
 
 
 def _tracked_paths(repo: Path) -> frozenset[str]:
-    raw = subprocess.run(["git", "ls-files", "-z"], cwd=repo, check=True,
+    raw = subprocess.run(["git", "ls-files", "-z", "-c", "-o", "--exclude-standard"], cwd=repo, check=True,
                          capture_output=True).stdout
     return frozenset(os.fsdecode(p) for p in raw.split(b"\0") if p)
 

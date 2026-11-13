@@ -151,3 +151,33 @@ jobs:
           python -m pip install build
           python -m build --wheel
           python tools/check_installed_examples.py dist/*.whl
+
+  min-dependency-floor:
+    name: Minimum Dependency Floor (Python 3.11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install minimum dependency floor
+        run: |
+          python -m pip install --upgrade pip
+          pip install "numpy==1.26.0" "scipy==1.10.0" "pandas==2.0.0" "matplotlib==3.7.0" "requests==2.31.0"
+          pip install -e ".[dev]"
+          pip install "numpy==1.26.0" "scipy==1.10.0" "pandas==2.0.0" "matplotlib==3.7.0" "requests==2.31.0"
+      - name: Verify installed dependency floor versions
+        run: |
+          python -c "import numpy, scipy, pandas, matplotlib, requests; print('numpy:', numpy.__version__); print('scipy:', scipy.__version__); print('pandas:', pandas.__version__); print('matplotlib:', matplotlib.__version__); print('requests:', requests.__version__)"
+      - name: Run test suite on minimum dependency floor
+        env:
+          PUREMACRO_TIMING_SCALE: "10"
+          PYTHONFAULTHANDLER: "1"
+          PUREMACRO_LLM_MODE: "cache"
+          OMP_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+        run: |
+          pytest tests/test_lp/ tests/test_conformance/ tests/test_research_benchmarks.py -q

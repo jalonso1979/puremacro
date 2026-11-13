@@ -52,6 +52,7 @@ def lp_asymmetric(
     ctl = list(controls or [])
     z_crit = norm.ppf(1 - alpha / 2)
     rows = []
+    n_obs_by_h: dict[int, int] = {}
     for h in horizons:
         sub = df[[y, x] + ctl].copy()
         sub["__dy_h__"] = sub[y].shift(-h) - sub[y].shift(1)
@@ -61,6 +62,7 @@ def lp_asymmetric(
             for c in ctl:
                 sub[f"__{c}_L{lag}__"] = sub[c].shift(lag)
         sub = sub.dropna()
+        n_obs_by_h[h] = int(len(sub))
         if sub.empty:
             rows.append({"h": h, "beta_pos": np.nan, "se_pos": np.nan,
                          "lo_pos": np.nan, "hi_pos": np.nan,
@@ -99,6 +101,19 @@ def lp_asymmetric(
     res.x_name = str(x)
     res.method = "LP-asymmetric"
     res.ci_level = 1.0 - alpha
+    res._set_specification({
+        "estimator": "lp_asymmetric",
+        "method": "LP-asymmetric",
+        "y_name": str(y),
+        "x_name": str(x),
+        "controls": list(ctl),
+        "n_lags": int(n_lags),
+        "horizons": list(horizons),
+        "cov_type": "HAC",
+        "ci_level": float(1.0 - alpha),
+        "cov_summary": "HAC Bartlett(h+1)",
+        "n_obs_by_horizon": n_obs_by_h,
+    })
     return res
 
 

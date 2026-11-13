@@ -50,7 +50,7 @@ Callaway, B. and Sant'Anna, P.H.C. (2021). Difference-in-differences
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, Optional, Sequence
+from typing import Any, Iterable, Optional, Sequence
 
 import numpy as np
 import pandas as pd
@@ -71,7 +71,7 @@ class LPDiDResult:
 
     Attributes
     ----------
-    estimates : pd.DataFrame
+    estimates : LPResult (pd.DataFrame subclass)
         One row per horizon (pre-trends first), columns
         ``[h, beta, se, t, lo, hi, n_treated, n_clean, n_obs,
         n_periods]``. The ``h = -1`` row is the base-period
@@ -118,6 +118,19 @@ class LPDiDResult:
     n_events: int
 
     @property
+    def attrs(self) -> dict:
+        """Mirror estimates.attrs so res.attrs['specification'] is exposed directly."""
+        return self.estimates.attrs
+
+    @property
+    def _spec(self) -> dict:
+        return getattr(self.estimates, "_spec", {})
+
+    def _set_specification(self, spec: dict[str, Any]) -> None:
+        if hasattr(self.estimates, "_set_specification"):
+            self.estimates._set_specification(spec)
+
+    @property
     def post(self) -> pd.DataFrame:
         """Post-treatment rows (``h >= 0``), index reset."""
         est = self.estimates
@@ -131,29 +144,67 @@ class LPDiDResult:
         return est[est["h"] <= -2].reset_index(drop=True)
 
     def summary(self) -> str:
-        """One-paragraph human-readable summary of the fit."""
+        """Human-readable summary with standard specification header."""
+        spec = self.attrs.get("specification", {})
+        info = []
+        y_name = spec.get("y_name")
+        x_name = spec.get("x_name")
+        if y_name is not None and x_name is not None:
+            info.append(f"y: {y_name}   x: {x_name}")
+        ci_level = spec.get("ci_level")
+        if ci_level is not None:
+            info.append(f"bands: {100 * float(ci_level):.0f}%")
+        if "n_lags" in spec and spec["n_lags"] is not None:
+            info.append(f"lags: {int(spec['n_lags'])}")
+        ctls = spec.get("controls") or []
+        if ctls:
+            if len(ctls) <= 3:
+                info.append("controls: " + ", ".join(str(c) for c in ctls))
+            else:
+                shown = ", ".join(str(c) for c in ctls[:3])
+                info.append(f"controls: {len(ctls)} ({shown}, ...)")
+        cov_desc = spec.get("cov_summary")
+        if cov_desc:
+            info.append(f"SE: {cov_desc}")
+        n_map = spec.get("n_obs_by_horizon")
+        if isinstance(n_map, dict) and n_map:
+            counts = [int(v) for v in n_map.values() if int(v) > 0]
+            if counts:
+                lo_n, hi_n = min(counts), max(counts)
+                info.append(f"N: {lo_n}" if lo_n == hi_n else f"N: {lo_n}..{hi_n}")
+        elif self.n_units:
+            info.append(f"N: {self.n_units}")
+
+        lines = [f"Local Projection Result (method: {spec.get('method', 'LP-DiD')})"]
+        if info:
+            lines.append("   ".join(info))
+
         post = self.post
         pre = self.pretrend
         h0 = post[post["h"] == 0]
         h0_line = (
             f"  ATT(h=0)          : {float(h0['beta'].iloc[0]):+.4f} "
-            f"(se {float(h0['se'].iloc[0]):.4f})\n" if len(h0) else ""
+            f"(se {float(h0['se'].iloc[0]):.4f})" if len(h0) else ""
         )
         if len(pre) and np.isfinite(pre["t"]).any():
             max_pre_t = float(np.nanmax(np.abs(pre["t"])))
             pre_line = (f"  pre-trends        : h = -{self.pre_window}..-2, "
-                        f"max |t| = {max_pre_t:.2f}\n")
+                        f"max |t| = {max_pre_t:.2f}")
         else:
-            pre_line = "  pre-trends        : (none estimated)\n"
-        return (
-            f"LP-DiD (Dube-Girardi-Jordà-Taylor) result\n"
-            f"  weights           : {self.weights}\n"
-            f"  clean controls    : {self.clean_controls}\n"
-            f"  units / events    : {self.n_units} / {self.n_events}\n"
-            f"  post horizons     : {int(post['h'].min())}.."
-            f"{int(post['h'].max())}\n"
-            f"{pre_line}{h0_line}"
-        )
+            pre_line = "  pre-trends        : (none estimated)"
+
+        lines.extend([
+            f"LP-DiD (Dube-Girardi-Jordà-Taylor) result",
+            f"  weights           : {self.weights}",
+            f"  clean controls    : {self.clean_controls}",
+            f"  units / events    : {self.n_units} / {self.n_events}",
+            f"  post horizons     : {int(post['h'].min())}..{int(post['h'].max())}",
+        ])
+        if pre_line:
+            lines.append(pre_line)
+        if h0_line:
+            lines.append(h0_line)
+        return "\n".join(lines)
 
     def plot(self, *, ax=None, title: str = "LP-DiD Event Study", **kwargs):
         """Plot LP-DiD event study estimates with confidence intervals."""
@@ -449,7 +500,32 @@ def lp_did(
                             "w_vw": float(w_vw[j]),
                             "w_equal": float(w_eq[j])})
 
-    estimates = pd.DataFrame(rows, columns=_EST_COLS)
+    from ._results import LPResult
+
+    estimates = LPResult(rows, columns=_EST_COLS)
+    if "h" in estimates.columns:
+        estimates.index = estimates["h"]
+    estimates.y_name = str(y)
+    estimates.x_name = str(treat)
+    estimates.method = "LP-DiD"
+    estimates.ci_level = float(1.0 - alpha)
+    n_obs_by_h = {int(r["h"]): int(r.get("n_obs", 0)) for r in rows}
+    estimates._set_specification({
+        "estimator": "lp_did",
+        "method": "LP-DiD",
+        "y_name": str(y),
+        "x_name": str(treat),
+        "controls": list(controls or []),
+        "n_lags": int(lags if lags is not None else 0),
+        "horizons": list(all_h),
+        "cov_type": f"cluster({cluster})",
+        "ci_level": float(1.0 - alpha),
+        "cov_summary": f"cluster({cluster})",
+        "n_obs_by_horizon": n_obs_by_h,
+        "weights": str(weights),
+        "pre_window": int(pre_window),
+        "clean_controls": bool(clean_controls),
+    })
     group_weights = pd.DataFrame(
         gw_rows, columns=["h", "time", "n_treated", "n_clean", "w_vw", "w_equal"])
 

@@ -7,7 +7,7 @@
   },
   "sources": {
     "puremacro/models/hank_scenario_tree.py": "baa00a390f76ce67783686b2a21d7a637ebd7ce40ec535c7c9e19e6de6e2db48",
-    "puremacro/models/one_asset_hank.py": "969d1915e30c36b4bce73a8e04cc37b200f3b74db8f39a13de8d43686c82fe64",
+    "puremacro/models/one_asset_hank.py": "504ce484ca9fe2a4f7086c0b44ad36498a790e580ca70ad33c3ab09bde9d7a23",
     "tools/reference_validation/check_hank_scenario_tree.py": "0b4ad2deec83c8119e32f9e9ae2e9086597b3b4805c721cee5f16b03c44308e1",
     "tools/reference_validation/extend_hank_scenario_tree.py": "3f908003e84452ac48183dad0a53fe495dcd0c8e317be6a4c2c5ce09ebf58a60"
   },

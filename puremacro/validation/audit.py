@@ -89,6 +89,108 @@ def _derivative(collector, experiment):
                        step=experiment.step, stencil="central five-point", analytic=jac, numeric=numeric)
 
 
+def _audit_trade_equilibrium(out: _Collector, result: Any, model: Any = None) -> None:
+    diag = getattr(result, "solver_diagnostics", None)
+    if "solver" in out.checks:
+        conv = bool(result.converged)
+        status = diag.overall_status if diag else ("PASS" if conv else "FAILED")
+        out.add("solver", "solver_converged", conv, source="trade_equilibrium_record")
+        out.add("solver", "solver_overall_status", status == "PASS", source="trade_solver_diagnostics",
+                status="passed" if status == "PASS" else "failed", overall_status=status)
+    if "equations" in out.checks:
+        acc = diag.accuracy if diag else None
+        max_res = float(acc.max_residual if acc else result.max_residual)
+        tol = float(acc.tolerance if acc else 1e-4)
+        is_acc = bool(acc.is_accurate if acc else (max_res <= tol))
+        out.add("equations", "excess_demand_residual", max_res, tol, units="excess demand",
+                source="trade_solver_diagnostics", status="passed" if is_acc else "failed",
+                is_accurate=is_acc)
+    if "distribution" in out.checks:
+        supp = diag.support if diag else None
+        is_supp = bool(supp.is_supported if supp else True)
+        regime = str(supp.regime if supp else "interior")
+        warnings = list(supp.warnings if supp else [])
+        out.add("distribution", "price_and_factor_support", is_supp, source="trade_solver_diagnostics",
+                status="passed" if is_supp else "failed", regime=regime, warnings=warnings)
+
+
+def _audit_sovereign_default(out: _Collector, result: Any, model: Any = None) -> None:
+    diag = getattr(result, "solver_diagnostics", None)
+    if "solver" in out.checks:
+        conv = bool(result.converged)
+        status = diag.overall_status if diag else ("PASS" if conv else "FAILED")
+        out.add("solver", "solver_converged", conv, source="sovereign_solver_record")
+        out.add("solver", "solver_overall_status", status == "PASS", source="sovereign_solver_diagnostics",
+                status="passed" if status == "PASS" else "failed", overall_status=status)
+    if "equations" in out.checks:
+        acc = diag.accuracy if diag else None
+        b_res = float(result.bellman_residual)
+        tol = float(acc.tolerance if acc else 1e-3)
+        is_acc = bool(acc.is_accurate if acc else (b_res <= tol))
+        out.add("equations", "bellman_residual", b_res, tol, units="value function units",
+                source="sovereign_solver_diagnostics", status="passed" if is_acc else "failed",
+                is_accurate=is_acc)
+    if "distribution" in out.checks:
+        supp = diag.support if diag else None
+        is_supp = bool(supp.is_supported if supp else True)
+        regime = str(supp.regime if supp else "interior")
+        p_bmax = float(supp.boundary_metrics.get("p_bmax", 0.0)) if supp else 0.0
+        out.add("distribution", "debt_boundary_support", p_bmax, 0.01, units="probability",
+                source="sovereign_solver_diagnostics", status="passed" if is_supp else "failed",
+                comparison="value <= tolerance", regime=regime)
+
+
+def _audit_var_estimate(out: _Collector, result: Any, model: Any = None) -> None:
+    diag = getattr(result, "solver_diagnostics", None)
+    if "solver" in out.checks:
+        conv = bool(diag.convergence.converged if diag else True)
+        status = diag.overall_status if diag else "PASS"
+        out.add("solver", "solver_converged", conv, source="var_estimate_record")
+        out.add("solver", "solver_overall_status", status == "PASS", source="var_solver_diagnostics",
+                status="passed" if status == "PASS" else "failed", overall_status=status)
+    if "equations" in out.checks:
+        norm_res = float(diag.accuracy.residual_norm if diag else np.linalg.norm(result.resid))
+        out.add("equations", "ols_residual_norm", norm_res, units="residual norm",
+                source="var_solver_diagnostics", status="passed" if np.isfinite(norm_res) else "failed")
+    if "distribution" in out.checks:
+        rho = getattr(result, "spectral_radius", 0.0)
+        supp = diag.support if diag else None
+        is_supp = bool(supp.is_supported if supp else (rho < 1.0))
+        regime = str(supp.regime if supp else ("stationary" if is_supp else "non_stationary_explosive"))
+        out.add("distribution", "stationarity_support", rho, 1.0, units="spectral radius",
+                source="var_solver_diagnostics", status="passed" if is_supp else "failed",
+                comparison="value < tolerance", regime=regime)
+
+
+def _audit_one_asset_hank(out: _Collector, result: Any, model: Any = None) -> None:
+    diag = getattr(result, "solver_diagnostics", None)
+    if "solver" in out.checks:
+        conv = bool(result.converged)
+        status = diag.overall_status if diag else ("PASS" if conv else "FAILED")
+        out.add("solver", "solver_converged", conv, source="one_asset_hank_record")
+        out.add("solver", "solver_overall_status", status == "PASS", source="one_asset_hank_diagnostics",
+                status="passed" if status == "PASS" else "failed", overall_status=status)
+    if "equations" in out.checks:
+        mkt_res = float(result.diagnostics.get("market_residual_max_abs", 0.0))
+        euler_res = float(result.diagnostics.get("euler_kkt_max", 0.0))
+        acc = diag.accuracy if diag else None
+        is_acc = bool(acc.is_accurate if acc else (euler_res <= 0.01 and mkt_res <= 0.01))
+        out.add("equations", "market_clearing_residual", mkt_res, 0.01, units="market residual",
+                source="one_asset_hank_diagnostics", status="passed" if mkt_res <= 0.01 else "failed")
+        out.add("equations", "euler_kkt_residual", euler_res, 0.01, units="current marginal utility",
+                source="one_asset_hank_diagnostics", status="passed" if euler_res <= 0.01 else "failed",
+                is_accurate=is_acc)
+    if "distribution" in out.checks:
+        supp = diag.support if diag else None
+        is_supp = bool(supp.is_supported if supp else True)
+        regime = str(supp.regime if supp else "interior")
+        min_mass = float(result.diagnostics.get("minimum_mass", 0.0))
+        mass_err = float(result.diagnostics.get("mass_error", 0.0))
+        out.add("distribution", "distribution_support", is_supp, source="one_asset_hank_diagnostics",
+                status="passed" if is_supp else "failed", regime=regime,
+                minimum_mass=min_mass, mass_error=mass_err)
+
+
 def _dp_metrics(result):
     from puremacro.dp._results import DPSolution
     if not isinstance(result, DPSolution) or result.distribution is None:
@@ -171,6 +273,11 @@ def audit_result(result: Any, *, model: Any = None,
     from puremacro.trade.dynamic._results import (
         DynamicSteadyStateResult, DynamicTransitionResult, HorizonComparisonResult,
     )
+    from puremacro.trade._results import TradeEquilibriumResult
+    from puremacro.sovereign._results import SovereignDefaultResult
+    from puremacro.var._results import VarEstimateResult
+    from puremacro.models.one_asset_hank import OneAssetHANKResult
+
     if isinstance(result, DPSolution):
         from ._audit_dp import audit_dp
         audit_dp(out, result, model)
@@ -189,6 +296,14 @@ def audit_result(result: Any, *, model: Any = None,
     elif isinstance(result, (DynamicSteadyStateResult, DynamicTransitionResult, HorizonComparisonResult)):
         from ._audit_structural import audit_trade
         audit_trade(out, result, model)
+    elif isinstance(result, TradeEquilibriumResult):
+        _audit_trade_equilibrium(out, result, model)
+    elif isinstance(result, SovereignDefaultResult):
+        _audit_sovereign_default(out, result, model)
+    elif isinstance(result, VarEstimateResult):
+        _audit_var_estimate(out, result, model)
+    elif isinstance(result, OneAssetHANKResult):
+        _audit_one_asset_hank(out, result, model)
     for experiment in residuals:
         if "equations" in out.checks:
             try:

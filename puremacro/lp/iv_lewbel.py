@@ -64,6 +64,7 @@ def lp_iv_lewbel(
     panel[f"{y}_Lm1"] = g[y].shift(1)
 
     rows = []
+    n_obs_by_h: dict[int, int] = {}
     for h in horizons:
         panel[f"{y}_lead_h{h}"] = g[y].shift(-h)
         col_lhs = f"{y}_dh{h}"
@@ -77,9 +78,11 @@ def lp_iv_lewbel(
                 keep_cols.append(f"{c}_L{lag}")
         keep_cols.extend(controls)
         sub = panel[keep_cols].dropna()
+        n_obs_by_h[h] = int(len(sub))
         if sub.empty:
             rows.append({"h": h, "beta": np.nan, "se": np.nan, "t": np.nan,
-                         "lo": np.nan, "hi": np.nan, "first_stage_F": np.nan,
+                         "lo": np.nan, "hi": np.nan,
+                         "first_stage_f": np.nan, "first_stage_F": np.nan,
                          "lewbel_p": np.nan})
             continue
 
@@ -112,6 +115,7 @@ def lp_iv_lewbel(
             "t": beta / se if se > 0 else np.nan,
             "lo": beta - z_crit * se,
             "hi": beta + z_crit * se,
+            "first_stage_f": float(res.first_stage_F),
             "first_stage_F": float(res.first_stage_F),
             "lewbel_p": float(res.lewbel_diagnostic["p_value"]),
         })
@@ -122,6 +126,20 @@ def lp_iv_lewbel(
     res.x_name = str(x_endog)
     res.method = "LP-IV-Lewbel"
     res.ci_level = 1.0 - alpha
+    res._set_specification({
+        "estimator": "lp_iv_lewbel",
+        "method": "LP-IV-Lewbel",
+        "y_name": str(y),
+        "x_name": str(x_endog),
+        "heterosk_source": str(heterosk_source),
+        "controls": list(controls),
+        "n_lags": int(n_lags),
+        "horizons": list(horizons),
+        "cov_type": "2SLS",
+        "ci_level": float(1.0 - alpha),
+        "cov_summary": "2SLS homoskedastic",
+        "n_obs_by_horizon": n_obs_by_h,
+    })
     return res
 
 

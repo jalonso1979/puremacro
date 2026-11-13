@@ -41,6 +41,7 @@ CURVED_EQUIVALENT_SOURCES = {
     "puremacro/sovereign/_results.py": (
         "21e0bd69e131b5bf3171c96ed79bc0ebf2ed38e86f115a8de82cf6491e922a98",
         "abf7866672248410641db3d2652c5bc04d3f2428cfcfd042d79c28808d7bef6a",
+        "9060b162f4583b1af4ca2aaca53b618de4acd00ceb616a02078b744841a6b09f",
     ),
 }
 FROZEN_SELF_HASH = "b066f1cdc2c859b9affeb5b4eda902c858ce4dd419b44d961b43973ac78794e1"
@@ -57,7 +58,8 @@ def _equivalent_sources(recorded, current):
             continue
         if path == self_key and (rec_sha, cur_sha) == (FROZEN_SELF_HASH, self_hash):
             continue
-        if (rec_sha, cur_sha) == CURVED_EQUIVALENT_SOURCES.get(path):
+        equiv = CURVED_EQUIVALENT_SOURCES.get(path, ())
+        if rec_sha in equiv and cur_sha in equiv:
             continue
         return False
     return True

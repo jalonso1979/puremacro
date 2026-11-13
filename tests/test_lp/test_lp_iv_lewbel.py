@@ -47,7 +47,7 @@ def test_lp_iv_lewbel_returns_long_form_dataframe():
         df, y="y", x_endog="x", heterosk_source="z",
         horizons=range(0, 5), n_lags=2,
     )
-    expected_cols = {"h", "beta", "se", "t", "lo", "hi", "first_stage_F", "lewbel_p"}
+    expected_cols = {"h", "beta", "se", "t", "lo", "hi", "first_stage_f", "first_stage_F", "lewbel_p"}
     assert expected_cols.issubset(set(out.columns))
     assert len(out) == 5
     # Coefficient at h=0 should be near β_true on average.

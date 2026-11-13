@@ -58,9 +58,9 @@ def _calibration() -> dict:
 
 
 def _array_fields() -> list[str]:
-    # ``rule`` is not an array; the ladder solves the rule-free calibration only.
+    # ``rule`` and ``solver_diagnostics`` are not arrays; the ladder solves the rule-free calibration only.
     return [f.name for f in fields(FiscalSovereignResult)
-            if f.name not in ("metadata", "rule") and f.name not in _SCALARS]
+            if f.name not in ("metadata", "rule", "solver_diagnostics") and f.name not in _SCALARS]
 
 
 _SCALARS = ("spread_mean", "spread_y_corr", "bellman_residual", "converged", "maturity_param_delta",

@@ -106,6 +106,7 @@ def cce_panel_lp(
         df[f"__cs_mean_{c}__"] = grouped_t[c].transform("mean")
 
     rows = []
+    n_obs_by_h: dict[int, int] = {}
     for h in horizons:
         col_dy = f"__dy_h{h}__"
         df[col_dy] = grouped_e[y].shift(-h) - grouped_e[y].shift(1)
@@ -121,6 +122,7 @@ def cce_panel_lp(
         for c in ctl:
             x_cols.append(f"__cs_mean_{c}__")
         sub = df[[col_dy] + x_cols].dropna()
+        n_obs_by_h[h] = int(len(sub))
         if sub.empty:
             rows.append({"h": h, "beta": np.nan, "se": np.nan,
                          "lo": np.nan, "hi": np.nan})
@@ -140,6 +142,19 @@ def cce_panel_lp(
     res.x_name = str(x)
     res.method = "cce_panel_lp"
     res.ci_level = 1.0 - alpha
+    res._set_specification({
+        "estimator": "cce_panel_lp",
+        "method": "cce_panel_lp",
+        "y_name": str(y),
+        "x_name": str(x),
+        "controls": list(ctl),
+        "n_lags": int(n_lags),
+        "horizons": list(horizons),
+        "cov_type": "cluster",
+        "ci_level": float(1.0 - alpha),
+        "cov_summary": f"cluster({entity_level})",
+        "n_obs_by_horizon": n_obs_by_h,
+    })
     return res
 
 

@@ -25,6 +25,7 @@ from scipy.optimize import root
 from scipy.sparse.linalg import spsolve
 
 from puremacro.reports import _df_to_latex, _df_to_markdown, _df_to_typst
+from puremacro.solvers.diagnostics import SolverDiagnosticRecord, make_solver_diagnostic_record
 from puremacro.vfi.discretize import rouwenhorst
 
 
@@ -82,11 +83,97 @@ class OneAssetHANKResult:
     nonlinear: bool
     converged: bool
     diagnostics: dict[str, Any]
+    solver_diagnostics: SolverDiagnosticRecord | None = None
+
+    def __post_init__(self) -> None:
+        if self.solver_diagnostics is None:
+            conv = bool(self.converged)
+            mkt_res = float(self.diagnostics.get("market_residual_max_abs", 0.0))
+            iterations = int(self.diagnostics.get("iterations", len(self.paths)))
+            method = "nonlinear_paths" if self.nonlinear else "linearized"
+            tol = float(self.diagnostics.get("tolerance", 1e-8))
+
+            # Euler KKT residual check
+            euler_res = self.diagnostics.get("euler_kkt_max")
+            if euler_res is None and self.steady_state is not None:
+                try:
+                    ss = self.steady_state
+                    policy_a = getattr(ss, "policy_a", getattr(ss, "policy", None))
+                    policy_c = getattr(ss, "policy_c", getattr(ss, "c", None))
+                    a_grid = getattr(ss, "asset_grid", getattr(ss, "a", None))
+                    e_grid = getattr(ss, "e_grid", getattr(ss, "e", None))
+                    if policy_a is not None and policy_c is not None and a_grid is not None and e_grid is not None:
+                        beta = float(ss.calibration["beta"])
+                        r = float(ss.calibration["r"])
+                        eis = float(ss.calibration["eis"])
+                        uc = policy_c ** (-1.0 / eis)
+                        expected_uc = np.zeros_like(uc)
+                        for j in range(len(e_grid)):
+                            for jp in range(len(e_grid)):
+                                expected_uc[:, j] += ss.transition[j, jp] * np.interp(policy_a[:, j], a_grid, uc[:, jp])
+                        gradient = (beta * (1.0 + r) * expected_uc - uc) / uc
+                        lo_bound = a_grid[0] + 1e-6
+                        kkt = np.where(policy_a <= lo_bound, np.maximum(gradient, 0.0), gradient)
+                        euler_res = float(np.max(np.abs(kkt)))
+                        self.diagnostics["euler_kkt_max"] = euler_res
+                except Exception:
+                    euler_res = 0.0
+
+            euler_val = float(euler_res) if euler_res is not None else 0.0
+            acc_tol = 0.01  # Standard screening Euler tolerance is 0.01
+            # Euler KKT residual check (> 0.01 => CONVERGED_INACCURATE)
+            is_acc = bool(conv and euler_val <= acc_tol and mkt_res <= 0.01)
+
+            # Check support
+            is_supp = True
+            regime = "interior"
+            supp_warnings: list[str] = []
+
+            min_mass = float(self.diagnostics.get("minimum_mass", 0.0))
+            mass_err = float(self.diagnostics.get("mass_error", 0.0))
+            if min_mass < -1e-12 or mass_err >= 1e-10:
+                is_supp = False
+                regime = "infeasible_distribution"
+                supp_warnings.append(
+                    f"Distribution feasibility failure (min_mass={min_mass:.3e}, mass_error={mass_err:.3e})"
+                )
+
+            shock_amp = self.diagnostics.get("shock_amplitude")
+            if shock_amp is not None and float(shock_amp) <= -0.0005 and not is_supp:
+                regime = "negative_shock_infeasible"
+                supp_warnings.append(
+                    f"Negative shock amplitude ({shock_amp}) violates distribution feasibility"
+                )
+
+            rec = make_solver_diagnostic_record(
+                converged=conv,
+                iterations=iterations,
+                stopping_reason="converged" if conv else "failed",
+                solver_method=method,
+                tolerance=tol,
+                is_accurate=is_acc,
+                max_residual=max(euler_val, mkt_res),
+                residual_norm=mkt_res,
+                residual_type="euler_kkt_and_market_clearing",
+                accuracy_tolerance=acc_tol,
+                residuals={"euler_kkt_max": euler_val, "market_residual_max_abs": mkt_res},
+                is_supported=is_supp,
+                regime=regime,
+                warnings=supp_warnings,
+                boundary_metrics={"euler_kkt_max": euler_val, "minimum_mass": min_mass, "mass_error": mass_err},
+                evidence=dict(self.diagnostics),
+            )
+            object.__setattr__(self, "solver_diagnostics", rec)
 
     def summary(self) -> str:
+        diag_status = (
+            self.solver_diagnostics.overall_status
+            if self.solver_diagnostics is not None
+            else ("PASS" if self.converged else "FAILED")
+        )
         return (f"One-asset HANK ({'nonlinear' if self.nonlinear else 'linear'}): "
-                f"converged={self.converged}, horizon={len(self.paths)}, "
-                f"max market residual={self.diagnostics['market_residual_max_abs']:.3g}")
+                f"status={diag_status}, converged={self.converged}, horizon={len(self.paths)}, "
+                f"max market residual={self.diagnostics.get('market_residual_max_abs', 0.0):.3g}")
 
     def to_dataframe(self) -> pd.DataFrame:
         return self.paths.copy()

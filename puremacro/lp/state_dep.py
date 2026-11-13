@@ -377,6 +377,7 @@ def lp_state_dep(
     cutoff = s_mean if threshold is None else float(threshold)
 
     rows = []
+    n_obs_by_h: dict[int, int] = {}
     for h in horizons:
         sub = df[list(dict.fromkeys([y, x] + ctl))].copy()
         sub["__state__"] = state_series
@@ -387,6 +388,7 @@ def lp_state_dep(
             for c in ctl:
                 sub[f"__{c}_L{lag}__"] = sub[c].shift(lag)
         sub = sub.dropna()
+        n_obs_by_h[h] = int(len(sub))
         if sub.empty:
             rows.append(_nan_regime_row(h, _DIFF_COLS))
             continue
@@ -415,6 +417,23 @@ def lp_state_dep(
     res.x_name = str(x)
     res.method = "LP-state-dep"
     res.ci_level = 1.0 - alpha
+    res._set_specification({
+        "estimator": "lp_state_dep",
+        "method": "LP-state-dep",
+        "y_name": str(y),
+        "x_name": str(x),
+        "state_name": str(state),
+        "transition": str(transition),
+        "gamma": float(gamma),
+        "interact": str(interact),
+        "controls": list(ctl),
+        "n_lags": int(n_lags),
+        "horizons": list(horizons),
+        "cov_type": "HAC",
+        "ci_level": float(1.0 - alpha),
+        "cov_summary": "HAC Bartlett(h+1)",
+        "n_obs_by_horizon": n_obs_by_h,
+    })
     return res
 
 
@@ -502,6 +521,7 @@ def lp_smooth_transition_irf(
     z_crit = norm.ppf(1 - alpha / 2)
 
     rows = []
+    n_obs_by_h: dict[int, int] = {}
     for h in horizons:
         sub = df[[y, x, state_var] + ctl].copy()
         sub["__dep__"] = sub[y].shift(-h)
@@ -511,6 +531,7 @@ def lp_smooth_transition_irf(
             for c in ctl:
                 sub[f"__{c}_L{lag}__"] = sub[c].shift(lag)
         sub = sub.dropna()
+        n_obs_by_h[h] = int(len(sub))
         if sub.empty:
             rows.append({
                 "h": h,
@@ -572,7 +593,30 @@ def lp_smooth_transition_irf(
             "hi_low": b_low + z_crit * se_low,
         })
 
-    return LPResult(rows)
+    res = LPResult(rows)
+    if "h" in res.columns:
+        res.index = res["h"]
+    res.y_name = str(y)
+    res.x_name = str(x)
+    res.method = "LP-smooth-transition"
+    res.ci_level = 1.0 - alpha
+    res._set_specification({
+        "estimator": "lp_smooth_transition_irf",
+        "method": "LP-smooth-transition",
+        "y_name": str(y),
+        "x_name": str(x),
+        "state_name": str(state_var),
+        "gamma": float(gamma),
+        "threshold": float(threshold),
+        "controls": list(ctl),
+        "n_lags": int(n_lags),
+        "horizons": list(horizons),
+        "cov_type": "HAC",
+        "ci_level": float(1.0 - alpha),
+        "cov_summary": "HAC",
+        "n_obs_by_horizon": n_obs_by_h,
+    })
+    return res
 
 
 def lp_state_dep_iv(
@@ -728,6 +772,7 @@ def lp_state_dep_iv(
     cutoff = s_mean if threshold is None else float(threshold)
 
     rows = []
+    n_obs_by_h: dict[int, int] = {}
     for h in horizons:
         sub = df[list(dict.fromkeys([y, x, z] + ctl))].copy()
         sub["__state__"] = state_series
@@ -743,6 +788,7 @@ def lp_state_dep_iv(
             sub["__dy_h__"] = sub[y].shift(-h) - sub[y].shift(1)
             sub["__x_w__"] = sub[x]
         sub = sub.dropna()
+        n_obs_by_h[h] = int(len(sub))
         if sub.empty:
             rows.append(_nan_regime_row(h, extra))
             continue
@@ -807,6 +853,25 @@ def lp_state_dep_iv(
     out_result.method = "LP-state-dep-IV (cumulative)" if cumulative else "LP-state-dep-IV"
     out_result.is_cumulative = bool(cumulative)
     out_result.ci_level = 1.0 - alpha
+    out_result._set_specification({
+        "estimator": "lp_state_dep_iv",
+        "method": out_result.method,
+        "y_name": str(y),
+        "x_name": str(x),
+        "z_names": [str(z)],
+        "state_name": str(state),
+        "transition": str(transition),
+        "gamma": float(gamma),
+        "interact": str(interact),
+        "cumulative": bool(cumulative),
+        "controls": list(ctl),
+        "n_lags": int(n_lags),
+        "horizons": list(horizons),
+        "cov_type": "HAC",
+        "ci_level": float(1.0 - alpha),
+        "cov_summary": "2SLS HAC Bartlett(h+1)",
+        "n_obs_by_horizon": n_obs_by_h,
+    })
     return out_result
 
 

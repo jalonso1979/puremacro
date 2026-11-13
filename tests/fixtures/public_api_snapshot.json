@@ -3412,6 +3412,24 @@
       "shapley_table",
       "shapley_var"
     ],
+    "puremacro.solvers": [
+      "AccuracyStatus",
+      "ConvergenceStatus",
+      "SolverDiagnosticRecord",
+      "SupportStatus",
+      "VALID_OVERALL_STATUSES",
+      "determine_overall_status",
+      "make_solver_diagnostic_record"
+    ],
+    "puremacro.solvers.diagnostics": [
+      "AccuracyStatus",
+      "ConvergenceStatus",
+      "SolverDiagnosticRecord",
+      "SupportStatus",
+      "VALID_OVERALL_STATUSES",
+      "determine_overall_status",
+      "make_solver_diagnostic_record"
+    ],
     "puremacro.sovereign": [
       "AdaptationDistribution",
       "FiscalReactionEstimateResult",
@@ -8115,6 +8133,7 @@
       "diagnostics",
       "nonlinear",
       "paths",
+      "solver_diagnostics",
       "steady_state"
     ],
     "puremacro.models.one_asset_hank.OneAssetHANKSteadyState": [
@@ -8745,6 +8764,34 @@
       "loader",
       "name"
     ],
+    "puremacro.solvers.diagnostics.AccuracyStatus": [
+      "is_accurate",
+      "max_residual",
+      "residual_norm",
+      "residual_type",
+      "residuals",
+      "tolerance"
+    ],
+    "puremacro.solvers.diagnostics.ConvergenceStatus": [
+      "converged",
+      "iterations",
+      "solver_method",
+      "stopping_reason",
+      "tolerance"
+    ],
+    "puremacro.solvers.diagnostics.SolverDiagnosticRecord": [
+      "accuracy",
+      "convergence",
+      "evidence",
+      "overall_status",
+      "support"
+    ],
+    "puremacro.solvers.diagnostics.SupportStatus": [
+      "boundary_metrics",
+      "is_supported",
+      "regime",
+      "warnings"
+    ],
     "puremacro.sovereign._results.FiscalSovereignResult": [
       "b_grid",
       "bellman_residual",
@@ -8773,6 +8820,7 @@
       "q_bond",
       "residual",
       "rule",
+      "solver_diagnostics",
       "spread",
       "spread_mean",
       "spread_y_corr",
@@ -8819,6 +8867,7 @@
       "policy_b_prime",
       "q_bond",
       "residual",
+      "solver_diagnostics",
       "spread",
       "spread_mean",
       "spread_y_corr",
@@ -9643,6 +9692,7 @@
       "residual_norm",
       "residuals",
       "sector_codes",
+      "solver_diagnostics",
       "tariffs",
       "terms_of_trade",
       "w_sol",
@@ -10656,7 +10706,8 @@
       "X",
       "c",
       "names",
-      "resid"
+      "resid",
+      "solver_diagnostics"
     ],
     "puremacro.var.bvar_sv.BVAR_SVForecast": [
       "ci",

@@ -84,14 +84,17 @@ def mean_group_panel_lp(
 
     rows = []
     n_used = len(per_entity)
+    n_obs_by_h: dict[int, int] = {}
     for h in horizons:
         if n_used == 0:
+            n_obs_by_h[h] = 0
             rows.append({"h": h, "beta": np.nan, "se": np.nan,
                          "lo": np.nan, "hi": np.nan, "n_entities_used": 0})
             continue
         betas = np.array([per_entity[c].get(h, np.nan) for c in per_entity])
         betas = betas[np.isfinite(betas)]
         n_h = len(betas)
+        n_obs_by_h[h] = int(n_h)
         if n_h <= 1:
             rows.append({"h": h, "beta": float(np.mean(betas)) if n_h else np.nan,
                          "se": np.nan, "lo": np.nan, "hi": np.nan,
@@ -113,6 +116,19 @@ def mean_group_panel_lp(
     res.x_name = str(x)
     res.method = "mean_group_panel_lp"
     res.ci_level = 1.0 - alpha
+    res._set_specification({
+        "estimator": "mean_group_panel_lp",
+        "method": "mean_group_panel_lp",
+        "y_name": str(y),
+        "x_name": str(x),
+        "controls": list(ctl),
+        "n_lags": int(n_lags),
+        "horizons": list(horizons),
+        "cov_type": "mean_group",
+        "ci_level": float(1.0 - alpha),
+        "cov_summary": "Pesaran-Smith (1995)",
+        "n_obs_by_horizon": n_obs_by_h,
+    })
     return res
 
 

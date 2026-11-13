@@ -53,7 +53,7 @@
     "puremacro/models/hank_equilibrium.py": "6c2a8fe69118d26d6fc61d643ddb9e40879f1cc2c75f497da54f7d71d1e423fe",
     "puremacro/models/_hank_tangent.py": "549ca9cf5969ec80e6d112ea793fbc69ad9fb838150a884ea92dfc8e5e21635d",
     "puremacro/models/hank_scenario_tree.py": "baa00a390f76ce67783686b2a21d7a637ebd7ce40ec535c7c9e19e6de6e2db48",
-    "puremacro/models/one_asset_hank.py": "969d1915e30c36b4bce73a8e04cc37b200f3b74db8f39a13de8d43686c82fe64",
+    "puremacro/models/one_asset_hank.py": "504ce484ca9fe2a4f7086c0b44ad36498a790e580ca70ad33c3ab09bde9d7a23",
     "puremacro/models/hank_sequence_space.py": "f88b01f0b040105598f9e0456327d4f6e01c1d40cd49ed72873a49d8eb391a86",
     "puremacro/dsge/stacked_newton.py": "27bbca2e3172eac23a9741a6bc78d73e1a44c10f0ce97ab839058b6e1a64c814",
     "tools/reference_validation/benchmark_hank_equilibrium.py": "c9ac0ddcb1d4562228c32aff09ea2fc75a7326a53088c6c09548d3c24476a548",

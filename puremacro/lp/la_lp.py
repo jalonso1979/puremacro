@@ -355,6 +355,7 @@ def la_lp(
     y_lag1 = df[y].shift(1).to_numpy()
 
     rows = []
+    n_obs_by_h: dict[int, int] = {}
     for h in horizons:
         # Outcome y_{t+h} (MOPM eqs. 3 and 12). When y_{t-1} is a regressor
         # (p_aug >= 1) the regression is run on y_{t+h} - y_{t-1}: the same
@@ -364,6 +365,7 @@ def la_lp(
         if p_aug >= 1:
             lead = lead - y_lag1
         sub = design_df.assign(__y_lead__=lead).dropna()
+        n_obs_by_h[h] = int(len(sub))
         if sub.empty:
             empty_row: dict[str, Any] = {
                 "h": h,
@@ -482,6 +484,29 @@ def la_lp(
         {"n_lags": n_lags, "extra_lags": extra_lags, "p_aug": p_aug,
          "control_lags": control_lags}
     )
+    cov_type = "HC0"
+    cov_summary = "2SLS HC0 (White)" if has_iv else "HC0 (White)"
+    estimator_name = "la_lp_iv" if has_iv else "la_lp"
+    spec = {
+        "estimator": estimator_name,
+        "method": res.method,
+        "y_name": str(y),
+        "x_name": str(x),
+        "controls": list(ctl),
+        "n_lags": int(n_lags),
+        "extra_lags": extra_lags,
+        "control_lags": control_lags,
+        "p_aug": p_aug,
+        "horizons": list(horizons),
+        "cov_type": cov_type,
+        "ci_level": float(1.0 - alpha),
+        "cov_summary": cov_summary,
+        "n_obs_by_horizon": n_obs_by_h,
+    }
+    if has_iv:
+        spec["z_names"] = list(z_names)
+        spec["anderson_rubin"] = bool(do_ar)
+    res._set_specification(spec)
     return res
 
 

@@ -45,7 +45,7 @@
     "puremacro/models/_hank_stochastic_tree.py": "24e136fe00f9dbdc20c4ae64b7b59823ddea62cfab7eb506a41706d11c3d0be4",
     "puremacro/models/_hank_one_asset_recursive.py": "735b71bb777617b3b5aafefda720c92868b2b4a3315867e6b439cbde37584c63",
     "puremacro/models/hank_equilibrium.py": "6c2a8fe69118d26d6fc61d643ddb9e40879f1cc2c75f497da54f7d71d1e423fe",
-    "puremacro/models/one_asset_hank.py": "969d1915e30c36b4bce73a8e04cc37b200f3b74db8f39a13de8d43686c82fe64",
+    "puremacro/models/one_asset_hank.py": "504ce484ca9fe2a4f7086c0b44ad36498a790e580ca70ad33c3ab09bde9d7a23",
     "puremacro/models/_hank_tangent.py": "549ca9cf5969ec80e6d112ea793fbc69ad9fb838150a884ea92dfc8e5e21635d",
     "puremacro/dsge/stacked_newton.py": "27bbca2e3172eac23a9741a6bc78d73e1a44c10f0ce97ab839058b6e1a64c814",
     "tools/reference_validation/benchmark_hank_equilibrium.py": "c9ac0ddcb1d4562228c32aff09ea2fc75a7326a53088c6c09548d3c24476a548",
@@ -71,7 +71,7 @@
     "coarse_krylov.csv": "f84db89fddf1817e2feae536f863f91e28aed3bc0961f2ddd68b4b55074ac0df",
     "coarse_dense.csv": "62c8eda4933500ff9599f3b71e86e78f79fbb0d034219abba9074a5a298c1e38"
   },
-  "source_reference_sha256": "2cdc19b7355a2a3631c31a2faf4279019be716742cd5032db8d8c224d9959ce7",
+  "source_reference_sha256": "7890acb283b02585bcb8fbec05b2842f2652edf8fed21f8252b20132be8c6c56",
   "threads": {
     "OMP_NUM_THREADS": "1",
     "OPENBLAS_NUM_THREADS": "1",

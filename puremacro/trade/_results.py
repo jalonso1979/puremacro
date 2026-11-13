@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
 
 from puremacro.reports import df_to_latex, df_to_markdown, df_to_typst
+from puremacro.solvers.diagnostics import SolverDiagnosticRecord, make_solver_diagnostic_record
 
 
 @dataclass(frozen=True)
@@ -440,6 +441,7 @@ class TradeEquilibriumResult:
     country_codes: tuple[str, ...] = field(default_factory=tuple)
     sector_codes: tuple[str, ...] = field(default_factory=tuple)
     metadata: dict[str, Any] = field(default_factory=dict)
+    solver_diagnostics: SolverDiagnosticRecord | None = None
 
     def __post_init__(self) -> None:
         """Validate required state arrays and synchronize alias attributes."""
@@ -481,6 +483,71 @@ class TradeEquilibriumResult:
         if not isinstance(self.sector_codes, tuple):
             object.__setattr__(self, "sector_codes", tuple(self.sector_codes))
 
+        if self.solver_diagnostics is None:
+            conv_val = bool(self.converged)
+            iters = int(self.iterations)
+            stopping = str(self.metadata.get("solver_termination", "converged" if conv_val else "failed"))
+            method = str(self.metadata.get("method", "equilibrated_newton"))
+            tol = float(self.metadata.get("tol", 1e-5))
+
+            norm_val = float(self.diff if self.diff != 0.0 else self.residual_norm)
+            max_res = float(self.max_residual if self.max_residual != 0.0 else norm_val)
+            acc_tol = float(self.metadata.get("accuracy_tolerance", 1e-4))
+            is_acc = bool(conv_val and max_res <= acc_tol and np.isfinite(max_res))
+
+            p_min = float(np.min(self.p_sol)) if self.p_sol.size else 0.0
+            w_min = float(np.min(self.w_sol)) if self.w_sol.size else 0.0
+            r_min = float(np.min(self.r_sol)) if self.r_sol.size else 0.0
+            y_min = float(np.min(self.y_sol)) if self.y_sol.size else 0.0
+
+            supp_warnings: list[str] = []
+            is_supp = True
+            regime = "interior"
+
+            if p_min <= 0.0 or w_min <= 0.0 or r_min <= 0.0:
+                is_supp = False
+                regime = "infeasible_prices"
+                supp_warnings.append(
+                    f"Non-positive prices or factor returns (p_min={p_min:.3e}, w_min={w_min:.3e}, r_min={r_min:.3e})"
+                )
+            if y_min < 0.0:
+                is_supp = False
+                regime = "negative_gross_output"
+                supp_warnings.append(f"Negative gross output detected (y_min={y_min:.3e})")
+
+            cond = self.metadata.get("jacobian_condition")
+            if cond is not None and (not np.isfinite(cond) or float(cond) > 1e12):
+                supp_warnings.append(f"Ill-conditioned Jacobian (condition={float(cond):.3e})")
+
+            boundary_metrics: dict[str, Any] = {
+                "min_price": p_min,
+                "min_wage": w_min,
+                "min_rental": r_min,
+                "min_output": y_min,
+            }
+            if cond is not None:
+                boundary_metrics["jacobian_condition"] = float(cond)
+
+            rec = make_solver_diagnostic_record(
+                converged=conv_val,
+                iterations=iters,
+                stopping_reason=stopping,
+                solver_method=method,
+                tolerance=tol,
+                is_accurate=is_acc,
+                max_residual=max_res,
+                residual_norm=norm_val,
+                residual_type="excess_demand",
+                accuracy_tolerance=acc_tol,
+                residuals={"diff": norm_val, "max_residual": max_res},
+                is_supported=is_supp,
+                regime=regime,
+                warnings=supp_warnings,
+                boundary_metrics=boundary_metrics,
+                evidence=dict(self.metadata),
+            )
+            object.__setattr__(self, "solver_diagnostics", rec)
+
     def summary(self, detailed: bool = False) -> pd.DataFrame:
         """Produce summary DataFrame of solver convergence or national economic aggregates.
 
@@ -498,8 +565,14 @@ class TradeEquilibriumResult:
         """
         if not detailed:
             norm_val = self.diff if self.diff != 0.0 else self.residual_norm
+            diag_status = (
+                self.solver_diagnostics.overall_status
+                if self.solver_diagnostics is not None
+                else ("CONVERGED" if self.converged else "FAILED")
+            )
             records = [
                 {"Diagnostic": "Solver Status", "Value": "CONVERGED" if self.converged else "FAILED"},
+                {"Diagnostic": "Overall Status", "Value": diag_status},
                 {"Diagnostic": "Iterations", "Value": str(self.iterations)},
                 {"Diagnostic": "L1 Residual Norm", "Value": f"{norm_val:.6e}"},
                 {"Diagnostic": "Max Absolute Residual", "Value": f"{self.max_residual:.6e}"},

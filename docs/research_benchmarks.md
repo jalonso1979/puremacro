@@ -101,18 +101,28 @@ that specification supplies the frozen reference; the offline benchmark does
 not execute RATS. All coefficients, covariance entries, cumulative responses,
 SEs, t statistics and sample sizes use `rtol=1e-10, atol=1e-11`.
 
-The separate published case checks horizon ten, -3.08 log percent and the
-t statistic -3.53 from printed page 781. Its `rtol=0, atol=0.005` accommodates
-only two-decimal publication rounding; the integer trough horizon must agree.
-This case reproduces one published baseline, without establishing narrative
+The separate published case (`rr2010_published_peak`, Gate-5) checks horizon ten,
+-3.08 log percent and the t statistic -3.53 from printed page 781 of Romer & Romer (2010 AER).
+Its `rtol=0, atol=0.005` accommodates two-decimal publication rounding; the integer trough
+horizon must agree. This case reproduces one published baseline, without establishing narrative
 exogeneity or reproducing every robustness specification.
 
-The frozen original-data result is -3.0808127631 with t=-3.5249960750. The t
-comparison against -3.53 exceeds its 0.005 tolerance by 0.000003925. The original
-RATS databanks corroborate the workbook result. Software parity passes; this
-published comparison remains a recorded failure. Unit tests verify both the
-matching quantities and preservation of this failure, so passing tests do not
-mean every scientific benchmark passed.
+#### Gate-5 RR2010 Error Bound and Publication Rounding Discrepancy
+The frozen original-data result computed directly from the authors' replication vintage is
+`-3.0808127631` with `t = -3.5249960750`. Comparing the computed t-statistic against the
+published two-decimal print `-3.53` yields an absolute difference:
+```text
+|-3.5249960750 - (-3.53)| = 0.0050039250
+```
+Under the standard two-decimal rounding tolerance `atol = 0.005`, the discrepancy excess is:
+```text
+0.0050039250 - 0.0050000000 = 3.925e-6 (3.925 × 10⁻⁶)
+```
+The original RATS databanks corroborate the workbook result. Software parity passes cleanly;
+this published comparison is preserved as a documented and verified publication-rounding
+discrepancy rather than artificially loosening the tolerance. Unit tests in
+`tests/test_research_benchmarks.py` verify both the exact numerical values and the
+strict bound `0 < max_tolerance_excess < 4e-6`.
 
 ## Adding a research benchmark
 

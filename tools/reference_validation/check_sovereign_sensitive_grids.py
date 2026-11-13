@@ -116,6 +116,7 @@ def validate_prior_sources(prior, current):
         'puremacro/sovereign/_results.py': (
             '21e0bd69e131b5bf3171c96ed79bc0ebf2ed38e86f115a8de82cf6491e922a98',
             'abf7866672248410641db3d2652c5bc04d3f2428cfcfd042d79c28808d7bef6a',
+            '9060b162f4583b1af4ca2aaca53b618de4acd00ceb616a02078b744841a6b09f',
         ),
     }
     for path in current:

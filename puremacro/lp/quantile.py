@@ -74,6 +74,7 @@ def lp_quantile(
     ctl = list(controls or [])
     rng = np.random.default_rng(seed)
     rows = []
+    n_obs_by_h: dict[int, int] = {}
 
     for h in horizons:
         sub = df[[y, x] + ctl].copy()
@@ -84,6 +85,7 @@ def lp_quantile(
             for c in ctl:
                 sub[f"__{c}_L{lag}__"] = sub[c].shift(lag)
         sub = sub.dropna()
+        n_obs_by_h[h] = int(len(sub))
         if sub.empty:
             for tau in quantiles:
                 rows.append({"h": h, "tau": tau, "beta": np.nan,
@@ -119,6 +121,21 @@ def lp_quantile(
     res.x_name = str(x)
     res.method = "LP-quantile"
     res.ci_level = 1.0 - alpha
+    res._set_specification({
+        "estimator": "lp_quantile",
+        "method": "LP-quantile",
+        "y_name": str(y),
+        "x_name": str(x),
+        "quantiles": list(quantiles),
+        "controls": list(ctl),
+        "n_lags": int(n_lags),
+        "horizons": list(horizons),
+        "cov_type": "bootstrap",
+        "ci_level": float(1.0 - alpha),
+        "cov_summary": f"bootstrap (B={n_boot})",
+        "n_boot": int(n_boot),
+        "n_obs_by_horizon": n_obs_by_h,
+    })
     return res
 
 

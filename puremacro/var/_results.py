@@ -1,9 +1,11 @@
 """Frozen-dataclass result objects for puremacro.var.* estimators."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
+
+from puremacro.solvers.diagnostics import SolverDiagnosticRecord, make_solver_diagnostic_record
 
 
 @dataclass(frozen=True)
@@ -30,6 +32,62 @@ class VarEstimateResult:
     resid: np.ndarray
     X: np.ndarray
     names: tuple[str, ...] = ()
+    solver_diagnostics: SolverDiagnosticRecord | None = None
+
+    def __post_init__(self) -> None:
+        if self.solver_diagnostics is None:
+            p = len(self.A_list)
+            n = self.Sigma.shape[0] if self.Sigma.ndim >= 2 else (len(self.c) if self.c.size else 0)
+            rho = 0.0
+            if p > 0 and n > 0:
+                comp = np.zeros((n * p, n * p), dtype=float)
+                for j in range(p):
+                    comp[:n, j * n : (j + 1) * n] = self.A_list[j]
+                if p > 1:
+                    comp[n:, : n * (p - 1)] = np.eye(n * (p - 1))
+                try:
+                    eigvals = np.linalg.eigvals(comp)
+                    rho = float(np.max(np.abs(eigvals)))
+                except Exception:
+                    rho = float("nan")
+
+            is_supp = bool(np.isfinite(rho) and rho < 1.0)
+            regime = "stationary" if is_supp else "non_stationary_explosive"
+            supp_warnings: list[str] = []
+            if not is_supp:
+                supp_warnings.append(
+                    f"Explosive VAR root detected: companion matrix spectral radius rho={rho:.4f} >= 1.0. "
+                    "Regime is unsupported for stationary impulse responses."
+                )
+
+            max_res = float(np.max(np.abs(self.resid))) if self.resid.size else 0.0
+            norm_res = float(np.linalg.norm(self.resid)) if self.resid.size else 0.0
+
+            rec = make_solver_diagnostic_record(
+                converged=True,
+                iterations=1,
+                stopping_reason="closed_form_ols",
+                solver_method="ols",
+                tolerance=0.0,
+                is_accurate=bool(np.isfinite(max_res)),
+                max_residual=max_res,
+                residual_norm=norm_res,
+                residual_type="ols_residuals",
+                accuracy_tolerance=0.0,
+                residuals={"max_residual": max_res, "residual_norm": norm_res},
+                is_supported=is_supp,
+                regime=regime,
+                warnings=supp_warnings,
+                boundary_metrics={"spectral_radius": rho, "p": p, "n": n},
+            )
+            object.__setattr__(self, "solver_diagnostics", rec)
+
+    @property
+    def spectral_radius(self) -> float:
+        """Companion matrix spectral radius rho(Comp(A))."""
+        if self.solver_diagnostics is not None:
+            return float(self.solver_diagnostics.support.boundary_metrics.get("spectral_radius", 0.0))
+        return 0.0
 
     def __iter__(self):
         """Support legacy `A_list, c, Sigma, resid, X = estimate_var(...)` unpack."""
@@ -52,12 +110,19 @@ class VarEstimateResult:
         p = len(self.A_list)
         n = self.Sigma.shape[0]
         T_eff = self.resid.shape[0]
+        diag_status = (
+            self.solver_diagnostics.overall_status
+            if self.solver_diagnostics is not None
+            else "PASS"
+        )
         return (
             f"VAR estimate\n"
             f"  variables (n)     : {n}\n"
             f"  lag order (p)     : {p}\n"
             f"  effective T       : {T_eff}\n"
             f"  Σ trace           : {float(np.trace(self.Sigma)):.4f}\n"
+            f"  spectral radius   : {self.spectral_radius:.4f}\n"
+            f"  status            : {diag_status}\n"
         )
 
     def irf(self, horizon: int = 20, B0: np.ndarray | None = None) -> np.ndarray:

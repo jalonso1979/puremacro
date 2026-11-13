@@ -35,7 +35,7 @@ import platform
 import textwrap
 import time
 from collections.abc import Collection, Sequence
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
@@ -56,12 +56,14 @@ from puremacro.trade.distributional import (
     distributional_welfare_from_results,
     prepare_household_groups,
 )
+from ._brief_record import environment, sha256 as _record_sha256, write_json_atomic
 
 __all__ = [
     "SOLVER", "SYNTHETIC_LABEL", "SYNTHETIC_LABEL_ES", "DEFAULT_EXPERIMENT_SIGMA",
-    "BriefSolution", "load_bundled", "validate_scenario", "solve_brief",
+    "BriefSolution", "TradeBriefConfig", "load_bundled", "validate_scenario", "solve_brief",
     "national_record", "parse_experiment", "national_basket", "supported_sectors",
-    "synthetic_groups", "read_groups_csv", "household_incidence", "headline_record",
+    "synthetic_groups", "read_groups_csv", "load_enigh_groups", "load_groups",
+    "household_incidence", "compute_sensitivity_grid", "compute_brief", "headline_record",
     "page_block", "summary_text", "write_outputs", "run_brief", "main",
 ]
 
@@ -94,6 +96,66 @@ class BriefSolution:
     scenario: TariffScenario
     settings: dict[str, Any]
     timings: dict[str, float] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class TradeBriefConfig:
+    """Explicit configuration for running the trade policy brief on bundled or user data."""
+
+    scenario: str = "USA_tariff_on_CHN_all"
+    tariff_rate: float = 0.10
+    trade_elasticity: float = 4.0
+    household_elasticity: float = 1.0
+    use_enigh: bool = True
+    data_path: str | Path | None = None
+    output_dir: str | Path | None = None
+    bilingual: bool = True
+    importer: str = "USA"
+    exporter: str = "CHN"
+    sector: str = "all"
+    sensitivity_trade_elasticities: tuple[float, ...] = (2.0, 4.0, 6.0)
+    sensitivity_household_elasticities: tuple[float, ...] = (0.5, 1.0, 1.5)
+
+    def __post_init__(self) -> None:
+        if not math.isfinite(self.tariff_rate) or self.tariff_rate < 0:
+            raise ValueError(f"tariff_rate must be a finite non-negative rate, got {self.tariff_rate!r}")
+        if not math.isfinite(self.trade_elasticity) or self.trade_elasticity < 0:
+            raise ValueError(f"trade_elasticity must be finite and non-negative, got {self.trade_elasticity!r}")
+        if not math.isfinite(self.household_elasticity) or self.household_elasticity < 0:
+            raise ValueError(f"household_elasticity must be finite and non-negative, got {self.household_elasticity!r}")
+
+        # If scenario was supplied and differs from default or has _tariff_on_, validate and sync
+        if self.scenario and "_tariff_on_" in self.scenario:
+            parts = self.scenario.split("_tariff_on_")
+            imp = parts[0]
+            rest = parts[1].split("_")
+            exp = rest[0]
+            sec = rest[1] if len(rest) > 1 else "all"
+            if self.importer == "USA" and imp != "USA":
+                object.__setattr__(self, "importer", imp)
+            if self.exporter == "CHN" and exp != "CHN":
+                object.__setattr__(self, "exporter", exp)
+            if self.sector == "all" and sec != "all":
+                object.__setattr__(self, "sector", sec)
+        elif self.importer != "USA" or self.exporter != "CHN" or self.sector != "all":
+            object.__setattr__(self, "scenario", f"{self.importer}_tariff_on_{self.exporter}_{self.sector}")
+
+        if self.data_path is not None:
+            p = Path(self.data_path)
+            if not p.is_file():
+                raise FileNotFoundError(f"data_path {str(p)!r} does not exist or is not a file")
+            object.__setattr__(self, "data_path", p)
+        if self.output_dir is not None:
+            object.__setattr__(self, "output_dir", Path(self.output_dir))
+
+        object.__setattr__(self, "sensitivity_trade_elasticities",
+                           tuple(float(s) for s in self.sensitivity_trade_elasticities))
+        object.__setattr__(self, "sensitivity_household_elasticities",
+                           tuple(float(h) for h in self.sensitivity_household_elasticities))
+        if len(self.sensitivity_trade_elasticities) == 0 or any(s <= 0 for s in self.sensitivity_trade_elasticities):
+            raise ValueError(f"sensitivity_trade_elasticities must be positive numbers, got {self.sensitivity_trade_elasticities}")
+        if len(self.sensitivity_household_elasticities) == 0 or any(h < 0 for h in self.sensitivity_household_elasticities):
+            raise ValueError(f"sensitivity_household_elasticities must be non-negative numbers, got {self.sensitivity_household_elasticities}")
 
 
 def _load_table() -> ICIOData:
@@ -332,8 +394,181 @@ def read_groups_csv(path: str | Path, sector_codes: Sequence[str],
             raise ValueError(f"{path.name}: group {group!r} spends on sectors {unsupported} that the "
                              "importer's consumption basket does not buy in the table")
     frame.index.name = "group"
-    frame.attrs = {"source": path.name, "is_synthetic": False, "label": "user-supplied groups"}
+    frame.attrs = {"source": path.name, "file": path.name, "is_synthetic": False, "label": "user-supplied groups"}
     return frame
+
+
+def _enigh_path() -> tuple[Path, dict[str, Any]]:
+    folder = Path(__file__).resolve().parents[1] / "trade" / "_datafiles"
+    path = folder / "enigh2022_household_policy.npz"
+    manifest_path = folder / "enigh2022_household_policy.json"
+    if not path.is_file() or not manifest_path.is_file():
+        raise FileNotFoundError(f"bundled ENIGH 2022 dataset not found in {folder}")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload = path.read_bytes()
+    actual_hash = hashlib.sha256(payload).hexdigest()
+    if actual_hash != manifest.get("payload_sha256"):
+        raise ValueError(f"ENIGH input checksum mismatch: expected {manifest.get('payload_sha256')}, got {actual_hash}")
+    return path, manifest
+
+
+def load_enigh_groups(icio: ICIOData, importer: str = "USA") -> pd.DataFrame:
+    """Load empirical household quintiles from the bundled INEGI ENIGH 2022 dataset.
+
+    The 90,033 analysis households from ENIGH 2022 are ordered by per-capita current
+    income (ing_cor / tot_integ) using household expansion factors (factor) and partitioned
+    into five population-weighted quintiles (Q1..Q5). Within each quintile, food expenditure
+    (alimentos) and other monetary spending (gasto_mon - alimentos) define the Engel curve,
+    mapped to the importer's ICIO consumption basket: food to Agriculture (A) and Food/Manufacturing (C),
+    and other spending to remaining sectors proportionally to national consumption shares.
+    """
+    path, manifest = _enigh_path()
+    with np.load(path, allow_pickle=False) as f:
+        data = pd.DataFrame({k: f[k] for k in manifest["variables"]})
+    data = data.loc[data["gasto_mon"] > 0].copy()
+    w = data["factor"].to_numpy(dtype=float)
+    rank_income = (data["ing_cor"] / data["tot_integ"]).to_numpy(dtype=float)
+    order = np.argsort(rank_income, kind="stable")
+    cdf = np.cumsum(w[order]) / w.sum()
+    cutoffs = rank_income[order][np.searchsorted(cdf, [0.2, 0.4, 0.6, 0.8])]
+    data["quintile"] = np.searchsorted(cutoffs, rank_income, side="left") + 1
+
+    s_nat = national_basket(icio, importer)
+    sectors = list(icio.sector_codes)
+    goods_mask = s_nat.index.isin(GOODS_SECTORS)
+    s_goods = float(s_nat[goods_mask].sum())
+    s_services = float(s_nat[~goods_mask].sum())
+    if s_goods <= 0:
+        s_goods = 1.0
+    if s_services <= 0:
+        s_services = 1.0
+
+    total_w = float(w.sum())
+    rows = {}
+    for q in range(1, 6):
+        sub = data.loc[data["quintile"] == q]
+        sub_w = sub["factor"].to_numpy(dtype=float)
+        pop_wt = float(sub_w.sum()) / total_w
+        spend_quarterly = float((sub_w * sub["gasto_mon"]).sum()) / float(sub_w.sum())
+        annual_spend = float(spend_quarterly * 4.0)
+        food_spend = float((sub_w * sub["alimentos"]).sum())
+        tot_spend = float((sub_w * sub["gasto_mon"]).sum())
+        food_share = food_spend / tot_spend if tot_spend > 0 else 0.4
+        non_food_share = 1.0 - food_share
+
+        q_shares = {}
+        for sec in sectors:
+            if sec in GOODS_SECTORS:
+                q_shares[sec] = food_share * float(s_nat[sec]) / s_goods
+            else:
+                q_shares[sec] = non_food_share * float(s_nat[sec]) / s_services
+        tot_s = sum(q_shares.values())
+        if tot_s > 0:
+            q_shares = {sec: val / tot_s for sec, val in q_shares.items()}
+
+        rows[f"Q{q}"] = {
+            "population_weight": pop_wt,
+            "annual_spending": annual_spend,
+            **q_shares,
+        }
+
+    frame = pd.DataFrame.from_dict(rows, orient="index")
+    frame.index.name = "group"
+    frame.attrs = {
+        "source": "INEGI ENIGH 2022 nueva serie (concentradohogar)",
+        "file": path.name,
+        "sha256": manifest["payload_sha256"],
+        "is_synthetic": False,
+        "label": "ENIGH 2022 income quintiles (INEGI microdata)",
+    }
+    return frame
+
+
+def load_groups(data_path: str | Path, icio: ICIOData, importer: str = "USA") -> pd.DataFrame:
+    """Load household groups from user-supplied CSV file (group shares or household microdata)."""
+    path = Path(data_path)
+    if not path.is_file():
+        raise FileNotFoundError(f"household groups file not found: {path}")
+    raw = pd.read_csv(path)
+    sectors = list(icio.sector_codes)
+    supported = supported_sectors(icio, importer)
+
+    # Case 1: Group shares CSV
+    if "group" in raw.columns and "population_weight" in raw.columns and "annual_spending" in raw.columns:
+        return read_groups_csv(path, sectors, supported)
+
+    # Case 2: Household microdata CSV
+    cols = {c.lower(): c for c in raw.columns}
+    wt_col = cols.get("weight") or cols.get("factor") or cols.get("pop_weight")
+    spend_col = cols.get("spending") or cols.get("gasto_mon") or cols.get("expenditure")
+    inc_col = cols.get("income") or cols.get("ing_cor")
+    food_col = cols.get("food") or cols.get("alimentos")
+    hh_size_col = cols.get("tot_integ") or cols.get("hh_size") or cols.get("members")
+
+    if wt_col and spend_col:
+        raw = raw.loc[raw[spend_col] > 0].copy()
+        if raw.empty:
+            raise ValueError(f"{path.name}: no positive expenditure records found in {spend_col!r} column")
+        w = raw[wt_col].to_numpy(dtype=float)
+        if not np.isfinite(w).all() or (w <= 0).any():
+            raise ValueError(f"{path.name}: weights column {wt_col!r} must contain finite, strictly positive values")
+        if len(raw) < 5:
+            raise ValueError(
+                f"{path.name}: microdata must contain at least 5 observations to construct quintiles, got {len(raw)}"
+            )
+        hh_size = raw[hh_size_col].to_numpy(dtype=float) if hh_size_col else np.ones(len(raw))
+        inc = raw[inc_col].to_numpy(dtype=float) if inc_col else raw[spend_col].to_numpy(dtype=float)
+        rank_income = inc / np.maximum(hh_size, 1.0)
+        order = np.argsort(rank_income, kind="stable")
+        cdf = np.cumsum(w[order]) / w.sum()
+        cutoffs = rank_income[order][np.searchsorted(cdf, [0.2, 0.4, 0.6, 0.8])]
+        raw["quintile"] = np.searchsorted(cutoffs, rank_income, side="left") + 1
+
+        s_nat = national_basket(icio, importer)
+        goods_mask = s_nat.index.isin(GOODS_SECTORS)
+        s_goods = float(s_nat[goods_mask].sum()) or 1.0
+        s_services = float(s_nat[~goods_mask].sum()) or 1.0
+        total_w = float(w.sum())
+        rows = {}
+        for q in range(1, 6):
+            sub = raw.loc[raw["quintile"] == q]
+            sub_w = sub[wt_col].to_numpy(dtype=float)
+            if sub.empty or float(sub_w.sum()) <= 0:
+                raise ValueError(f"{path.name}: quintile Q{q} has no valid observations or zero weight")
+            pop_wt = float(sub_w.sum()) / total_w
+            mean_spend = float((sub_w * sub[spend_col]).sum()) / float(sub_w.sum())
+            if food_col:
+                food_spend = float((sub_w * sub[food_col]).sum())
+                tot_spend = float((sub_w * sub[spend_col]).sum())
+                food_share = food_spend / tot_spend if tot_spend > 0 else 0.4
+            else:
+                food_share = max(0.1, 0.45 - 0.05 * (q - 1))
+            non_food_share = 1.0 - food_share
+            q_shares = {}
+            for sec in sectors:
+                if sec in GOODS_SECTORS:
+                    q_shares[sec] = food_share * float(s_nat[sec]) / s_goods
+                else:
+                    q_shares[sec] = non_food_share * float(s_nat[sec]) / s_services
+            tot_s = sum(q_shares.values())
+            q_shares = {sec: val / tot_s for sec, val in q_shares.items()}
+            rows[f"Q{q}"] = {"population_weight": pop_wt, "annual_spending": mean_spend, **q_shares}
+        frame = pd.DataFrame.from_dict(rows, orient="index")
+        frame.index.name = "group"
+        frame.attrs = {
+            "source": path.name,
+            "file": path.name,
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "is_synthetic": False,
+            "label": f"User microdata quintiles ({path.name})",
+        }
+        return frame
+
+    raise ValueError(
+        f"{path.name}: unrecognized columns {list(raw.columns)}. Must be either group shares "
+        f"(group, population_weight, annual_spending, [sectors]) or household microdata "
+        f"with weight and spending columns."
+    )
 
 
 def _importer_incomes(state: Any, calib: Any, index: int) -> tuple[float, float]:
@@ -342,7 +577,8 @@ def _importer_incomes(state: Any, calib: Any, index: int) -> tuple[float, float]
     return factor, float(np.ravel(state.T_sol)[index])
 
 
-def household_incidence(sol: BriefSolution, groups: pd.DataFrame) -> pd.DataFrame:
+def household_incidence(sol: BriefSolution, groups: pd.DataFrame,
+                        household_elasticity: float = 0.0) -> pd.DataFrame:
     """Group EV (% of group spending) from the brief's GE prices and incomes.
 
     Each group's budget is split into factor income and transfers in the
@@ -369,11 +605,13 @@ def household_incidence(sol: BriefSolution, groups: pd.DataFrame) -> pd.DataFram
     pool = (t1 - t0) / (f0 + t0) * float((weights * spending).sum())
     changes = pd.Series({"factor_income": f1 / f0 - 1.0})
     results = {}
-    for rule, scores in (("proportional", spending), ("equal", None)):
-        results[rule] = distributional_welfare_from_results(
+    rule = "ces" if household_elasticity > 0 else "fixed_baskets"
+    kw: dict[str, Any] = {"ces_elasticity": float(household_elasticity)} if household_elasticity > 0 else {}
+    for r_name, scores in (("proportional", spending), ("equal", None)):
+        results[r_name] = distributional_welfare_from_results(
             prepared, sol.calib, sol.base, sol.counterfactual, country=importer,
             factor_income_changes=changes, transfer_total=pool, transfer_weights=scores,
-            rule="fixed_baskets")
+            rule=rule, **kw)
     prop, equal = results["proportional"].groups, results["equal"].groups
     budget = prop["baseline_budget"]
     out = pd.DataFrame({
@@ -386,14 +624,126 @@ def household_incidence(sol: BriefSolution, groups: pd.DataFrame) -> pd.DataFram
     }, index=groups.index.copy())
     out.index.name = "group"
     out.attrs = {
+        **groups.attrs,
         "elapsed_seconds": time.perf_counter() - started,
         "aggregate_ev_pct_proportional": float(results["proportional"].aggregate["ev_pct"]),
         "aggregate_ev_pct_equal": float(results["equal"].aggregate["ev_pct"]),
         "label": groups.attrs.get("label", "user-supplied groups"),
         "is_synthetic": synthetic,
         "source": groups.attrs.get("source", ""),
+        "household_elasticity": float(household_elasticity),
     }
     return out
+
+
+def compute_sensitivity_grid(
+    config: TradeBriefConfig,
+    icio: ICIOData,
+    calib: Any,
+    groups: pd.DataFrame,
+    baseline_sol: BriefSolution | None = None,
+) -> pd.DataFrame:
+    """Compute sensitivity grid across trade elasticities sigma and household elasticities sigma_h."""
+    rows: list[dict[str, Any]] = []
+    trade_elasticities = config.sensitivity_trade_elasticities
+    household_elasticities = config.sensitivity_household_elasticities
+
+    sol_cache: dict[float, BriefSolution] = {}
+    if baseline_sol is not None:
+        sol_cache[float(baseline_sol.settings["sigma"])] = baseline_sol
+
+    for sigma in trade_elasticities:
+        s_val = float(sigma)
+        if s_val not in sol_cache:
+            sol_cache[s_val] = solve_brief(
+                config.importer, config.exporter, config.sector, config.tariff_rate,
+                sigma=s_val, bundled=(icio, calib)
+            )
+        sol = sol_cache[s_val]
+        nat = national_record(sol)
+
+        for sigma_h in household_elasticities:
+            h_val = float(sigma_h)
+            hh = household_incidence(sol, groups, household_elasticity=h_val)
+            for grp, r in hh.iterrows():
+                rows.append({
+                    "trade_elasticity": s_val,
+                    "household_elasticity": h_val,
+                    "group": str(grp),
+                    "population_weight": float(r["population_weight"]),
+                    "annual_spending": float(r["annual_spending"]),
+                    "ev_pct_proportional": float(r["ev_pct_proportional"]),
+                    "ev_pct_equal": float(r["ev_pct_equal"]),
+                    "price_ev_pct": float(r["price_ev_pct"]),
+                    "income_ev_pct": float(r["income_ev_pct"]),
+                    "national_ev_pct": float(nat["ev_pct_consumption"]),
+                    "national_ev_musd": float(nat["ev_musd"]),
+                    "national_terms_of_trade_pct": float(nat["terms_of_trade_pct_importer"]),
+                })
+            rows.append({
+                "trade_elasticity": s_val,
+                "household_elasticity": h_val,
+                "group": "all",
+                "population_weight": 1.0,
+                "annual_spending": float(np.average(hh["annual_spending"], weights=hh["population_weight"])),
+                "ev_pct_proportional": float(hh.attrs["aggregate_ev_pct_proportional"]),
+                "ev_pct_equal": float(hh.attrs["aggregate_ev_pct_equal"]),
+                "price_ev_pct": float(np.average(hh["price_ev_pct"], weights=hh["population_weight"])),
+                "income_ev_pct": float(np.average(hh["income_ev_pct"], weights=hh["population_weight"])),
+                "national_ev_pct": float(nat["ev_pct_consumption"]),
+                "national_ev_musd": float(nat["ev_musd"]),
+                "national_terms_of_trade_pct": float(nat["terms_of_trade_pct_importer"]),
+            })
+
+    return pd.DataFrame(rows)
+
+
+def compute_brief(
+    config: TradeBriefConfig | None = None,
+    *,
+    data_path: str | Path | None = None,
+    importer: str | None = None,
+    exporter: str | None = None,
+    sector: str | None = None,
+    tariff_rate: float | None = None,
+    use_enigh: bool | None = None,
+) -> tuple[dict[str, Any], pd.DataFrame]:
+    """Solve the trade engine and household incidence, returning (record, paths)."""
+    if config is None:
+        kwargs: dict[str, Any] = {}
+        if data_path is not None:
+            kwargs["data_path"] = data_path
+        if importer is not None:
+            kwargs["importer"] = importer
+        if exporter is not None:
+            kwargs["exporter"] = exporter
+        if sector is not None:
+            kwargs["sector"] = sector
+        if tariff_rate is not None:
+            kwargs["tariff_rate"] = tariff_rate
+        if use_enigh is not None:
+            kwargs["use_enigh"] = use_enigh
+        config = TradeBriefConfig(**kwargs)
+
+    icio, calib = load_bundled()
+    validate_scenario(icio, config.importer, config.exporter, config.sector, config.tariff_rate)
+
+    if config.data_path is not None:
+        groups = load_groups(config.data_path, icio, config.importer)
+    elif config.use_enigh:
+        groups = load_enigh_groups(icio, config.importer)
+    else:
+        groups = synthetic_groups(icio, config.importer)
+
+    sol = solve_brief(
+        config.importer, config.exporter, config.sector, config.tariff_rate,
+        sigma=config.trade_elasticity, bundled=(icio, calib)
+    )
+    households = household_incidence(sol, groups, household_elasticity=config.household_elasticity)
+    paths = compute_sensitivity_grid(config, icio, calib, groups, baseline_sol=sol)
+    record = headline_record(sol, households)
+    record["specification"] = asdict(config)
+    return record, paths
 
 
 # --- record, outputs and CLI ------------------------------------------------
@@ -489,12 +839,19 @@ def _fmt_pct(value: float, lang: str) -> str:
 
 
 def _label(households: dict[str, Any], lang: str) -> str:
-    if households["is_synthetic"]:
+    if households.get("is_synthetic"):
         return SYNTHETIC_LABEL_ES if lang == "es" else SYNTHETIC_LABEL
+    lbl = households.get("label")
+    if lbl and lbl != "user-supplied groups":
+        if "ENIGH 2022" in str(lbl):
+            return "Quintiles de ingreso ENIGH 2022 (microdatos INEGI)" if lang == "es" else str(lbl)
+        return str(lbl)
     return _lang(lang)["user_label"]
 
 
 def _jsonable(value: Any) -> Any:
+    if isinstance(value, Path):
+        return value.name
     if isinstance(value, dict):
         return {str(k): _jsonable(v) for k, v in value.items()}
     if isinstance(value, (list, tuple)):
@@ -809,13 +1166,116 @@ def _convergence(state: Any) -> dict[str, Any]:
             "account_residuals": meta.get("account_residuals")}
 
 
+def _build_headline_markdown(
+    record: dict[str, Any],
+    households: pd.DataFrame,
+    paths: pd.DataFrame | None,
+    lang: str = "en",
+) -> str:
+    t = _lang(lang)
+    parts = []
+    parts.append(f"# {_title(record, lang)}")
+    parts.append(t["table"].format(**record["table"]))
+    parts.append(page_block(record, "headline", lang))
+    sc = record["scenario"]
+    if (sc["importer"], sc["exporter"], sc["sector"]) == ("USA", "CHN", "all") and record["solver"].get("sigma", 0.0) == 0.0:
+        try:
+            parts.append(_headline_reading(record, lang))
+        except ValueError:
+            pass
+    hh_title = "## Incidencia en los hogares" if lang == "es" else "## Household incidence"
+    parts.append(hh_title)
+    parts.append(page_block(record, "households", lang))
+    if paths is not None:
+        if lang == "es":
+            sens_heading = "## Sensibilidad a elasticidades comerciales y de hogares"
+            sens_note = ("sigma es la elasticidad de sustitución de insumos intermedios en el comercio "
+                         "(0 = Leontief, abastecimiento fijo); sigma_h es la elasticidad de sustitución "
+                         "en las preferencias homotéticas CES de los hogares.")
+            t_trade = "Elasticidad comercial (sigma)"
+            t_hh = "Elasticidad hogares (sigma_h)"
+            t_nat = "VE nacional (% consumo)"
+            t_q1 = "VE Grupo inferior (% gasto)"
+            t_q5 = "VE Grupo superior (% gasto)"
+        else:
+            sens_heading = "## Sensitivity to trade and household elasticities"
+            sens_note = ("sigma is the substitution elasticity across intermediate inputs in trade "
+                         "(0 = Leontief, fixed sourcing); sigma_h is the substitution elasticity "
+                         "in homothetic CES household preferences.")
+            t_trade = "Trade elasticity (sigma)"
+            t_hh = "Household elasticity (sigma_h)"
+            t_nat = "National EV (% cons)"
+            t_q1 = "Bottom group EV (% spend)"
+            t_q5 = "Top group EV (% spend)"
+
+        headers = [t_trade, t_hh, t_nat, t_q1, t_q5]
+        s_rows = []
+        pairs = sorted(set(zip(paths["trade_elasticity"], paths["household_elasticity"])))
+        for s_val, h_val in pairs:
+            sub = paths[(paths["trade_elasticity"] == s_val) & (paths["household_elasticity"] == h_val)]
+            nat_ev = float(sub["national_ev_pct"].iloc[0])
+            group_rows = sub[sub["group"] != "all"]
+            q1_ev = float(group_rows["ev_pct_proportional"].iloc[0]) if len(group_rows) > 0 else nat_ev
+            q5_ev = float(group_rows["ev_pct_proportional"].iloc[-1]) if len(group_rows) > 0 else nat_ev
+            s_rows.append([
+                _num(s_val, 1, lang),
+                _num(h_val, 1, lang),
+                _fmt_pct(nat_ev, lang),
+                _fmt_pct(q1_ev, lang),
+                _fmt_pct(q5_ev, lang),
+            ])
+        parts.append(sens_heading)
+        parts.append(_markdown_table(headers, s_rows))
+        parts.append(sens_note)
+
+    return "\n\n".join(parts) + "\n"
+
+
+def _build_headline_csv(
+    record: dict[str, Any],
+    households: pd.DataFrame,
+    paths: pd.DataFrame | None,
+) -> str:
+    rows = []
+    nat = record["national"]
+    for k in ("price_effect_musd", "factor_income_effect_musd", "fiscal_transfer_effect_musd",
+              "ev_musd", "ev_pct_consumption", "terms_of_trade_pct_importer", "relative_wage_pct"):
+        rows.append({"domain": "national", "item": k, "value": nat.get(k)})
+    hh = record["households"]
+    for r in hh["rows"]:
+        rows.append({"domain": "household", "item": f"{r['group']}_ev_pct_proportional", "value": r["ev_pct_proportional"]})
+        rows.append({"domain": "household", "item": f"{r['group']}_ev_pct_equal", "value": r["ev_pct_equal"]})
+    rows.append({"domain": "household", "item": "aggregate_ev_pct_proportional", "value": hh["aggregate_ev_pct_proportional"]})
+    rows.append({"domain": "household", "item": "aggregate_ev_pct_equal", "value": hh["aggregate_ev_pct_equal"]})
+    df = pd.DataFrame(rows)
+    return df.to_csv(index=False)
+
+
+def _build_headline_tex(
+    record: dict[str, Any],
+    households: pd.DataFrame,
+    paths: pd.DataFrame | None,
+    lang: str = "en",
+) -> str:
+    t = _lang(lang)
+    nat_frame = _national_frame(record["national"], lang)
+    hh_frame = _households_frame(record["households"], lang)
+    tex_nat = f"% {t['table'].format(**record['table'])}\n" + df_to_latex(nat_frame, digits=4)
+    tex_hh = f"% {t['groups_caption'].format(label=_label(record['households'], lang))}\n" + df_to_latex(hh_frame, digits=4)
+    return tex_nat + "\n\n" + tex_hh + "\n"
+
+
 def write_outputs(sol: BriefSolution, households: pd.DataFrame, output: str | Path, *,
-                  lang: str = "en", experiment: BriefSolution | None = None) -> dict[str, Any]:
+                  lang: str = "en", experiment: BriefSolution | None = None,
+                  paths: pd.DataFrame | None = None, config: TradeBriefConfig | None = None,
+                  headline_files: bool = False) -> dict[str, Any]:
     """Write tables (md/csv/tex), the figure, ``headline.json`` and ``manifest.json``."""
     t = _lang(lang)
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     record = headline_record(sol, households, experiment)
+    if config is not None:
+        record["config"] = _jsonable(asdict(config))
     hh = record["households"]
     label = _label(hh, lang)
     citation_line = t["table"].format(**record["table"])
@@ -846,6 +1306,20 @@ def write_outputs(sol: BriefSolution, households: pd.DataFrame, output: str | Pa
         # run must not leave an old experiment beside its current manifest.
         for suffix in ("md", "csv", "tex"):
             (output / f"experiment.{suffix}").unlink(missing_ok=True)
+
+    if paths is not None or config is not None or headline_files:
+        if paths is not None:
+            write("paths.csv", paths.to_csv(index=False))
+        write("headline.md", _build_headline_markdown(record, households, paths, lang))
+        write("headline.csv", _build_headline_csv(record, households, paths))
+        write("headline.tex", _build_headline_tex(record, households, paths, lang))
+        if config is not None and config.bilingual:
+            alt_lang = "es" if lang == "en" else "en"
+            (output / f"headline_{alt_lang}.md").write_text(
+                _build_headline_markdown(record, households, paths, alt_lang) + "\n", encoding="utf-8"
+            )
+            files.append(f"headline_{alt_lang}.md")
+
     _figure(record, lang, output / "first_brief.png")
     files.append("first_brief.png")
     write("headline.json", json.dumps(record, indent=2, ensure_ascii=False))
@@ -858,7 +1332,24 @@ def write_outputs(sol: BriefSolution, households: pd.DataFrame, output: str | Pa
         timings["experiment"] = float(sum(experiment.timings.values()))
         convergence["experiment_baseline"] = _convergence(experiment.base)
         convergence["experiment_counterfactual"] = _convergence(experiment.counterfactual)
-    manifest = _jsonable({
+
+    groups_info: dict[str, Any] = {
+        "source": households.attrs.get("source", ""),
+        "label": households.attrs.get("label", ""),
+        "is_synthetic": bool(households.attrs.get("is_synthetic", False)),
+    }
+    if households.attrs.get("file"):
+        groups_info["file"] = Path(households.attrs["file"]).name
+    elif households.attrs.get("source"):
+        src = str(households.attrs["source"])
+        if src.endswith(".npz") or src.endswith(".csv"):
+            groups_info["file"] = Path(src).name
+    if not households.attrs.get("is_synthetic", False) and "file" not in groups_info:
+        groups_info["file"] = "enigh2022_household_policy.npz"
+    if households.attrs.get("sha256"):
+        groups_info["sha256"] = households.attrs["sha256"]
+
+    manifest_dict: dict[str, Any] = {
         "package_version": puremacro.__version__,
         "python": platform.python_version(),
         "numpy": np.__version__,
@@ -873,23 +1364,60 @@ def write_outputs(sol: BriefSolution, households: pd.DataFrame, output: str | Pa
         "experiment": None if experiment is None else {
             "name": "sigma", "value": float(experiment.settings["sigma"]),
             "description": EXPERIMENT_DESCRIPTION, "solver": {**SOLVER, "sigma": float(experiment.settings["sigma"])}},
-        "groups": {"source": households.attrs.get("source", ""), "label": households.attrs["label"],
-                   "is_synthetic": bool(households.attrs["is_synthetic"])},
+        "groups": groups_info,
         "lang": lang,
         "load_average": _load_average(),
+        "environment": environment(),
         "artifacts": {name: {"sha256": _sha256(output / name), "bytes": (output / name).stat().st_size}
                       for name in files},
-    })
+    }
+    if config is not None:
+        manifest_dict["config"] = _jsonable(asdict(config))
+    manifest = _jsonable(manifest_dict)
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
                                           encoding="utf-8")
     return manifest
 
 
-def run_brief(output: str | Path, *, importer: str = "USA", exporter: str = "CHN", sector: str = "all",
-              tariff: float = 0.10, experiment: str | None = None, groups: str | Path | None = None,
-              lang: str = "en") -> dict[str, Any]:
+def run_brief(output: str | Path = DEFAULT_OUTPUT, *, importer: str = "USA", exporter: str = "CHN",
+              sector: str = "all", tariff: float = 0.10, experiment: str | None = None,
+              groups: str | Path | None = None, lang: str = "en",
+              config: TradeBriefConfig | None = None, use_enigh: bool = False) -> dict[str, Any]:
     """Solve everything, then write the outputs; nothing is written unless every state converged."""
     _lang(lang)
+    if config is not None or use_enigh:
+        if config is None:
+            config = TradeBriefConfig(
+                importer=importer, exporter=exporter, sector=sector, tariff_rate=tariff,
+                use_enigh=True, data_path=groups,
+            )
+        out_dir = Path(output) if output is not None else Path(config.output_dir or DEFAULT_OUTPUT)
+        icio, calib = load_bundled()
+        validate_scenario(icio, config.importer, config.exporter, config.sector, config.tariff_rate)
+        if config.data_path is not None:
+            frame = load_groups(config.data_path, icio, config.importer)
+        elif config.use_enigh:
+            frame = load_enigh_groups(icio, config.importer)
+        else:
+            frame = synthetic_groups(icio, config.importer)
+        sol = solve_brief(
+            config.importer, config.exporter, config.sector, config.tariff_rate,
+            sigma=config.trade_elasticity, bundled=(icio, calib),
+        )
+        households = household_incidence(sol, frame, household_elasticity=config.household_elasticity)
+        paths = compute_sensitivity_grid(config, icio, calib, frame, baseline_sol=sol)
+        manifest = write_outputs(sol, households, out_dir, lang=lang, paths=paths, config=config)
+        rec = headline_record(sol, households)
+        rec["specification"] = asdict(config)
+        return {
+            "record": rec,
+            "paths": paths,
+            "solution": sol,
+            "households": households,
+            "manifest": manifest,
+        }
+
+    # Legacy default execution
     sigma = None if experiment is None else parse_experiment(experiment)
     t0 = time.perf_counter()
     icio = _load_table()
@@ -924,6 +1452,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                         help="'none' (default) or 'sigma=<value>', e.g. sigma=2")
     parser.add_argument("--groups", type=Path, default=None,
                         help="CSV of household groups (group, population_weight, annual_spending, A..T)")
+    parser.add_argument("--enigh", action="store_true",
+                        help="use real ENIGH 2022 household income quintiles (bundled microdata)")
+    parser.add_argument("--trade-elasticity", type=float, default=0.0,
+                        help="intermediate input substitution elasticity sigma (default 0.0)")
+    parser.add_argument("--household-elasticity", type=float, default=0.0,
+                        help="household preference elasticity sigma_h (default 0.0, fixed baskets)")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT,
                         help=f"output directory (default {DEFAULT_OUTPUT})")
     parser.add_argument("--lang", choices=("en", "es"), default="en", help="language of the outputs")
@@ -938,9 +1472,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             read_groups_csv(args.groups, icio.sector_codes, supported_sectors(icio, args.importer))
     except ValueError as exc:
         parser.error(str(exc))
-    study = run_brief(args.output, importer=args.importer, exporter=args.exporter, sector=args.sector,
-                      tariff=args.tariff, experiment=None if sigma is None else args.experiment,
-                      groups=args.groups, lang=args.lang)
+    if args.enigh or args.trade_elasticity > 0 or args.household_elasticity > 0:
+        cfg = TradeBriefConfig(
+            importer=args.importer, exporter=args.exporter, sector=args.sector,
+            tariff_rate=args.tariff, trade_elasticity=args.trade_elasticity or 4.0,
+            household_elasticity=args.household_elasticity or 1.0,
+            use_enigh=args.enigh or (args.groups is None),
+            data_path=args.groups, output_dir=args.output,
+        )
+        study = run_brief(args.output, config=cfg, lang=args.lang)
+    else:
+        study = run_brief(args.output, importer=args.importer, exporter=args.exporter, sector=args.sector,
+                          tariff=args.tariff, experiment=None if sigma is None else args.experiment,
+                          groups=args.groups, lang=args.lang)
     print(summary_text(study["record"], args.lang))
     print(_lang(args.lang)["written"].format(path=args.output))
     return 0

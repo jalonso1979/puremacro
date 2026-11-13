@@ -5,10 +5,10 @@
   "infinite_tail_certified": false,
   "household_grid_certified": false,
   "source_hashes": {
-    "puremacro/models/hank_second_order.py": "f001bd82740a75a91a638fa59886d2f45fcca31a3e1fc11a89f660b8830cbd61",
+    "puremacro/models/hank_second_order.py": "7c02e9e4f5f1123669b336df051178557102ba9e450c02d5e820d0737ce4684c",
     "puremacro/models/_hank_second_order.py": "c33942911f37af5438f695b0bb2864e7c83d52ac657c1a8328643a4d241be26d",
     "puremacro/models/hank_reduction.py": "bf4b87f7ab6d7dc0124b6e18f9f89fcad3bd4342a9803ae5017d39c7e327dc23",
-    "puremacro/models/one_asset_hank.py": "969d1915e30c36b4bce73a8e04cc37b200f3b74db8f39a13de8d43686c82fe64",
+    "puremacro/models/one_asset_hank.py": "504ce484ca9fe2a4f7086c0b44ad36498a790e580ca70ad33c3ab09bde9d7a23",
     "puremacro/models/hank_nonlinear_continuation.py": "d6fdca75c5e2f0aa0e85b7142581087054101a752c304a9113c9d230719c6578",
     "puremacro/dsge/_sylvester.py": "03b7eec6a98412a5109a8268679741e93a2fe7ee592506279208cebeda0b200d",
     "tools/reference_validation/benchmark_hank_second_order.py": "b74d6aac9c93620d713e42e153983ca39b1f234fa36a72b5b58e50a6cbea6cde"

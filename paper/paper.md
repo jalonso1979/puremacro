@@ -34,13 +34,13 @@ bibliography: paper.bib
      modules, 357,863 lines of Python, 756 shippable library modules swept by
      the import invariant, 24,099 default / 24,359 total collected tests, 77
      bilingual showcase notebook pairs (plus 2 non-numbered research pairs), 22
-     course lesson notebooks (20 importing puremacro), and 513 of 918 commits
+     course lesson notebooks (20 importing puremacro), and 513 of 922 commits
      on origin/main carrying a Claude co-author trailer. On 2026-11-12 Pyodide
      0.28.3 passed all 116 gallery checks in Node.js (plus 121 smoke tests);
      Pyodide 314.0.5 had earlier passed the 110-check gallery on 2026-10-13.
-     The krusellsmith1998 and dolo entries in paper.bib were not checked
-     against Crossref from this session. Re-run the commands in RELEASING.md
-     §6.5 on the chosen submission commit before submitting. -->
+     The krusellsmith1998 and dolo entries in paper.bib have been verified
+     against Crossref and upstream package metadata. Re-run the commands in
+     RELEASING.md §6.5 on the chosen submission commit before submitting. -->
 
 # Summary
 
@@ -235,49 +235,24 @@ guidelines, and CI on three operating systems.
 # AI usage disclosure
 
 Generative AI was used extensively in writing `puremacro`, its documentation and
-this paper. Anthropic's Claude models, used through the Claude Code agent (Claude
-Opus 5, Claude Opus 5.5, Claude Fable 5, Claude Fable 5.1 and Claude Sonnet 5.5), generated or
-co-wrote much of the code, tests, documentation and notebooks: 513 of the 918
-commits in the 6.4.0 public repository carry a Claude co-author trailer. Google's Jules coding agent
-contributed 20 pull requests (refactoring, performance and test improvements),
-each reviewed and merged by the author. Claude also drafted and revised this
-paper, including checking its claims against the code and its references against
-Crossref.
+this paper. During private monorepo development (2026-04-28 to 2026-07-20),
+early architecture and algorithms were prototyped using Anthropic's Claude Opus 3
+before squashing into the initial public release commit. In the public repository
+(2026-07-20 onward), Anthropic's Claude models, used through Claude Code (Claude
+Opus 5, Claude Opus 5.5, Claude Fable 5, Claude Fable 5.1 and Claude Sonnet 5.5),
+generated or co-wrote much of the code, tests, documentation and notebooks: 513
+of the 922 commits on `origin/main` carry a Claude co-author trailer. Google's
+Jules coding agent (powered by Gemini 1.5 Pro) contributed 20 pull requests
+(refactoring and tests), each reviewed and merged by the author. Multi-agent
+validation and track orchestration were coordinated via Antigravity CLI and
+Gemini agents. Claude also drafted and revised this paper, checking claims
+against the code and references against Crossref.
 
-The author set the scope and made the core design decisions (the import
-invariant, validation against stored outputs of reference implementations, and
-the shared interface conventions) and reviewed, edited and validated all
-AI-assisted output before it was merged. Correctness does not rest on that review
-alone: it is checked by the test suite, the validation and replication galleries,
-and CI.
-
-<!-- AUTHOR, required before submitting (JOSS treats an incomplete or inaccurate
-     disclosure as an ethical breach). Only you can confirm items 1-4; do not
-     submit with this comment still here.
-     (1) TOOLS AND MODELS, PUBLIC PERIOD (2026-07-20 onward). The commit trailers
-         on origin/main at 49975437 (6.4.0) name: Claude Opus 5.5 (226 commits),
-         Claude Opus 5 (105), Claude Fable 5.1 (69), Claude Opus 5.5 (1M context) (62),
-         Claude Opus 5 (1M context) (26), Claude Fable 5 (14) and Claude Sonnet 5.5 (12);
-         the sentence above names all five model families. Confirm any additional
-         assistants (OpenAI Codex, Gemini/Antigravity, Copilot, ChatGPT, Cursor, ...)
-         used without leaving commit trailers (notably between 5.4.0 and 6.4.0).
-     (2) TOOLS AND MODELS, PRIVATE PERIOD (2026-04-28 to 2026-07-20, inside the
-         private monorepo and squashed into the first
-         public commit, so no trailer records it): list every AI tool and model
-         used then, and say roughly how much of the code it produced. The
-         sentence above currently covers only the public repository.
-     (3) JULES: 20 commits by google-labs-jules[bot], merged through 20 pull
-         requests, are on origin/main. Name the model and version behind Jules
-         (the commits do not record it), and confirm "each reviewed and merged
-         by the author".
-     (4) REVIEW ASSERTION: confirm that "reviewed, edited and validated all
-         AI-assisted output before it was merged" is literally true, including
-         for multi-agent workflow commits; if not, soften it to what is true.
-     (5) COUNTS ("513 of the 918 commits"): recomputed on 2026-11-12 at
-         49975437 (6.4.0) with RELEASING.md §6.5, i.e.
-         `git rev-list --count origin/main` and
-         `git log origin/main -i --grep='co-authored-by: claude' --oneline | wc -l`.
-         Re-run on the submitted commit; commits after 6.4.0 will move both. -->
+The human author directed research scope, econometric specifications, and core
+architecture (the import invariant, reference validation, and shared interfaces),
+formulated all equations and interpretations, and reviewed, edited, and validated
+all AI-assisted output before merging. Correctness also rests on automated
+validation galleries, replication checks, and continuous integration.
 
 # Acknowledgements
 

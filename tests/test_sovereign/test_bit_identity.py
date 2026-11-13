@@ -66,6 +66,10 @@ def _assert_values_identical(a: Any, b: Any, where: str) -> None:
         assert list(a) == list(b), f"{where}: keys {list(a)} vs {list(b)}"
         for key in a:
             _assert_values_identical(a[key], b[key], f"{where}[{key!r}]")
+    elif dataclasses.is_dataclass(a) or dataclasses.is_dataclass(b):
+        assert type(a) is type(b), f"{where}: type {type(a)} vs {type(b)}"
+        for f in dataclasses.fields(a):
+            _assert_values_identical(getattr(a, f.name), getattr(b, f.name), f"{where}.{f.name}")
     else:
         assert type(a) is type(b) and a == b, f"{where}: {a!r} vs {b!r}"
 

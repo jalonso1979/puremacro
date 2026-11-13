@@ -13,6 +13,8 @@ from typing import TYPE_CHECKING, Any, Sequence
 import numpy as np
 import pandas as pd
 
+from puremacro.solvers.diagnostics import SolverDiagnosticRecord, make_solver_diagnostic_record
+
 if TYPE_CHECKING:
     import matplotlib.figure
 
@@ -95,6 +97,7 @@ class SovereignDefaultResult:
     residual: float = 0.0
     iterations: int = 0
     metadata: dict[str, Any] = field(default_factory=dict)
+    solver_diagnostics: SolverDiagnosticRecord | None = None
 
     def __post_init__(self) -> None:
         if len(self.v_repay) == 0 and len(self.v_r) > 0:
@@ -127,17 +130,72 @@ class SovereignDefaultResult:
         elif self.bellman_residual == 0.0 and self.residual != 0.0:
             object.__setattr__(self, "bellman_residual", self.residual)
 
+        if self.solver_diagnostics is None:
+            conv_val = bool(self.converged)
+            b_res = float(self.bellman_residual)
+            acc_tol = float(self.metadata.get("accuracy_tolerance", 1e-3))
+            is_acc = bool(conv_val and b_res <= acc_tol and np.isfinite(b_res))
+
+            # Detect debt grid boundary saturation: P(B' = B_max) > 0.01
+            p_bmax = 0.0
+            if "boundary_saturation_prob" in self.metadata:
+                p_bmax = float(self.metadata["boundary_saturation_prob"])
+            elif "debt_choice_probabilities" in self.metadata:
+                probs = np.asarray(self.metadata["debt_choice_probabilities"])
+                if probs.ndim >= 2 and probs.shape[1] > 0:
+                    p_bmax = float(np.mean(probs[:, -1, :]))
+            elif len(self.b_grid) > 0 and self.policy_b.size > 0:
+                p_bmax = float(np.mean(self.policy_b >= self.b_grid[-1] - 1e-8))
+
+            supp_warnings: list[str] = []
+            is_supp = True
+            regime = "interior"
+
+            if p_bmax > 0.01:
+                is_supp = False
+                regime = "boundary_debt_saturation"
+                supp_warnings.append(
+                    f"Debt grid upper bound saturation detected (P(B'=B_max) = {p_bmax:.4f} > 0.01). "
+                    "Upper bound on debt binds excessively; regime is unsupported."
+                )
+
+            rec = make_solver_diagnostic_record(
+                converged=conv_val,
+                iterations=int(self.iterations),
+                stopping_reason="bellman_converged" if conv_val else "bellman_failed",
+                solver_method="value_function_iteration",
+                tolerance=float(self.metadata.get("tol", 1e-6)),
+                is_accurate=is_acc,
+                max_residual=b_res,
+                residual_norm=b_res,
+                residual_type="bellman_residual",
+                accuracy_tolerance=acc_tol,
+                residuals={"bellman_residual": b_res},
+                is_supported=is_supp,
+                regime=regime,
+                warnings=supp_warnings,
+                boundary_metrics={"p_bmax": p_bmax, "b_max": float(self.b_grid[-1]) if len(self.b_grid) else 0.0},
+                evidence=dict(self.metadata),
+            )
+            object.__setattr__(self, "solver_diagnostics", rec)
+
     def summary(self) -> pd.DataFrame:
         """Return a structured summary DataFrame of the solution."""
         mean_spread = float(self.spread_mean)
-        max_spread = float(np.max(self.spread))
-        mean_price = float(np.mean(self.bond_price))
-        min_price = float(np.min(self.bond_price))
-        mean_pdef = float(np.mean(self.default_prob))
-        max_pdef = float(np.max(self.default_prob))
+        max_spread = float(np.max(self.spread)) if len(self.spread) else 0.0
+        mean_price = float(np.mean(self.bond_price)) if len(self.bond_price) else 0.0
+        min_price = float(np.min(self.bond_price)) if len(self.bond_price) else 0.0
+        mean_pdef = float(np.mean(self.default_prob)) if len(self.default_prob) else 0.0
+        max_pdef = float(np.max(self.default_prob)) if len(self.default_prob) else 0.0
+        max_dq = float(np.max(self.dq_db)) if len(self.dq_db) else 0.0
+        min_dq = float(np.min(self.dq_db)) if len(self.dq_db) else 0.0
+
+        diag = getattr(self, "solver_diagnostics", None)
+        diag_status = diag.overall_status if diag is not None else ("CONVERGED" if self.converged else "FAILED")
 
         rows = [
             ("converged", self.converged),
+            ("overall_status", diag_status),
             ("iterations", self.iterations),
             ("bellman_residual", self.bellman_residual),
             ("maturity_delta", self.maturity_param_delta),
@@ -154,8 +212,8 @@ class SovereignDefaultResult:
             ("spread_y_corr", self.spread_y_corr),
             ("mean_default_prob", mean_pdef),
             ("max_default_prob", max_pdef),
-            ("max_dq_db", float(np.max(self.dq_db))),
-            ("min_dq_db", float(np.min(self.dq_db))),
+            ("max_dq_db", max_dq),
+            ("min_dq_db", min_dq),
         ]
         return pd.DataFrame(
             {"metric": [r[0] for r in rows], "value": [_fmt_val(r[1]) for r in rows]}
@@ -536,8 +594,12 @@ class SuddenStopResult:
         min_q = float(np.min(self.asset_price_q))
         max_q = float(np.max(self.asset_price_q))
 
+        diag = getattr(self, "solver_diagnostics", None)
+        diag_status = diag.overall_status if diag is not None else ("CONVERGED" if self.converged else "FAILED")
+
         rows = [
             ("converged", self.converged),
+            ("overall_status", diag_status),
             ("iterations", self.iterations),
             ("kappa_collateral", self.kappa_collateral),
             ("collateral_binding_fraction", self.collateral_binding_fraction),

@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 
 from puremacro._numeric_contracts import freeze, readonly_array, real_scalar, real_vector
+from puremacro.solvers.diagnostics import SolverDiagnosticRecord, make_solver_diagnostic_record
 from ._hank_one_asset_recursive import _OneAssetKernel
 from ._hank_second_order import OneAssetEquations, solve_curvature
 from .hank_recursive import HANKStochasticResult
@@ -55,6 +56,42 @@ class HANKSecondOrderAudit:
         object.__setattr__(self,'residual',readonly_array(self.residual,dtype=float))
         object.__setattr__(self,'diagnostics',freeze(self.diagnostics))
 
+    @property
+    def solver_diagnostics(self) -> SolverDiagnosticRecord:
+        acc = bool(self.accepted)
+        dist_err = float(self.diagnostics.get("distribution_error", 0.0))
+        reason = str(self.diagnostics.get("reason", "accepted" if acc else "rejected"))
+        eq_err = float(self.diagnostics.get("equation_error", 0.0))
+        supp_warnings: list[str] = []
+        is_supp = True
+        regime = "interior"
+
+        if not acc and (reason in ("outside_local_domain", "equations_or_feasibility_failed") or dist_err > 1e-5):
+            is_supp = False
+            regime = "failed_feasibility"
+            supp_warnings.append(
+                f"State feasibility or distribution equation failure: reason={reason}, distribution_error={dist_err:.3e}"
+            )
+
+        return make_solver_diagnostic_record(
+            converged=True,
+            iterations=1,
+            stopping_reason="second_order_audit_evaluated",
+            solver_method="pointwise_quadrature_audit",
+            tolerance=1e-5,
+            is_accurate=acc,
+            max_residual=eq_err,
+            residual_norm=float(np.linalg.norm(self.residual)) if len(self.residual) else 0.0,
+            residual_type="second_order_discrete_equations",
+            accuracy_tolerance=1e-5,
+            residuals={"equation_error": eq_err, "distribution_error": dist_err},
+            is_supported=is_supp,
+            regime=regime,
+            warnings=supp_warnings,
+            boundary_metrics={"distribution_error": dist_err, "reason": reason},
+            evidence=dict(self.diagnostics),
+        )
+
 
 @dataclass(frozen=True)
 class SecondOrderHANKPolicy:
@@ -85,6 +122,28 @@ class SecondOrderHANKPolicy:
             object.__setattr__(self,name,readonly_array(raw,dtype=float))
         object.__setattr__(self,'diagnostics',freeze(self.diagnostics))
         object.__setattr__(self,'_linear',parent)
+
+    @property
+    def solver_diagnostics(self) -> SolverDiagnosticRecord:
+        curv_tol = float(self.diagnostics.get("curvature_tolerance", 1e-6))
+        return make_solver_diagnostic_record(
+            converged=True,
+            iterations=1,
+            stopping_reason="sylvester_solved",
+            solver_method="generalized_sylvester_schur",
+            tolerance=curv_tol,
+            is_accurate=True,
+            max_residual=0.0,
+            residual_norm=0.0,
+            residual_type="sylvester_residual",
+            accuracy_tolerance=curv_tol,
+            residuals={},
+            is_supported=True,
+            regime="interior",
+            warnings=(),
+            boundary_metrics={},
+            evidence=dict(self.diagnostics),
+        )
 
     @property
     def shock_std(self) -> float:

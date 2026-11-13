@@ -28,7 +28,7 @@
     "tools/reference_validation/check_tariff_welfare.py": "5c40663e85d6c289c072fc86fa98a60ac49673924745b3b9d2434915701205b0",
     "puremacro/trade/_accounting.py": "99221d357d249360f35c7d6df3e39c8eecbb06f13df3a05995f4fd49a48bc79f",
     "puremacro/trade/solver.py": "b5a98be8c88846a46870e0fe40e07c7124b443318194de25b43d62751e525b14",
-    "puremacro/examples/first_brief_tariffs.py": "93c9c7cd47174c03917e26d15e1ccbdf279977bbf8dc1ba6ea59b102b655bc4f"
+    "puremacro/examples/first_brief_tariffs.py": "48e0dd9bfb579027afee9800e5d8596bc8aefb1db51642d1b57f9583b6767da4"
   },
   "native": {
     "0": {

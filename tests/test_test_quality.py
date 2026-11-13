@@ -231,11 +231,14 @@ def test_named_tests_execute_what_they_name(test_file, tmp_path):
     """
     targets = _MUST_EXECUTE[test_file]
     data_file = tmp_path / ".coverage"
+    import os
+    env = dict(os.environ)
+    env.pop("PYTEST_ADDOPTS", None)
     proc = subprocess.run(
         [sys.executable, "-m", "coverage", "run",
          f"--data-file={data_file}", "--source=puremacro",
          "-m", "pytest", test_file, "-q", "-p", "no:randomly"],
-        cwd=_ROOT, capture_output=True, text=True, timeout=1800,
+        cwd=_ROOT, capture_output=True, text=True, timeout=1800, env=env,
     )
     assert proc.returncode == 0, f"{test_file} did not pass:\n{proc.stdout[-3000:]}"
 
