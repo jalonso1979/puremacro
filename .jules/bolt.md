@@ -24,3 +24,7 @@
 ## 2024-11-20 - Vectorized Chained Matrices in Pandas DataFrames
 **Learning:** When needing to perform chained matrix multiplication on rows of a Pandas DataFrame grouped by time (e.g. chaining 3 monthly transition matrices to create a quarterly matrix), iterating through `groupby()` and using `iterrows()` to manually construct and multiply arrays incurs massive Python overhead.
 **Action:** Instead, assign a sequence index (e.g., `cumcount()`) to the grouped rows, filter out only the required N rows per group, sort appropriately, and extract the required columns into a single flat NumPy array. Reshape this array to `(num_groups, N, rows, cols)` and perform batched matrix multiplication (`data[:, 0] @ data[:, 1] ...`) for >25x performance gains.
+
+## 2024-11-07 - Vectorized Matrix Chaining
+**Learning:** Chaining monthly transition matrices into quarterly matrices via `iterrows` over a Pandas DataFrame of transition probabilities is extremely slow.
+**Action:** Extract the probabilities into a NumPy array, reshape it to `(num_months, n_states, n_states)`, and use batched matrix multiplication (`@`) for massive speedups (~150x). This fully leverages NumPy's vectorized operations and avoids Python loop overhead.

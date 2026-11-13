@@ -835,21 +835,22 @@ def transitions_from_enoe(
             columns=[f"p_{a}{b}" for a in STATES for b in STATES]
         )
 
-    quarterly_chain_rows = []
-    for d, row in monthly.iterrows():
-        M = np.array([[row[f"p_{a}{b}"] for b in STATES] for a in STATES])
-        P3 = M @ M @ M
-        qd = d + pd.offsets.QuarterEnd(0)
-        quarterly_chain_rows.append({
-            "qdate": qd,
-            **{f"p_{a}{b}": P3[i, j]
-               for i, a in enumerate(STATES)
-               for j, b in enumerate(STATES)}
-        })
-    quarterly = (
-        pd.DataFrame(quarterly_chain_rows).set_index("qdate")
-        if quarterly_chain_rows else pd.DataFrame()
-    )
+    # ⚡ Bolt: Vectorize chained matrix multiplication over time instead of iterrows()
+    if not monthly.empty:
+        n_states = len(STATES)
+        cols = [f"p_{a}{b}" for a in STATES for b in STATES]
+        # Reshape to (num_months, n_states, n_states)
+        M_batched = monthly[cols].to_numpy().reshape(-1, n_states, n_states)
+        P3_batched = M_batched @ M_batched @ M_batched
+
+        quarterly = pd.DataFrame(
+            P3_batched.reshape(-1, n_states * n_states),
+            columns=cols,
+            index=monthly.index + pd.offsets.QuarterEnd(0)
+        )
+        quarterly.index.name = "qdate"
+    else:
+        quarterly = pd.DataFrame()
 
     return TransitionPanelENOE(
         monthly=monthly,
