@@ -25,22 +25,26 @@ bibliography: paper.bib
 
 
 <!-- Evidence snapshot. The validation-gallery counts (checks, subsystems, kinds
-     of reference), Pyodide 0.28.3 gallery run, `scorecard.png` and the scale
-     counts below were recomputed on 2026-11-12 on the 6.4.0 release tree
-     (commit 49975437): 116 checks, 16 subsystems, 22 external (15 package +
-     5 SciPy + 2 published) / 31 analytical / 63 internal, all passing (5.4.0
-     had 113: 20 / 31 / 62; 4.6.0 had 114 with four trade cases; 4.4.0 had
-     110: 20 / 31 / 59; 3.4.0 had 107: 19 / 29 / 59); 978 package Python
-     modules, 357,863 lines of Python, 756 shippable library modules swept by
-     the import invariant, 24,099 default / 24,359 total collected tests, 77
+     of reference) and `scorecard.png` match release 6.4.0 (2026-11-12, commit
+     49975437) and were re-verified on 2026-11-14 at commit 531aaab3: 116
+     checks, 16 subsystems, 22 external (15 package + 5 SciPy + 2 published) /
+     31 analytical / 63 internal, all passing (5.4.0 had 113: 20 / 31 / 62;
+     4.6.0 had 114 with four trade cases; 4.4.0 had 110: 20 / 31 / 59; 3.4.0
+     had 107: 19 / 29 / 59). Scale and commit counts below were recomputed on
+     2026-11-14 at HEAD (531aaab3) per RELEASING.md §6.5: 983 package Python
+     modules, 364,729 lines of Python, 761 shippable library modules swept by
+     the import invariant, 24,160 default / 24,420 total collected tests, 77
      bilingual showcase notebook pairs (plus 2 non-numbered research pairs), 22
-     course lesson notebooks (20 importing puremacro), and 513 of 922 commits
-     on origin/main carrying a Claude co-author trailer. On 2026-11-12 Pyodide
-     0.28.3 passed all 116 gallery checks in Node.js (plus 121 smoke tests);
-     Pyodide 314.0.5 had earlier passed the 110-check gallery on 2026-10-13.
-     The krusellsmith1998 and dolo entries in paper.bib have been verified
-     against Crossref and upstream package metadata. Re-run the commands in
-     RELEASING.md §6.5 on the chosen submission commit before submitting. -->
+     course lesson notebooks (20 importing puremacro), 513 of 929 commits on
+     origin/main carrying a Claude co-author trailer, and 28 commits by
+     google-labs-jules[bot]. Dated browser evidence remains the 2026-11-12
+     release-6.4.0 run where Pyodide 0.28.3 passed all 116 gallery checks in
+     Node.js (plus 121 smoke tests); Pyodide 314.0.5 had earlier passed the
+     110-check gallery on 2026-10-13. The krusellsmith1998 and dolo entries in
+     paper.bib were not checked against Crossref from this session. Re-run the
+     commands in RELEASING.md §6.5 (and `python tools/pyodide_gallery.py` if
+     needed) on the final 2027 submission commit (earliest eligibility
+     2027-01-21 per RELEASING.md §6.3) before submitting. -->
 
 # Summary
 
@@ -147,7 +151,7 @@ The overall modular architecture is illustrated in \autoref{fig:architecture}.
 Matplotlib (plus requests, in the data layer) at module scope; anything else is
 imported only when available. Two tests enforce the rule against the packages most
 likely to leak in.
-The first imports each of the 756 shippable library modules (examples, teaching helpers,
+The first imports each of the 761 shippable library modules (examples, teaching helpers,
 text-scraping sources and optional Numba kernels are excluded) and fails if
 statsmodels, linearmodels, arch or the scraping packages bs4, pdfplumber and pypdf
 have entered `sys.modules`. The second repeats the sweep with those packages
@@ -179,8 +183,8 @@ engines that not every Pyodide distribution provides. On
 12 November 2026 a headless Node.js harness ran the full validation gallery inside
 Pyodide 0.28.3: all 116 checks passed (as did 121 smoke tests).
 
-**Scale.** Version 6.4.0 contains 978 package Python modules and approximately
-358,000 lines of Python, including 756 shippable library modules checked by the
+**Scale.** As of November 2026, `puremacro` contains 983 package Python modules and approximately
+365,000 lines of Python, including 761 shippable library modules checked by the
 import sweep. More than 24,000 automated tests cover the package. CI runs the
 default selection on Linux, macOS and Windows under Python 3.11–3.13; slow,
 reference and replication tests run weekly and on release tags, where they gate publication.
@@ -189,8 +193,8 @@ the import invariant and a snapshot of the public API.
 
 ## Verification
 
-The gallery counts below and the scale measurements above were recomputed on
-2026-11-12 on release 6.4.0.
+The gallery counts below match release 6.4.0 and were re-verified on 2026-11-14;
+the scale measurements above were recomputed on 2026-11-14.
 
 The validation gallery, `puremacro.validation.scorecard()`, runs 116 checks across
 16 subsystems in under a minute, with none of the oracle packages installed; all
@@ -235,24 +239,54 @@ guidelines, and CI on three operating systems.
 # AI usage disclosure
 
 Generative AI was used extensively in writing `puremacro`, its documentation and
-this paper. During private monorepo development (2026-04-28 to 2026-07-20),
-early architecture and algorithms were prototyped using Anthropic's Claude Opus 3
-before squashing into the initial public release commit. In the public repository
-(2026-07-20 onward), Anthropic's Claude models, used through Claude Code (Claude
-Opus 5, Claude Opus 5.5, Claude Fable 5, Claude Fable 5.1 and Claude Sonnet 5.5),
-generated or co-wrote much of the code, tests, documentation and notebooks: 513
-of the 922 commits on `origin/main` carry a Claude co-author trailer. Google's
-Jules coding agent (powered by Gemini 1.5 Pro) contributed 20 pull requests
-(refactoring and tests), each reviewed and merged by the author. Multi-agent
-validation and track orchestration were coordinated via Antigravity CLI and
-Gemini agents. Claude also drafted and revised this paper, checking claims
-against the code and references against Crossref.
+this paper. Anthropic's Claude models, used through the Claude Code agent (Claude
+Opus 5, Claude Opus 5.5, Claude Fable 5, Claude Fable 5.1 and Claude Sonnet 5.5), generated or
+co-wrote much of the code, tests, documentation and notebooks: 513 of the 929
+commits on `origin/main` carry a Claude co-author trailer. Google's Jules coding agent
+contributed 28 commits (refactoring, performance and test improvements),
+each reviewed and merged by the author. Claude also drafted and revised this
+paper, including checking its claims against the code and its references against
+Crossref.
 
-The human author directed research scope, econometric specifications, and core
-architecture (the import invariant, reference validation, and shared interfaces),
-formulated all equations and interpretations, and reviewed, edited, and validated
-all AI-assisted output before merging. Correctness also rests on automated
-validation galleries, replication checks, and continuous integration.
+The author set the scope and made the core design decisions (the import
+invariant, validation against stored outputs of reference implementations, and
+the shared interface conventions) and reviewed, edited and validated all
+AI-assisted output before it was merged. Correctness does not rest on that review
+alone: it is checked by the test suite, the validation and replication galleries,
+and CI.
+
+<!-- AUTHOR, required before submitting (JOSS treats an incomplete or inaccurate
+     disclosure as an ethical breach). Only you can confirm items 1-5; do not
+     submit with this comment still here (also update frontmatter `date` on the
+     submission commit).
+     (1) TOOLS AND MODELS, PUBLIC PERIOD (2026-07-20 onward). The commit trailers
+         on origin/main at 531aaab3 (post-6.4.0) name: Claude Opus 5.5 (226 commits),
+         Claude Opus 5 (105), Claude Fable 5.1 (69), Claude Opus 5.5 (1M context) (62),
+         Claude Opus 5 (1M context) (26), Claude Fable 5 (14) and Claude Sonnet 5.5 (12);
+         the sentence above names all five model families (one commit carries two
+         trailers). Confirm any additional assistants (OpenAI Codex,
+         Gemini/Antigravity CLI, Copilot, ChatGPT, Cursor, ...) used without
+         leaving commit trailers (notably between 5.4.0 and 6.4.0 and in post-6.4.0
+         multi-agent runs).
+     (2) TOOLS AND MODELS, PRIVATE PERIOD (2026-04-28 to 2026-07-20, inside the
+         private monorepo and squashed into the first public commit, so no
+         trailer records it): list every AI tool and model used then, and say
+         roughly how much of the code it produced. The sentence above currently
+         covers only the public repository.
+     (3) JULES: 28 commits by google-labs-jules[bot] are on origin/main at
+         531aaab3 (via pull requests; verify exact PR count where branches were
+         squashed or multi-commit). Name the model and version behind Jules
+         (the commits do not record it), and confirm "each reviewed and merged
+         by the author".
+     (4) REVIEW ASSERTION: confirm that "reviewed, edited and validated all
+         AI-assisted output before it was merged" is literally true, including
+         for multi-agent workflow commits; if not, soften it to what is true.
+     (5) COUNTS, DATE & BIBLIOGRAPHY: counts ("513 of the 929 commits",
+         "28 commits") were recomputed on 2026-11-14 at 531aaab3 per
+         RELEASING.md §6.5. Re-run `RELEASING.md §6.5` on the final 2027
+         submission commit (earliest eligibility 2027-01-21 per §6.3), update
+         frontmatter `date` to the submission date, and verify `krusellsmith1998`
+         and `dolo` in `paper.bib` against Crossref/upstream metadata. -->
 
 # Acknowledgements
 
