@@ -415,6 +415,47 @@ assert np.allclose(res_dk.se, res_panel.se)
 
 In puremacro, all panel LP estimators sort the panel index `(unit, time)` before applying time shifts. Even if your input DataFrame contains unsorted rows, puremacro ensures bit-identical numerical results and guards against positional lag leakage.
 
+### Common Correlated Effects: Pooled (CCEP) vs. Mean Group (CCE-MG)
+
+When unobserved global factors $f_t$ affect both outcomes and shocks, use `cce_panel_lp` (Pesaran, 2006), which augments the local projection with cross-sectional averages $\bar{z}_t$:
+
+- **`estimator="pooled"` (default, CCEP)**: Estimates entity-FE pooled OLS augmented with contemporaneous cross-sectional means $(\bar{y}_t, \bar{x}_t, \bar{w}_t)$ and entity-clustered SEs (`cov_type="cluster"`). Appropriate when factor-loading projections are homogeneous across units; `LPResult.metadata` records `estimator="cce_panel_lp"`, `cce_estimator="cce_pooled"`, and `factor_loadings="homogeneous"`.
+- **`estimator="mean_group"` (Pesaran CCE-MG)** (or `from puremacro.lp.cce import cce_mg_panel_lp`): Estimates separate unit-by-unit time-series LP regressions augmented with horizon-specific cross-sectional averages $(\overline{\Delta_h y_t}, \bar{x}_t, \bar{x}_{t-1}, \dots, \bar{w}_t, \dots)$, absorbing **heterogeneous** unit factor loadings $\lambda_i' f_t$ that bias CCEP whenever $\lambda_{y,i}$ correlates with regressors. Returns the cross-unit Mean Group slope and Pesaran (2006, eq. 56) nonparametric cross-unit SE (`cov_type="pesaran_mg"`), adds column `n_entities_used`, and records `estimator="cce_mean_group"`, `cce_estimator="cce_mean_group"`, and `factor_loadings="heterogeneous"` in `LPResult.attrs["specification"]` / `LPResult.metadata`.
+- **Unit sufficiency & index chronology**: Units with fewer than `min_obs` valid observations (default `max(10, k_regs + 2)`) or rank-deficient unit designs are explicitly warned and recorded in `attrs["specification"]["excluded_entities_by_horizon"]` rather than silently dropped. Because conditioning on $(\overline{\Delta_h y_t}, \bar{x}_t)$ leaves $N \le 2$ unit slopes algebraically identical, CCE-MG requires at least 3 valid entities per horizon (raising `ValueError` otherwise). Both estimators validate duplicate index entries, non-finite inputs, and regular dated-index chronology unless `allow_index_gaps=True`.
+
+```python
+from puremacro.lp import cce_panel_lp
+from puremacro.lp.cce import cce_mg_panel_lp
+
+# Panel with correlated heterogeneous factor loadings lambda_i * f_t
+n_u, n_t = 12, 40
+f_common = np.cumsum(rng.normal(0.0, 0.5, size=n_t))
+lam_x = np.linspace(0.4, 2.2, n_u)
+lam_y = 2.0 * lam_x
+cce_frames = []
+for i in range(n_u):
+    ex_i = rng.normal(0.0, 0.6, size=n_t)
+    x_i = lam_x[i] * f_common + ex_i
+    y_i = 0.5 * ex_i + lam_y[i] * f_common + rng.normal(0.0, 0.3, size=n_t)
+    cce_frames.append(pd.DataFrame({
+        "code": f"U{i:02d}",
+        "date": pd.date_range("2010-01-01", periods=n_t, freq="QS"),
+        "y": y_i,
+        "x": x_i,
+    }))
+cce_panel = pd.concat(cce_frames, ignore_index=True).set_index(["code", "date"])
+
+# Pooled CCE (homogeneous loadings) vs Pesaran (2006) CCE-MG (heterogeneous loadings)
+res_ccep = cce_panel_lp(cce_panel, y="y", x="x", horizons=range(0, 5), n_lags=1)
+res_ccemg = cce_panel_lp(
+    cce_panel, y="y", x="x", horizons=range(0, 5), n_lags=1, estimator="mean_group"
+)
+res_ccemg_alias = cce_mg_panel_lp(cce_panel, y="y", x="x", horizons=range(0, 5), n_lags=1)
+assert res_ccep.metadata["cce_estimator"] == "cce_pooled"
+assert res_ccemg.metadata["factor_loadings"] == "heterogeneous"
+assert np.allclose(res_ccemg["beta"], res_ccemg_alias["beta"])
+```
+
 ---
 
 ## Standardized Signatures & Parameter Aliases

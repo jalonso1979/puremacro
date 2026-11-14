@@ -304,6 +304,47 @@ assert np.allclose(res_panel.point, res_dk.point)
 assert np.allclose(res_panel.se, res_dk.se)
 ```
 
+### Efectos comunes correlacionados: agrupado (CCEP) frente a Mean Group (CCE-MG)
+
+Cuando factores globales no observados $f_t$ afectan tanto al resultado como al choque, utilice `cce_panel_lp` (Pesaran, 2006), que amplía la proyección local con promedios transversales $\bar{z}_t$:
+
+- **`estimator="pooled"` (predeterminado, CCEP)**: Estima MCO agrupado con efectos fijos por unidad ampliado con medias transversales contemporáneas $(\bar{y}_t, \bar{x}_t, \bar{w}_t)$ y errores estándar agrupados por entidad (`cov_type="cluster"`). Es adecuado bajo proyecciones homogéneas de cargas factoriales; `LPResult.metadata` registra `estimator="cce_panel_lp"`, `cce_estimator="cce_pooled"` y `factor_loadings="homogeneous"`.
+- **`estimator="mean_group"` (Pesaran CCE-MG)** (o `from puremacro.lp.cce import cce_mg_panel_lp`): Estima regresiones LP individuales de serie temporal por unidad ampliadas con promedios transversales específicos del horizonte $(\overline{\Delta_h y_t}, \bar{x}_t, \bar{x}_{t-1}, \dots, \bar{w}_t, \dots)$, absorbiendo **cargas factoriales heterogéneas** $\lambda_i' f_t$ que sesgan CCEP cuando $\lambda_{y,i}$ se correlaciona con los regresores. Devuelve la pendiente media entre unidades y el error estándar no paramétrico de Pesaran (2006, ec. 56) (`cov_type="pesaran_mg"`), añade la columna `n_entities_used` y registra `estimator="cce_mean_group"`, `cce_estimator="cce_mean_group"` y `factor_loadings="heterogeneous"` en `LPResult.attrs["specification"]` / `LPResult.metadata`.
+- **Suficiencia muestral y cronología**: Las unidades con menos de `min_obs` observaciones válidas (por defecto `max(10, k_regs + 2)`) o diseños con rango deficiente se excluyen con una advertencia explícita y se registran en `attrs["specification"]["excluded_entities_by_horizon"]` (sin descartes silenciosos). Como condicionar en $(\overline{\Delta_h y_t}, \bar{x}_t)$ vuelve algebraicamente idénticas las pendientes cuando $N \le 2$, CCE-MG exige al menos 3 entidades válidas por horizonte (lanzando `ValueError` en caso contrario). Ambos estimadores validan duplicados en el índice, valores no finitos y regularidad temporal salvo `allow_index_gaps=True`.
+
+```python
+from puremacro.lp import cce_panel_lp
+from puremacro.lp.cce import cce_mg_panel_lp
+
+# Panel con cargas factoriales heterogéneas correlacionadas lambda_i * f_t
+n_u, n_t = 12, 40
+f_common = np.cumsum(rng.normal(0.0, 0.5, size=n_t))
+lam_x = np.linspace(0.4, 2.2, n_u)
+lam_y = 2.0 * lam_x
+cce_frames = []
+for i in range(n_u):
+    ex_i = rng.normal(0.0, 0.6, size=n_t)
+    x_i = lam_x[i] * f_common + ex_i
+    y_i = 0.5 * ex_i + lam_y[i] * f_common + rng.normal(0.0, 0.3, size=n_t)
+    cce_frames.append(pd.DataFrame({
+        "code": f"U{i:02d}",
+        "date": pd.date_range("2010-01-01", periods=n_t, freq="QS"),
+        "y": y_i,
+        "x": x_i,
+    }))
+cce_panel = pd.concat(cce_frames, ignore_index=True).set_index(["code", "date"])
+
+# CCE agrupado (cargas homogéneas) vs Pesaran (2006) CCE-MG (cargas heterogéneas)
+res_ccep = cce_panel_lp(cce_panel, y="y", x="x", horizons=range(0, 5), n_lags=1)
+res_ccemg = cce_panel_lp(
+    cce_panel, y="y", x="x", horizons=range(0, 5), n_lags=1, estimator="mean_group"
+)
+res_ccemg_alias = cce_mg_panel_lp(cce_panel, y="y", x="x", horizons=range(0, 5), n_lags=1)
+assert res_ccep.metadata["cce_estimator"] == "cce_pooled"
+assert res_ccemg.metadata["factor_loadings"] == "heterogeneous"
+assert np.allclose(res_ccemg["beta"], res_ccemg_alias["beta"])
+```
+
 ---
 
 ## 5. Firmas estandarizadas y alias de parámetros
