@@ -35,13 +35,23 @@ study = run_brief("first_brief")
 print(study["record"]["national"]["ev_pct_consumption"])
 ```
 
-The output directory holds `national.{md,csv,tex}`, `households.{md,csv,tex}`,
+The default command writes `national.{md,csv,tex}`, `households.{md,csv,tex}`,
 `first_brief.png`, `headline.json` (the numbers below) and `manifest.json`
 (package and library versions, the table's citation and SHA-256, solver
-settings, convergence, timings). Options: `--importer`, `--exporter`,
-`--sector` (`all` or one ISIC section `A` to `T`), `--tariff` (0.10 = 10%),
-`--experiment`, `--groups` and `--lang en|es`. The run takes a few seconds; the
-solver is the exact engine with `method="equilibrated_newton"` and `tol=1e-5`.
+settings, convergence, timings), plus `experiment.{md,csv,tex}` when
+`--experiment sigma=<value>` is set. Passing `--enigh`, `--trade-elasticity`
+(> 0), or `--household-elasticity` (> 0) switches to the `TradeBriefConfig`
+sensitivity-grid workflow: it computes the headline scenario (defaulting to
+`trade_elasticity=4.0`, `household_elasticity=1.0`, and ENIGH quintiles when
+`--groups` is omitted), sweeps `sensitivity_trade_elasticities=(2.0, 4.0, 6.0)`
+by `sensitivity_household_elasticities=(0.5, 1.0, 1.5)`, and additionally writes
+`paths.csv`, `headline.{md,csv,tex}`, and `headline_es.md` (or `headline_en.md`
+with `--lang es`); `--experiment` is not executed in this mode. Options:
+`--importer`, `--exporter`, `--sector` (`all` or one ISIC section `A` to `T`),
+`--tariff` (0.10 = 10%), `--experiment`, `--groups`, `--enigh`,
+`--trade-elasticity`, `--household-elasticity`, `--output`, and `--lang en|es`.
+The default run takes a few seconds; the solver uses the exact engine with
+`method="equilibrated_newton"` and `tol=1e-5`.
 
 ## 3. Preview: the national result
 
@@ -130,7 +140,34 @@ equal amount per household (which favours low spenders).
 
 Rounded survey shares should be normalized explicitly within each row before saving the CSV; the input check requires a row sum within `1e-6` of one.
 
-To use your own groups, write a CSV with the columns `group`,
+To run with the bundled INEGI ENIGH 2022 household quintiles (`Q1`–`Q5`, 90,033
+households) instead of the synthetic distribution, add `--enigh`:
+
+```bash
+python -m puremacro.examples.first_brief_tariffs --enigh --output enigh_brief
+```
+
+`load_enigh_groups(icio, importer=...)` maps the ENIGH food (`A`, `C`) versus
+non-food Engel curves proportionally onto the chosen importer's ICIO national
+consumption basket; when applying that survey shape to an importer other than
+Mexico, document that proportionality assumption explicitly.
+
+From Python, `TradeBriefConfig` and `compute_brief` also expose the
+elasticity-grid workflow programmatically:
+
+```python
+from puremacro.examples.first_brief_tariffs import TradeBriefConfig, compute_brief
+
+cfg = TradeBriefConfig(
+    use_enigh=True,
+    sensitivity_trade_elasticities=(4.0,),
+    sensitivity_household_elasticities=(1.0,),
+)
+record, paths = compute_brief(cfg)
+print(paths[["trade_elasticity", "household_elasticity", "group", "ev_pct_proportional"]].to_string(index=False))
+```
+
+To use your own groups via `--groups`, write a CSV with the columns `group`,
 `population_weight`, `annual_spending` and one column per ISIC section `A` to
 `T` holding budget shares (each at least 0, each row summing to 1), and no
 other columns:
@@ -139,14 +176,18 @@ other columns:
 python -m puremacro.examples.first_brief_tariffs --groups my_groups.csv --output my_brief
 ```
 
-From a household survey such as Mexico's ENIGH, compute each group's weighted
-mean spending by ISIC section on the full sample of households, including
-those with zero purchases in a section, and set `population_weight` to the sum
-of the survey weights. The concordance from survey spending categories to
-ISIC sections is yours to make and document. A share in a section the
-importer's consumption basket does not buy is refused with the section named.
-For the general interface and its assumptions see
-[Distributional household incidence](trade_distributional.md).
+In Python, `load_groups(data_path, icio, importer=...)` (and
+`compute_brief(data_path=...)` / `TradeBriefConfig(data_path=...)`) accepts
+**either** that aggregated `A`–`T` shares CSV **or** a household microdata CSV
+with weight (`weight`, `factor`, or `pop_weight`) and spending (`spending`,
+`gasto_mon`, or `expenditure`), plus optional `income`/`ing_cor`,
+`food`/`alimentos`, and `tot_integ`/`hh_size`/`members`, automatically binning at
+least 5 households into quintiles `Q1`–`Q5`. CLI `--groups` validates the
+aggregated group-shares schema directly. For either input, the concordance from
+survey spending categories to ISIC sections is yours to make and document, and
+a positive share in a section the importer's consumption basket does not buy is
+refused with the section named. For the general interface and its assumptions
+see [Distributional household incidence](trade_distributional.md).
 
 ## 6. Assumptions and limits
 

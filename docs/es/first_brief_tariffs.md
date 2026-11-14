@@ -37,14 +37,24 @@ study = run_brief("first_brief", lang="es")
 print(study["record"]["national"]["ev_pct_consumption"])
 ```
 
-El directorio de salida contiene `national.{md,csv,tex}`,
+El comando por defecto escribe `national.{md,csv,tex}`,
 `households.{md,csv,tex}`, `first_brief.png`, `headline.json` (las cifras de
 abajo) y `manifest.json` (versiones del paquete y de las bibliotecas, la cita
 y el SHA-256 de la tabla, la configuración del solver, la convergencia y los
-tiempos). Opciones: `--importer`, `--exporter`, `--sector` (`all` o una
-sección CIIU de `A` a `T`), `--tariff` (0.10 = 10%), `--experiment`,
-`--groups` y `--lang en|es`. La ejecución tarda unos segundos; el solver es el
-motor exacto con `method="equilibrated_newton"` y `tol=1e-5`.
+tiempos), además de `experiment.{md,csv,tex}` cuando se indica
+`--experiment sigma=<valor>`. Pasar `--enigh`, `--trade-elasticity` (> 0) o
+`--household-elasticity` (> 0) activa el flujo con `TradeBriefConfig` y malla
+de sensibilidad: calcula el escenario principal (por omisión
+`trade_elasticity=4.0`, `household_elasticity=1.0` y quintiles ENIGH cuando se
+omite `--groups`), barre `sensitivity_trade_elasticities=(2.0, 4.0, 6.0)` por
+`sensitivity_household_elasticities=(0.5, 1.0, 1.5)`, y escribe además
+`paths.csv`, `headline.{md,csv,tex}` y `headline_en.md` (o `headline_es.md` con
+`--lang en`); en este modo `--experiment` no se ejecuta. Opciones:
+`--importer`, `--exporter`, `--sector` (`all` o una sección CIIU de `A` a
+`T`), `--tariff` (0.10 = 10%), `--experiment`, `--groups`, `--enigh`,
+`--trade-elasticity`, `--household-elasticity`, `--output` y `--lang en|es`.
+La ejecución base tarda unos segundos; el solver usa el motor exacto con
+`method="equilibrated_newton"` y `tol=1e-5`.
 
 ## 3. Vista previa: el resultado nacional
 
@@ -136,24 +146,57 @@ favorece a quienes gastan menos).
 
 Normalice explícitamente las participaciones redondeadas dentro de cada fila antes de guardar el CSV; la comprobación exige que cada suma difiera de uno en menos de `1e-6`.
 
-Para usar sus propios grupos, escriba un CSV con las columnas `group`,
-`population_weight`, `annual_spending` y una columna por sección CIIU de `A` a
-`T` con proporciones de gasto (cada una mayor o igual a 0 y cada fila sumando
-1), sin otras columnas:
+Para ejecutar el informe con los quintiles integrados de la encuesta ENIGH 2022
+del INEGI (`Q1`–`Q5`, 90,033 hogares) en lugar de la distribución sintética,
+agregue `--enigh`:
+
+```bash
+python -m puremacro.examples.first_brief_tariffs --enigh --lang es --output informe_enigh
+```
+
+`load_enigh_groups(icio, importer=...)` mapea proporcionalmente las curvas de
+Engel de alimentos (`A`, `C`) frente a otros rubros de la ENIGH sobre la
+canasta nacional de consumo ICIO del importador elegido; al aplicar esa forma
+de encuesta a un importador distinto de México, documente explícitamente ese
+supuesto de proporcionalidad.
+
+Desde Python, `TradeBriefConfig` y `compute_brief` también exponen el flujo de
+malla de elasticidades:
+
+```python
+from puremacro.examples.first_brief_tariffs import TradeBriefConfig, compute_brief
+
+cfg = TradeBriefConfig(
+    use_enigh=True,
+    sensitivity_trade_elasticities=(4.0,),
+    sensitivity_household_elasticities=(1.0,),
+)
+record, paths = compute_brief(cfg)
+print(paths[["trade_elasticity", "household_elasticity", "group", "ev_pct_proportional"]].to_string(index=False))
+```
+
+Para usar sus propios grupos con `--groups`, escriba un CSV con las columnas
+`group`, `population_weight`, `annual_spending` y una columna por sección CIIU
+de `A` a `T` con proporciones de gasto (cada una mayor o igual a 0 y cada fila
+sumando 1), sin otras columnas:
 
 ```bash
 python -m puremacro.examples.first_brief_tariffs --groups mis_grupos.csv --lang es --output mi_informe
 ```
 
-A partir de una encuesta de hogares como la ENIGH de México, calcule el gasto
-medio ponderado de cada grupo por sección CIIU sobre la muestra completa de
-hogares, incluidos los que no compran nada en una sección, y use como
-`population_weight` la suma de los factores de expansión. La concordancia
-entre las categorías de gasto de la encuesta y las secciones CIIU le
-corresponde a usted, y debe documentarla. Una proporción positiva en una
-sección que la canasta de consumo del importador no compra se rechaza
-nombrando la sección. Para la interfaz general y sus supuestos vea
-[Incidencia distributiva en los hogares](trade_distributional.md).
+En Python, `load_groups(data_path, icio, importer=...)` (y
+`compute_brief(data_path=...)` / `TradeBriefConfig(data_path=...)`) acepta
+**tanto** ese CSV agregado de participaciones `A`–`T` **como** un CSV de
+microdatos de hogares con ponderador (`weight`, `factor` o `pop_weight`) y
+gasto (`spending`, `gasto_mon` o `expenditure`), además de columnas opcionales
+`income`/`ing_cor`, `food`/`alimentos` y `tot_integ`/`hh_size`/`members`,
+agrupando automáticamente al menos 5 hogares en quintiles `Q1`–`Q5`. La opción
+de línea de comandos `--groups` valida directamente el esquema agregado por
+grupos. En cualquier caso, la concordancia entre las categorías de gasto de la
+encuesta y las secciones CIIU le corresponde a usted, y debe documentarla; una
+proporción positiva en una sección que la canasta de consumo del importador no
+compra se rechaza nombrando la sección. Para la interfaz general y sus
+supuestos vea [Incidencia distributiva en los hogares](trade_distributional.md).
 
 ## 6. Supuestos y límites
 
