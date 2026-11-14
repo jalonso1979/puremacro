@@ -16,7 +16,7 @@ There is no registry of named scenarios: every scenario states its tariffs.
 from __future__ import annotations
 
 import abc
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import math
 from numbers import Real
 from typing import TYPE_CHECKING, Any, Literal, Mapping, Sequence
@@ -642,19 +642,45 @@ def run_scenario_batch(
     if base_result is None:
         base_result = solve_trade_equilibrium(calib, **solver_opts)
     results[baseline_name] = base_result
-    prev_x = base_result.x_sol.copy()
+    base_converged = bool(base_result.converged)
+    base_x_ok = bool(base_converged and np.isfinite(base_result.x_sol).all())
+    if not base_converged:
+        warnings.warn(
+            f"Baseline scenario {baseline_name!r} did not converge "
+            f"(max_residual={base_result.max_residual:.3e}); skipping warm-start reuse "
+            "and Geary-Khamis PPP computation.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+    prev_x = base_result.x_sol.copy() if base_x_ok else build_initial_guess(calib)
 
     for scen in scen_list:
         x_init = prev_x.copy() if warm_start else build_initial_guess(calib)
-        res = run_scenario(calib, scen, x0=x_init, base_result=base_result, **solver_opts)
+        res = run_scenario(
+            calib,
+            scen,
+            x0=x_init,
+            base_result=base_result if base_converged else None,
+            **solver_opts,
+        )
         results[scen.name] = res
-        if warm_start:
+        if not res.converged:
+            warnings.warn(
+                f"Scenario {scen.name!r} did not converge "
+                f"(max_residual={res.max_residual:.3e}); skipping warm-start update "
+                "and Geary-Khamis PPP computation.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+        elif warm_start and np.isfinite(res.x_sol).all():
             prev_x = res.x_sol.copy()
 
     gk_results: dict[str, GearyKhamisResult] = {}
-    if compute_gk:
+    if compute_gk and base_converged:
         for name, res in results.items():
-            gk_results[name] = compute_geary_khamis(
+            if not res.converged:
+                continue
+            gk_res = compute_geary_khamis(
                 res,
                 base_result,
                 calib,
@@ -663,8 +689,17 @@ def run_scenario_batch(
                 tol=1e-10,
                 max_iter=1000,
             )
+            if not gk_res.converged:
+                warnings.warn(
+                    f"Geary-Khamis PPP did not converge for scenario {name!r}; "
+                    "omitting from Geary-Khamis real GDP growth results.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+                continue
+            gk_results[name] = gk_res
 
-    return ScenarioBatchResult(
+    batch = ScenarioBatchResult(
         scenarios=results,
         geary_khamis=gk_results,
         baseline_scenario=baseline_name,
@@ -677,6 +712,18 @@ def run_scenario_batch(
             "converged": {name: bool(res.converged) for name, res in results.items()},
         },
     )
+    unconverged_names = {name for name, res in results.items() if not res.converged}
+    if not base_converged or unconverged_names or (compute_gk and len(gk_results) != len(results)):
+        real_gdp_table = batch.real_gdp_table.copy()
+        if not base_converged:
+            real_gdp_table.loc[:, :] = np.nan
+        else:
+            for name in results:
+                if name in unconverged_names or (compute_gk and name not in gk_results):
+                    if name in real_gdp_table.columns:
+                        real_gdp_table[name] = np.nan
+        batch = replace(batch, real_gdp_table=real_gdp_table)
+    return batch
 
 
 def _resolve_welfare_tol(
@@ -712,13 +759,21 @@ def _extract_batch_macro(
     c_idx: int,
     base_name: str,
     has_nonzero_gdp_table: bool,
+    *,
+    base_converged: bool = True,
 ) -> dict[str, float]:
-    if scen_name in batch.geary_khamis:
+    res_converged = bool(res.converged)
+    if not res_converged or not base_converged:
+        real_gdp_growth_pct = np.nan
+    elif scen_name in batch.geary_khamis:
         gk = batch.geary_khamis[scen_name]
-        growth = gk.gdp_growth if gk.gdp_growth is not None else gk.real_gdp_growth
-        real_gdp_growth_pct = (
-            _extract_array_scalar(growth, c_idx) if growth is not None else np.nan
-        )
+        if not bool(gk.converged):
+            real_gdp_growth_pct = np.nan
+        else:
+            growth = gk.gdp_growth if gk.gdp_growth is not None else gk.real_gdp_growth
+            real_gdp_growth_pct = (
+                _extract_array_scalar(growth, c_idx) if growth is not None else np.nan
+            )
     elif (
         not batch.real_gdp_table.empty
         and country in batch.real_gdp_table.index
@@ -769,33 +824,73 @@ def _build_scenario_summary_df(
     table: pd.DataFrame,
     scenario_order: Sequence[str],
     base_name: str,
+    *,
+    _warn_on_failure: bool = True,
 ) -> pd.DataFrame:
     rows: list[dict[str, Any]] = []
     for scen_name in scenario_order:
         sub = table[table["scenario"] == scen_name]
+        if sub.empty:
+            rows.append({
+                "scenario": scen_name,
+                "is_baseline": scen_name == base_name,
+                "converged": False,
+                "n_countries": 0,
+                "n_welfare_passed": 0,
+                "mean_ev_pct_consumption": np.nan,
+                "min_ev_pct_consumption": np.nan,
+                "total_ev": np.nan,
+                "mean_real_gdp_growth_pct": np.nan,
+                "mean_cpi_inflation_pct": np.nan,
+            })
+            continue
+
+        conv_mask = sub["converged"].astype(bool).to_numpy()
+        all_converged = bool(np.all(conv_mask))
+        welf_mask = (sub["welfare_status"] == "passed").to_numpy() & conv_mask
+        n_welfare_passed = int(np.sum(welf_mask))
+        all_welfare_passed = bool(all_converged and np.all(welf_mask))
+
+        if _warn_on_failure:
+            if not all_converged:
+                warnings.warn(
+                    f"Scenario {scen_name!r} did not converge; setting summary "
+                    "welfare and macro aggregates to NaN.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+            elif not all_welfare_passed:
+                warnings.warn(
+                    f"Scenario {scen_name!r} has failed welfare status for one or more "
+                    "countries; setting welfare summary aggregates to NaN.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+
         ev_pct = sub["ev_pct_consumption"].to_numpy(dtype=float)
         ev_abs = sub["ev"].to_numpy(dtype=float)
         gdp_g = sub["real_gdp_growth_pct"].to_numpy(dtype=float)
         infl = sub["cpi_inflation_pct"].to_numpy(dtype=float)
+
+        welfare_ok = (
+            all_welfare_passed
+            and bool(np.all(np.isfinite(ev_pct)))
+            and bool(np.all(np.isfinite(ev_abs)))
+        )
+        gdp_ok = all_converged and bool(np.all(np.isfinite(gdp_g)))
+        infl_ok = all_converged and bool(np.all(np.isfinite(infl)))
+
         rows.append({
             "scenario": scen_name,
             "is_baseline": scen_name == base_name,
-            "converged": bool(sub["converged"].all()) if not sub.empty else False,
+            "converged": all_converged,
             "n_countries": len(sub),
-            "n_welfare_passed": int((sub["welfare_status"] == "passed").sum()),
-            "mean_ev_pct_consumption": (
-                float(np.nanmean(ev_pct)) if np.any(np.isfinite(ev_pct)) else np.nan
-            ),
-            "min_ev_pct_consumption": (
-                float(np.nanmin(ev_pct)) if np.any(np.isfinite(ev_pct)) else np.nan
-            ),
-            "total_ev": float(np.sum(ev_abs)) if np.all(np.isfinite(ev_abs)) else np.nan,
-            "mean_real_gdp_growth_pct": (
-                float(np.nanmean(gdp_g)) if np.any(np.isfinite(gdp_g)) else np.nan
-            ),
-            "mean_cpi_inflation_pct": (
-                float(np.nanmean(infl)) if np.any(np.isfinite(infl)) else np.nan
-            ),
+            "n_welfare_passed": n_welfare_passed,
+            "mean_ev_pct_consumption": float(np.mean(ev_pct)) if welfare_ok else np.nan,
+            "min_ev_pct_consumption": float(np.min(ev_pct)) if welfare_ok else np.nan,
+            "total_ev": float(np.sum(ev_abs)) if welfare_ok else np.nan,
+            "mean_real_gdp_growth_pct": float(np.mean(gdp_g)) if gdp_ok else np.nan,
+            "mean_cpi_inflation_pct": float(np.mean(infl)) if infl_ok else np.nan,
         })
     return pd.DataFrame(rows)
 
@@ -1145,12 +1240,16 @@ def summarize_scenario_batch(
         raise ValueError("No scenarios selected for summary")
 
     warn_list: list[str] = []
-    base_valid = bool(base_res.converged)
+    base_converged = bool(base_res.converged)
+    base_valid = base_converged
     base_tol = _resolve_welfare_tol(welfare_tol, base_res, base_res)
     if not base_valid:
-        msg = f"Baseline scenario {base_name!r} did not converge; welfare metrics unavailable."
+        msg = (
+            f"Baseline scenario {base_name!r} did not converge; "
+            "welfare and real GDP growth metrics unavailable."
+        )
         warn_list.append(msg)
-        warnings.warn(msg, UserWarning, stacklevel=2)
+        warnings.warn(msg, RuntimeWarning, stacklevel=2)
     else:
         try:
             _checked_state(base_res, calib, tol=base_tol)
@@ -1158,11 +1257,12 @@ def summarize_scenario_batch(
             base_valid = False
             msg = f"Baseline scenario {base_name!r} failed state check: {exc}"
             warn_list.append(msg)
-            warnings.warn(msg, UserWarning, stacklevel=2)
+            warnings.warn(msg, RuntimeWarning, stacklevel=2)
 
+    gdp_table_vals = np.asarray(batch.real_gdp_table, dtype=float)
     has_nonzero_gdp_table = (
         not batch.real_gdp_table.empty
-        and bool(np.any(np.asarray(batch.real_gdp_table, dtype=float) != 0.0))
+        and bool(np.any(np.isfinite(gdp_table_vals) & (gdp_table_vals != 0.0)))
     )
 
     rows: list[dict[str, Any]] = []
@@ -1173,9 +1273,12 @@ def summarize_scenario_batch(
         scen_state_ok = converged and base_valid
         if not is_base:
             if not converged:
-                msg = f"Scenario {scen_name!r} did not converge; welfare metrics set to NaN."
+                msg = (
+                    f"Scenario {scen_name!r} did not converge; "
+                    "welfare and aggregate summary metrics set to NaN."
+                )
                 warn_list.append(msg)
-                warnings.warn(msg, UserWarning, stacklevel=2)
+                warnings.warn(msg, RuntimeWarning, stacklevel=2)
             elif base_valid:
                 scen_tol = _resolve_welfare_tol(welfare_tol, res, base_res)
                 try:
@@ -1184,12 +1287,28 @@ def summarize_scenario_batch(
                     scen_state_ok = False
                     msg = f"Scenario {scen_name!r} failed welfare state check: {exc}"
                     warn_list.append(msg)
-                    warnings.warn(msg, UserWarning, stacklevel=2)
+                    warnings.warn(msg, RuntimeWarning, stacklevel=2)
+
+        gk_res = batch.geary_khamis.get(scen_name)
+        if converged and base_converged and gk_res is not None and not bool(gk_res.converged):
+            msg = (
+                f"Geary-Khamis PPP did not converge for scenario {scen_name!r}; "
+                "real GDP growth set to NaN."
+            )
+            warn_list.append(msg)
+            warnings.warn(msg, RuntimeWarning, stacklevel=2)
 
         for ctry in target_countries:
             c_idx = known_countries.index(ctry)
             macro = _extract_batch_macro(
-                batch, res, scen_name, ctry, c_idx, base_name, has_nonzero_gdp_table
+                batch,
+                res,
+                scen_name,
+                ctry,
+                c_idx,
+                base_name,
+                has_nonzero_gdp_table,
+                base_converged=base_converged,
             )
             welfare_status = "failed"
             ev = cv = ev_pct_c = ev_pct_g = p_eff = f_eff = np.nan
@@ -1220,10 +1339,17 @@ def summarize_scenario_batch(
                     if all(np.isfinite(vals)):
                         ev, cv, ev_pct_c, ev_pct_g, p_eff, f_eff = vals
                         welfare_status = "passed"
+                    else:
+                        msg = (
+                            f"Non-finite Hicksian welfare values for ({scen_name!r}, {ctry!r}); "
+                            "setting welfare metrics to NaN."
+                        )
+                        warn_list.append(msg)
+                        warnings.warn(msg, RuntimeWarning, stacklevel=2)
                 except (ValueError, RuntimeError, ArithmeticError, KeyError) as exc:
                     msg = f"Welfare computation failed for ({scen_name!r}, {ctry!r}): {exc}"
                     warn_list.append(msg)
-                    warnings.warn(msg, UserWarning, stacklevel=2)
+                    warnings.warn(msg, RuntimeWarning, stacklevel=2)
 
             rows.append({
                 "scenario": scen_name,
@@ -1241,7 +1367,9 @@ def summarize_scenario_batch(
             })
 
     table = pd.DataFrame(rows)
-    scenario_summary = _build_scenario_summary_df(table, target_scenarios, base_name)
+    scenario_summary = _build_scenario_summary_df(
+        table, target_scenarios, base_name, _warn_on_failure=False
+    )
     numeraire = (
         batch.metadata.get("numeraire") if isinstance(batch.metadata, Mapping) else None
     )
