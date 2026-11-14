@@ -126,7 +126,12 @@ def residual_seasonality_F(
     groups = [g for g in groups if len(g) > 1]
     if len(groups) < 2:
         return (np.nan, np.nan, 0, 0)
-    F, p = stats.f_oneway(*groups)
     dof_num = len(groups) - 1
     dof_den = sum(len(g) for g in groups) - len(groups)
+    if dof_num <= 0 or dof_den <= 0:
+        return (np.nan, np.nan, int(dof_num), int(dof_den))
+    ss_within = float(sum(np.sum((g - np.mean(g)) ** 2) for g in groups))
+    if ss_within <= 1e-12:
+        return (np.nan, np.nan, int(dof_num), int(dof_den))
+    F, p = stats.f_oneway(*groups)
     return (float(F), float(p), int(dof_num), int(dof_den))

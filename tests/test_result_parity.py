@@ -637,7 +637,7 @@ def test_scenario_comparison_result_quintet_and_plot():
         table, ns=2, nc=2, nfd=3, country_codes=countries, sector_codes=sectors
     )
     batch = run_scenario_batch(
-        calib, [TariffScenario("C01", {("C02", "*"): 0.10}, name="t10")], baseline_name="base"
+        calib, [TariffScenario("C01", {("C02", "*"): 0.10}, name="tariff_ten")], baseline_name="base"
     )
     comp = summarize_scenario_batch(batch, calib)
 
@@ -653,4 +653,37 @@ def test_scenario_comparison_result_quintet_and_plot():
     plt.close(fig)
     fig2, ax = plt.subplots()
     assert comp.plot(ax=ax) is ax
+    plt.close(fig2)
+
+
+
+def test_preflight_report_quintet_and_plot():
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from puremacro.data import preflight_panel
+
+    rng = np.random.default_rng(19)
+    dates = pd.date_range("2015-01-01", periods=24, freq="QS")
+    df = pd.DataFrame({
+        "unit": ["A"] * 24 + ["B"] * 24,
+        "date": list(dates) * 2,
+        "y": rng.normal(0.0, 1.0, size=48),
+        "x": rng.normal(0.0, 1.0, size=48),
+    })
+    rep = preflight_panel(df, unit_col="unit", time_col="date")
+
+    assert isinstance(rep.to_frame(), pd.DataFrame)
+    assert isinstance(rep.to_dataframe(), pd.DataFrame)
+    assert isinstance(rep.summary(), str) and rep.summary()
+    assert "|" in rep.to_markdown()
+    assert "\\begin{tabular}" in rep.to_latex()
+    assert "#table(" in rep.to_typst()
+    assert rep.to_json()
+
+    fig = rep.plot()
+    assert isinstance(fig, matplotlib.figure.Figure)
+    plt.close(fig)
+    fig2, ax = plt.subplots()
+    assert rep.plot(ax=ax) is ax
     plt.close(fig2)
