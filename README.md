@@ -136,26 +136,25 @@ differences. Numerical and user-supplied gradients are also available. See the
 [estimation guide](docs/dsge_estimation.md) for gradient selection, fallback
 behavior and diagnostics:
 ```python
-# requires: numpy scipy
-import numpy as np
-import pandas as pd
 from puremacro.dsge import load_mod, GammaPrior
 
-# Load standard DSGE model and prepare estimation
+# Load 3-equation New Keynesian DSGE model with AR(1) demand shock
 mod_text = """
-var y pi i; varexo eps_d eps_m;
+var y pi i d; varexo eps_d eps_m;
 parameters sigma kappa phi_pi rho_d;
 sigma = 1.0; kappa = 0.1; phi_pi = 1.5; rho_d = 0.5;
 model;
-  y = y(+1) - (1/sigma) * (i - pi(+1)) + eps_d;
+  y = y(+1) - (1/sigma) * (i - pi(+1)) + d;
   pi = 0.99 * pi(+1) + kappa * y;
   i = phi_pi * pi + eps_m;
+  d = rho_d * d(-1) + eps_d;
 end;
 """
 model = load_mod(mod_text)
+
 # Simulate synthetic observables
-sim = model.stoch_simul(periods=100, seed=42)
-data = pd.DataFrame({"y": sim.paths["y"], "pi": sim.paths["pi"]})
+sim = model.simulate(periods=100, seed=42)
+data = sim[["y", "pi"]]
 
 # Bayesian NUTS estimation for this first-order model
 res = model.estimate(

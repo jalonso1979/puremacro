@@ -141,26 +141,25 @@ hay gradientes numéricos y gradientes suministrados por el usuario. La
 [guía de estimación](docs/es/dsge_estimation.md) detalla la selección de
 gradientes, las alternativas automáticas y los diagnósticos:
 ```python
-# requires: numpy scipy
-import numpy as np
-import pandas as pd
 from puremacro.dsge import load_mod, GammaPrior
 
-# Cargar modelo DSGE y preparar estimación
+# Cargar modelo DSGE neokeynesiano de 3 ecuaciones con choque de demanda AR(1)
 mod_text = """
-var y pi i; varexo eps_d eps_m;
+var y pi i d; varexo eps_d eps_m;
 parameters sigma kappa phi_pi rho_d;
 sigma = 1.0; kappa = 0.1; phi_pi = 1.5; rho_d = 0.5;
 model;
-  y = y(+1) - (1/sigma) * (i - pi(+1)) + eps_d;
+  y = y(+1) - (1/sigma) * (i - pi(+1)) + d;
   pi = 0.99 * pi(+1) + kappa * y;
   i = phi_pi * pi + eps_m;
+  d = rho_d * d(-1) + eps_d;
 end;
 """
 model = load_mod(mod_text)
-# Simulación de series observables sintéticas
-sim = model.stoch_simul(periods=100, seed=42)
-data = pd.DataFrame({"y": sim.paths["y"], "pi": sim.paths["pi"]})
+
+# Simular series observables sintéticas
+sim = model.simulate(periods=100, seed=42)
+data = sim[["y", "pi"]]
 
 # Estimación bayesiana con NUTS para este modelo de primer orden
 res = model.estimate(
