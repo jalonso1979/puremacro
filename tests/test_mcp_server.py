@@ -469,6 +469,100 @@ def test_tool_lp_hac_and_sensitivity_grid(tmp_path: Path) -> None:
     json.dumps(grid_out, allow_nan=False)
 
 
+def test_tool_lp_sensitivity_grid_lp_did_and_mix_guard() -> None:
+    rng = np.random.default_rng(42)
+    panel_rows: list[dict[str, object]] = []
+    for u in range(16):
+        cohort = 5 if u < 6 else (7 if u < 10 else 999)
+        unit_fe = 0.2 * u
+        for t in range(12):
+            treat = 1 if t >= cohort else 0
+            effect = 1.5 * treat * (1 + 0.1 * max(t - cohort, 0))
+            panel_rows.append(
+                {
+                    "unit": f"u{u:02d}",
+                    "time": t,
+                    "treat": treat,
+                    "y": float(unit_fe + 0.1 * t + effect + rng.normal(0.0, 0.1)),
+                }
+            )
+
+    did_out = call_tool(
+        "lp_sensitivity_grid",
+        {
+            "rows": panel_rows,
+            "y": "y",
+            "x": "treat",
+            "unit_col": "unit",
+            "time_col": "time",
+            "estimator": "lp_did",
+            "grid": {"weights": ["equal", "vw"]},
+            "base_kwargs": {"horizons": [0, 1, 2], "pre_window": 2},
+        },
+    )
+    assert set([0, 1, 2]).issubset(set(did_out["horizons"]))
+    assert len(did_out["table"]) >= 4
+    json.dumps(did_out, allow_nan=False)
+
+    with pytest.raises(ValueError, match="Cannot combine 'lp_did'"):
+        call_tool(
+            "lp_sensitivity_grid",
+            {
+                "rows": panel_rows,
+                "y": "y",
+                "x": "treat",
+                "unit_col": "unit",
+                "time_col": "time",
+                "grid": {"estimator": ["lp_did", "panel_lp"], "weights": ["equal"]},
+            },
+        )
+
+    with pytest.raises(ValueError, match="requires 'unit_col'"):
+        call_tool(
+            "lp_sensitivity_grid",
+            {
+                "rows": panel_rows,
+                "y": "y",
+                "x": "treat",
+                "estimator": "lp_did",
+                "grid": {"weights": ["equal", "vw"]},
+            },
+        )
+
+
+def test_csv_row_bounds_enforced_across_irf_tools(tmp_path: Path) -> None:
+    n_over = 50_002
+    cmp_csv = tmp_path / "oversize_compare.csv"
+    cmp_lines = ["spec,h,point,se"] + [f"s{i % 2},{i},0.1,0.05" for i in range(n_over)]
+    cmp_csv.write_text("\n".join(cmp_lines) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="exceeds maximum of 50000 rows"):
+        call_tool("compare_irfs", {"data_path": "oversize_compare.csv"}, allowed_root=tmp_path)
+
+    tgt_csv = tmp_path / "oversize_targets.csv"
+    tgt_lines = ["variable,shock,h,value,se"] + [f"y,mp,{i},0.1,0.05" for i in range(n_over)]
+    tgt_csv.write_text("\n".join(tgt_lines) + "\n", encoding="utf-8")
+
+    small_model = [{"h": 0, "y": 0.1}]
+    with pytest.raises(ValueError, match="exceeds maximum of 50000 rows"):
+        call_tool(
+            "score_irf_against_targets",
+            {"model_irf": small_model, "targets_path": "oversize_targets.csv"},
+            allowed_root=tmp_path,
+        )
+
+    mdl_csv = tmp_path / "oversize_model.csv"
+    mdl_lines = ["h,y"] + [f"{i},0.1" for i in range(n_over)]
+    mdl_csv.write_text("\n".join(mdl_lines) + "\n", encoding="utf-8")
+    small_targets = [{"variable": "y", "shock": "mp", "h": 0, "value": 0.1, "se": 0.05}]
+    with pytest.raises(ValueError, match="exceeds maximum of 50000 rows"):
+        call_tool(
+            "score_irf_against_targets",
+            {"model_irf_path": "oversize_model.csv", "targets": small_targets},
+            allowed_root=tmp_path,
+        )
+
+
 def test_tool_compare_irfs_and_score_irf_against_targets(tmp_path: Path) -> None:
     irf_a = [
         {"horizon": 0, "irf": -0.5, "se": 0.1},

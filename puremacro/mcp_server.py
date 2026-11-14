@@ -223,13 +223,27 @@ def _frame_from_tabular_payload(payload: Any, *, source_name: str = "data") -> A
     return df
 
 
+def _read_bounded_csv(path: Path, *, param_name: str = "data_path") -> Any:
+    import pandas as pd
+
+    try:
+        df = pd.read_csv(path, nrows=_MAX_TABLE_ROWS + 1)
+    except pd.errors.EmptyDataError as exc:
+        raise ValueError(f"{param_name} CSV file is empty") from exc
+    if len(df) > _MAX_TABLE_ROWS:
+        raise ValueError(f"{param_name} exceeds maximum of {_MAX_TABLE_ROWS} rows")
+    if len(df.columns) > _MAX_TABLE_COLS:
+        raise ValueError(f"{param_name} exceeds maximum of {_MAX_TABLE_COLS} columns")
+    if df.empty:
+        raise ValueError(f"{param_name} CSV file is empty")
+    return df
+
+
 def _load_dataframe_from_args(
     args: Mapping[str, Any],
     *,
     allowed_root: Path | None,
 ) -> Any:
-    import pandas as pd
-
     has_rows = args.get("rows") is not None
     has_columns = args.get("columns") is not None
     has_path = args.get("data_path") is not None
@@ -251,14 +265,7 @@ def _load_dataframe_from_args(
         param_name="data_path",
     )
     if path.suffix.lower() == ".csv":
-        df = pd.read_csv(path, nrows=_MAX_TABLE_ROWS + 1)
-        if len(df) > _MAX_TABLE_ROWS:
-            raise ValueError(f"data_path exceeds maximum of {_MAX_TABLE_ROWS} rows")
-        if len(df.columns) > _MAX_TABLE_COLS:
-            raise ValueError(f"data_path exceeds maximum of {_MAX_TABLE_COLS} columns")
-        if df.empty:
-            raise ValueError("data_path CSV file is empty")
-        return df
+        return _read_bounded_csv(path, param_name="data_path")
 
     payload = _read_json_file(path)
     return _frame_from_tabular_payload(payload, source_name="data_path")
@@ -505,10 +512,27 @@ def _handle_lp_sensitivity_grid(args: Mapping[str, Any], allowed_root: Path | No
     unit_col = args.get("unit_col")
     time_col = args.get("time_col")
 
-    uses_panel = (
-        default_est_name in ("panel_lp", "panel_lp_dk")
-        or ("estimator" in raw_grid and any(v in ("panel_lp", "panel_lp_dk") for v in raw_grid["estimator"]))
-    )
+    baseline_spec: dict[str, Any] | None = None
+    selected_est_names: set[str] = set()
+    if "estimator" in raw_grid:
+        selected_est_names.update(str(v) for v in raw_grid["estimator"])
+    else:
+        selected_est_names.add(default_est_name)
+    if args.get("baseline_spec") is not None:
+        baseline_spec = dict(args["baseline_spec"])
+        if "estimator" in baseline_spec:
+            selected_est_names.add(str(baseline_spec["estimator"]))
+            baseline_spec["estimator"] = _resolve_lp_estimator(baseline_spec["estimator"], est_map)
+
+    uses_panel = bool(selected_est_names & {"panel_lp", "panel_lp_dk"})
+    uses_lp_did = "lp_did" in selected_est_names
+    uses_other_est = bool(selected_est_names - {"lp_did"})
+    if uses_lp_did and uses_other_est:
+        raise ValueError(
+            "Cannot combine 'lp_did' (flat panel with unit/time columns) with "
+            "other LP estimators in the same sensitivity grid"
+        )
+
     if uses_panel and unit_col and time_col:
         if unit_col not in df.columns or time_col not in df.columns:
             raise ValueError("unit_col and time_col must exist in data for panel estimators")
@@ -520,14 +544,20 @@ def _handle_lp_sensitivity_grid(args: Mapping[str, Any], allowed_root: Path | No
         df = df.set_index([unit_col, time_col])
         base_kwargs.setdefault("entity_level", unit_col)
         base_kwargs.setdefault("time_level", time_col)
+    elif uses_lp_did:
+        unit_name = unit_col or base_kwargs.get("unit")
+        time_name = time_col or base_kwargs.get("time")
+        if not unit_name or not time_name:
+            raise ValueError(
+                "estimator='lp_did' requires 'unit_col' and 'time_col' "
+                "(or 'unit' and 'time' in base_kwargs)"
+            )
+        if unit_name not in df.columns or time_name not in df.columns:
+            raise ValueError("unit_col and time_col must exist in data for lp_did")
+        base_kwargs.setdefault("unit", unit_name)
+        base_kwargs.setdefault("time", time_name)
     elif time_col:
         df = _apply_time_index(df, time_col)
-
-    baseline_spec: dict[str, Any] | None = None
-    if args.get("baseline_spec") is not None:
-        baseline_spec = dict(args["baseline_spec"])
-        if "estimator" in baseline_spec:
-            baseline_spec["estimator"] = _resolve_lp_estimator(baseline_spec["estimator"], est_map)
 
     for axis_name in ("horizons", "horizon", "n_lags", "lags"):
         vals_to_check = grid.get(axis_name, [base_kwargs[axis_name]] if axis_name in base_kwargs else [])
@@ -614,7 +644,6 @@ def _coerce_irf_spec_container(spec_payload: Any, label: str) -> Any:
 
 def _handle_compare_irfs(args: Mapping[str, Any], allowed_root: Path | None) -> dict[str, Any]:
     from puremacro.reports import compare_irfs
-    import pandas as pd
 
     raw_results = args.get("results")
     raw_path = args.get("data_path")
@@ -630,7 +659,7 @@ def _handle_compare_irfs(args: Mapping[str, Any], allowed_root: Path | None) -> 
             param_name="data_path",
         )
         if path.suffix.lower() == ".csv":
-            df = pd.read_csv(path, nrows=_MAX_TABLE_ROWS + 1)
+            df = _read_bounded_csv(path, param_name="data_path")
             if "spec" not in df.columns:
                 raise ValueError("CSV input for compare_irfs requires a 'spec' column")
             for spec_name in dict.fromkeys(df["spec"].astype(str).tolist()):
@@ -769,7 +798,6 @@ def _coerce_targets(payload: Any) -> Any:
 
 def _handle_score_irf_against_targets(args: Mapping[str, Any], allowed_root: Path | None) -> dict[str, Any]:
     from puremacro.dsge.validation_scorecard import score_irf_against_targets
-    import pandas as pd
 
     has_m_inline = args.get("model_irf") is not None
     has_m_path = args.get("model_irf_path") is not None
@@ -789,7 +817,7 @@ def _handle_score_irf_against_targets(args: Mapping[str, Any], allowed_root: Pat
             param_name="model_irf_path",
         )
         model_irf: Any = (
-            _normalize_model_irf_frame(pd.read_csv(m_path, nrows=_MAX_TABLE_ROWS + 1))
+            _normalize_model_irf_frame(_read_bounded_csv(m_path, param_name="model_irf_path"))
             if m_path.suffix.lower() == ".csv"
             else _coerce_model_irf(_read_json_file(m_path))
         )
@@ -804,7 +832,7 @@ def _handle_score_irf_against_targets(args: Mapping[str, Any], allowed_root: Pat
             param_name="targets_path",
         )
         targets: Any = (
-            _normalize_target_frame(pd.read_csv(t_path, nrows=_MAX_TABLE_ROWS + 1))
+            _normalize_target_frame(_read_bounded_csv(t_path, param_name="targets_path"))
             if t_path.suffix.lower() == ".csv"
             else _coerce_targets(_read_json_file(t_path))
         )
