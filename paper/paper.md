@@ -26,25 +26,29 @@ bibliography: paper.bib
 
 <!-- Evidence snapshot. The validation-gallery counts (checks, subsystems, kinds
      of reference) and `scorecard.png` match release 6.4.0 (2026-11-12, commit
-     49975437) and were re-verified on 2026-11-14 at commit 531aaab3: 116
-     checks, 16 subsystems, 22 external (15 package + 5 SciPy + 2 published) /
-     31 analytical / 63 internal, all passing (5.4.0 had 113: 20 / 31 / 62;
-     4.6.0 had 114 with four trade cases; 4.4.0 had 110: 20 / 31 / 59; 3.4.0
-     had 107: 19 / 29 / 59). Scale and commit counts below were recomputed on
-     2026-11-14 at HEAD (531aaab3) per RELEASING.md §6.5: 983 package Python
-     modules, 364,729 lines of Python, 761 shippable library modules swept by
-     the import invariant, 24,160 default / 24,420 total collected tests, 77
-     bilingual showcase notebook pairs (plus 2 non-numbered research pairs), 22
-     course lesson notebooks (20 importing puremacro), 513 of 929 commits on
-     origin/main carrying a Claude co-author trailer, and 28 commits by
-     google-labs-jules[bot]. Dated browser evidence remains the 2026-11-12
-     release-6.4.0 run where Pyodide 0.28.3 passed all 116 gallery checks in
-     Node.js (plus 121 smoke tests); Pyodide 314.0.5 had earlier passed the
-     110-check gallery on 2026-10-13. The krusellsmith1998 and dolo entries in
-     paper.bib were not checked against Crossref from this session. Re-run the
-     commands in RELEASING.md §6.5 (and `python tools/pyodide_gallery.py` if
-     needed) on the final 2027 submission commit (earliest eligibility
-     2027-01-21 per RELEASING.md §6.3) before submitting. -->
+     49975437) and were re-verified on 2026-11-14 at both origin/main (531aaab3)
+     and local HEAD (8be51bb0, 14 integration commits ahead): 116 checks, 16
+     subsystems, 22 external (15 package + 5 SciPy + 2 published) / 31
+     analytical / 63 internal, all passing (`passed.all() == True`; 5.4.0 had
+     113: 20 / 31 / 62; 4.6.0 had 114 with four trade cases; 4.4.0 had 110:
+     20 / 31 / 59; 3.4.0 had 107: 19 / 29 / 59). Scale and commit counts below
+     were recomputed on 2026-11-14 at local HEAD (8be51bb0, prior to the 6.5.0
+     release-bump commit and push) per RELEASING.md §6.5: 989 package Python
+     modules, 374,941 lines of Python, 765 shippable library modules swept by
+     the import invariant, 24,283 default / 24,543 total (-m "") collected
+     tests, 77 bilingual showcase notebook pairs (plus 2 non-numbered research
+     pairs), 22 course lesson notebooks (20 importing puremacro), 513 of 943
+     commits on local HEAD (8be51bb0) carrying a Claude co-author trailer (vs
+     513 of 929 commits on origin/main at 531aaab3), and 28 commits by
+     google-labs-jules[bot] (same on both 531aaab3 and 8be51bb0). Dated browser
+     evidence remains the 2026-11-12 release-6.4.0 run where Pyodide 0.28.3
+     passed all 116 gallery checks in Node.js (plus 121 smoke tests); Pyodide
+     314.0.5 had earlier passed the 110-check gallery on 2026-10-13. The
+     krusellsmith1998 and dolo entries in paper.bib were not checked against
+     Crossref from this session. Re-run the commands in RELEASING.md §6.5 (and
+     `python tools/pyodide_gallery.py` if needed) on the final 2027 submission
+     commit (earliest eligibility 2027-01-21 per RELEASING.md §6.3) before
+     submitting. -->
 
 # Summary
 
@@ -151,7 +155,7 @@ The overall modular architecture is illustrated in \autoref{fig:architecture}.
 Matplotlib (plus requests, in the data layer) at module scope; anything else is
 imported only when available. Two tests enforce the rule against the packages most
 likely to leak in.
-The first imports each of the 761 shippable library modules (examples, teaching helpers,
+The first imports each of the 765 shippable library modules (examples, teaching helpers,
 text-scraping sources and optional Numba kernels are excluded) and fails if
 statsmodels, linearmodels, arch or the scraping packages bs4, pdfplumber and pypdf
 have entered `sys.modules`. The second repeats the sweep with those packages
@@ -180,12 +184,12 @@ problems slower than in JIT-compiled toolkits, and derivatives that other librar
 obtain by automatic differentiation must be coded by hand. The browser is a
 best-effort target rather than a supported one: Parquet and Excel files need
 engines that not every Pyodide distribution provides. On
-12 November 2026 a headless Node.js harness ran the full validation gallery inside
-Pyodide 0.28.3: all 116 checks passed (as did 121 smoke tests).
+12 November 2026 (release 6.4.0), a headless Node.js harness ran the full validation
+gallery inside Pyodide 0.28.3: all 116 checks passed (as did 121 smoke tests).
 
-**Scale.** As of November 2026, `puremacro` contains 983 package Python modules and approximately
-365,000 lines of Python, including 761 shippable library modules checked by the
-import sweep. More than 24,000 automated tests cover the package. CI runs the
+**Scale.** As of November 2026, `puremacro` contains 989 package Python modules and approximately
+375,000 lines of Python, including 765 shippable library modules checked by the
+import sweep. More than 24,200 automated tests (over 24,500 total) cover the package. CI runs the
 default selection on Linux, macOS and Windows under Python 3.11–3.13; slow,
 reference and replication tests run weekly and on release tags, where they gate publication.
 Before each release tag, a script checks the suite against a recorded baseline,
@@ -193,8 +197,8 @@ the import invariant and a snapshot of the public API.
 
 ## Verification
 
-The gallery counts below match release 6.4.0 and were re-verified on 2026-11-14;
-the scale measurements above were recomputed on 2026-11-14.
+The gallery counts below match release 6.4.0 and were re-verified on 2026-11-14
+on the post-6.4.0 tree; the scale measurements above were recomputed on 2026-11-14.
 
 The validation gallery, `puremacro.validation.scorecard()`, runs 116 checks across
 16 subsystems in under a minute, with none of the oracle packages installed; all
@@ -281,12 +285,17 @@ and CI.
      (4) REVIEW ASSERTION: confirm that "reviewed, edited and validated all
          AI-assisted output before it was merged" is literally true, including
          for multi-agent workflow commits; if not, soften it to what is true.
-     (5) COUNTS, DATE & BIBLIOGRAPHY: counts ("513 of the 929 commits",
-         "28 commits") were recomputed on 2026-11-14 at 531aaab3 per
-         RELEASING.md §6.5. Re-run `RELEASING.md §6.5` on the final 2027
-         submission commit (earliest eligibility 2027-01-21 per §6.3), update
-         frontmatter `date` to the submission date, and verify `krusellsmith1998`
-         and `dolo` in `paper.bib` against Crossref/upstream metadata. -->
+     (5) COUNTS, DATE & BIBLIOGRAPHY: counts ("513 of the 929 commits" on
+         origin/main at 531aaab3; 513 of 943 commits on local HEAD at 8be51bb0,
+         14 integration commits ahead; "28 commits" by Jules on both) and scale
+         counts (989 modules, 374,941 lines, 765 shippable modules, 24,283
+         default / 24,543 total tests, 116 gallery checks across 16 subsystems,
+         77 showcase pairs, 22 course notebooks) were recomputed on 2026-11-14
+         at 8be51bb0 per RELEASING.md §6.5. Re-run `RELEASING.md §6.5` once again
+         on the final 2027 submission commit (earliest eligibility 2027-01-21
+         per §6.3), update frontmatter `date` to the submission date, and verify
+         `krusellsmith1998` and `dolo` in `paper.bib` against Crossref/upstream
+         metadata. -->
 
 # Acknowledgements
 
