@@ -162,6 +162,13 @@ def test_explicit_units_frequency_and_rate_convention_consistency() -> None:
     assert res_eff.dsa.metadata["exact_compounding"] is True
     assert not np.allclose(res_eff.dsa.baseline_path, res_pct.dsa.baseline_path)
 
+    # Non-default pb_max is forwarded into DSA simulation even under default apr/linear convention
+    cfg_cap = _fast_config(pb_max=0.2, rate_convention="apr", exact_compounding=False)
+    res_cap = sb.compute_brief(df, cfg_cap)
+    assert res_cap.dsa.metadata["pb_max"] == pytest.approx(0.2)
+    assert res_cap.fiscal_reaction.reaction_function.pb_max == pytest.approx(0.2)
+    assert not np.allclose(res_cap.dsa.baseline_path, res_pct.dsa.baseline_path)
+
 
 def test_panel_filter_annual_advisory_and_short_sample_guards() -> None:
     df_a = _custom_macro_df(frequency="annual", n_obs=10)

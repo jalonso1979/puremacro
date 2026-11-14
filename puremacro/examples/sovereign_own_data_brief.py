@@ -757,7 +757,12 @@ def compute_brief(
         frequency=cfg.frequency,
     )
 
-    if cfg.rate_convention != "apr" or cfg.exact_compounding:
+    needs_resim = (
+        cfg.rate_convention != "apr"
+        or cfg.exact_compounding
+        or (cfg.use_bohn_reaction and cfg.pb_max != 5.0)
+    )
+    if needs_resim:
         dsa = simulate_stochastic_dsa(
             d0=float(dsa_fit.d0),
             horizon=cfg.dsa_horizon,
@@ -773,13 +778,15 @@ def compute_brief(
             rate_convention=cfg.rate_convention,
             store_macro_paths=False,
         )
-        # Preserve empirical VAR/Bohn metadata alongside updated compounding/convention paths
+        # Preserve empirical VAR/Bohn metadata alongside updated compounding/convention/pb_max paths
         merged_meta = dict(dsa_fit.metadata)
         merged_meta.update(
             {
                 "frequency": cfg.frequency,
                 "exact_compounding": cfg.exact_compounding,
                 "rate_convention": cfg.rate_convention,
+                "fiscal_reaction_estimate": fr_res,
+                "pb_max": cfg.pb_max,
             }
         )
         dsa = StochasticDSAResult(

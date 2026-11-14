@@ -684,8 +684,8 @@ def load_lab_groups(
             "importer": config.importer,
             "monetary_unit": "MXN/year",
             "period": "2022",
-            "file": "ENIGH_2022_bundled",
-            "sha256": None,
+            "file": enigh_df.attrs.get("file", "ENIGH_2022_bundled"),
+            "sha256": enigh_df.attrs.get("sha256"),
         }
         return clean, meta, warnings_en, warnings_es
 

@@ -333,6 +333,9 @@ def test_cli_bundled_icio_end_to_end_bilingual_and_portable_manifest(tmp_path: P
     record_text = (out_dir / "record.json").read_text(encoding="utf-8")
     manifest_text = (out_dir / "manifest.json").read_text(encoding="utf-8")
     assert manifest["schema"] == 1
+    assert manifest["inputs"]["groups_file"] == "enigh2022_household_policy.npz"
+    assert isinstance(manifest["inputs"]["groups_sha256"], str)
+    assert len(manifest["inputs"]["groups_sha256"]) == 64
     assert set(manifest["artifacts"].keys()) == (expected_files - {"manifest.json"})
     for rel, info in manifest["artifacts"].items():
         actual_sha = hashlib.sha256((out_dir / rel).read_bytes()).hexdigest()
