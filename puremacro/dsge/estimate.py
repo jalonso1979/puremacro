@@ -1251,6 +1251,7 @@ def estimate_dsge(
             data_n_obs=len(data),
             record_warmup=kwargs.get("record_warmup", False),
             bounds=bounds_list,
+            priors=dict(priors),
         )
 
     # 5. Proposal scaling.
@@ -1317,6 +1318,7 @@ def estimate_dsge(
         seed=seed,
         model_name=model_name,
         log_post_mode=lp_mode,
+        priors=dict(priors),
     )
 
 

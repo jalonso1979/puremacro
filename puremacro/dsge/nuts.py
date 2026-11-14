@@ -702,6 +702,7 @@ def nuts_sample(
     grad_eps: float = 1e-5,
     bounds: Sequence[tuple[float, float]] | None = None,
     vectorized_grad: bool = False,
+    priors: dict[str, Any] | None = None,
 ) -> NUTSResult:
     r"""Sample posterior distribution using Hamiltonian Monte Carlo / No-U-Turn Sampler."""
     init_arr = np.asarray(init_params, dtype=float)
@@ -859,6 +860,7 @@ def nuts_sample(
         model_name=model_name,
         log_post_mode=lp_mode_val,
         warmup_draws=warmup_draws_all,
+        priors=dict(priors) if priors is not None else None,
     )
 
 

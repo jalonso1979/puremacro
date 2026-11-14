@@ -55,6 +55,7 @@ class DSGEPosteriorResult:
     #: results produced before 2.6.0, which is why :meth:`log_mdd` says so
     #: rather than guessing. New in 2.6.0.
     log_post_mode: float | None = None
+    priors: dict[str, Any] | None = None
 
     def log_mdd(self, method: str = "laplace") -> float:
         """Log marginal likelihood ``log p(y)``.
@@ -180,6 +181,7 @@ class NUTSResult:
     model_name: str = "unknown"
     log_post_mode: float | None = None
     warmup_draws: np.ndarray | None = None
+    priors: dict[str, Any] | None = None
 
     @property
     def n_burn_in(self) -> int:

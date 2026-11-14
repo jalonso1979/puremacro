@@ -574,3 +574,45 @@ def test_irf_comparison_result_quintet_and_plot():
     assert isinstance(fig, matplotlib.figure.Figure)
     _, ax = plt.subplots()
     assert res.plot(ax=ax) is ax
+
+
+def test_dsge_validation_scorecard_quintet_and_plot():
+    from puremacro.dsge import NormalPrior, nuts_sample, prior_posterior_comparison, score_irf_against_targets
+    from puremacro.structural.bridge import MomentTargets
+
+    priors = {"theta": NormalPrior(mean=0.0, std=1.0)}
+    nuts_res = nuts_sample(
+        lambda x: (-0.5 * float(x[0] ** 2), -x),
+        init_params=np.array([0.0]),
+        n_draws=40,
+        n_chains=2,
+        warmup=20,
+        param_names=("theta",),
+        seed=0,
+        priors=priors,
+    )
+    ppc = prior_posterior_comparison(nuts_res)
+    for res_obj in (
+        ppc,
+        score_irf_against_targets(
+            pd.DataFrame({"y": [0.2, 0.1, 0.05]}, index=[0, 1, 2]),
+            MomentTargets.from_irf(
+                np.array([0.2, 0.1, 0.05]),
+                covariance=np.eye(3) * 0.01,
+                response="y",
+                shock="eps",
+                units="pct",
+            ),
+        ),
+    ):
+        assert isinstance(res_obj.to_frame(), pd.DataFrame)
+        assert isinstance(res_obj.to_dataframe(), pd.DataFrame)
+        assert isinstance(res_obj.summary(), str) and res_obj.summary()
+        assert "|" in res_obj.to_markdown()
+        assert "\\begin{tabular}" in res_obj.to_latex()
+        assert "#table(" in res_obj.to_typst()
+
+        fig = res_obj.plot()
+        assert isinstance(fig, matplotlib.figure.Figure)
+        _, ax = plt.subplots()
+        assert res_obj.plot(ax=ax) is ax

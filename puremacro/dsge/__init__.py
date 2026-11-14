@@ -215,6 +215,12 @@ from .workbench import (
     DSGEWorkbench, DSGERun, DSGEComparison, DSGEAccuracyDashboard,
     DSGEFailure, DSGERunControl, solution_accuracy,
 )
+from .validation_scorecard import (
+    IRFScorecardResult,
+    PriorPosteriorComparisonResult,
+    prior_posterior_comparison,
+    score_irf_against_targets,
+)
 
 
 __all__ = [
@@ -312,6 +318,8 @@ __all__ = [
     "SSJPolicyResult", "SSJOSRResult", "ssj_ramsey", "ssj_osr", "ssj_welfare_decomposition",
     "RiskySteadyStateResult", "PrecautionaryOBCResult", "solve_risky_steady_state", "solve_precautionary_obc",
     "ssj_policy", "risky_steady_state",
+    "PriorPosteriorComparisonResult", "IRFScorecardResult",
+    "prior_posterior_comparison", "score_irf_against_targets",
 ]
 from . import smets_wouters  # re-export for back-compat with 0.50.0 callers
 from . import gertler_karadi

@@ -487,6 +487,7 @@
       "HarmonicMeanResult",
       "HetBlock",
       "HorizonComparison",
+      "IRFScorecardResult",
       "IdentificationResult",
       "InteractiveIRFResult",
       "InvGammaPrior",
@@ -523,6 +524,7 @@
       "PolicyResult",
       "PrecautionaryOBCResult",
       "Prior",
+      "PriorPosteriorComparisonResult",
       "PriorPredictiveResult",
       "PrunedDSGESolution",
       "PrunedSimulationResult",
@@ -629,6 +631,7 @@
       "plot_news_vs_surprise",
       "preconditioned_lgmres",
       "preprocess_macro",
+      "prior_posterior_comparison",
       "prior_predictive",
       "priors",
       "read_mod",
@@ -637,6 +640,7 @@
       "residual_resample",
       "risky_steady_state",
       "run_parity_suite",
+      "score_irf_against_targets",
       "shock_groups_decomposition",
       "smooth_model",
       "smoother",
@@ -1022,6 +1026,12 @@
       "TransitionResult",
       "solve_announced_path",
       "solve_transition"
+    ],
+    "puremacro.dsge.validation_scorecard": [
+      "IRFScorecardResult",
+      "PriorPosteriorComparisonResult",
+      "prior_posterior_comparison",
+      "score_irf_against_targets"
     ],
     "puremacro.dsge.workbench": [
       "DSGEAccuracyDashboard",
@@ -5912,6 +5922,7 @@
       "model_name",
       "n_burn_in",
       "param_names",
+      "priors",
       "seed"
     ],
     "puremacro.dsge._results.DiagnosticFinding": [
@@ -6136,6 +6147,7 @@
       "model_name",
       "n_warmup",
       "param_names",
+      "priors",
       "seed",
       "step_sizes",
       "tree_depths",
@@ -6211,6 +6223,7 @@
       "model_name",
       "n_burn_in",
       "param_names",
+      "priors",
       "seed"
     ],
     "puremacro.dsge._results.ShockDecompositionResult": [
@@ -7088,6 +7101,32 @@
       "scaled_residual_norm",
       "solution",
       "solves"
+    ],
+    "puremacro.dsge.validation_scorecard.IRFScorecardResult": [
+      "band_coverage",
+      "chi2_df",
+      "chi2_pvalue",
+      "chi2_stat",
+      "covariance_condition_number",
+      "determinacy_rate",
+      "digits",
+      "mae",
+      "metrics",
+      "rmse",
+      "sign_concordance",
+      "table",
+      "warnings",
+      "weight_mode_used",
+      "wse"
+    ],
+    "puremacro.dsge.validation_scorecard.PriorPosteriorComparisonResult": [
+      "ci_level",
+      "digits",
+      "model_name",
+      "n_chains",
+      "n_draws",
+      "table",
+      "warnings"
     ],
     "puremacro.dsge.widgets.InteractiveIRFResult": [
       "_cids",
