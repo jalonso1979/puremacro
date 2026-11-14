@@ -983,3 +983,255 @@ def test_cli_freshness_recorded_cache_and_error_exit_codes(
     assert pm_cli.main(["unknown-subcmd"]) == 2
     assert pm_cli.main(["preflight", str(tmp_path / "does_not_exist.csv")]) == 1
     capsys.readouterr()
+
+
+def _make_did_panel_df(
+    n_units: int = 8,
+    n_periods: int = 20,
+    *,
+    seed: int = 77,
+    multiindex: bool = False,
+) -> pd.DataFrame:
+    rng = np.random.default_rng(seed)
+    dates = pd.date_range("2015-01-01", periods=n_periods, freq="QS")
+    rows: list[dict[str, object]] = []
+    # Half units treated around staggered cohorts, half never-treated clean controls
+    cohort_times = [6, 8, 10, 12] + [None] * max(1, n_units - 4)
+    for u in range(n_units):
+        uid = f"U{u:02d}"
+        c_t = cohort_times[u]
+        fe = (u - n_units / 2.0) * 0.1
+        y_prev = 0.0
+        for t in range(n_periods):
+            d_val = 1 if (c_t is not None and t >= c_t) else 0
+            eff = 1.5 if d_val == 1 else 0.0
+            y_val = fe + 0.3 * y_prev + eff + float(rng.normal(0.0, 0.25))
+            y_prev = y_val - eff
+            rows.append(
+                {
+                    "unit": uid,
+                    "date": dates[t].strftime("%Y-%m-%d"),
+                    "y": y_val,
+                    "treat": d_val,
+                }
+            )
+    df = pd.DataFrame(rows)
+    if multiindex:
+        df["date"] = pd.to_datetime(df["date"])
+        df = df.set_index(["unit", "date"]).sort_index()
+    return df
+
+
+def test_workbench_and_cli_lp_did_support(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Verify lp_did works cleanly in workbench (flat & MultiIndex) and CLI lp-grid."""
+    from puremacro.lp.lp_did import LPDiDResult, lp_did
+
+    did_df = _make_did_panel_df(n_units=8, n_periods=20, seed=77, multiindex=False)
+    dossier = run_empirical_structural_workbench(
+        did_df,
+        "y",
+        "treat",
+        unit_col="unit",
+        time_col="date",
+        horizons=(0, 1, 2, 3),
+        lags=1,
+        estimator=lp_did,
+        base_kwargs={"pre_window": 2},
+        sensitivity_on_error="raise",
+    )
+    assert isinstance(dossier.empirical_lp, LPDiDResult)
+    assert dossier.metadata["estimator"] == "lp_did"
+    assert dossier.sensitivity is not None
+    assert len(dossier.sensitivity.metrics) >= 2
+    assert float(dossier.empirical_lp.estimates.loc[0, "beta"]) > 0.5
+    parsed = json.loads(dossier.to_json())
+    assert len(parsed["empirical_lp"]) == len(dossier.empirical_lp.estimates)
+    assert "## Resumen del flujo" in dossier.to_markdown(lang="es")
+
+    # MultiIndex panel with lp_did flattens cleanly into flat unit/time columns
+    did_mi = _make_did_panel_df(n_units=8, n_periods=20, seed=78, multiindex=True)
+    dossier_mi = run_empirical_structural_workbench(
+        did_mi,
+        "y",
+        "treat",
+        unit_col="unit",
+        time_col="date",
+        horizons=(0, 1, 2),
+        lags=0,
+        estimator=lp_did,
+        base_kwargs={"pre_window": 2},
+        run_sensitivity=False,
+    )
+    assert isinstance(dossier_mi.empirical_lp, LPDiDResult)
+
+    # CLI lp-grid with --estimators lp_did (both grid mode and --workbench mode)
+    did_csv = tmp_path / "did.csv"
+    did_df.to_csv(did_csv, index=False)
+
+    rc_grid = pm_cli.main(
+        [
+            "lp-grid",
+            str(did_csv),
+            "--y",
+            "y",
+            "--x",
+            "treat",
+            "--unit-col",
+            "unit",
+            "--time-col",
+            "date",
+            "--estimators",
+            "lp_did",
+            "--horizons",
+            "0..3",
+            "--lags",
+            "0,1",
+            "--format",
+            "json",
+        ]
+    )
+    assert rc_grid == 0
+    grid_out = json.loads(capsys.readouterr().out)
+    assert len(grid_out["metrics"]) == 2
+
+    rc_wb = pm_cli.main(
+        [
+            "lp-grid",
+            str(did_csv),
+            "--y",
+            "y",
+            "--x",
+            "treat",
+            "--unit-col",
+            "unit",
+            "--time-col",
+            "date",
+            "--estimators",
+            "lp_did",
+            "--horizons",
+            "0..3",
+            "--lags",
+            "0,1",
+            "--workbench",
+            "--format",
+            "json",
+        ]
+    )
+    assert rc_wb == 0
+    wb_out = json.loads(capsys.readouterr().out)
+    assert wb_out["metadata"]["estimator"] == "lp_did"
+    assert wb_out["passed"] is True
+
+
+def test_single_unit_with_unit_col_and_incompatible_estimator_mixes(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Verify TS estimators do not receive leaked panel_kwargs and incompatible mixes reject cleanly."""
+    from puremacro.lp import lp_hac, lp_did, panel_lp
+
+    # Single-unit slice carrying an explicit 'unit' column auto-detected by preflight_panel
+    single_df = _make_ts_df(n=72, seed=91, freq="QS", as_date_col=True)
+    single_df.insert(0, "unit", "US")
+
+    dossier_single = run_empirical_structural_workbench(
+        single_df,
+        "y",
+        "x",
+        controls=("z",),
+        horizons=(0, 1, 2, 3),
+        lags=2,
+        estimator=lp_hac,
+        sensitivity_on_error="raise",
+    )
+    assert dossier_single.passed is True
+    assert dossier_single.sensitivity is not None
+    assert len(dossier_single.sensitivity.metrics) >= 2
+
+    single_csv = tmp_path / "single_unit.csv"
+    single_df.to_csv(single_csv, index=False)
+    rc_single = pm_cli.main(
+        [
+            "lp-grid",
+            str(single_csv),
+            "--y",
+            "y",
+            "--x",
+            "x",
+            "--unit-col",
+            "unit",
+            "--time-col",
+            "date",
+            "--estimators",
+            "lp_hac,la_lp",
+            "--horizons",
+            "0..3",
+            "--lags",
+            "1,2",
+            "--format",
+            "json",
+        ]
+    )
+    assert rc_single == 0
+    assert len(json.loads(capsys.readouterr().out)["metrics"]) == 4
+
+    # Mixing lp_did with FE/TS estimators must fail explicitly rather than crash mid-grid
+    panel_df = _make_panel_df(n_units=4, n_periods=20, seed=92, multiindex=False)
+    with pytest.raises(ValueError, match="Incompatible LP estimators"):
+        run_empirical_structural_workbench(
+            panel_df,
+            "y",
+            "x",
+            unit_col="country",
+            time_col="date",
+            estimator=panel_lp,
+            sensitivity_grid={"estimator": [panel_lp, lp_did], "lags": [1]},
+            strict_preflight=False,
+        )
+
+    panel_csv = tmp_path / "panel_mix.csv"
+    panel_df.to_csv(panel_csv, index=False)
+
+    rc_mix = pm_cli.main(
+        [
+            "lp-grid",
+            str(panel_csv),
+            "--y",
+            "y",
+            "--x",
+            "x",
+            "--unit-col",
+            "country",
+            "--time-col",
+            "date",
+            "--estimators",
+            "panel_lp,lp_did",
+            "--lags",
+            "1",
+        ]
+    )
+    assert rc_mix == 2
+    capsys.readouterr()
+
+    # TS estimator on multi-unit panel returns CLI usage error (exit 2)
+    rc_multi_ts = pm_cli.main(
+        [
+            "lp-grid",
+            str(panel_csv),
+            "--y",
+            "y",
+            "--x",
+            "x",
+            "--unit-col",
+            "country",
+            "--time-col",
+            "date",
+            "--estimators",
+            "lp_hac",
+            "--lags",
+            "1,2",
+        ]
+    )
+    assert rc_multi_ts == 2
+    capsys.readouterr()

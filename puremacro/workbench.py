@@ -668,6 +668,7 @@ class EmpiricalStructuralDossier:
         """Serialize the dossier into a portable JSON-safe dictionary."""
         import puremacro
 
+        lp_df = _unwrap_lp_frame(self.empirical_lp)
         mt_dict: dict[str, Any] | None = None
         if self.moment_targets is not None:
             mt = self.moment_targets
@@ -700,9 +701,7 @@ class EmpiricalStructuralDossier:
             },
             "preflight": json.loads(self.preflight.to_json()),
             "empirical_lp": _json_sanitize(
-                pd.DataFrame(self.empirical_lp)
-                if "h" in getattr(self.empirical_lp, "columns", ())
-                else pd.DataFrame(self.empirical_lp).reset_index()
+                lp_df if "h" in lp_df.columns else lp_df.reset_index()
             ),
             "sensitivity": (
                 _comparison_to_dict(self.sensitivity)
@@ -804,6 +803,181 @@ def _prepare_estimation_frame(
                 pass
         work = work.sort_values(time_col, kind="mergesort").reset_index(drop=True)
     return work, {}
+
+
+_PANEL_COORD_KEYS: frozenset[str] = frozenset(
+    {"unit_col", "time_col", "entity_level", "time_level", "unit", "time"}
+)
+_GRID_ALIAS_KEYS: frozenset[str] = frozenset(
+    {"lags", "n_lags", "horizon", "horizons", "ci", "alpha"}
+)
+_UNIT_CANDIDATES: tuple[str, ...] = (
+    "unit",
+    "entity",
+    "country",
+    "iso3",
+    "state",
+    "id",
+    "code",
+    "region",
+)
+_TIME_CANDIDATES: tuple[str, ...] = (
+    "date",
+    "time",
+    "period",
+    "year",
+    "quarter",
+    "month",
+    "t",
+)
+
+
+def _unwrap_lp_frame(lp_result: Any) -> pd.DataFrame:
+    """Return the underlying LP DataFrame for LPResult or LPDiDResult."""
+    if hasattr(lp_result, "estimates") and isinstance(
+        getattr(lp_result, "estimates"), pd.DataFrame
+    ):
+        return pd.DataFrame(lp_result.estimates)
+    return pd.DataFrame(lp_result)
+
+
+def _infer_col_candidate(
+    columns: Sequence[Any], candidates: Sequence[str]
+) -> str | None:
+    col_strs = [str(c) for c in columns]
+    lower_map = {c.lower(): c for c in col_strs}
+    for cand in candidates:
+        if cand in col_strs:
+            return cand
+        if cand.lower() in lower_map:
+            return lower_map[cand.lower()]
+    return None
+
+
+def _estimator_panel_kind(estimator: Callable[..., Any]) -> Literal["did", "panel", "ts"]:
+    """Classify an LP estimator by its unit/time signature convention."""
+    params = inspect.signature(estimator).parameters
+    if "unit" in params and "time" in params and "treat" in params:
+        return "did"
+    if "unit_col" in params and "time_col" in params:
+        return "panel"
+    return "ts"
+
+
+def _filter_grid_base_kwargs(
+    estimators: Sequence[Callable[..., Any]],
+    raw_kwargs: Mapping[str, Any] | None,
+    *,
+    kind: Literal["did", "panel", "ts"],
+) -> dict[str, Any]:
+    """Filter base_kwargs to keys valid for every estimator in the sensitivity grid."""
+    if not raw_kwargs:
+        return {}
+    sigs = [inspect.signature(est).parameters for est in estimators]
+    if kind == "ts":
+        disallowed_panel = _PANEL_COORD_KEYS
+    elif kind == "did":
+        disallowed_panel = frozenset({"unit_col", "time_col", "entity_level", "time_level"})
+    else:
+        disallowed_panel = frozenset({"unit", "time"})
+
+    filtered: dict[str, Any] = {}
+    for key, val in raw_kwargs.items():
+        if key in disallowed_panel:
+            continue
+        if key in _GRID_ALIAS_KEYS or all(
+            key in params
+            or any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+            for params in sigs
+        ):
+            filtered[key] = val
+    return filtered
+
+
+def _prepare_lp_grid_context(
+    data: pd.DataFrame,
+    *,
+    estimators: Sequence[Callable[..., Any]],
+    unit_col: str | None = None,
+    time_col: str | None = None,
+    n_units_hint: int | None = None,
+    extra_kwargs: Mapping[str, Any] | None = None,
+) -> tuple[pd.DataFrame, dict[str, Any], dict[str, Any]]:
+    """Validate estimator compatibility and adapt estimation data + kwargs cleanly."""
+    if not estimators:
+        raise ValueError("At least one LP estimator must be provided.")
+
+    kinds = [_estimator_panel_kind(est) for est in estimators]
+    distinct_kinds = set(kinds)
+    if len(distinct_kinds) > 1:
+        names = ", ".join(getattr(est, "__name__", str(est)) for est in estimators)
+        raise ValueError(
+            f"Incompatible LP estimators in grid ({names}): cannot mix lp_did "
+            "(flat unit/time columns), FE panel estimators (unit_col/time_col), "
+            "and time-series estimators in the same grid."
+        )
+    kind = kinds[0]
+    est_names = ", ".join(getattr(est, "__name__", str(est)) for est in estimators)
+
+    # Compute unit count hint safely when preflight hasn't supplied one
+    inferred_units = n_units_hint
+    if inferred_units is None:
+        if unit_col is not None and unit_col in data.columns:
+            inferred_units = int(data[unit_col].nunique(dropna=True))
+        elif isinstance(data.index, pd.MultiIndex) and data.index.nlevels >= 1:
+            inferred_units = int(data.index.get_level_values(0).nunique())
+        else:
+            inferred_units = 1
+
+    if kind == "ts":
+        if inferred_units > 1:
+            raise ValueError(
+                f"Time-series estimator {est_names} cannot run on a multi-unit panel "
+                f"(n_units={inferred_units}); use panel_lp, panel_lp_dk, or lp_did."
+            )
+        ts_time_col: str = time_col or _infer_col_candidate(data.columns, _TIME_CANDIDATES) or "date"
+        est_df, _ = _prepare_estimation_frame(data, unit_col=None, time_col=ts_time_col)
+        panel_kwargs: dict[str, Any] = {}
+    elif kind == "did":
+        flat_df, norm_unit, norm_time = _normalize_multiindex_panel_data(
+            data,
+            unit_col=unit_col,
+            time_col=time_col,
+        )
+        did_unit: str | None = norm_unit or _infer_col_candidate(flat_df.columns, _UNIT_CANDIDATES)
+        did_time: str | None = norm_time or _infer_col_candidate(flat_df.columns, _TIME_CANDIDATES)
+        if not did_unit or did_unit not in flat_df.columns:
+            raise ValueError(
+                f"lp_did requires a panel unit column (pass unit_col= / --unit-col); "
+                f"columns={list(flat_df.columns)!r}."
+            )
+        if not did_time or did_time not in flat_df.columns:
+            raise ValueError(
+                f"lp_did requires a panel time column (pass time_col= / --time-col); "
+                f"columns={list(flat_df.columns)!r}."
+            )
+        est_df = flat_df.copy()
+        panel_kwargs = {"unit": str(did_unit), "time": str(did_time)}
+    else:
+        panel_unit: str | None = unit_col
+        panel_time: str | None = time_col
+        if panel_unit is None and not isinstance(data.index, pd.MultiIndex):
+            panel_unit = _infer_col_candidate(data.columns, _UNIT_CANDIDATES)
+        if panel_time is None and not isinstance(data.index, pd.MultiIndex):
+            panel_time = _infer_col_candidate(data.columns, _TIME_CANDIDATES)
+        if panel_unit is None and not isinstance(data.index, pd.MultiIndex):
+            raise ValueError(
+                f"Panel estimator {est_names} requires a panel unit column (pass unit_col= / --unit-col)."
+            )
+        est_df, panel_kwargs = _prepare_estimation_frame(
+            data,
+            unit_col=panel_unit,
+            time_col=panel_time or "date",
+        )
+
+    clean_extra = _filter_grid_base_kwargs(estimators, extra_kwargs, kind=kind)
+    merged_grid_kwargs = {**panel_kwargs, **clean_extra}
+    return est_df, panel_kwargs, merged_grid_kwargs
 
 
 def _call_estimator_cleanly(
@@ -1474,16 +1648,38 @@ def run_empirical_structural_workbench(
                 dossier_warnings.append(f"Preflight error [{f.check}]: {f.message}")
 
     # 2. Estimation DataFrame normalization + baseline empirical LP
-    est_df, panel_kwargs = _prepare_estimation_frame(
-        pf_data,
-        unit_col=preflight.unit_col,
-        time_col=preflight.time_col,
-    )
     est_fn = estimator if estimator is not None else (
         panel_lp if preflight.unit_col is not None else lp_hac
     )
+    grid_to_run: dict[str, Sequence[Any]] | None = None
+    base_spec_use = baseline_spec
+    all_grid_estimators: list[Callable[..., Any]] = [est_fn]
+    if sensitivity_grid is not None or run_sensitivity:
+        if sensitivity_grid is not None:
+            grid_to_run = dict(sensitivity_grid)
+        else:
+            grid_to_run, base_spec_use = _default_sensitivity_grid(
+                lags=lags_int,
+                estimator=est_fn,
+            )
+        if "estimator" in grid_to_run:
+            for cand in grid_to_run["estimator"]:
+                if callable(cand) and cand not in all_grid_estimators:
+                    all_grid_estimators.append(cand)
 
-    merged_base: dict[str, Any] = {**panel_kwargs, **dict(base_kwargs or {})}
+    est_df, est_panel_kwargs, _ = _prepare_lp_grid_context(
+        pf_data,
+        estimators=all_grid_estimators,
+        unit_col=preflight.unit_col,
+        time_col=preflight.time_col,
+        n_units_hint=preflight.n_units,
+        extra_kwargs=base_kwargs,
+    )
+    est_kind = _estimator_panel_kind(est_fn)
+    baseline_user_extra = _filter_grid_base_kwargs(
+        [est_fn], base_kwargs, kind=est_kind
+    )
+    merged_base: dict[str, Any] = {**est_panel_kwargs, **baseline_user_extra}
     empirical_lp = _call_estimator_cleanly(
         est_fn,
         est_df,
@@ -1498,25 +1694,19 @@ def run_empirical_structural_workbench(
 
     # 3. LP Sensitivity Grid
     sensitivity: IRFComparisonResult | None = None
-    if sensitivity_grid is not None or run_sensitivity:
-        if sensitivity_grid is not None:
-            grid_to_run = dict(sensitivity_grid)
-            base_spec_use = baseline_spec
-        else:
-            grid_to_run, base_spec_use = _default_sensitivity_grid(
-                lags=lags_int,
-                estimator=est_fn,
-            )
-
-        grid_base_kwargs: dict[str, Any] = dict(merged_base)
+    if grid_to_run is not None:
+        raw_grid_kwargs: dict[str, Any] = dict(merged_base)
         if "horizons" not in grid_to_run and "horizon" not in grid_to_run:
-            grid_base_kwargs.setdefault("horizons", list(horizons_tup))
+            raw_grid_kwargs.setdefault("horizons", list(horizons_tup))
         if "ci" not in grid_to_run and "alpha" not in grid_to_run:
-            grid_base_kwargs.setdefault("ci", ci_val)
+            raw_grid_kwargs.setdefault("ci", ci_val)
         if ctrl_tuple and "controls" not in grid_to_run:
-            grid_base_kwargs.setdefault("controls", list(ctrl_tuple))
+            raw_grid_kwargs.setdefault("controls", list(ctrl_tuple))
         if "lags" not in grid_to_run and "n_lags" not in grid_to_run:
-            grid_base_kwargs.setdefault("lags", lags_int)
+            raw_grid_kwargs.setdefault("lags", lags_int)
+        grid_base_kwargs = _filter_grid_base_kwargs(
+            all_grid_estimators, raw_grid_kwargs, kind=est_kind
+        )
 
         try:
             with warnings.catch_warnings():
@@ -1604,7 +1794,11 @@ def run_empirical_structural_workbench(
         score_targets = (
             targets
             if targets is not None
-            else (moment_targets if moment_targets is not None else {y: empirical_lp})
+            else (
+                moment_targets
+                if moment_targets is not None
+                else {y: _unwrap_lp_frame(empirical_lp)}
+            )
         )
         score_vars = None if targets is not None else [y]
         score_model_irf = _adapt_model_irf_for_scorecard(model_irf, target=y)

@@ -317,7 +317,7 @@ def _run_lp_grid(args: argparse.Namespace) -> int:
     from puremacro.lp.sensitivity import lp_sensitivity_grid
     from puremacro.reports import df_to_markdown
     from puremacro.workbench import (
-        _prepare_estimation_frame,
+        _prepare_lp_grid_context,
         run_empirical_structural_workbench,
     )
 
@@ -343,7 +343,7 @@ def _run_lp_grid(args: argparse.Namespace) -> int:
 
     est_tokens = _parse_csv_tokens(args.estimators)
     if not est_tokens:
-        est_tokens = ["panel_lp"] if (args.unit_col or args.time_col and args.unit_col) else ["lp_hac"]
+        est_tokens = ["panel_lp"] if args.unit_col else ["lp_hac"]
     est_fns = [_resolve_estimator(tok) for tok in est_tokens]
 
     grid: dict[str, list[Any]] = {"lags": lags_list}
@@ -364,14 +364,34 @@ def _run_lp_grid(args: argparse.Namespace) -> int:
         if args.baseline_estimator is not None:
             baseline_spec["estimator"] = _resolve_estimator(args.baseline_estimator)
 
+    raw_base_kwargs: dict[str, Any] = {
+        "horizons": horizons_list,
+        "ci": float(args.ci),
+    }
+    if controls:
+        raw_base_kwargs["controls"] = controls
+
+    try:
+        est_df, adapted_panel_kwargs, grid_base_kwargs = _prepare_lp_grid_context(
+            df,
+            estimators=est_fns,
+            unit_col=args.unit_col,
+            time_col=args.time_col,
+            extra_kwargs=raw_base_kwargs,
+        )
+    except ValueError as exc:
+        raise _CLIUsageError(str(exc)) from exc
+
     if args.workbench:
         base_lags = int(args.baseline_lags) if args.baseline_lags is not None else lags_list[0]
+        wb_unit = args.unit_col or adapted_panel_kwargs.get("unit") or adapted_panel_kwargs.get("unit_col")
+        wb_time = args.time_col or adapted_panel_kwargs.get("time") or adapted_panel_kwargs.get("time_col")
         dossier = run_empirical_structural_workbench(
             df,
             args.y,
             args.x,
-            unit_col=args.unit_col,
-            time_col=args.time_col,
+            unit_col=wb_unit,
+            time_col=wb_time,
             horizons=horizons_list,
             lags=base_lags,
             controls=controls,
@@ -394,19 +414,6 @@ def _run_lp_grid(args: argparse.Namespace) -> int:
         _write_or_print(rendered, output=args.output, quiet=args.quiet)
         return 0 if dossier.passed else 1
 
-    est_df, panel_kwargs = _prepare_estimation_frame(
-        df,
-        unit_col=args.unit_col,
-        time_col=args.time_col or "date",
-    )
-    base_kwargs: dict[str, Any] = {
-        **panel_kwargs,
-        "horizons": horizons_list,
-        "ci": float(args.ci),
-    }
-    if controls:
-        base_kwargs["controls"] = controls
-
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
         cmp = lp_sensitivity_grid(
@@ -416,7 +423,7 @@ def _run_lp_grid(args: argparse.Namespace) -> int:
             grid=grid,
             estimator=est_fns[0],
             baseline_spec=baseline_spec,
-            base_kwargs=base_kwargs,
+            base_kwargs=grid_base_kwargs,
             on_error=args.on_error,
             horizon_align=args.horizon_align,
             band_compat=args.band_compat,
