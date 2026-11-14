@@ -2198,6 +2198,7 @@
       "lp_iv",
       "lp_iv_lewbel",
       "lp_quantile",
+      "lp_sensitivity_grid",
       "lp_smooth",
       "lp_state_dep",
       "lp_state_dep_iv",
@@ -2280,6 +2281,9 @@
     ],
     "puremacro.lp.quantile": [
       "lp_quantile"
+    ],
+    "puremacro.lp.sensitivity": [
+      "lp_sensitivity_grid"
     ],
     "puremacro.lp.smooth": [
       "SmoothLPResult",
@@ -3285,9 +3289,11 @@
       "load_rr2010_reference"
     ],
     "puremacro.reports": [
+      "IRFComparisonResult",
       "IRFResult",
       "LPResult",
       "coef_table",
+      "compare_irfs",
       "df_to_latex",
       "df_to_markdown",
       "df_to_typst",
@@ -8698,6 +8704,15 @@
       "nobs",
       "standard_errors",
       "t_statistics"
+    ],
+    "puremacro.reports.IRFComparisonResult": [
+      "baseline",
+      "digits",
+      "errors",
+      "horizons",
+      "metrics",
+      "table",
+      "warnings"
     ],
     "puremacro.reports.IRFResult": [
       "alpha",

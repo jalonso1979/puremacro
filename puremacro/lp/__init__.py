@@ -32,6 +32,7 @@ from .counterfactual import (
     barnichon_mesters_opp,
     mckay_wolf_counterfactual,
 )
+from .sensitivity import lp_sensitivity_grid
 
 __all__ = [
     "lp_hac", "LPResult", "panel_lp", "panel_lp_dk", "lp_iv", "lp_iv_lewbel", "panel_lp_iv",
@@ -49,4 +50,5 @@ __all__ = [
     "OptimalPolicyPerturbationResult",
     "mckay_wolf_counterfactual",
     "barnichon_mesters_opp",
+    "lp_sensitivity_grid",
 ]

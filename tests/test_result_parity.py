@@ -543,3 +543,34 @@ def test_asset_pricing_result_quintet_and_plot(cls_name):
     assert isinstance(fig, matplotlib.figure.Figure)
     _, ax = plt.subplots()
     assert res.plot(ax=ax) is ax
+
+
+def test_irf_comparison_result_quintet_and_plot():
+    from puremacro.lp import lp_hac
+    from puremacro.reports import compare_irfs
+
+    rng = np.random.default_rng(11)
+    n = 80
+    x = rng.standard_normal(n)
+    y = np.zeros(n)
+    for t in range(1, n):
+        y[t] = 0.4 * y[t - 1] + 0.6 * x[t] + 0.3 * rng.standard_normal()
+    df = pd.DataFrame({"y": y, "x": x})
+    res = compare_irfs(
+        {
+            "L1": lp_hac(df, "y", "x", horizons=range(4), lags=1),
+            "L2": lp_hac(df, "y", "x", horizons=range(4), lags=2),
+        }
+    )
+
+    assert isinstance(res.to_frame(), pd.DataFrame)
+    assert isinstance(res.to_dataframe(), pd.DataFrame)
+    assert isinstance(res.summary(), str) and res.summary()
+    assert "|" in res.to_markdown()
+    assert "\\begin{tabular}" in res.to_latex()
+    assert "#table(" in res.to_typst()
+
+    fig = res.plot()
+    assert isinstance(fig, matplotlib.figure.Figure)
+    _, ax = plt.subplots()
+    assert res.plot(ax=ax) is ax
