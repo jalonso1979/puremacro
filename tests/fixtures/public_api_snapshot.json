@@ -3819,6 +3819,7 @@
       "CaliendoParroModel",
       "CaliendoParroResult",
       "CompensationPlan",
+      "CompositeTariffScenario",
       "Concordance",
       "CondensedEquilibriumResult",
       "CondensedMeasuresResult",
@@ -3870,6 +3871,7 @@
       "ReallocationSteadyState",
       "ReallocationTransitionResult",
       "ScenarioBatchResult",
+      "ScenarioComparisonResult",
       "SourceRecord",
       "SourcingAdjustmentResult",
       "StabilityError",
@@ -3902,6 +3904,7 @@
       "ces_newton",
       "check_hawkins_simon_viability",
       "check_oecd_source",
+      "combine_scenarios",
       "compute_atkeson_burstein_markups",
       "compute_benchmark_market_shares",
       "compute_convergence_diagnostics",
@@ -3985,6 +3988,7 @@
       "solve_trade_equilibrium_gpu",
       "solve_trade_equilibrium_mlx",
       "stability",
+      "summarize_scenario_batch",
       "tariff_path",
       "to_calibration_matrix",
       "try_starts",
@@ -4438,10 +4442,14 @@
       "validate_accounting_identities"
     ],
     "puremacro.trade.scenarios": [
+      "CompositeTariffScenario",
+      "ScenarioComparisonResult",
       "TariffScenario",
       "build_tariff_matrices",
+      "combine_scenarios",
       "run_scenario",
-      "run_scenario_batch"
+      "run_scenario_batch",
+      "summarize_scenario_batch"
     ],
     "puremacro.trade.solver": [
       "ViabilityResult",
@@ -10579,6 +10587,23 @@
       "paths",
       "tariffs",
       "terminal"
+    ],
+    "puremacro.trade.scenarios.CompositeTariffScenario": [
+      "description",
+      "metadata",
+      "name",
+      "on_conflict",
+      "scenarios"
+    ],
+    "puremacro.trade.scenarios.ScenarioComparisonResult": [
+      "baseline",
+      "countries",
+      "digits",
+      "numeraire",
+      "scenario_summary",
+      "scenarios",
+      "table",
+      "warnings"
     ],
     "puremacro.trade.scenarios.TariffScenario": [
       "description",

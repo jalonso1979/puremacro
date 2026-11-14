@@ -616,3 +616,41 @@ def test_dsge_validation_scorecard_quintet_and_plot():
         assert isinstance(fig, matplotlib.figure.Figure)
         _, ax = plt.subplots()
         assert res_obj.plot(ax=ax) is ax
+
+
+
+def test_scenario_comparison_result_quintet_and_plot():
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from puremacro.trade import (
+        TariffScenario,
+        calibrate_trade_model,
+        run_scenario_batch,
+        summarize_scenario_batch,
+    )
+    from puremacro.trade.data import synthetic_codes, synthetic_icio_table
+
+    table = synthetic_icio_table(2, 2, nfd=3, seed=7)
+    countries, sectors = synthetic_codes(2, 2)
+    calib = calibrate_trade_model(
+        table, ns=2, nc=2, nfd=3, country_codes=countries, sector_codes=sectors
+    )
+    batch = run_scenario_batch(
+        calib, [TariffScenario("C01", {("C02", "*"): 0.10}, name="t10")], baseline_name="base"
+    )
+    comp = summarize_scenario_batch(batch, calib)
+
+    assert isinstance(comp.to_frame(), pd.DataFrame)
+    assert isinstance(comp.to_dataframe(), pd.DataFrame)
+    assert isinstance(comp.summary(), str) and comp.summary()
+    assert "|" in comp.to_markdown()
+    assert "\\begin{tabular}" in comp.to_latex()
+    assert "#table(" in comp.to_typst()
+
+    fig = comp.plot()
+    assert isinstance(fig, matplotlib.figure.Figure)
+    plt.close(fig)
+    fig2, ax = plt.subplots()
+    assert comp.plot(ax=ax) is ax
+    plt.close(fig2)

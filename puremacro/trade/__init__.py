@@ -56,10 +56,14 @@ from .geary_khamis import (
     solve_multilateral_ppp,
 )
 from .scenarios import (
+    CompositeTariffScenario,
+    ScenarioComparisonResult,
     TariffScenario,
     build_tariff_matrices,
+    combine_scenarios,
     run_scenario,
     run_scenario_batch,
+    summarize_scenario_batch,
 )
 from .welfare import HicksianWelfareResult, compute_hicksian_welfare
 from .policy_solver import PolicyEquilibriumError, solve_policy_equilibrium
@@ -237,9 +241,13 @@ __all__: list[str] = [
     "restore_capital_formation",
     "solve_multilateral_ppp",
     "TariffScenario",
+    "CompositeTariffScenario",
+    "ScenarioComparisonResult",
     "build_tariff_matrices",
+    "combine_scenarios",
     "run_scenario",
     "run_scenario_batch",
+    "summarize_scenario_batch",
     "HicksianWelfareResult",
     "compute_hicksian_welfare",
     "PolicyEquilibriumError",

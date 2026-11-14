@@ -22,7 +22,7 @@ from scipy.optimize import root_scalar
 
 from ._results import TradeCalibrationResult, TradeEquilibriumResult
 from .data import synthetic_codes
-from .scenarios import TariffScenario, build_tariff_matrices
+from .scenarios import CompositeTariffScenario, TariffScenario, build_tariff_matrices
 from .solver import solve_trade_equilibrium
 
 __all__ = [
@@ -414,7 +414,7 @@ def _resolve_sector_codes(calib: TradeCalibrationResult) -> tuple[str, ...]:
 
 def compute_effective_rate_of_protection(
     calib: TradeCalibrationResult,
-    tariffs: TariffScenario | np.ndarray,
+    tariffs: TariffScenario | CompositeTariffScenario | np.ndarray,
     target_country: str | int,
     weighting: Literal["bilateral", "import_weighted", "total"] = "bilateral",
     output_tariffs: Mapping[str, float] | np.ndarray | None = None,
@@ -524,7 +524,9 @@ def compute_effective_rate_of_protection(
             else:
                 t_tensor = tau_tensor
         else:
-            tau_mat, _ = build_tariff_matrices(calib, cast(TariffScenario, tariffs))
+            tau_mat, _ = build_tariff_matrices(
+                calib, cast("TariffScenario | CompositeTariffScenario", tariffs)
+            )
             t_tensor = tau_mat - 1.0  # (ns, nc, ns, nc)
 
         t_dest = t_tensor[:, :, :, c_idx]  # (ns, nc, ns)
