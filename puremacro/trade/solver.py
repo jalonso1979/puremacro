@@ -1851,11 +1851,11 @@ def solve_keller_pac(
         return _resolve_tariffs(calib, tau=tau_s, tau_fd=tau_fd_s)
 
     def _is_scenario(value: Any) -> bool:
-        from puremacro.trade.scenarios import CompositeTariffScenario, TariffScenario
+        from puremacro.trade.scenarios import TariffScenario
         if isinstance(value, str):
             from puremacro.trade.scenarios import NAMED_SCENARIOS_REMOVED
             raise TypeError(NAMED_SCENARIOS_REMOVED)
-        return isinstance(value, (TariffScenario, CompositeTariffScenario))
+        return isinstance(value, TariffScenario)
 
     # 2. Resolve target and start tariff structures
     if _is_scenario(tau_target):

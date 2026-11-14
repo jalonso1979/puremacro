@@ -15,6 +15,7 @@ There is no registry of named scenarios: every scenario states its tariffs.
 """
 from __future__ import annotations
 
+import abc
 from dataclasses import dataclass, field
 import math
 from numbers import Real
@@ -105,7 +106,7 @@ def _check_rate(rate: Any, where: str) -> float:
 
 
 @dataclass(frozen=True)
-class TariffScenario:
+class TariffScenario(metaclass=abc.ABCMeta):
     """One importing country's ad valorem import tariffs, by exporter and sector.
 
     Attributes
@@ -236,16 +237,16 @@ def _layer_rates_and_written(
     """Resolve one scenario layer to ``(rates_3d, written_3d)`` of shape ``(nc, nc, ns)``."""
     nc = len(country_codes)
     ns = len(sector_codes)
-    if isinstance(scenario, TariffScenario):
-        d_idx, rates_2d, written_2d = _tariff_scenario_mask_and_rates(
-            scenario, country_codes, sector_codes
-        )
-        rates_3d = np.zeros((nc, nc, ns), dtype=float)
-        written_3d = np.zeros((nc, nc, ns), dtype=bool)
-        rates_3d[:, d_idx, :] = rates_2d
-        written_3d[:, d_idx, :] = written_2d
-        return rates_3d, written_3d
-    return scenario._resolve_rates_and_written(country_codes, sector_codes, allow_error=True)
+    if isinstance(scenario, CompositeTariffScenario):
+        return scenario._resolve_rates_and_written(country_codes, sector_codes, allow_error=True)
+    d_idx, rates_2d, written_2d = _tariff_scenario_mask_and_rates(
+        scenario, country_codes, sector_codes
+    )
+    rates_3d = np.zeros((nc, nc, ns), dtype=float)
+    written_3d = np.zeros((nc, nc, ns), dtype=bool)
+    rates_3d[:, d_idx, :] = rates_2d
+    written_3d[:, d_idx, :] = written_2d
+    return rates_3d, written_3d
 
 
 def _apply_conflict_mode(
@@ -363,7 +364,7 @@ class CompositeTariffScenario:
         """Unique importer codes across component scenarios in first-seen order."""
         ordered: list[str] = []
         for item in self.scenarios:
-            item_importers = (item.importer,) if isinstance(item, TariffScenario) else item.importers
+            item_importers = item.importers if isinstance(item, CompositeTariffScenario) else (item.importer,)
             for imp in item_importers:
                 if imp not in ordered:
                     ordered.append(imp)
@@ -470,6 +471,12 @@ class CompositeTariffScenario:
         return pd.DataFrame(rows, columns=cols)
 
 
+# Register CompositeTariffScenario as a virtual TariffScenario so frozen
+# solver entry points checking ``isinstance(x, TariffScenario)`` accept
+# composites without altering frozen reference files.
+TariffScenario.register(CompositeTariffScenario)
+
+
 def combine_scenarios(
     scenarios: Sequence[TariffScenario | CompositeTariffScenario],
     *,
@@ -548,25 +555,25 @@ def build_tariff_matrices(
         raise TypeError("calib must be a TradeCalibrationResult")
     nc, ns, nfd = calib.n_countries, calib.n_sectors, calib.n_final_demand
 
-    if isinstance(scenario, TariffScenario):
-        rates = scenario.rate_matrix(calib.country_codes, calib.sector_codes)
-        d_idx = list(calib.country_codes).index(scenario.importer)
-        tau = np.ones((ns, nc, ns, nc), dtype=float)
-        tau_fd = np.ones((ns, nc, nfd, nc), dtype=float)
-        mult = 1.0 + rates.T  # (ns, nc): origin sector by origin country
-        tau[:, :, :, d_idx] = mult[:, :, None]
-        tau_fd[:, :, :, d_idx] = mult[:, :, None]
-        tau[:, d_idx, :, d_idx] = 1.0
-        tau_fd[:, d_idx, :, d_idx] = 1.0
+    if isinstance(scenario, CompositeTariffScenario):
+        rates_3d = scenario.to_rate_tensor(calib.country_codes, calib.sector_codes)
+        mult_3d = 1.0 + np.transpose(rates_3d, (2, 0, 1))  # (ns, nc_orig, nc_dest)
+        tau = np.broadcast_to(mult_3d[:, :, None, :], (ns, nc, ns, nc)).copy()
+        tau_fd = np.broadcast_to(mult_3d[:, :, None, :], (ns, nc, nfd, nc)).copy()
+        diag_idx = np.arange(nc)
+        tau[:, diag_idx, :, diag_idx] = 1.0
+        tau_fd[:, diag_idx, :, diag_idx] = 1.0
         return tau, tau_fd
 
-    rates_3d = scenario.to_rate_tensor(calib.country_codes, calib.sector_codes)
-    mult_3d = 1.0 + np.transpose(rates_3d, (2, 0, 1))  # (ns, nc_orig, nc_dest)
-    tau = np.broadcast_to(mult_3d[:, :, None, :], (ns, nc, ns, nc)).copy()
-    tau_fd = np.broadcast_to(mult_3d[:, :, None, :], (ns, nc, nfd, nc)).copy()
-    diag_idx = np.arange(nc)
-    tau[:, diag_idx, :, diag_idx] = 1.0
-    tau_fd[:, diag_idx, :, diag_idx] = 1.0
+    rates = scenario.rate_matrix(calib.country_codes, calib.sector_codes)
+    d_idx = list(calib.country_codes).index(scenario.importer)
+    tau = np.ones((ns, nc, ns, nc), dtype=float)
+    tau_fd = np.ones((ns, nc, nfd, nc), dtype=float)
+    mult = 1.0 + rates.T  # (ns, nc): origin sector by origin country
+    tau[:, :, :, d_idx] = mult[:, :, None]
+    tau_fd[:, :, :, d_idx] = mult[:, :, None]
+    tau[:, d_idx, :, d_idx] = 1.0
+    tau_fd[:, d_idx, :, d_idx] = 1.0
     return tau, tau_fd
 
 
@@ -589,7 +596,7 @@ def run_scenario(
     tau, tau_fd = build_tariff_matrices(calib, scenario)
     res = solve_trade_equilibrium(calib, tau=tau, tau_fd=tau_fd, **solver_opts)
     importers = (
-        (scenario.importer,) if isinstance(scenario, TariffScenario) else scenario.importers
+        scenario.importers if isinstance(scenario, CompositeTariffScenario) else (scenario.importer,)
     )
     res.metadata["scenario_name"] = scenario.name
     res.metadata["scenario_importers"] = importers
