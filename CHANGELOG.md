@@ -9,6 +9,163 @@ additions are included in 5.4.2. Versions 5.8.0, 5.9.0 and 6.0.0 were tagged
 but not published; their additions are included in 6.0.1, published on
 2026-10-29. See the [release procedure](RELEASING.md).
 
+## 6.5.0 (2026-11-14)
+
+**Pyodide-safe empirical-to-structural workbench, unified CLI and stdio MCP
+server, financed HANK fiscal closures, Pesaran CCE Mean Group local
+projections, DSGE/IRF validation scorecards, structured solver diagnostics,
+composite tariff labs, and sovereign SMM/trade batch fail-closed fixes.**
+
+### Added
+
+- `puremacro.workbench` (`run_empirical_structural_workbench`,
+  `EmpiricalStructuralDossier`) provides a Pyodide-safe end-to-end research
+  dossier combining panel preflight checks, baseline LP estimation, LP
+  sensitivity grids, cross-specification IRF comparisons, structural moment-target
+  scoring, prior–posterior MCMC diagnostics, and structured solver diagnostics
+  with Markdown, LaTeX, Typst, JSON, and Matplotlib exports.
+- `puremacro.cli` (`python -m puremacro.cli`, `create_parser`, `main`) adds a
+  zero-optional-dependency CLI with subcommands `preflight`, `lp-grid`,
+  `compare-irfs`, `scorecard`, `freshness`, and `doctor` (plus `--workbench`
+  dossier execution).
+- `puremacro.mcp_server` (`PUREMACRO_MCP_TOOLS`, `MCP_PROTOCOL_VERSION`,
+  `UnknownToolError`, `list_tools`, `call_tool`, `serve_stdio`, `main`) adds a
+  zero-extra-dependency stdio Model Context Protocol (MCP) JSON-RPC 2.0 server
+  with dual NDJSON / `Content-Length` framing, `--allowed-root` /
+  `PUREMACRO_MCP_ALLOWED_ROOT` read-only sandboxing, and eight bounded tools
+  (`preflight_panel`, `lp_hac`, `lp_sensitivity_grid`, `compare_irfs`,
+  `score_irf_against_targets`, `tariff_scenario_batch`,
+  `connector_freshness_report`, `validation_scorecard`).
+- `puremacro.data.preflight_panel` (`PreflightReport`, `PreflightFinding`)
+  audits panel and time-series schemas, duplicates, time gaps, missingness,
+  stationarity (`adf_test`, `kpss_test`), and residual seasonality
+  (`residual_seasonality_F`), returning structured findings and tabular/JSON/plot
+  exports.
+- `puremacro.reports.compare_irfs` (`IRFComparisonResult`) and
+  `puremacro.lp.sensitivity.lp_sensitivity_grid` (also exported from
+  `puremacro.lp`) align and compare heterogeneous IRFs (point paths, bands,
+  peaks, cumulative sums, RMSE, sign agreement) and sweep Cartesian grids of
+  LP parameters and estimators.
+- `puremacro.dsge.validation_scorecard` (`prior_posterior_comparison`,
+  `score_irf_against_targets`, `PriorPosteriorComparisonResult`,
+  `IRFScorecardResult`, re-exported from `puremacro.dsge`) adds truncation-aware
+  prior-to-posterior summaries with Vehtari et al. (2021) rank-normalized
+  split-Rhat and bulk/tail ESS alongside covariance-weighted Wald $\chi^2$ IRF
+  scorecards against joint `MomentTargets` or marginal `LPResult` targets;
+  `estimate_dsge` and `nuts_sample` also retain `priors` on
+  `DSGEPosteriorResult` and `NUTSResult`.
+- `puremacro.trade.scenarios` (`CompositeTariffScenario`,
+  `ScenarioComparisonResult`, `combine_scenarios`, `summarize_scenario_batch`,
+  re-exported from `puremacro.trade` and accepted by
+  `compute_effective_rate_of_protection`) supports multi-importer/nested tariff
+  packages with explicit conflict policies (`"last_wins"`, `"first_wins"`,
+  `"error"`, `"max"`, `"sum"`) and multi-country Hicksian EV/CV, Geary–Khamis
+  real GDP growth, and `compare_robust` summaries.
+- `puremacro.solvers.diagnostics` (`SolverDiagnosticRecord`,
+  `ConvergenceStatus`, `AccuracyStatus`, `SupportStatus`,
+  `VALID_OVERALL_STATUSES`, `determine_overall_status`,
+  `make_solver_diagnostic_record`, re-exported from `puremacro.solvers`)
+  separates numerical convergence, equation accuracy, and domain support across
+  `TradeEquilibriumResult`, `SovereignDefaultResult`, `SuddenStopResult`
+  summaries, `VarEstimateResult`, `OneAssetHANKResult`, `HANKSecondOrderAudit`,
+  and `SecondOrderHANKPolicy`, and integrates with
+  `puremacro.validation.audit.audit_result`.
+- `puremacro.models.hank_fiscal` (`FiscalHANKResult`, `solve_hank_fiscal`,
+  `compare_fiscal_closures`) adds explicit financed fiscal-monetary closures
+  (`closure="balanced_budget"` and `closure="debt_rule"`) under `"proportional"`
+  or `"lump_sum"` taxes with machine-verifiable goods, government intertemporal
+  budget, and Walras asset-market clearing residuals (`goods_market_residual`,
+  `gov_budget_residual`, `gov_intertemporal_residual`, `asset_market_residual`).
+- `puremacro.lp.cce` adds the opt-in Pesaran (2006) CCE Mean Group estimator via
+  `cce_panel_lp(..., estimator="mean_group")` and convenience wrapper
+  `cce_mg_panel_lp`, providing unit-specific regressions augmented with
+  cross-sectional averages, Pesaran (2006, eq. 56) nonparametric standard errors
+  (`cov_type="pesaran_mg"`), rank/`min_obs` checks, a 3-entity minimum guard,
+  and explicit `excluded_entities_by_horizon` provenance.
+- Remaining LP estimators (`lp_asymmetric`, `cce_panel_lp`, `lp_iv_lewbel`,
+  `la_lp`, `lp_did`, `mean_group_panel_lp`, `lp_quantile`, `lp_state_dep`,
+  `lp_smooth_transition_irf`, `lp_state_dep_iv`) now populate
+  `attrs["specification"]` provenance (`n_obs_by_horizon`, `cov_summary`, etc.);
+  `lp_did().estimates` and `lp_smooth_transition_irf` return `LPResult`.
+- `puremacro.examples.first_brief_tariffs` adds `TradeBriefConfig`,
+  `load_enigh_groups`, `load_groups`, `compute_sensitivity_grid`,
+  `compute_brief`, and CLI flags `--enigh`, `--trade-elasticity`, and
+  `--household-elasticity`; `puremacro.examples.sovereign_own_data_brief`
+  (`SovereignBriefConfig`, `PreparedSovereignData`, `SovereignBriefResult`,
+  `prepare_sovereign_data`, `compute_brief`, `run_brief`) adds an own-data
+  sovereign default, Bohn fiscal-reaction, and stochastic DSA brief; and
+  `puremacro.examples.tariff_composite_lab` (`TariffLegSpec`,
+  `TariffPackageSpec`, `TariffLabConfig`, `TariffLabResult`,
+  `default_tariff_packages`, `build_tariff_packages`, `load_lab_groups`,
+  `compute_tariff_lab`, `run_tariff_lab`) adds comparative composite tariff and
+  household incidence packages.
+- Bilingual documentation and interactive demo: `docs/workbench_and_scorecards.md`
+  (`docs/es/workbench_and_scorecards.md`), `docs/mcp_server.md`
+  (`docs/es/mcp_server.md`), `docs/lp.md` (`docs/es/lp.md`) CCE-MG guide,
+  `docs/models.md` (`docs/es/models.md`) `hank_fiscal` section and
+  `solve_nonlinear_transition(..., shock_var="G")` scope note,
+  `docs/first_brief_tariffs.md` (`docs/es/first_brief_tariffs.md`)
+  ENIGH/microdata/grid guide, `mkdocs.yml` nav entries, and
+  `playground/01_workbench_demo.py`.
+
+### Fixed
+
+- `puremacro.sovereign.smm` (`_stationary_access_exclusion_dist`,
+  `_compute_stationary_or_simulated_moments`, `calibrate_fiscal_sovereign_smm`)
+  now uses the exact `(access/excluded, b, y)` exclusion/reentry Markov chain
+  matching `_fiscal_paths.simulate_paths` (including `theta` reentry and
+  excluded-state spending), adds `boundary_choice_share_pct` support, selects
+  `"dense"` `policy_search` when `rule.deficit_limit` is set, and fails closed
+  on nonconverged solves, absorbed repayment/market-access mass, zero-variance
+  `corr_pb_y`, nonfinite simulated paths, or malformed inputs instead of
+  falling back to zeros or uniform weights.
+- `puremacro.trade.scenarios` registers `CompositeTariffScenario` on
+  `TariffScenario` (via `abc.ABCMeta`) so frozen solver entry points keep their
+  signature while accepting composites, and guards `run_scenario_batch` and
+  `summarize_scenario_batch` so unconverged baseline, scenario, or Geary–Khamis
+  solves emit `RuntimeWarning`, skip warm-start propagation, and record `NaN`
+  for affected real GDP growth and welfare aggregates.
+- `puremacro.workbench` and `puremacro.cli` (`_prepare_lp_grid_context`,
+  `_unwrap_lp_frame`) support `lp_did` in sensitivity grids, isolate
+  time-series vs multi-unit panel runs, reject mixing incompatible estimator
+  conventions in one grid, and unwrap `LPDiDResult.estimates` when serializing
+  or scoring dossiers.
+- `puremacro.mcp_server` adds panel `unit_col`/`time_col` support for `lp_did`
+  in `lp_sensitivity_grid` (rejecting mixing `lp_did` with other LP estimators)
+  and applies bounded CSV row/column/empty checks (`_read_bounded_csv`) across
+  `data_path`, `compare_irfs`, `model_irf_path`, and `targets_path`.
+- `puremacro.examples.sovereign_own_data_brief.compute_brief` forwards
+  non-default `pb_max` when re-simulating Bohn fiscal-reaction DSA paths, and
+  `puremacro.examples.tariff_composite_lab.load_lab_groups` preserves bundled
+  ENIGH `file` and `sha256` provenance in `groups_meta`.
+- `puremacro.sa.stl.residual_seasonality_F` guards non-positive degrees of
+  freedom and zero within-group variance (`ss_within <= 1e-12`) by returning
+  `(nan, nan, dof_num, dof_den)`.
+- `README.md` and `README.es.md` fix the DSGE NUTS quickstart block to declare
+  the AR(1) demand shock state `d` and call `model.simulate(...)`.
+
+### Internal
+
+- Extracted Pyodide-clean `adf_test` and `kpss_test` (with MacKinnon/KPSS tables
+  and helpers) into `puremacro._unit_root_core`, re-exported in
+  `puremacro.tests.unit_root`, so `puremacro.data.preflight_panel` adheres to
+  the Pyodide core import contract.
+- Vectorized quarterly Markov transition matrix chaining in
+  `puremacro.labor_flows._quarterly_chain` (#227) and
+  `puremacro.labor_flows_enoe.transitions_from_enoe` (#228), and replaced
+  `.iterrows()` with `.itertuples(index=False, name=None)` in
+  `puremacro.fetch.energy_transition._parse_ember_df` (#234).
+- Added the `min-dependency-floor` CI job (`numpy==1.26.0`, `scipy==1.10.0`,
+  `pandas==2.0.0`, `matplotlib==3.7.0`, `requests==2.31.0` on Python 3.11) in
+  `.github/workflows/ci.yml` and aligned test frequency aliases (`QS`/`MS`) for
+  `pandas==2.0.0`; added metamorphic solver conformance tests
+  (`tests/test_conformance/test_metamorphic_solvers.py`) and LP specification
+  contract tests (`tests/test_lp/test_lp_specification_standards.py`);
+  documented the RR2010 Gate-5 tolerance excess (`3.925e-6`) in
+  `docs/research_benchmarks.md`; added repo-root path setup to
+  `tools/cache_migrate.py`; updated `tests/fixtures/public_api_snapshot.json`;
+  and refreshed the 5-item JOSS attestation gate in `paper/paper.md`.
+
 ## 6.4.0 (2026-11-12)
 
 **Reusable own-data fiscal policy briefs, bounded connector provenance and

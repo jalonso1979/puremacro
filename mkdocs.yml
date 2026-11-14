@@ -61,6 +61,7 @@ nav:
       - Observed household policy studies: household_policy_studies.md
       - Auditing solved results: result_audits.md
       - Path audits and bounded refinement: result_audits_extended.md
+      - Empirical workbench and scorecards: workbench_and_scorecards.md
       - Workload scaling: performance_scaling.md
       - Real-data published replication: empirical_research.md
       - Showcase Notebooks: notebooks.md
@@ -177,6 +178,7 @@ nav:
           - GPU, MLX and batched Jacobians: trade_gpu.md
       - Running Anywhere (iPad / browser): tablet.md
       - Local language models (iPad, Mac, Windows, Linux, Colab): local_llm.md
+      - MCP server (stdio): mcp_server.md
       - Performance & Benchmarks: benchmarks.md
       - Reference:
           - Replication gallery: replication.md
@@ -203,6 +205,7 @@ nav:
       - Estudios de política con hogares observados: es/household_policy_studies.md
       - Auditoría de resultados resueltos: es/result_audits.md
       - Auditoría de trayectorias y refinamiento acotado: es/result_audits_extended.md
+      - Banco de trabajo empírico y scorecards: es/workbench_and_scorecards.md
       - Escalamiento de cargas de trabajo: es/performance_scaling.md
       - Replicación publicada con datos reales: es/empirical_research.md
       - Cuadernos de demostración: es/notebooks.md
@@ -319,6 +322,7 @@ nav:
           - GPU, MLX y jacobianos por lotes: es/trade_gpu.md
       - Ejecución en cualquier entorno (iPad / navegador): es/tablet.md
       - Modelos de lenguaje locales (iPad, Mac, Windows, Linux, Colab): es/local_llm.md
+      - Servidor MCP (stdio): es/mcp_server.md
       - Rendimiento y pruebas comparativas: es/benchmarks.md
       - Referencia:
           - Galería de replicación: es/replication.md
