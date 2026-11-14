@@ -25,6 +25,7 @@ Esto simula un choque monetario contractivo de 25 puntos básicos en una econom�
 | Módulo | Ruta de importación | Qué resuelve |
 |---|---|---|
 | `hank_sequence_space` | `puremacro.models` | HANK de un activo: estado estacionario por EGM, algoritmo exacto Fake News en $\mathcal{O}(T^2)$, transferencias fiscales focalizadas y transición de equilibrio general mediante un sistema lineal $T \times T$ |
+| `hank_fiscal` | `puremacro.models.hank_fiscal` | Cierres fiscales explícitos financiados para HANK (`balanced_budget` y `debt_rule` con impuestos proporcionales o de suma fija), auditando bienes, RGI y vaciado de activos (Walras) |
 | `monetary_transmission` | `puremacro.models` | Transmisión de política monetaria y macroprudencial HANK vs. RANK con descomposición Kaplan-Moll-Violante |
 | `dmp_regime_dependent` | `puremacro.models` | Modelo DMP con empresa representativa, salarios rígidos de Hall, coste de vacantes dependiente del régimen y choque de PTF |
 | `nested_dmp` (paquete) | `puremacro.models.nested_dmp` | DMP con empresas heterogéneas y creencias bayesianas sobre la regla de política: estado estacionario, FRI con previsión perfecta, estimación por coincidencia de FRI, solución estocástica recursiva y análisis de bienestar |
@@ -37,7 +38,7 @@ Para el simulador de transmisión monetaria HANK frente a RANK y su laboratorio 
 `SequenceSpaceHANKResult`, `solve_hank_sequence_space`,
 `FakeNewsResult`, `FiscalTransferResult`,
 `fake_news_algorithm`, `simulate_targeted_transfer`,
-`MonetaryTransmissionSimulator` y `MonetaryTransmissionResult`.
+`MonetaryTransmissionSimulator` y `MonetaryTransmissionResult`. `hank_fiscal`, `nested_dmp` y `smm` se importan mediante sus propias rutas de submódulo.
 
 ## Ventajas del método en el espacio de secuencias
 
@@ -134,3 +135,38 @@ Argumentos principales:
 - `kappa`: Pendiente de la curva de Phillips nuevo keynesiana.
 - `shock_magnitude`: Magnitud del choque monetario inicial en $t=0$.
 - `shock_rho`: Persistencia autorregresiva AR(1) del choque.
+
+> [!NOTE]
+> **Alcance de `shock_var="G"` en `hank_sequence_space.py`:** Al llamar a `solve_nonlinear_transition(..., shock_var="G")`, el gasto público `dG_t` entra únicamente como una perturbación exógena en la ecuación de vaciado del mercado de bienes (`Y_t = C_t + G_t`), sin incrementar los impuestos pagados por los hogares (`T_t`) ni emitir deuda pública (`B_t`). Por ello representa un experimento no financiado de demanda agregada y arroja multiplicadores inflados frente a un cierre fiscal explícito. Para transiciones fiscales financiadas con auditoría presupuestaria y de activos, utilice `puremacro.models.hank_fiscal`.
+
+## Cierres fiscales financiados (`puremacro.models.hank_fiscal`)
+
+El módulo `puremacro.models.hank_fiscal` incorpora cierres fiscales explícitos y auditables sobre el bloque de hogares en espacio de secuencias sin alterar `hank_sequence_space.py`.
+
+```python
+from puremacro.models.hank_fiscal import compare_fiscal_closures, solve_hank_fiscal
+import numpy as np
+
+dG = 0.01 * (0.7 ** np.arange(120))
+res = solve_hank_fiscal(
+    shock_seq=dG,
+    closure="debt_rule",      # "balanced_budget" o "debt_rule"
+    tax_type="proportional",  # "proportional" o "lump_sum"
+    horizon=120,
+    phi_B=0.08,
+    phi_G=0.0,
+)
+print(res.goods_market_residual, res.gov_budget_residual, res.asset_market_residual)
+```
+
+### Reglas de cierre e incidencia tributaria
+
+- `closure="balanced_budget"`: Mantiene $B_t = B_{\text{ss}}$ con recaudación período a período $T_t = G_t + r_t B_{\text{ss}}$.
+- `closure="debt_rule"`: Evoluciona la deuda mediante $B_t = (1 + r_t) B_{t-1} + G_t - T_t$ y la regla fiscal lineal $T_t = T_{\text{ss}} + \phi_B (B_{t-1} - B_{\text{ss}}) + \phi_G dG_t$. En HANK falla la equivalencia ricardiana: posponer impuestos mediante déficit eleva el consumo de hogares con restricción de liquidez frente al presupuesto equilibrado.
+- `tax_type="proportional"` frente a `"lump_sum"`: El impuesto proporcional ajusta la tasa $\tau_t = T_t / Y_t$ sobre el ingreso laboral neto $(1 - \tau_t) w_t s$; el impuesto de suma fija distribuye uniformemente $\Delta T_t = T_t - T_{\text{ss}}$ entre todos los hogares.
+
+### Estabilidad, ley de Walras y diagnósticos
+
+- **Región estacionaria de deuda:** Exige $r_{\text{ss}} < \phi_B < 2 + r_{\text{ss}}$. Reglas con $\phi_B \le r_{\text{ss}}$ (explosivas / sin respaldo fiscal) lanzan `ValueError` salvo `allow_unstable_rule=True`, caso en el que se emite `RuntimeWarning` y el resultado queda marcado como no convergente (`converged=False`, `SupportStatus(is_supported=False, regime="non_stationary_explosive")`).
+- **Discretización del límite superior de activos:** La identidad exacta de Walras $Y_t - C_t - G_t = (A_t - B_t) - (1+r_t)(A_{t-1} - B_{t-1})$ solo se cumple si las decisiones de ahorro no quedan censuradas en $a_{\max}$. Por defecto se usa `n_a=100, a_max=100.0`; mallas truncadas (como `a_max=30.0`) quedan señaladas como `regime="boundary_asset_truncation"`.
+- **Objeto devuelto (`FiscalHANKResult`):** Dataclass inmutable con sendas (`Y`, `C`, `G`, `T`, `B`, `A`, `r`, `w`, `tau`, `pi`), solución linealizada (`linear_dY`, `linear_dC`), multiplicadores fiscales (`impact_multiplier`, `cumulative_multiplier`, `present_value_multiplier`), residuos (`goods_market_residual`, `gov_budget_residual`, `gov_intertemporal_residual`, `asset_market_residual`, `terminal_debt_gap`), `solver_diagnostics` y utilidades (`summary()`, `to_frame()`, `to_markdown()`, `to_latex()`, `to_typst()`, `plot()`, `compare_fiscal_closures()`).

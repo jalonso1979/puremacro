@@ -28,6 +28,7 @@ New Keynesian economy, and it returns in **0.21 s**.
 | module | import path | what it solves |
 |---|---|---|
 | `hank_sequence_space` | `puremacro.models` | one-asset HANK: EGM steady state, exact $\mathcal{O}(T^2)$ Fake News algorithm, targeted fiscal transfers, and GE transition by one `T x T` linear solve |
+| `hank_fiscal` | `puremacro.models.hank_fiscal` | financed HANK fiscal closures (`balanced_budget` and `debt_rule` with proportional or lump-sum taxes), auditing goods, IBC, and Walras asset-market clearing |
 | `monetary_transmission` | `puremacro.models` | HANK vs. RANK monetary policy and balance-sheet transmission with Kaplan-Moll-Violante decomposition |
 | `dmp_regime_dependent` | `puremacro.models` | representative-firm DMP, Hall sticky wages, regime-dependent vacancy cost and TFP bump |
 | `nested_dmp` (package) | `puremacro.models.nested_dmp` | heterogeneous-firm DMP with Bayesian beliefs about the policy rule: steady state, perfect-foresight IRF, IRF-matching estimation, recursive stochastic solve, welfare sweep |
@@ -40,8 +41,8 @@ For the HANK vs. RANK monetary transmission simulator and its browser lab (`curs
 `SequenceSpaceHANKResult`, `solve_hank_sequence_space`,
 `FakeNewsResult`, `FiscalTransferResult`,
 `fake_news_algorithm`, `simulate_targeted_transfer`,
-`MonetaryTransmissionSimulator`, and `MonetaryTransmissionResult`. `nested_dmp` and `smm`
-are reached by their own paths.
+`MonetaryTransmissionSimulator`, and `MonetaryTransmissionResult`. `hank_fiscal`,
+`nested_dmp`, and `smm` are reached by their own module paths.
 
 ## What the sequence-space method buys
 
@@ -206,6 +207,9 @@ investment, no government and no labour block, which means **`irf_consumption`
 is a bit-identical copy of `irf_output`**. Comparing them is not a check on
 anything.
 
+> [!NOTE]
+> **Scope of `shock_var="G"` in `solve_nonlinear_transition`:** When called with `shock_var="G"`, `hank_sequence_space.solve_nonlinear_transition` adds an exogenous spending wedge `dG_t` to goods clearing (`Y_t = C_t + G_t`) *without* adjusting household taxes (`T_t`) or evolving government debt (`B_t = (1 + r_t) B_{t-1} + G_t - T_t`). Because households are never taxed for `dG_t`, cumulative spending multipliers under `shock_var="G"` reflect an unfinanced aggregate-demand disturbance rather than a closed fiscal transition. For financed balanced-budget or debt-rule fiscal transitions with explicit Walras and budget audits, use `puremacro.models.hank_fiscal.solve_hank_fiscal`.
+
 ## What comes back
 
 `SequenceSpaceHANKResult`, a frozen dataclass.
@@ -337,6 +341,41 @@ the aggregate MPC from 0.102609 to 0.102619). At `beta=0.99` **both** loops
 exhaust their caps. There is no `converged` flag on the result to check, so if
 you move `beta` or `r_ss` far from the defaults, verify the wealth distribution
 by eye rather than trusting the return.
+
+## Financed fiscal closures (`puremacro.models.hank_fiscal`)
+
+`puremacro.models.hank_fiscal` extends the one-asset sequence-space HANK engine with explicit government budget closures and machine-verifiable Walras's Law checks while leaving `hank_sequence_space.py` unmodified.
+
+```python
+from puremacro.models.hank_fiscal import compare_fiscal_closures, solve_hank_fiscal
+import numpy as np
+
+dG = 0.01 * (0.7 ** np.arange(120))
+res = solve_hank_fiscal(
+    shock_seq=dG,
+    closure="debt_rule",      # "balanced_budget" or "debt_rule"
+    tax_type="proportional",  # "proportional" or "lump_sum"
+    horizon=120,
+    phi_B=0.08,
+    phi_G=0.0,
+)
+print(res.goods_market_residual, res.gov_budget_residual, res.asset_market_residual)
+```
+
+### Fiscal closures and tax incidence
+
+| Argument / closure | Government budget law & financing tax schedule | Economic behaviour |
+|---|---|---|
+| `closure="balanced_budget"` | $B_t = B_{\text{ss}}$, $T_t = G_t + r_t B_{\text{ss}}$ | Period-by-period financing crowds out disposable income immediately; eliminates deficit stimulus |
+| `closure="debt_rule"` | $B_t = (1 + r_t) B_{t-1} + G_t - T_t$, $T_t = T_{\text{ss}} + \phi_B (B_{t-1} - B_{\text{ss}}) + \phi_G dG_t$ | Violates Ricardian equivalence in HANK: deficit financing raises near-term consumption and multipliers relative to balanced budgets |
+| `tax_type="proportional"` | $\tau_t = T_t / Y_t$, after-tax wage $(1 - \tau_t) w_t$ | Tax burden scales proportionally with labour productivity $s$ |
+| `tax_type="lump_sum"` | Fixed $\tau_{\text{ss}} = T_{\text{ss}} / Y_{\text{ss}}$ plus uniform lump-sum adjustment $T^{\text{ls}}_t = T_t - T_{\text{ss}}$ | Uniform tax falls heavily on high-MPC borrowing-constrained households |
+
+### Stability region and Walras's Law audits
+
+- **Stationary debt rule region**: $r_{\text{ss}} < \phi_B < 2 + r_{\text{ss}}$. Values outside this interval violate the fiscal intertemporal budget constraint (`phi_B <= r_ss` is explosive/unbacked) and raise `ValueError` unless `allow_unstable_rule=True`, which emits a `RuntimeWarning` and marks `converged=False` with `SupportStatus(is_supported=False, regime="non_stationary_explosive")`.
+- **Upper asset grid truncation**: Exact discrete-time Walras's Law ($Y_t - C_t - G_t = (A_t - B_t) - (1 + r_t)(A_{t-1} - B_{t-1})$) holds only when household saving policies lie strictly inside $[0, a_{\max}]$. `solve_hank_fiscal` defaults to `n_a=100, a_max=100.0` (zero boundary mass at default calibration) and flags coarse grids such as `a_max=30.0` with `SupportStatus(is_supported=False, regime="boundary_asset_truncation")`.
+- **Returned object (`FiscalHANKResult`)**: Frozen dataclass containing full paths (`Y`, `C`, `G`, `T`, `B`, `A`, `r`, `w`, `tau`, `pi`), linearized comparisons (`linear_dY`, `linear_dC`), fiscal multipliers (`impact_multiplier`, `cumulative_multiplier`, `present_value_multiplier`), exact residuals (`goods_market_residual`, `gov_budget_residual`, `gov_intertemporal_residual`, `asset_market_residual`, `terminal_debt_gap`), `SolverDiagnosticRecord` (`solver_diagnostics`), and presentation helpers (`summary()`, `to_frame()`, `to_markdown()`, `to_latex()`, `to_typst()`, `plot()`). Compare all four financed regimes side-by-side against unfinanced `shock_var="G"` via `compare_fiscal_closures(...)`.
 
 ---
 
