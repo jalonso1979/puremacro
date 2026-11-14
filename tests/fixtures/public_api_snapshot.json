@@ -234,6 +234,10 @@
       "dml_iv",
       "dml_plr"
     ],
+    "puremacro.cli": [
+      "create_parser",
+      "main"
+    ],
     "puremacro.climate": [
       "DICEResult",
       "SpatialClimateIAM",
@@ -2329,6 +2333,15 @@
       "rank_normalized_rhat",
       "trace_summary"
     ],
+    "puremacro.mcp_server": [
+      "MCP_PROTOCOL_VERSION",
+      "PUREMACRO_MCP_TOOLS",
+      "UnknownToolError",
+      "call_tool",
+      "list_tools",
+      "main",
+      "serve_stdio"
+    ],
     "puremacro.midas": [
       "BetaMidasResult",
       "GarchMidasResult",
@@ -2403,6 +2416,11 @@
     "puremacro.models.hank_equilibrium": [
       "HANKEquilibriumWorkspace",
       "solve_hank_equilibrium"
+    ],
+    "puremacro.models.hank_fiscal": [
+      "FiscalHANKResult",
+      "compare_fiscal_closures",
+      "solve_hank_fiscal"
     ],
     "puremacro.models.hank_nonlinear_continuation": [
       "HANKContinuationAccuracyError",
@@ -5089,6 +5107,10 @@
     "puremacro.wavelet.coherence": [
       "WaveletCoherenceResult",
       "wavelet_coherence"
+    ],
+    "puremacro.workbench": [
+      "EmpiricalStructuralDossier",
+      "run_empirical_structural_workbench"
     ]
   },
   "result_classes": {
@@ -7839,6 +7861,48 @@
       "converged",
       "diagnostics",
       "distribution"
+    ],
+    "puremacro.models.hank_fiscal.FiscalHANKResult": [
+      "A",
+      "B",
+      "C",
+      "G",
+      "T",
+      "Y",
+      "asset_market_residual",
+      "closure",
+      "converged",
+      "cumulative_multiplier",
+      "dB",
+      "dC",
+      "dG",
+      "dT",
+      "dY",
+      "goods_market_residual",
+      "gov_budget_residual",
+      "gov_intertemporal_residual",
+      "horizon",
+      "impact_multiplier",
+      "iterations",
+      "linear_dC",
+      "linear_dY",
+      "norm_history",
+      "phi_B",
+      "phi_G",
+      "pi",
+      "present_value_multiplier",
+      "r",
+      "r_ex_ante",
+      "residuals",
+      "solver_diagnostics",
+      "steady_state",
+      "steady_state_model",
+      "tau",
+      "tax_type",
+      "terminal_debt_gap",
+      "terminal_discounted_debt_gap",
+      "tol",
+      "w"
     ],
     "puremacro.models.hank_nonlinear_continuation.HANKNonlinearCorrection": [
       "aggregate_coordinates",
@@ -11700,6 +11764,27 @@
     "puremacro.wavelet.coherence.WaveletCoherenceResult": [
       "coherence_per_scale",
       "period_bands"
+    ],
+    "puremacro.workbench.EmpiricalStructuralDossier": [
+      "ci_level",
+      "controls",
+      "digits",
+      "empirical_lp",
+      "horizons",
+      "irf_comparison",
+      "irf_scorecard",
+      "lags",
+      "lang",
+      "metadata",
+      "moment_targets",
+      "preflight",
+      "prior_posterior",
+      "sensitivity",
+      "solver_diagnostics",
+      "title",
+      "warnings",
+      "x",
+      "y"
     ]
   }
 }
