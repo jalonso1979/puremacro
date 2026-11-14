@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ast
+import contextlib
 import copy
 import dataclasses
 from datetime import datetime, timezone
@@ -129,6 +130,7 @@ def test_top_level_imports_are_stdlib_only_and_lazy() -> None:
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=True,
     )
     data = json.loads(proc.stdout)
@@ -236,7 +238,8 @@ def test_json_safe_serializer_handles_nonfinite_containers() -> None:
         {"h": 1, "beta": None, "margin": None},
     ]
     assert math.isfinite(decoded["table"][0]["beta"])
-    assert decoded["path"] == "a/b.csv"
+    assert decoded["path"] == os.fspath(Path("a/b.csv"))
+    assert Path(decoded["path"]) == Path("a/b.csv")
 
 
 # ---------------------------------------------------------------------------
@@ -363,9 +366,6 @@ def test_allowed_root_security_controls(tmp_path: Path) -> None:
     bad_ext = root / "notes.txt"
     bad_ext.write_text("hello", encoding="utf-8")
 
-    link_path = root / "escape.csv"
-    os.symlink(outside, link_path)
-
     # Disallowed when allowed_root=None
     with pytest.raises(PermissionError, match="allowed_root"):
         call_tool("preflight_panel", {"data_path": str(inside_csv)})
@@ -373,10 +373,6 @@ def test_allowed_root_security_controls(tmp_path: Path) -> None:
     # Traversal rejected
     with pytest.raises(PermissionError, match="escapes allowed_root"):
         call_tool("preflight_panel", {"data_path": "../secret.csv"}, allowed_root=root)
-
-    # Symlink escape rejected
-    with pytest.raises(PermissionError, match="escapes allowed_root"):
-        call_tool("preflight_panel", {"data_path": "escape.csv"}, allowed_root=root)
 
     # Unsupported extension rejected
     with pytest.raises(ValueError, match="not permitted"):
@@ -396,6 +392,21 @@ def test_allowed_root_security_controls(tmp_path: Path) -> None:
     )
     assert res["panel_shape"][0] == 8
     assert res["n_units"] == 2
+
+
+def test_allowed_root_symlink_escape_rejected(tmp_path: Path) -> None:
+    root = tmp_path / "sandbox"
+    root.mkdir()
+    outside = tmp_path / "secret.csv"
+    outside.write_text("date,y,x\n2020-01-01,1.0,0.5\n", encoding="utf-8")
+    link_path = root / "escape.csv"
+    try:
+        os.symlink(outside, link_path)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlink creation unavailable on host: {exc}")
+
+    with pytest.raises(PermissionError, match="escapes allowed_root"):
+        call_tool("preflight_panel", {"data_path": "escape.csv"}, allowed_root=root)
 
 
 # ---------------------------------------------------------------------------
@@ -731,8 +742,9 @@ def test_tool_connector_freshness_report_and_validation_scorecard(tmp_path: Path
     assert "markdown" in rec
 
     db_file = tmp_path / "empty_cache.db"
-    with sqlite3.connect(db_file) as conn:
-        bootstrap_schema(conn)
+    with contextlib.closing(sqlite3.connect(db_file)) as conn:
+        with conn:
+            bootstrap_schema(conn)
     cache_rep = call_tool(
         "connector_freshness_report",
         {"mode": "cache", "sources": ["fred.csv"], "db_path": "empty_cache.db"},
@@ -763,6 +775,7 @@ def test_subprocess_cli_smoke_list_and_stdio(tmp_path: Path) -> None:
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=True,
     )
     listed = json.loads(list_proc.stdout)
@@ -802,6 +815,7 @@ def test_subprocess_cli_smoke_list_and_stdio(tmp_path: Path) -> None:
         input=ndjson_in,
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=True,
     )
     responses = [json.loads(line) for line in stdio_proc.stdout.splitlines() if line.strip()]
