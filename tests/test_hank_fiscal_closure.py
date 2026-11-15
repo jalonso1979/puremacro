@@ -579,3 +579,49 @@ def test_pyodide_import_invariant_and_type_hints() -> None:
         text=True,
         check=True,
     )
+
+
+@pytest.mark.parametrize("closure", ["balanced_budget", "debt_rule"])
+@pytest.mark.parametrize("tax_type", ["proportional", "lump_sum"])
+def test_long_horizon_walras_convergence_precision(closure: str, tax_type: str) -> None:
+    """T=300 fiscal paths maintain sub-1e-14 steady-state asset closure without drifting past 1e-11."""
+    from puremacro.models.hank_fiscal import _solve_fiscal_steady_state, solve_hank_fiscal
+
+    for g_ss in (0.0, 0.20):
+        hh, _ = _solve_fiscal_steady_state(
+            beta=0.985,
+            gamma=1.0,
+            r_ss=0.01,
+            phi_pi=1.5,
+            kappa=0.1,
+            n_a=100,
+            a_max=100.0,
+            g_ss=g_ss,
+        )
+        assert abs(float(np.sum(hh.D_ss * hh.a_ss)) - hh.B_ss) < 1e-14
+
+    horizon = 300
+    zero_shock = solve_hank_fiscal(
+        shock_seq=np.zeros(horizon),
+        closure=closure,
+        tax_type=tax_type,
+        horizon=horizon,
+        phi_B=0.15,
+        tol=1e-11,
+    )
+    assert zero_shock.converged
+    assert float(np.max(np.abs(zero_shock.asset_market_residual))) < 1e-11
+    assert float(np.max(np.abs(zero_shock.goods_market_residual))) < 1e-11
+
+    shock = 0.01 * (0.7 ** np.arange(horizon))
+    res = solve_hank_fiscal(
+        shock_seq=shock,
+        closure=closure,
+        tax_type=tax_type,
+        horizon=horizon,
+        phi_B=0.15,
+        tol=1e-11,
+    )
+    assert res.converged
+    assert float(np.max(np.abs(res.asset_market_residual))) < 1e-11
+    assert float(np.max(np.abs(res.goods_market_residual))) < 1e-11

@@ -48,8 +48,8 @@ _DEFAULT_GAMMA = 1.0
 _DEFAULT_R_SS = 0.01
 _DEFAULT_PHI_PI = 1.5
 _DEFAULT_KAPPA = 0.1
-_SS_EGM_TOL = 1e-12
-_SS_FISCAL_TOL = 1e-13
+_SS_EGM_TOL = 1e-14
+_SS_FISCAL_TOL = 2e-15
 _FD_STEP = 1e-4
 
 _CLOSURE_ALIASES = {
@@ -457,12 +457,13 @@ def _solve_fiscal_steady_state(
 ) -> tuple[_FiscalHousehold, Any]:
     """Solve stationary Aiyagari household block with steady spending g_ss >= 0."""
     from puremacro.models.hank_sequence_space import (
+        _EGM_MAX_ITER,
         SequenceSpaceHANKResult,
         _W_SS,
         _asset_grid,
         _build_transition_matrix,
         _decile_weights,
-        _egm_fixed_point,
+        _egm_step,
         _ge_matrices,
         _income_process,
         _local_mpc,
@@ -504,9 +505,28 @@ def _solve_fiscal_steady_state(
             raise ValueError(
                 f"Steady-state tax bill (r_ss*B + g_ss)/N_ss exceeds wage (B={B:.3f}, g_ss={g_ss:.3f})"
             )
-        V, c, a, _, converged = _egm_fixed_point(
-            V, c, a_grid, s_grid, pi_s, beta, gamma, r_ss, w_net
-        )
+        best_err = np.inf
+        stagnant = 0
+        converged = False
+        err = np.inf
+        for _ in range(1, _EGM_MAX_ITER + 1):
+            V_new, c_new, a_new = _egm_step(V, a_grid, s_grid, pi_s, beta, gamma, r_ss, w_net)
+            err = float(np.max(np.abs(c_new - c)))
+            V, c, a = V_new, c_new, a_new
+            if err < _SS_EGM_TOL:
+                converged = True
+                break
+            if err <= 1e-12:
+                if err < best_err - 1e-16:
+                    best_err = err
+                    stagnant = 0
+                else:
+                    stagnant += 1
+                    if stagnant >= 5:
+                        converged = True
+                        break
+        if not converged and err < 1e-12:
+            converged = True
         Lam = _build_transition_matrix(a, a_grid, pi_s)
         D = _stationary_distribution(Lam).reshape(a.shape)
         return float(np.sum(D.sum(axis=1) * a_grid))
@@ -515,16 +535,29 @@ def _solve_fiscal_steady_state(
     f_prev = assets_at(B_prev) - B_prev
     B_cur = B_prev + f_prev
     f_cur = assets_at(B_cur) - B_cur
-    fiscal_converged = abs(f_cur) < _SS_FISCAL_TOL * max(1.0, abs(B_cur))
+    best_B, best_f = (B_cur, f_cur) if abs(f_cur) <= abs(f_prev) else (B_prev, f_prev)
+    fiscal_done = abs(f_cur) <= _SS_FISCAL_TOL * max(1.0, abs(B_cur))
     for _ in range(80):
-        if fiscal_converged:
+        if fiscal_done:
             break
         denom = f_cur - f_prev
         step = -f_cur * (B_cur - B_prev) / denom if abs(denom) > 1e-15 else f_cur
+        if abs(step) <= 1e-15 * max(1.0, abs(B_cur)) and abs(f_cur) < 1e-12 * max(1.0, abs(B_cur)):
+            fiscal_done = True
+            break
+        w_try = w_ss - (r_ss * (B_cur + step) + g_ss) / N_ss
+        if w_try <= 0.0:
+            step = f_cur
         B_prev, f_prev = B_cur, f_cur
         B_cur = B_cur + step
         f_cur = assets_at(B_cur) - B_cur
-        fiscal_converged = abs(f_cur) < _SS_FISCAL_TOL * max(1.0, abs(B_cur))
+        if abs(f_cur) < abs(best_f):
+            best_B, best_f = B_cur, f_cur
+        fiscal_done = abs(f_cur) <= _SS_FISCAL_TOL * max(1.0, abs(B_cur))
+    if abs(f_cur) > abs(best_f):
+        B_cur = best_B
+        f_cur = assets_at(B_cur) - B_cur
+    fiscal_converged = abs(f_cur) < 1e-12 * max(1.0, abs(B_cur))
 
     if not converged:
         warnings.warn(
@@ -1332,6 +1365,10 @@ def solve_hank_fiscal(
                     B_mat = B_inv.copy()
                     reset_done = True
                     continue
+                if norm < tol_val and (
+                    ss_truncation_gap >= 0.1 * tol_val or asset_norm < tol_val
+                ):
+                    break
                 stall_reason = "line_search_stalled"
                 break
         else:

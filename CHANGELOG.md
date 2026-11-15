@@ -71,6 +71,11 @@ trade accounting speedups.**
   writable copies; regenerated
   `tests/fixtures/first_brief_tariffs/independent_validation.json` with identical
   numerical checks and updated SHA-256 provenance for `_accounting.py`.
+- `puremacro.models.hank_fiscal`: tightened `_solve_fiscal_steady_state` EGM
+  (`_SS_EGM_TOL = 1e-14`) and secant bond-market closure (`_SS_FISCAL_TOL = 2e-15`
+  with best-iterate tracking) and avoided spurious `"line_search_stalled"` flags
+  in `solve_hank_fiscal` when iterates are already inside `tol` at float64
+  floor, eliminating `(1 + r_ss)^300` steady-state drift at `horizon=300, tol=1e-11`.
 
 ### Internal
 
