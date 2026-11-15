@@ -45,6 +45,13 @@ print("puremacro", puremacro.__version__, "— ready in the browser")
 # scorecard right here in the browser and see every estimator checked against
 # an independent reference.
 #
+# **Workbench & policy labs (`playground/`):**
+# `01_workbench_demo` — preflight, LP lag/spec sensitivity grids, IRF comparisons,
+# composite tariff batches, and solver diagnostics;
+# `02_fiscal_tariff_hank_lab` — composite tariff overrides (`CompositeTariffScenario`),
+# HANK fiscal closures (`solve_hank_fiscal` / `compare_fiscal_closures`), and
+# CCE Mean Group panel LP workbench scorecards.
+#
 # **En español:** every showcase notebook has a Spanish twin with the `_es`
 # suffix (e.g. `06_svar_identification_es`) — same code, Spanish narrative.
 # Course companion lessons from `notebooks/course/` (`00_syllabus_es`,

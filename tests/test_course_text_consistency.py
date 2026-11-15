@@ -142,9 +142,11 @@ def test_start_here_names_shipped_notebooks():
     for stem in stems:
         if (LESSONS / f"{stem}.ipynb").exists():
             continue                            # companion lessons are Spanish-only
+        if (START_HERE.parent / f"{stem}.py").exists():
+            continue                            # jupytext-backed playground demos built by build_playground.sh
         if not (SHOWCASE / f"{stem}.ipynb").exists():
-            problems.append(f"{stem}: neither notebooks/{stem}.ipynb nor "
-                            f"notebooks/course/{stem}.ipynb exists")
+            problems.append(f"{stem}: neither notebooks/{stem}.ipynb, "
+                            f"notebooks/course/{stem}.ipynb, nor playground/{stem}.py exists")
         elif not stem.endswith("_es") and not (SHOWCASE / f"{stem}_es.ipynb").exists():
             problems.append(f"{stem}: the page promises an _es twin and there is none")
     assert not problems, "\n".join(problems)

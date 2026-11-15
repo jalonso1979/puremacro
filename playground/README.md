@@ -18,10 +18,19 @@ python -m http.server -d playground/dist 8000   # then open http://localhost:800
 `PipliteAddon.piplite_urls` (so `%pip install puremacro` resolves to the wheel
 served with the site), copies the showcase notebooks (`notebooks/NN_*.ipynb`)
 and companion lessons (`notebooks/course/*.ipynb`) plus `_nbstyle.py` / `_tutor.py`
-into `content/`, injects a `%pip install puremacro` bootstrap cell into **every**
-`NN…`-prefixed notebook it copied (`%pip install puremacro pyarrow` in the ones
-whose code reads parquet), and runs `jupyter lite build` → `dist/`.
+into `content/`, converts all jupytext percent-format demos
+(`playground/NN_*.py`, including `00_start_here.py`, `01_workbench_demo.py`,
+and `02_fiscal_tariff_hank_lab.py`) into `content/*.ipynb`, injects a
+`%pip install puremacro` bootstrap cell into **every** `NN…`-prefixed notebook
+in `content/` (`%pip install puremacro pyarrow` in the ones whose code reads
+parquet), and runs `jupyter lite build` → `dist/`.
 It also builds the documentation into `dist/docs/`.
+
+### Included playground lab scripts (`playground/*.py`)
+
+- `00_start_here.py` — Browser landing page & showcase index.
+- `01_workbench_demo.py` — End-to-end preflight, LP sensitivity grid, IRF comparison, composite tariff batch, and solver diagnostic scorecard.
+- `02_fiscal_tariff_hank_lab.py` — Composite tariff overrides (`CompositeTariffScenario`), structural fiscal HANK closure audits (`solve_hank_fiscal` / `compare_fiscal_closures`), and CCE Mean Group workbench evaluation.
 
 These companion lessons are distinct from the MAV notebooks in
 [`curso/notebooks/`](../curso/notebooks/README.md), whose course edition retains

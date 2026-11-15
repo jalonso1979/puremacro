@@ -54,15 +54,21 @@ fi
 # outright instead, so the setting silently never applied in either. At $PG/ it
 # merges into dist/jupyter-lite.json, which is the file the browser reads.
 cp "$PG"/content_static/jupyter-lite.json "$PG/jupyter-lite.json"
-python -m jupytext --to ipynb --output "$PG/content/00_start_here.ipynb" "$PG/00_start_here.py"
+for py_demo in "$PG"/[0-9][0-9]_*.py; do
+  [ -f "$py_demo" ] || continue
+  stem="$(basename "$py_demo" .py)"
+  python -m jupytext --to ipynb --output "$PG/content/${stem}.ipynb" "$py_demo"
+done
 
 echo "==> 3/5 inject the %pip bootstrap cell into every notebook in content/"
 # The glob must cover EVERY notebook copied above, not just 00..19_: the old
 # `[0-1][0-9]_*` missed both the lettered stems (01b_, 04b_, 10b_, 10c_) and the
 # course lessons 20..25 (HANK is the week-11 lesson, not an elective), which then
 # hit ModuleNotFoundError on their first import cell in JupyterLite.
-# `[0-9][0-9]*.ipynb` matches every NN-prefixed notebook and leaves the .py
-# helpers (_nbstyle.py, _tutor.py) alone. inject_pip_cell.py is idempotent.
+# `[0-9][0-9]*.ipynb` matches every NN-prefixed notebook (including converted
+# playground/*.py demos such as 00_start_here, 01_workbench_demo, and
+# 02_fiscal_tariff_hank_lab) and leaves the .py helpers (_nbstyle.py,
+# _tutor.py) alone. inject_pip_cell.py is idempotent.
 python "$PG/inject_pip_cell.py" "$PG"/content/[0-9][0-9]*.ipynb
 
 echo "==> 4/5 jupyter lite build"

@@ -62,6 +62,8 @@ Changelog = "https://github.com/jalonso1979/puremacro/blob/main/CHANGELOG.md"
 Issues = "https://github.com/jalonso1979/puremacro/issues"
 
 [project.scripts]
+puremacro = "puremacro.cli:main"
+puremacro-mcp = "puremacro.mcp_server:main"
 puremacro-dynare = "puremacro.dsge.cli:main"
 puremacro-dp = "puremacro.dp.cli:main"
 
