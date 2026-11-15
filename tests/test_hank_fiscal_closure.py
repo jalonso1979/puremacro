@@ -584,7 +584,7 @@ def test_pyodide_import_invariant_and_type_hints() -> None:
 @pytest.mark.parametrize("closure", ["balanced_budget", "debt_rule"])
 @pytest.mark.parametrize("tax_type", ["proportional", "lump_sum"])
 def test_long_horizon_walras_convergence_precision(closure: str, tax_type: str) -> None:
-    """T=300 fiscal paths maintain sub-1e-14 steady-state asset closure without drifting past 1e-11."""
+    """T=300 fiscal paths maintain relative machine-precision steady-state closure without drifting past 1e-11."""
     from puremacro.models.hank_fiscal import _solve_fiscal_steady_state, solve_hank_fiscal
 
     for g_ss in (0.0, 0.20):
@@ -598,7 +598,7 @@ def test_long_horizon_walras_convergence_precision(closure: str, tax_type: str) 
             a_max=100.0,
             g_ss=g_ss,
         )
-        assert abs(float(np.sum(hh.D_ss * hh.a_ss)) - hh.B_ss) < 1e-14
+        assert abs(float(np.sum(hh.D_ss * hh.a_ss)) - hh.B_ss) < 5e-15 * max(1.0, abs(hh.B_ss))
 
     horizon = 300
     zero_shock = solve_hank_fiscal(
