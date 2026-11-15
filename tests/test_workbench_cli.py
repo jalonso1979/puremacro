@@ -1235,3 +1235,244 @@ def test_single_unit_with_unit_col_and_incompatible_estimator_mixes(
     )
     assert rc_multi_ts == 2
     capsys.readouterr()
+
+
+def test_cli_workbench_and_lp_grid_bundle_export_and_utf8_safe(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    df = _make_ts_df(n=64, seed=31, as_date_col=True)
+    csv_path = tmp_path / "ts.csv"
+    df.to_csv(csv_path, index=False)
+
+    bundle_a = tmp_path / "bundle_lp_grid"
+    rc_lp = pm_cli.main(
+        [
+            "lp-grid",
+            str(csv_path),
+            "--y",
+            "y",
+            "--x",
+            "x",
+            "--time-col",
+            "date",
+            "--horizons",
+            "0..3",
+            "--lags",
+            "1,2",
+            "--workbench",
+            "--bundle-dir",
+            str(bundle_a),
+            "--lang",
+            "es",
+            "--format",
+            "html",
+        ]
+    )
+    assert rc_lp == 0
+    out_html = capsys.readouterr().out
+    assert "<!DOCTYPE html>" in out_html
+    assert 'lang="es"' in out_html
+    assert (bundle_a / "manifest.json").exists()
+    assert (bundle_a / "dossier_en.html").exists()
+    assert (bundle_a / "dossier_es.html").exists()
+    assert (bundle_a / "dossier_es.tex").exists()
+
+    # Dedicated workbench subcommand with robust-spec JSON and bundle export
+    spec_path = tmp_path / "wb_robust.json"
+    spec_path.write_text(
+        json.dumps(
+            {
+                "targets": {
+                    "values": [4.0, 0.0],
+                    "covariance": [[0.25, 0.0], [0.0, 0.25]],
+                    "labels": ["m1", "m2"],
+                },
+                "model_moments": [4.05, -0.02],
+                "curve": {
+                    "offset": [0.0, 0.0],
+                    "loading": [1.0, 0.0],
+                    "linear": 0.0,
+                    "quadratic": 1.0,
+                    "parameter_name": "theta_wb",
+                    "definition_id": "cli_wb_curve",
+                },
+                "domain": [-3.0, 3.0],
+            }
+        ),
+        encoding="utf-8",
+    )
+    bundle_b = tmp_path / "bundle_wb"
+    rc_wb = pm_cli.main(
+        [
+            "workbench",
+            str(csv_path),
+            "--y",
+            "y",
+            "--x",
+            "x",
+            "--time-col",
+            "date",
+            "--horizons",
+            "0..3",
+            "--lags",
+            "1",
+            "--no-sensitivity",
+            "--robust-spec",
+            str(spec_path),
+            "--bundle-dir",
+            str(bundle_b),
+            "--format",
+            "json",
+        ]
+    )
+    assert rc_wb == 0
+    wb_payload = json.loads(capsys.readouterr().out)
+    assert wb_payload["moment_test"]["accepted"] is True
+    assert wb_payload["moment_confidence_set"]["resolved"] is True
+    assert wb_payload["moment_confidence_set"]["n_intervals"] == 2
+    assert (bundle_b / "dossier.json").exists()
+
+    # Simulate narrow Windows codepage (cp1252) on stdout while printing accented Spanish
+    import io
+
+    cp_buf = io.TextIOWrapper(io.BytesIO(), encoding="cp1252", errors="strict")
+    monkeypatch.setattr(sys, "stdout", cp_buf)
+    rc_win = pm_cli.main(
+        [
+            "workbench",
+            str(csv_path),
+            "--y",
+            "y",
+            "--x",
+            "x",
+            "--time-col",
+            "date",
+            "--horizons",
+            "0..2",
+            "--lags",
+            "1",
+            "--no-sensitivity",
+            "--lang",
+            "es",
+        ]
+    )
+    assert rc_win == 0
+    cp_buf.flush()
+    rendered_bytes = cp_buf.buffer.getvalue()
+    assert b"Expediente" in rendered_bytes
+
+
+def test_cli_hank_fiscal_compare_single_and_exit2_validation(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    rc_cmp = pm_cli.main(
+        [
+            "hank-fiscal",
+            "--mode",
+            "compare",
+            "--horizon",
+            "20",
+            "--n-a",
+            "40",
+            "--no-unfinanced",
+            "--format",
+            "json",
+        ]
+    )
+    assert rc_cmp == 0
+    cmp_payload = json.loads(capsys.readouterr().out)
+    assert cmp_payload["schema"] == "puremacro.hank_fiscal/1"
+    assert cmp_payload["mode"] == "compare"
+    assert len(cmp_payload["scenarios"]) == 4
+
+    rc_single = pm_cli.main(
+        [
+            "hank-fiscal",
+            "--mode",
+            "single",
+            "--closure",
+            "debt_rule",
+            "--tax-type",
+            "lump_sum",
+            "--horizon",
+            "20",
+            "--n-a",
+            "40",
+            "--format",
+            "markdown",
+            "--lang",
+            "es",
+        ]
+    )
+    assert rc_single == 0
+    md_out = capsys.readouterr().out
+    assert "Transición fiscal HANK" in md_out
+    assert "debt_rule" in md_out
+
+    # Schema/argument validation errors must return exit code 2
+    assert pm_cli.main(["hank-fiscal", "--horizon", "0"]) == 2
+    assert pm_cli.main(["hank-fiscal", "--n-a", "5"]) == 2
+    assert pm_cli.main(["hank-fiscal", "--phi-b", "0.0", "--mode", "compare"]) == 2
+    capsys.readouterr()
+
+
+def test_cli_robust_set_point_curve_grid_and_exit2_validation(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    spec_file = tmp_path / "robust_spec.json"
+    spec_file.write_text(
+        json.dumps(
+            {
+                "targets": {
+                    "values": [4.0, 0.0],
+                    "covariance": [[1.0, 0.0], [0.0, 0.5]],
+                    "labels": ["m1", "m2"],
+                },
+                "model_moments": {"m1": 4.1, "m2": 0.0},
+                "curve": {
+                    "offset": [0.0, 0.0],
+                    "loading": [1.0, 0.0],
+                    "linear": 0.0,
+                    "quadratic": 1.0,
+                    "parameter_name": "kappa",
+                    "definition_id": "cli_test_curve",
+                },
+                "domain": [-4.0, 4.0],
+                "grid": [-2.0, 0.0, 2.0],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    rc = pm_cli.main(["robust-set", str(spec_file), "--format", "json"])
+    assert rc == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["schema"] == "puremacro.robust_set/1"
+    assert payload["moment_test"]["accepted"] is True
+    assert payload["confidence_set"]["resolved"] is True
+    assert payload["confidence_set"]["n_intervals"] == 2
+    assert payload["moment_grid"]["continuous_complete"] is False
+    assert len(payload["moment_grid"]["unresolved_cells"]) == 2
+
+    rc_md = pm_cli.main(
+        ["robust-set", str(spec_file), "--format", "markdown", "--lang", "es"]
+    )
+    assert rc_md == 0
+    md_out = capsys.readouterr().out
+    assert "Conjunto robusto de momentos" in md_out
+    assert "continuous_complete=False" in md_out
+
+    bad_json = tmp_path / "bad.json"
+    bad_json.write_text("{broken-json", encoding="utf-8")
+    assert pm_cli.main(["robust-set", str(bad_json)]) == 2
+
+    incomplete_spec = tmp_path / "incomplete.json"
+    incomplete_spec.write_text(
+        json.dumps({"targets": {"values": [1.0], "covariance": [[1.0]]}}),
+        encoding="utf-8",
+    )
+    assert pm_cli.main(["robust-set", str(incomplete_spec)]) == 2
+    capsys.readouterr()

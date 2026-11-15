@@ -1,9 +1,12 @@
 """Unified command-line interface for puremacro workflows (``python -m puremacro.cli``).
 
 Provides subcommands for panel preflight checks (``preflight``), LP
-sensitivity grids (``lp-grid``), multi-specification IRF comparison
-(``compare-irfs``), structural IRF scorecards (``scorecard``), connector
-freshness checks (``freshness``), and environment diagnostics (``doctor``).
+sensitivity grids (``lp-grid``), end-to-end empirical-structural dossiers
+(``workbench``), multi-specification IRF comparison (``compare-irfs``),
+structural IRF scorecards (``scorecard``), HANK fiscal closure analysis
+(``hank-fiscal``), identification-robust moment sets (``robust-set``),
+connector freshness checks (``freshness``), and environment diagnostics
+(``doctor``).
 
 Top-level imports use the Python standard library exclusively so CLI parsing
 and Pyodide module sweeps stay lightweight and free of optional dependencies.
@@ -209,12 +212,17 @@ def _resolve_estimator(name: str) -> Callable[..., Any]:
     raise _CLIUsageError(f"Unknown estimator {name!r}; supported: {valid}")
 
 
-def _add_common_output_args(parser: argparse.ArgumentParser) -> None:
+def _add_common_output_args(
+    parser: argparse.ArgumentParser,
+    *,
+    formats: tuple[str, ...] = ("json", "markdown"),
+) -> None:
+    fmt_desc = " or ".join(f"'{f}'" for f in formats)
     parser.add_argument(
         "--format",
-        choices=("json", "markdown"),
+        choices=formats,
         default="markdown",
-        help="Output format ('json' or 'markdown'). Default: markdown.",
+        help=f"Output format ({fmt_desc}). Default: markdown.",
     )
     parser.add_argument(
         "--lang",
@@ -239,6 +247,39 @@ def _add_common_output_args(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Suppress stdout output (useful with --output).",
     )
+
+
+def _render_and_export_workbench(dossier: Any, args: argparse.Namespace) -> int:
+    bundle_dir = getattr(args, "bundle_dir", None)
+    bundle_info: dict[str, Any] | None = None
+    if bundle_dir is not None:
+        langs_raw = getattr(args, "bundle_langs", None)
+        langs = _parse_csv_tokens([langs_raw]) if langs_raw else None
+        bundle_info = dossier.to_bundle(
+            bundle_dir,
+            languages=langs,
+            digits=args.digits,
+        )
+
+    if args.format == "html":
+        rendered = dossier.to_html(lang=args.lang, digits=args.digits)
+    elif args.format == "json":
+        if bundle_info is not None:
+            payload = dossier.to_dict()
+            payload["bundle"] = {
+                "languages": bundle_info["languages"],
+                "checksums": bundle_info["checksums"],
+                "manifest_sha256": bundle_info["manifest_sha256"],
+                "schema": bundle_info["manifest"]["schema"],
+            }
+            rendered = _dumps_json(payload)
+        else:
+            rendered = dossier.to_json()
+    else:
+        rendered = dossier.to_markdown(lang=args.lang, digits=args.digits)
+
+    _write_or_print(rendered, output=args.output, quiet=args.quiet)
+    return 0 if dossier.passed else 1
 
 
 def _run_preflight(args: argparse.Namespace) -> int:
@@ -382,7 +423,14 @@ def _run_lp_grid(args: argparse.Namespace) -> int:
     except ValueError as exc:
         raise _CLIUsageError(str(exc)) from exc
 
-    if args.workbench:
+    run_workbench = bool(
+        args.workbench
+        or getattr(args, "bundle_dir", None) is not None
+    )
+    if args.format == "html" and not run_workbench:
+        raise _CLIUsageError("--format html requires --workbench or --bundle-dir.")
+
+    if run_workbench:
         base_lags = int(args.baseline_lags) if args.baseline_lags is not None else lags_list[0]
         wb_unit = args.unit_col or adapted_panel_kwargs.get("unit") or adapted_panel_kwargs.get("unit_col")
         wb_time = args.time_col or adapted_panel_kwargs.get("time") or adapted_panel_kwargs.get("time_col")
@@ -406,13 +454,7 @@ def _run_lp_grid(args: argparse.Namespace) -> int:
             lang=args.lang,
             digits=args.digits,
         )
-        rendered = (
-            dossier.to_json()
-            if args.format == "json"
-            else dossier.to_markdown(lang=args.lang, digits=args.digits)
-        )
-        _write_or_print(rendered, output=args.output, quiet=args.quiet)
-        return 0 if dossier.passed else 1
+        return _render_and_export_workbench(dossier, args)
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
@@ -823,6 +865,617 @@ def _run_freshness(args: argparse.Namespace) -> int:
     return 0
 
 
+def _parse_robust_spec_payload(
+    spec_path: str,
+    *,
+    alpha_override: float | None = None,
+    calibration_override: str | None = None,
+) -> dict[str, Any]:
+    """Load and schema-validate a JSON spec for moment testing / confidence inversion."""
+    import numpy as np
+    from puremacro.structural.bridge import MomentTargets
+    from puremacro.structural.robust import QuadraticMomentCurve
+    from puremacro.structural.simulation import SimulatedMoments, SimulationPlan
+
+    raw = _load_json_raw(Path(spec_path))
+    if not isinstance(raw, dict):
+        raise _CLIUsageError(f"Robust spec in {spec_path} must be a JSON object.")
+
+    raw_targets = raw.get("targets")
+    if not isinstance(raw_targets, dict):
+        raise _CLIUsageError("Robust spec requires a 'targets' object.")
+    if "values" not in raw_targets or "covariance" not in raw_targets:
+        raise _CLIUsageError("Robust spec 'targets' requires 'values' and 'covariance'.")
+
+    try:
+        vals = raw_targets["values"]
+        cov = raw_targets["covariance"]
+        labels_raw = raw_targets.get("labels")
+        if labels_raw is None:
+            labels_tuple: tuple[str, ...] = tuple(f"m{i}" for i in range(len(vals)))
+        else:
+            if isinstance(labels_raw, (str, bytes)) or not isinstance(labels_raw, Sequence):
+                raise _CLIUsageError("Robust spec 'targets.labels' must be an array of strings.")
+            labels_tuple = tuple(str(lbl) for lbl in labels_raw)
+        mt = MomentTargets(
+            values=vals,
+            covariance=cov,
+            labels=labels_tuple,
+            units=raw_targets.get("units", "unspecified"),
+            metadata=raw_targets.get("metadata") or {},
+        )
+    except (ValueError, TypeError) as exc:
+        raise _CLIUsageError(f"Invalid 'targets' schema: {exc}") from exc
+
+    alpha_raw = alpha_override if alpha_override is not None else raw.get("alpha", 0.05)
+    try:
+        alpha = float(alpha_raw)
+    except (TypeError, ValueError) as exc:
+        raise _CLIUsageError(f"Invalid alpha={alpha_raw!r}: {exc}") from exc
+    if not math.isfinite(alpha) or not 0.0 < alpha < 1.0:
+        raise _CLIUsageError(f"alpha must lie strictly in (0, 1), got {alpha!r}.")
+
+    calibration = str(
+        calibration_override if calibration_override is not None else raw.get("calibration", "asymptotic")
+    )
+
+    cov_override = raw.get("covariance")
+    model_moments_raw = raw.get("model_moments")
+    model_moments: Any | None = model_moments_raw
+    if isinstance(model_moments_raw, dict):
+        missing_labels = [lbl for lbl in mt.labels if lbl not in model_moments_raw]
+        extra_labels = [k for k in model_moments_raw if k not in mt.labels]
+        if missing_labels or extra_labels:
+            raise _CLIUsageError(
+                "Mapping 'model_moments' keys must match target labels "
+                f"{list(mt.labels)!r}; missing={missing_labels!r}, extra={extra_labels!r}."
+            )
+        model_moments = [float(model_moments_raw[lbl]) for lbl in mt.labels]
+
+    simulation_obj: SimulatedMoments | None = None
+    assume_independent = False
+    cross_covariance: Any | None = None
+    if "simulation" in raw and raw["simulation"] is not None:
+        raw_sim = raw["simulation"]
+        if not isinstance(raw_sim, dict):
+            raise _CLIUsageError("'simulation' must be a JSON object.")
+        raw_plan = raw_sim.get("plan")
+        if not isinstance(raw_plan, dict):
+            raise _CLIUsageError("'simulation.plan' must be a JSON object.")
+        try:
+            plan = SimulationPlan(
+                seed=int(raw_plan["seed"]),
+                replications=int(raw_plan["replications"]),
+                periods=int(raw_plan["periods"]),
+                burn_in=int(raw_plan.get("burn_in", 0)),
+                stream=int(raw_plan.get("stream", 0)),
+                role=str(raw_plan.get("role", "fit")),
+            )
+            replicates = np.asarray(raw_sim["replicates"], dtype=float)
+            sim_labels = tuple(raw_sim.get("labels", mt.labels))
+            counts = (
+                np.asarray(raw_sim["counts"], dtype=float)
+                if raw_sim.get("counts") is not None
+                else np.full(replicates.shape, float("nan"), dtype=float)
+            )
+            statuses = tuple(
+                raw_sim.get("statuses", ["ok"] * plan.replications)
+            )
+            simulation_obj = SimulatedMoments(
+                theta=raw_sim["theta"],
+                plan=plan,
+                labels=sim_labels,
+                units=raw_sim.get("units", "unspecified"),
+                definition_id=str(raw_sim.get("definition_id", "cli_simulation")),
+                replicates=replicates,
+                counts=counts,
+                statuses=statuses,
+                metadata=raw_sim.get("metadata") or {},
+            )
+            assume_independent = bool(raw_sim.get("assume_independent", False))
+            cross_covariance = raw_sim.get("cross_covariance")
+        except (KeyError, ValueError, TypeError) as exc:
+            raise _CLIUsageError(f"Invalid 'simulation' schema: {exc}") from exc
+
+    curve_obj: QuadraticMomentCurve | None = None
+    if "curve" in raw and raw["curve"] is not None:
+        raw_curve = raw["curve"]
+        if not isinstance(raw_curve, dict):
+            raise _CLIUsageError("'curve' must be a JSON object.")
+        if "offset" not in raw_curve or "loading" not in raw_curve:
+            raise _CLIUsageError("'curve' requires 'offset' and 'loading'.")
+        try:
+            curve_obj = QuadraticMomentCurve(
+                offset=np.asarray(raw_curve["offset"], dtype=float),
+                loading=np.asarray(raw_curve["loading"], dtype=float),
+                labels=tuple(raw_curve.get("labels", mt.labels)),
+                definition_id=str(raw_curve.get("definition_id", "cli_quadratic_curve")),
+                linear=float(raw_curve.get("linear", 1.0)),
+                quadratic=float(raw_curve.get("quadratic", 0.0)),
+                center=float(raw_curve.get("center", 0.0)),
+                scale=float(raw_curve.get("scale", 1.0)),
+                parameter_name=str(raw_curve.get("parameter_name", "theta")),
+                units=raw_curve.get("units", "unspecified"),
+            )
+        except (ValueError, TypeError) as exc:
+            raise _CLIUsageError(f"Invalid 'curve' schema: {exc}") from exc
+
+    domain: tuple[float, float] = (-float("inf"), float("inf"))
+    if "domain" in raw and raw["domain"] is not None:
+        raw_dom = raw["domain"]
+        if not isinstance(raw_dom, list) or len(raw_dom) != 2:
+            raise _CLIUsageError("'domain' must be a 2-element JSON array [lower, upper].")
+        try:
+            lo = -float("inf") if raw_dom[0] is None else float(raw_dom[0])
+            hi = float("inf") if raw_dom[1] is None else float(raw_dom[1])
+        except (TypeError, ValueError) as exc:
+            raise _CLIUsageError(f"Invalid 'domain' bounds {raw_dom!r}: {exc}") from exc
+        if math.isnan(lo) or math.isnan(hi) or lo >= hi:
+            raise _CLIUsageError(f"Invalid 'domain' bounds {raw_dom!r}: lower must be < upper without NaN.")
+        domain = (lo, hi)
+
+    grid_values: Any | None = None
+    if "grid" in raw and raw["grid"] is not None:
+        raw_grid = raw["grid"]
+        if not isinstance(raw_grid, list) or len(raw_grid) < 2:
+            raise _CLIUsageError("'grid' must be a numeric array with at least 2 points.")
+        try:
+            grid_values = np.asarray(raw_grid, dtype=float)
+        except (TypeError, ValueError) as exc:
+            raise _CLIUsageError(f"Invalid 'grid' values: {exc}") from exc
+        if not np.all(np.isfinite(grid_values)):
+            raise _CLIUsageError("'grid' values must be finite real numbers.")
+
+    grid_moments: list[Any] | None = None
+    if "grid_moments" in raw and raw["grid_moments"] is not None:
+        if grid_values is None:
+            raise _CLIUsageError("'grid_moments' requires 'grid'.")
+        gm = raw["grid_moments"]
+        if not isinstance(gm, list) or len(gm) != len(grid_values):
+            raise _CLIUsageError("'grid_moments' length must match 'grid' length.")
+        grid_moments = gm
+
+    parameter_name = str(
+        raw.get(
+            "parameter_name",
+            curve_obj.parameter_name if curve_obj is not None else "theta",
+        )
+    )
+
+    return {
+        "targets": mt,
+        "covariance": cov_override,
+        "alpha": alpha,
+        "calibration": calibration,
+        "model_moments": model_moments,
+        "simulation": simulation_obj,
+        "assume_independent": assume_independent,
+        "cross_covariance": cross_covariance,
+        "curve": curve_obj,
+        "domain": domain,
+        "grid": grid_values,
+        "grid_moments": grid_moments,
+        "parameter_name": parameter_name,
+    }
+
+
+def _run_workbench(args: argparse.Namespace) -> int:
+    from puremacro.workbench import run_empirical_structural_workbench
+
+    df = _load_dataframe(args.input)
+    horizons_list = _parse_int_sequence(args.horizons, name="horizons")
+    if any(h < 0 for h in horizons_list):
+        raise _CLIUsageError("horizons must contain non-negative integers.")
+    if not math.isfinite(float(args.ci)) or not (0.0 < float(args.ci) < 1.0):
+        raise _CLIUsageError(f"--ci must lie in (0, 1), got {args.ci!r}.")
+    if args.lags < 0:
+        raise _CLIUsageError(f"--lags must be non-negative, got {args.lags!r}.")
+
+    for col_name, flag in ((args.y, "--y"), (args.x, "--x")):
+        if col_name not in df.columns:
+            raise _CLIUsageError(f"Column {col_name!r} ({flag}) not found in {list(df.columns)!r}.")
+
+    controls = _parse_csv_tokens(args.controls)
+    missing_ctrl = [c for c in controls if c not in df.columns]
+    if missing_ctrl:
+        raise _CLIUsageError(f"Control column(s) {missing_ctrl!r} not found in {list(df.columns)!r}.")
+
+    est_fn = _resolve_estimator(args.estimator) if args.estimator else None
+    wb_kwargs: dict[str, Any] = {
+        "unit_col": args.unit_col,
+        "time_col": args.time_col,
+        "freq": args.freq,
+        "horizons": horizons_list,
+        "lags": int(args.lags),
+        "controls": controls,
+        "ci": float(args.ci),
+        "estimator": est_fn,
+        "run_sensitivity": not args.no_sensitivity,
+        "sensitivity_on_error": args.on_error,
+        "horizon_align": args.horizon_align,
+        "band_compat": args.band_compat,
+        "lang": args.lang,
+        "digits": args.digits,
+    }
+    if args.robust_spec is not None:
+        spec = _parse_robust_spec_payload(args.robust_spec)
+        wb_kwargs["moment_test_targets"] = spec["targets"]
+        wb_kwargs["moment_test_covariance"] = spec["covariance"]
+        wb_kwargs["moment_test_alpha"] = spec["alpha"]
+        wb_kwargs["moment_test_calibration"] = spec["calibration"]
+        wb_kwargs["model_moments"] = spec["model_moments"]
+        wb_kwargs["simulation"] = spec["simulation"]
+        wb_kwargs["moment_assume_independent"] = spec["assume_independent"]
+        wb_kwargs["moment_cross_covariance"] = spec["cross_covariance"]
+        wb_kwargs["moment_curve"] = spec["curve"]
+        wb_kwargs["moment_domain"] = spec["domain"]
+        wb_kwargs["moment_grid_values"] = spec["grid"]
+        wb_kwargs["moment_parameter_name"] = spec["parameter_name"]
+
+    dossier = run_empirical_structural_workbench(df, args.y, args.x, **wb_kwargs)
+    return _render_and_export_workbench(dossier, args)
+
+
+def _parse_shock_sequence(spec: str | None) -> list[float] | None:
+    if spec is None:
+        return None
+    candidate = Path(spec)
+    if candidate.exists():
+        raw = _load_json_raw(candidate)
+        if not isinstance(raw, list) or not raw:
+            raise _CLIUsageError(f"Shock JSON file {spec} must contain a non-empty JSON array.")
+        try:
+            vals = [float(v) for v in raw]
+        except (TypeError, ValueError) as exc:
+            raise _CLIUsageError(f"Non-numeric entry in shock JSON {spec}: {exc}") from exc
+    else:
+        tokens = [tok.strip() for tok in str(spec).split(",") if tok.strip()]
+        if not tokens:
+            raise _CLIUsageError("--shock cannot be empty.")
+        try:
+            vals = [float(tok) for tok in tokens]
+        except ValueError as exc:
+            raise _CLIUsageError(f"Invalid float in --shock={spec!r}: {exc}") from exc
+    if not all(math.isfinite(v) for v in vals):
+        raise _CLIUsageError("--shock values must all be finite.")
+    return vals
+
+
+def _run_hank_fiscal(args: argparse.Namespace) -> int:
+    from puremacro.models.hank_fiscal import compare_fiscal_closures, solve_hank_fiscal
+    from puremacro.reports import df_to_markdown
+
+    if args.horizon < 1:
+        raise _CLIUsageError(f"--horizon must be >= 1, got {args.horizon!r}.")
+    if args.n_a < 10:
+        raise _CLIUsageError(f"--n-a must be >= 10, got {args.n_a!r}.")
+    for nm, val in (
+        ("--phi-b", args.phi_b),
+        ("--phi-g", args.phi_g),
+        ("--g-ss", args.g_ss),
+        ("--a-max", args.a_max),
+        ("--tol", args.tol),
+    ):
+        if not math.isfinite(float(val)):
+            raise _CLIUsageError(f"{nm} must be finite, got {val!r}.")
+    if float(args.a_max) <= 0.0:
+        raise _CLIUsageError(f"--a-max must be positive, got {args.a_max!r}.")
+    if float(args.tol) <= 0.0:
+        raise _CLIUsageError(f"--tol must be positive, got {args.tol!r}.")
+
+    shock_seq = _parse_shock_sequence(args.shock)
+    is_es = args.lang == "es"
+
+    if args.mode == "compare":
+        try:
+            df = compare_fiscal_closures(
+                shock_seq=shock_seq,
+                horizon=int(args.horizon),
+                phi_B=float(args.phi_b),
+                phi_G=float(args.phi_g),
+                include_unfinanced=not args.no_unfinanced,
+                tol=float(args.tol),
+                g_ss=float(args.g_ss),
+                n_a=int(args.n_a),
+                a_max=float(args.a_max),
+            )
+        except ValueError as exc:
+            raise _CLIUsageError(str(exc)) from exc
+
+        reset_df = df.reset_index()
+        payload = {
+            "schema": "puremacro.hank_fiscal/1",
+            "mode": "compare",
+            "parameters": {
+                "horizon": int(args.horizon),
+                "phi_B": float(args.phi_b),
+                "phi_G": float(args.phi_g),
+                "g_ss": float(args.g_ss),
+                "n_a": int(args.n_a),
+                "a_max": float(args.a_max),
+                "tol": float(args.tol),
+                "include_unfinanced": not args.no_unfinanced,
+            },
+            "scenarios": _json_sanitize(reset_df),
+        }
+        if args.format == "json":
+            rendered = _dumps_json(payload)
+        else:
+            title = (
+                "Comparación fiscal HANK en espacio de secuencias"
+                if is_es
+                else "Sequence-Space HANK Fiscal Closure Comparison"
+            )
+            rendered = (
+                f"# {title}\n\n"
+                f"- horizon={args.horizon}, phi_B={args.phi_b}, phi_G={args.phi_g}, "
+                f"n_a={args.n_a}, a_max={args.a_max}\n\n"
+                + df_to_markdown(reset_df, index=False, digits=args.digits)
+                + "\n"
+            )
+        _write_or_print(rendered, output=args.output, quiet=args.quiet)
+        financed = df[df["closure"] != "unfinanced_goods_only"]
+        ok = bool(financed["status"].astype(str).str.startswith("PASS").all()) if not financed.empty else False
+        return 0 if ok else 1
+
+    try:
+        res = solve_hank_fiscal(
+            shock_seq=shock_seq,
+            closure=args.closure,
+            tax_type=args.tax_type,
+            horizon=int(args.horizon),
+            phi_B=float(args.phi_b),
+            phi_G=float(args.phi_g),
+            g_ss=float(args.g_ss),
+            tol=float(args.tol),
+            n_a=int(args.n_a),
+            a_max=float(args.a_max),
+            allow_unstable_rule=bool(args.allow_unstable_rule),
+        )
+    except ValueError as exc:
+        raise _CLIUsageError(str(exc)) from exc
+
+    import pandas as pd
+
+    paths_df = pd.DataFrame(
+        {
+            "t": list(range(int(res.horizon))),
+            "dY": res.dY,
+            "dC": res.dC,
+            "dG": res.dG,
+            "dT": res.dT,
+            "dB": res.dB,
+            "residuals": res.residuals,
+        }
+    )
+    metrics_row = {
+        "closure": res.closure,
+        "tax_type": res.tax_type,
+        "horizon": int(res.horizon),
+        "converged": bool(res.converged),
+        "iterations": int(res.iterations),
+        "status": str(res.solver_diagnostics.overall_status),
+        "impact_multiplier": float(res.impact_multiplier),
+        "cumulative_multiplier": float(res.cumulative_multiplier),
+        "present_value_multiplier": float(res.present_value_multiplier),
+        "goods_market_residual": float(res.goods_market_residual),
+        "gov_budget_residual": float(res.gov_budget_residual),
+        "gov_intertemporal_residual": float(res.gov_intertemporal_residual),
+        "asset_market_residual": float(res.asset_market_residual),
+        "terminal_debt_gap": float(res.terminal_debt_gap),
+        "terminal_discounted_debt_gap": float(res.terminal_discounted_debt_gap),
+    }
+    payload = {
+        "schema": "puremacro.hank_fiscal/1",
+        "mode": "single",
+        "metrics": _json_sanitize(metrics_row),
+        "steady_state": _json_sanitize(res.steady_state),
+        "solver_diagnostics": _json_sanitize(res.solver_diagnostics.to_dict()),
+        "paths": _json_sanitize(paths_df),
+    }
+    if args.format == "json":
+        rendered = _dumps_json(payload)
+    else:
+        title = (
+            f"Transición fiscal HANK: {res.closure} ({res.tax_type})"
+            if is_es
+            else f"HANK Fiscal Transition: {res.closure} ({res.tax_type})"
+        )
+        summary_df = pd.DataFrame([metrics_row])
+        rendered = (
+            f"# {title}\n\n"
+            f"```\n{res.summary()}\n```\n\n"
+            + df_to_markdown(summary_df, index=False, digits=args.digits)
+            + "\n"
+        )
+    _write_or_print(rendered, output=args.output, quiet=args.quiet)
+    return 0 if bool(res.solver_diagnostics.is_pass) else 1
+
+
+def _run_robust_set(args: argparse.Namespace) -> int:
+    from puremacro.reports import df_to_markdown
+    from puremacro.structural.robust import (
+        evaluate_moment_grid,
+        invert_quadratic_moments,
+        moment_restriction_test,
+        simulated_moment_test,
+    )
+    from puremacro.workbench import (
+        _confidence_set_report_frame,
+        _moment_confidence_set_to_dict,
+        _moment_grid_to_dict,
+        _moment_targets_to_dict,
+        _moment_test_to_dict,
+    )
+
+    spec = _parse_robust_spec_payload(
+        args.spec,
+        alpha_override=args.alpha,
+        calibration_override=args.calibration,
+    )
+    targets = spec["targets"]
+    cov = spec["covariance"]
+    alpha = spec["alpha"]
+    cal = spec["calibration"]
+    model_moments = spec["model_moments"]
+    sim = spec["simulation"]
+    curve = spec["curve"]
+    grid = spec["grid"]
+    grid_moments = spec["grid_moments"]
+
+    if (
+        model_moments is None
+        and sim is None
+        and curve is None
+        and (grid is None or grid_moments is None)
+    ):
+        raise _CLIUsageError(
+            "Robust spec must specify at least one of 'model_moments', 'simulation', "
+            "'curve', or ('grid' with 'grid_moments')."
+        )
+
+    mt_res = None
+    if model_moments is not None and sim is not None:
+        raise _CLIUsageError("Specify either 'model_moments' or 'simulation' in spec, not both.")
+    if model_moments is not None:
+        try:
+            mt_res = moment_restriction_test(
+                targets,
+                model_moments,
+                covariance=cov,
+                alpha=alpha,
+                calibration=cal,
+            )
+        except ValueError as exc:
+            raise _CLIUsageError(str(exc)) from exc
+    elif sim is not None:
+        mt_res = simulated_moment_test(
+            targets,
+            sim,
+            assume_independent=spec["assume_independent"],
+            cross_covariance=spec["cross_covariance"],
+            alpha=alpha,
+        )
+
+    cs_res = None
+    if curve is not None:
+        try:
+            cs_res = invert_quadratic_moments(
+                curve,
+                targets,
+                covariance=cov,
+                domain=spec["domain"],
+                alpha=alpha,
+                calibration=cal,
+            )
+        except ValueError as exc:
+            raise _CLIUsageError(str(exc)) from exc
+
+    grid_res = None
+    if grid is not None:
+        if grid_moments is not None:
+            moments_by_node = {
+                float(g): m for g, m in zip(grid, grid_moments)
+            }
+
+            def _eval_node(theta: float) -> Any:
+                return moment_restriction_test(
+                    targets,
+                    moments_by_node[float(theta)],
+                    covariance=cov,
+                    alpha=alpha,
+                    calibration=cal,
+                )
+
+            try:
+                grid_res = evaluate_moment_grid(
+                    _eval_node,
+                    grid,
+                    parameter_name=spec["parameter_name"],
+                )
+            except ValueError as exc:
+                raise _CLIUsageError(str(exc)) from exc
+        elif curve is not None:
+            def _eval_curve_node(theta: float) -> Any:
+                return moment_restriction_test(
+                    targets,
+                    curve(theta),
+                    covariance=cov,
+                    alpha=alpha,
+                    calibration=cal,
+                )
+
+            try:
+                grid_res = evaluate_moment_grid(
+                    _eval_curve_node,
+                    grid,
+                    parameter_name=curve.parameter_name,
+                )
+            except ValueError as exc:
+                raise _CLIUsageError(str(exc)) from exc
+        else:
+            raise _CLIUsageError("'grid' requires either 'curve' or 'grid_moments'.")
+
+    payload: dict[str, Any] = {
+        "schema": "puremacro.robust_set/1",
+        "alpha": float(alpha),
+        "calibration": str(cal),
+        "targets": _moment_targets_to_dict(targets),
+        "moment_test": _moment_test_to_dict(mt_res) if mt_res is not None else None,
+        "confidence_set": _moment_confidence_set_to_dict(cs_res) if cs_res is not None else None,
+        "moment_grid": _moment_grid_to_dict(grid_res) if grid_res is not None else None,
+    }
+    if args.format == "json":
+        rendered = _dumps_json(payload)
+    else:
+        is_es = args.lang == "es"
+        parts: list[str] = [
+            f"# {'Conjunto robusto de momentos' if is_es else 'Identification-Robust Moment Analysis'}",
+            "",
+            f"- alpha={alpha}, calibration={cal}",
+            "",
+        ]
+        if mt_res is not None:
+            parts.append(
+                f"## {'Prueba de restricción de momentos' if is_es else 'Moment Restriction Test'}"
+            )
+            parts.append("")
+            parts.append(df_to_markdown(mt_res.to_frame(), index=False, digits=args.digits))
+            parts.append("")
+        if cs_res is not None:
+            parts.append(
+                f"## {'Conjunto de confianza robusto' if is_es else 'Inverted Confidence Set'}"
+            )
+            parts.append("")
+            parts.append(
+                df_to_markdown(
+                    _confidence_set_report_frame(cs_res),
+                    index=False,
+                    digits=args.digits,
+                )
+            )
+            parts.append("")
+        if grid_res is not None:
+            parts.append(
+                f"## {'Malla de prueba de momentos (solo nodos)' if is_es else 'Moment Grid Tests (Sampled Nodes Only)'}"
+            )
+            parts.append("")
+            parts.append(
+                "- continuous_complete=False (unsampled interiors are not certified)"
+            )
+            parts.append("")
+            parts.append(df_to_markdown(grid_res.to_frame(), index=False, digits=args.digits))
+            parts.append("")
+            parts.append(
+                df_to_markdown(grid_res.unresolved_cells(), index=False, digits=args.digits)
+            )
+            parts.append("")
+        rendered = "\n".join(parts).rstrip() + "\n"
+
+    _write_or_print(rendered, output=args.output, quiet=args.quiet)
+    return 0
+
+
 def _probe_module(mod_name: str, *, required: bool) -> dict[str, Any]:
     spec = importlib.util.find_spec(mod_name)
     if spec is None:
@@ -1075,8 +1728,76 @@ def create_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Run the full EmpiricalStructuralDossier pipeline (preflight + LP + moment targets).",
     )
-    _add_common_output_args(p_lp)
+    p_lp.add_argument(
+        "--bundle-dir",
+        default=None,
+        help="Export bilingual HTML/Markdown/LaTeX/JSON dossier bundle with SHA-256 manifest to this directory.",
+    )
+    p_lp.add_argument(
+        "--bundle-langs",
+        default=None,
+        help="Comma-separated bundle languages (default: 'en,es').",
+    )
+    _add_common_output_args(p_lp, formats=("json", "markdown", "html"))
     p_lp.set_defaults(_handler=_run_lp_grid)
+
+    # 2b. workbench
+    p_wb = sub.add_parser(
+        "workbench",
+        help="Run the unified empirical-structural workbench dossier pipeline.",
+    )
+    p_wb.add_argument("input", help="Path to CSV, TSV, JSON, or Parquet dataset.")
+    p_wb.add_argument("--y", required=True, help="Outcome column name.")
+    p_wb.add_argument("--x", required=True, help="Shock or treatment column name.")
+    p_wb.add_argument(
+        "--controls",
+        action="append",
+        default=[],
+        help="Comma-separated control columns (repeatable).",
+    )
+    p_wb.add_argument("--horizons", default="0..8", help="Horizon range/list (e.g. '0..8' or '0,2,4').")
+    p_wb.add_argument("--lags", type=int, default=2, help="Baseline LP lag length. Default: 2.")
+    p_wb.add_argument("--estimator", default=None, help="LP estimator name (default: panel_lp or lp_hac).")
+    p_wb.add_argument("--unit-col", default=None, help="Panel unit column name.")
+    p_wb.add_argument("--time-col", default=None, help="Time column name.")
+    p_wb.add_argument("--freq", default=None, help="Frequency declaration (e.g. Q, M, A).")
+    p_wb.add_argument("--ci", type=float, default=0.90, help="Confidence level in (0, 1). Default: 0.90.")
+    p_wb.add_argument("--no-sensitivity", action="store_true", help="Disable default lag sensitivity grid.")
+    p_wb.add_argument(
+        "--horizon-align",
+        choices=("exact", "intersection"),
+        default="intersection",
+        help="Horizon alignment policy. Default: intersection.",
+    )
+    p_wb.add_argument(
+        "--band-compat",
+        choices=("warn", "raise", "ignore"),
+        default="warn",
+        help="Band compatibility policy. Default: warn.",
+    )
+    p_wb.add_argument(
+        "--on-error",
+        choices=("raise", "skip"),
+        default="skip",
+        help="How to handle failing sensitivity points. Default: skip.",
+    )
+    p_wb.add_argument(
+        "--robust-spec",
+        default=None,
+        help="Optional JSON specification for identification-robust moment testing / confidence inversion.",
+    )
+    p_wb.add_argument(
+        "--bundle-dir",
+        default=None,
+        help="Export bilingual HTML/Markdown/LaTeX/JSON dossier bundle with SHA-256 manifest to this directory.",
+    )
+    p_wb.add_argument(
+        "--bundle-langs",
+        default=None,
+        help="Comma-separated bundle languages (default: 'en,es').",
+    )
+    _add_common_output_args(p_wb, formats=("json", "markdown", "html"))
+    p_wb.set_defaults(_handler=_run_workbench)
 
     # 3. compare-irfs
     p_cmp = sub.add_parser(
@@ -1190,6 +1911,66 @@ def create_parser() -> argparse.ArgumentParser:
     )
     _add_common_output_args(p_doc)
     p_doc.set_defaults(_handler=_run_doctor)
+
+    # 7. hank-fiscal
+    p_hf = sub.add_parser(
+        "hank-fiscal",
+        help="Solve or compare financed HANK sequence-space fiscal closures.",
+    )
+    p_hf.add_argument(
+        "--mode",
+        choices=("compare", "single"),
+        default="compare",
+        help="Execution mode: compare all closures or run a single solve. Default: compare.",
+    )
+    p_hf.add_argument(
+        "--closure",
+        choices=("balanced_budget", "debt_rule"),
+        default="balanced_budget",
+        help="Fiscal financing closure for single mode. Default: balanced_budget.",
+    )
+    p_hf.add_argument(
+        "--tax-type",
+        choices=("proportional", "lump_sum"),
+        default="proportional",
+        help="Tax adjustment channel for single mode. Default: proportional.",
+    )
+    p_hf.add_argument("--horizon", type=int, default=40, help="Transition horizon T (>= 1). Default: 40.")
+    p_hf.add_argument("--phi-b", type=float, default=0.08, help="Debt feedback coefficient phi_B. Default: 0.08.")
+    p_hf.add_argument("--phi-g", type=float, default=0.0, help="Contemporaneous spending-tax offset phi_G. Default: 0.0.")
+    p_hf.add_argument("--g-ss", type=float, default=0.0, help="Steady-state government spending level. Default: 0.0.")
+    p_hf.add_argument("--n-a", type=int, default=100, help="Asset grid size (>= 10). Default: 100.")
+    p_hf.add_argument("--a-max", type=float, default=100.0, help="Upper asset grid bound. Default: 100.0.")
+    p_hf.add_argument("--tol", type=float, default=1e-8, help="Convergence/residual tolerance. Default: 1e-8.")
+    p_hf.add_argument("--shock", default=None, help="Comma-separated dG shock values or path to JSON array.")
+    p_hf.add_argument(
+        "--no-unfinanced",
+        action="store_true",
+        help="Omit unfinanced goods-market reference row in compare mode.",
+    )
+    p_hf.add_argument(
+        "--allow-unstable-rule",
+        action="store_true",
+        help="Return non-stationary explosive rule diagnostic instead of raising error (single mode).",
+    )
+    _add_common_output_args(p_hf)
+    p_hf.set_defaults(_handler=_run_hank_fiscal)
+
+    # 8. robust-set
+    p_rs = sub.add_parser(
+        "robust-set",
+        help="Run identification-robust moment restriction tests and confidence set inversions from a JSON spec.",
+    )
+    p_rs.add_argument("spec", help="Path to JSON specification file defining targets, moments/curve/grid.")
+    p_rs.add_argument("--alpha", type=float, default=None, help="Override significance level alpha in (0, 1).")
+    p_rs.add_argument(
+        "--calibration",
+        choices=("asymptotic", "gaussian_known"),
+        default=None,
+        help="Override test critical-value calibration.",
+    )
+    _add_common_output_args(p_rs)
+    p_rs.set_defaults(_handler=_run_robust_set)
 
     return parser
 

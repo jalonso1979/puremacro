@@ -13,9 +13,12 @@ dependencies under Pyodide.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import hashlib
+import html
 import inspect
 import json
 import math
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Literal, Mapping, Sequence
 import warnings
 
@@ -35,6 +38,13 @@ if TYPE_CHECKING:
         SolverDiagnosticRecord,
     )
     from puremacro.structural.bridge import MomentTargets
+    from puremacro.structural.robust import (
+        MomentConfidenceSet,
+        MomentTestGridResult,
+        MomentTestResult,
+        QuadraticMomentCurve,
+    )
+    from puremacro.structural.simulation import SMMFitResult, SimulationPlan
 
 
 _VALID_LANGS: tuple[str, str] = ("en", "es")
@@ -142,6 +152,189 @@ def _prior_post_to_dict(pp: PriorPosteriorComparisonResult) -> dict[str, Any]:
     }
 
 
+def _moment_targets_to_dict(mt: MomentTargets) -> dict[str, Any]:
+    return {
+        "labels": list(mt.labels),
+        "values": _json_sanitize(mt.values),
+        "covariance": _json_sanitize(mt.covariance),
+        "units": list(mt.units) if isinstance(mt.units, tuple) else str(mt.units),
+        "metadata": _json_sanitize(dict(mt.metadata)),
+    }
+
+
+def _moment_test_to_dict(mt_res: MomentTestResult) -> dict[str, Any]:
+    sim_dict: dict[str, Any] | None = None
+    if mt_res.simulation is not None:
+        sim = mt_res.simulation
+        sim_dict = {
+            "valid": bool(sim.valid),
+            "plan_id": str(sim.plan.plan_id),
+            "replications": int(sim.plan.replications),
+            "periods": int(sim.plan.periods),
+            "burn_in": int(sim.plan.burn_in),
+            "definition_id": str(sim.definition_id),
+            "n_valid_replicates": int(np.sum(sim.valid_replicates)),
+            "statuses": list(sim.statuses),
+            "mean": _json_sanitize(sim.mean),
+            "covariance": _json_sanitize(sim.covariance),
+        }
+    return {
+        "statistic": _json_sanitize(mt_res.statistic),
+        "pvalue": _json_sanitize(mt_res.pvalue),
+        "critical_value": _json_sanitize(mt_res.critical_value),
+        "df": int(mt_res.df),
+        "alpha": float(mt_res.alpha),
+        "calibration": str(mt_res.calibration),
+        "status": str(mt_res.status),
+        "accepted": None if mt_res.accepted is None else bool(mt_res.accepted),
+        "valid": bool(mt_res.valid),
+        "labels": list(mt_res.labels),
+        "error": _json_sanitize(mt_res.error),
+        "covariance": _json_sanitize(mt_res.covariance),
+        "metadata": _json_sanitize(dict(mt_res.metadata)),
+        "table": _json_sanitize(mt_res.to_frame()),
+        "simulation": sim_dict,
+    }
+
+
+def _confidence_set_report_frame(cs: MomentConfidenceSet) -> pd.DataFrame:
+    df = cs.to_frame()
+    if df.empty:
+        df = pd.DataFrame(
+            {
+                "component": [None],
+                "lower": [float("nan")],
+                "upper": [float("nan")],
+                "parameter": [cs.curve.parameter_name],
+                "lower_source": ["empty" if cs.resolved else str(cs.status)],
+                "upper_source": ["empty" if cs.resolved else str(cs.status)],
+            }
+        )
+    for col, val in (
+        ("status", cs.status),
+        ("global_geometry", cs.global_geometry),
+        ("truncated", cs.truncated),
+        ("alpha", cs.alpha),
+        ("calibration", cs.calibration),
+    ):
+        df[col] = val
+    return df
+
+
+def _moment_confidence_set_to_dict(cs: MomentConfidenceSet) -> dict[str, Any]:
+    return {
+        "status": str(cs.status),
+        "resolved": bool(cs.resolved),
+        "parameter_name": str(cs.curve.parameter_name),
+        "definition_id": str(cs.curve.definition_id),
+        "alpha": float(cs.alpha),
+        "df": int(cs.df),
+        "critical_value": _json_sanitize(cs.critical_value),
+        "calibration": str(cs.calibration),
+        "domain": _json_sanitize(list(cs.domain)),
+        "boundary_contact": [bool(cs.boundary_contact[0]), bool(cs.boundary_contact[1])],
+        "truncated": bool(cs.truncated),
+        "global_geometry": str(cs.global_geometry),
+        "intervals": _json_sanitize(cs.intervals),
+        "global_intervals": _json_sanitize(cs.global_intervals),
+        "n_intervals": int(len(cs.intervals)),
+        "n_global_intervals": int(len(cs.global_intervals)),
+        "diagnostics": _json_sanitize(dict(cs.diagnostics)),
+        "table": _json_sanitize(cs.to_frame()),
+        "summary": _json_sanitize(cs.summary()),
+        "targets_labels": list(cs.targets.labels),
+    }
+
+
+def _moment_grid_to_dict(mg: MomentTestGridResult) -> dict[str, Any]:
+    b_low, b_high = mg.boundary_status
+    runs_df = mg.accepted_runs()
+    cells_df = mg.unresolved_cells()
+    return {
+        "parameter_name": str(mg.parameter_name),
+        "continuous_complete": bool(mg.continuous_complete),
+        "n_nodes": int(len(mg.grid)),
+        "n_valid_nodes": int(np.sum(mg.valid)),
+        "n_accepted_nodes": int(np.sum(mg.accepted)),
+        "boundary_status": [str(b_low), str(b_high)],
+        "grid": _json_sanitize(mg.grid),
+        "tests": [_moment_test_to_dict(r) for r in mg.tests],
+        "table": _json_sanitize(mg.to_frame()),
+        "accepted_runs": _json_sanitize(runs_df),
+        "unresolved_cells": _json_sanitize(cells_df),
+    }
+
+
+def _smm_fit_to_dict(smm: SMMFitResult, *, ci: float) -> dict[str, Any]:
+    return {
+        "parameter_names": list(smm.parameter_names),
+        "theta": _json_sanitize(smm.theta),
+        "standard_errors": _json_sanitize(smm.standard_errors),
+        "covariance": _json_sanitize(smm.covariance),
+        "sampling_covariance": _json_sanitize(smm.sampling_covariance),
+        "simulation_covariance": _json_sanitize(smm.simulation_covariance),
+        "cross_covariance_adjustment": _json_sanitize(smm.cross_covariance_adjustment),
+        "moment_covariance": _json_sanitize(smm.moment_covariance),
+        "objective": _json_sanitize(smm.objective),
+        "success": bool(smm.success),
+        "inference_valid": bool(smm.inference_valid),
+        "inference_reasons": list(smm.inference_reasons),
+        "n_evals": int(smm.n_evals),
+        "n_replications_evaluated": int(smm.n_replications_evaluated),
+        "plan_id": str(smm.simulation.plan.plan_id),
+        "definition_id": str(smm.simulation.definition_id),
+        "summary_table": _json_sanitize(smm.to_frame(ci=ci)),
+        "moment_fit": _json_sanitize(smm.moment_fit(validation=False)),
+        "validation_moment_fit": (
+            _json_sanitize(smm.moment_fit(validation=True))
+            if smm.validation is not None
+            else None
+        ),
+        "diagnostics": _json_sanitize(dict(smm.diagnostics)),
+    }
+
+
+def _format_html_cell(val: Any, digits: int) -> str:
+    if val is None or isinstance(val, bool):
+        return "" if val is None else ("true" if val else "false")
+    if isinstance(val, (np.bool_,)):
+        return "true" if bool(val) else "false"
+    if isinstance(val, (int, np.integer)):
+        return str(int(val))
+    if isinstance(val, (float, np.floating)):
+        fval = float(val)
+        return "n/a" if not math.isfinite(fval) else f"{fval:.{digits}f}"
+    try:
+        if pd.isna(val):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    return str(val)
+
+
+def _df_to_html_table(df: pd.DataFrame, *, include_index: bool, digits: int) -> str:
+    work = df.reset_index() if include_index else df
+    if work.empty and len(work.columns) == 0:
+        return "<p class=\"empty-note\">(empty)</p>"
+    cols = [str(c) for c in work.columns]
+    ths = "".join(f"<th>{html.escape(col, quote=True)}</th>" for col in cols)
+    rows_html: list[str] = []
+    for row in work.itertuples(index=False, name=None):
+        tds = []
+        for cell in row:
+            is_num = isinstance(cell, (int, float, np.integer, np.floating)) and not isinstance(
+                cell, (bool, np.bool_)
+            )
+            cls = ' class="num"' if is_num else ""
+            formatted = _format_html_cell(cell, digits)
+            tds.append(f"<td{cls}>{html.escape(formatted, quote=True)}</td>")
+        rows_html.append(f"<tr>{''.join(tds)}</tr>")
+    body = "".join(rows_html) if rows_html else (
+        f"<tr><td colspan=\"{len(cols)}\" class=\"empty-note\">(0 rows)</td></tr>"
+    )
+    return f"<table><thead><tr>{ths}</tr></thead><tbody>{body}</tbody></table>"
+
+
 @dataclass(frozen=True)
 class EmpiricalStructuralDossier:
     """Immutable end-to-end empirical and structural validation dossier.
@@ -168,6 +361,10 @@ class EmpiricalStructuralDossier:
     prior_posterior: PriorPosteriorComparisonResult | None = None
     irf_scorecard: IRFScorecardResult | None = None
     solver_diagnostics: SolverDiagnosticRecord | None = None
+    moment_test: MomentTestResult | None = None
+    moment_confidence_set: MomentConfidenceSet | None = None
+    moment_grid: MomentTestGridResult | None = None
+    smm_fit: SMMFitResult | None = None
     warnings: tuple[str, ...] = ()
     metadata: dict[str, Any] = field(default_factory=dict)
     digits: int = 3
@@ -326,6 +523,80 @@ class EmpiricalStructuralDossier:
                     ),
                 }
             )
+        if self.moment_test is not None:
+            mt_res = self.moment_test
+            mt_status = (
+                "ACCEPTED"
+                if mt_res.accepted is True
+                else ("REJECTED" if mt_res.accepted is False else mt_res.status.upper())
+            )
+            mt_summary = (
+                f"stat={_fmt_num(mt_res.statistic, self.digits)}, "
+                f"df={mt_res.df}, p={_fmt_num(mt_res.pvalue, self.digits)}, "
+                f"cal={mt_res.calibration}, status={mt_res.status}"
+            )
+            if mt_res.simulation is not None:
+                mt_summary += f", sim_valid={mt_res.simulation.valid}"
+            rows.append(
+                {
+                    "stage": "Moment Test" if not is_es else "Prueba de momentos",
+                    "status": mt_status,
+                    "summary": mt_summary,
+                }
+            )
+        if self.moment_confidence_set is not None:
+            cs = self.moment_confidence_set
+            rows.append(
+                {
+                    "stage": (
+                        "Robust Confidence Set"
+                        if not is_es
+                        else "Conjunto de confianza robusto"
+                    ),
+                    "status": cs.status.upper(),
+                    "summary": (
+                        f"param={cs.curve.parameter_name}, components={len(cs.intervals)}, "
+                        f"geometry={cs.global_geometry}, truncated={cs.truncated}, "
+                        f"boundary_contact={cs.boundary_contact}"
+                    ),
+                }
+            )
+        if self.moment_grid is not None:
+            mg = self.moment_grid
+            rows.append(
+                {
+                    "stage": (
+                        "Robust Moment Grid"
+                        if not is_es
+                        else "Malla de momentos robusta"
+                    ),
+                    "status": "SAMPLED_ONLY" if bool(np.all(mg.valid)) else "PARTIAL_UNRESOLVED",
+                    "summary": (
+                        f"param={mg.parameter_name}, nodes={len(mg.grid)}, "
+                        f"accepted={int(np.sum(mg.accepted))}, valid={int(np.sum(mg.valid))}, "
+                        f"continuous_complete=False, boundary={mg.boundary_status}"
+                    ),
+                }
+            )
+        if self.smm_fit is not None:
+            smm = self.smm_fit
+            smm_status = (
+                "VALID_INFERENCE"
+                if smm.success and smm.inference_valid
+                else ("INFERENCE_WITHHELD" if smm.success else "FAILED")
+            )
+            rows.append(
+                {
+                    "stage": "SMM Fit" if not is_es else "Ajuste SMM",
+                    "status": smm_status,
+                    "summary": (
+                        f"params={len(smm.parameter_names)}, "
+                        f"obj={_fmt_num(smm.objective, self.digits)}, "
+                        f"reps={smm.simulation.plan.replications}, "
+                        f"evals={smm.n_evals}, inference_valid={smm.inference_valid}"
+                    ),
+                }
+            )
         return rows
 
     def summary(self, lang: str | None = None) -> str:
@@ -391,6 +662,34 @@ class EmpiricalStructuralDossier:
                     f"preciso={sd.accuracy.is_accurate} (res_max={sd.accuracy.max_residual:.3e}), "
                     f"soportado={sd.support.is_supported} (régimen={sd.support.regime})."
                 )
+            if self.moment_test is not None:
+                mt_res = self.moment_test
+                lines.append(
+                    f"- Prueba de momentos: estado={mt_res.status}, aceptada={mt_res.accepted}, "
+                    f"estadístico={_fmt_num(mt_res.statistic, self.digits)} (gl={mt_res.df}), "
+                    f"valor_p={_fmt_num(mt_res.pvalue, self.digits)}, calibración={mt_res.calibration}."
+                )
+            if self.moment_confidence_set is not None:
+                cs = self.moment_confidence_set
+                lines.append(
+                    f"- Conjunto de confianza robusto ({cs.curve.parameter_name}): estado={cs.status}, "
+                    f"intervalos={len(cs.intervals)}, geometría={cs.global_geometry}, "
+                    f"truncado={cs.truncated}, contacto_frontera={cs.boundary_contact}."
+                )
+            if self.moment_grid is not None:
+                mg = self.moment_grid
+                lines.append(
+                    f"- Malla robusta ({mg.parameter_name}): nodos={len(mg.grid)}, "
+                    f"aceptados={int(np.sum(mg.accepted))}, válidos={int(np.sum(mg.valid))}, "
+                    f"frontera={mg.boundary_status}, continuo_completo=False (interiores sin muestrear)."
+                )
+            if self.smm_fit is not None:
+                smm = self.smm_fit
+                lines.append(
+                    f"- Ajuste SMM: éxito={smm.success}, inferencia_válida={smm.inference_valid}, "
+                    f"objetivo={_fmt_num(smm.objective, self.digits)}, "
+                    f"parámetros={len(smm.parameter_names)}, réplicas={smm.simulation.plan.replications}."
+                )
             if self.warnings:
                 lines.append(f"- Advertencias ({len(self.warnings)}): " + "; ".join(self.warnings))
         else:
@@ -443,6 +742,34 @@ class EmpiricalStructuralDossier:
                     f"accurate={sd.accuracy.is_accurate} (max_res={sd.accuracy.max_residual:.3e}), "
                     f"supported={sd.support.is_supported} (regime={sd.support.regime})."
                 )
+            if self.moment_test is not None:
+                mt_res = self.moment_test
+                lines.append(
+                    f"- Moment test: status={mt_res.status}, accepted={mt_res.accepted}, "
+                    f"statistic={_fmt_num(mt_res.statistic, self.digits)} (df={mt_res.df}), "
+                    f"pvalue={_fmt_num(mt_res.pvalue, self.digits)}, calibration={mt_res.calibration}."
+                )
+            if self.moment_confidence_set is not None:
+                cs = self.moment_confidence_set
+                lines.append(
+                    f"- Robust confidence set ({cs.curve.parameter_name}): status={cs.status}, "
+                    f"intervals={len(cs.intervals)}, geometry={cs.global_geometry}, "
+                    f"truncated={cs.truncated}, boundary_contact={cs.boundary_contact}."
+                )
+            if self.moment_grid is not None:
+                mg = self.moment_grid
+                lines.append(
+                    f"- Robust moment grid ({mg.parameter_name}): nodes={len(mg.grid)}, "
+                    f"accepted={int(np.sum(mg.accepted))}, valid={int(np.sum(mg.valid))}, "
+                    f"boundary={mg.boundary_status}, continuous_complete=False (unsampled interiors)."
+                )
+            if self.smm_fit is not None:
+                smm = self.smm_fit
+                lines.append(
+                    f"- SMM fit: success={smm.success}, inference_valid={smm.inference_valid}, "
+                    f"objective={_fmt_num(smm.objective, self.digits)}, "
+                    f"params={len(smm.parameter_names)}, replications={smm.simulation.plan.replications}."
+                )
             if self.warnings:
                 lines.append(f"- Warnings ({len(self.warnings)}): " + "; ".join(self.warnings))
         return "\n".join(lines)
@@ -457,6 +784,12 @@ class EmpiricalStructuralDossier:
             "scorecard",
             "scorecard_metrics",
             "prior_posterior",
+            "moment_test",
+            "confidence_set",
+            "moment_grid",
+            "moment_grid_cells",
+            "smm_fit",
+            "smm_moments",
         ] = "overview",
         *,
         lang: str | None = None,
@@ -483,10 +816,36 @@ class EmpiricalStructuralDossier:
             if self.prior_posterior is None:
                 raise ValueError("No prior-posterior comparison is attached to this dossier.")
             return self.prior_posterior.to_frame("compact")
+        if section == "moment_test":
+            if self.moment_test is None:
+                raise ValueError("No moment restriction test is attached to this dossier.")
+            return self.moment_test.to_frame()
+        if section == "confidence_set":
+            if self.moment_confidence_set is None:
+                raise ValueError("No moment confidence set is attached to this dossier.")
+            return _confidence_set_report_frame(self.moment_confidence_set)
+        if section == "moment_grid":
+            if self.moment_grid is None:
+                raise ValueError("No moment grid result is attached to this dossier.")
+            return self.moment_grid.to_frame()
+        if section == "moment_grid_cells":
+            if self.moment_grid is None:
+                raise ValueError("No moment grid result is attached to this dossier.")
+            return self.moment_grid.unresolved_cells()
+        if section == "smm_fit":
+            if self.smm_fit is None:
+                raise ValueError("No SMM fit result is attached to this dossier.")
+            return self.smm_fit.to_frame(ci=self.ci_level)
+        if section == "smm_moments":
+            if self.smm_fit is None:
+                raise ValueError("No SMM fit result is attached to this dossier.")
+            return self.smm_fit.moment_fit(validation=False)
         raise ValueError(
             f"Unknown section {section!r}; expected one of "
             "'overview', 'preflight', 'irf_metrics', 'irf_table', "
-            "'scorecard', 'scorecard_metrics', 'prior_posterior'."
+            "'scorecard', 'scorecard_metrics', 'prior_posterior', "
+            "'moment_test', 'confidence_set', 'moment_grid', "
+            "'moment_grid_cells', 'smm_fit', 'smm_moments'."
         )
 
     def to_dataframe(
@@ -499,6 +858,12 @@ class EmpiricalStructuralDossier:
             "scorecard",
             "scorecard_metrics",
             "prior_posterior",
+            "moment_test",
+            "confidence_set",
+            "moment_grid",
+            "moment_grid_cells",
+            "smm_fit",
+            "smm_moments",
         ] = "overview",
         *,
         lang: str | None = None,
@@ -578,6 +943,73 @@ class EmpiricalStructuralDossier:
                 (
                     "Diagnósticos del solucionador" if is_es else "Solver Diagnostics",
                     sd_df,
+                    False,
+                )
+            )
+        if self.moment_test is not None:
+            sections.append(
+                (
+                    "Prueba de restricción de momentos"
+                    if is_es
+                    else "Moment Restriction Test",
+                    self.moment_test.to_frame(),
+                    False,
+                )
+            )
+        if self.moment_confidence_set is not None:
+            sections.append(
+                (
+                    "Conjunto de confianza robusto"
+                    if is_es
+                    else "Identification-Robust Confidence Set",
+                    _confidence_set_report_frame(self.moment_confidence_set),
+                    False,
+                )
+            )
+        if self.moment_grid is not None:
+            sections.append(
+                (
+                    "Malla robusta de momentos (solo nodos)"
+                    if is_es
+                    else "Moment Grid Tests (Sampled Nodes Only)",
+                    self.moment_grid.to_frame(),
+                    False,
+                )
+            )
+            runs_df = self.moment_grid.accepted_runs()
+            if not runs_df.empty:
+                sections.append(
+                    (
+                        "Tramos aceptados de malla (interiores sin muestrear)"
+                        if is_es
+                        else "Moment Grid Accepted Node Spans (Unsampled Interiors)",
+                        runs_df,
+                        False,
+                    )
+                )
+            cells_df = self.moment_grid.unresolved_cells()
+            if not cells_df.empty:
+                sections.append(
+                    (
+                        "Celdas no resueltas de malla"
+                        if is_es
+                        else "Moment Grid Unresolved Cells",
+                        cells_df,
+                        False,
+                    )
+                )
+        if self.smm_fit is not None:
+            sections.append(
+                (
+                    "Estimación SMM de parámetros" if is_es else "SMM Parameter Estimates",
+                    self.smm_fit.to_frame(ci=self.ci_level),
+                    False,
+                )
+            )
+            sections.append(
+                (
+                    "Ajuste de momentos SMM" if is_es else "SMM Moment Fit",
+                    self.smm_fit.moment_fit(validation=False),
                     False,
                 )
             )
@@ -669,16 +1101,11 @@ class EmpiricalStructuralDossier:
         import puremacro
 
         lp_df = _unwrap_lp_frame(self.empirical_lp)
-        mt_dict: dict[str, Any] | None = None
-        if self.moment_targets is not None:
-            mt = self.moment_targets
-            mt_dict = {
-                "labels": list(mt.labels),
-                "values": _json_sanitize(mt.values),
-                "covariance": _json_sanitize(mt.covariance),
-                "units": list(mt.units) if isinstance(mt.units, tuple) else str(mt.units),
-                "metadata": _json_sanitize(dict(mt.metadata)),
-            }
+        mt_dict: dict[str, Any] | None = (
+            _moment_targets_to_dict(self.moment_targets)
+            if self.moment_targets is not None
+            else None
+        )
 
         return {
             "puremacro_version": puremacro.__version__,
@@ -725,6 +1152,26 @@ class EmpiricalStructuralDossier:
                 if self.solver_diagnostics is not None
                 else None
             ),
+            "moment_test": (
+                _moment_test_to_dict(self.moment_test)
+                if self.moment_test is not None
+                else None
+            ),
+            "moment_confidence_set": (
+                _moment_confidence_set_to_dict(self.moment_confidence_set)
+                if self.moment_confidence_set is not None
+                else None
+            ),
+            "moment_grid": (
+                _moment_grid_to_dict(self.moment_grid)
+                if self.moment_grid is not None
+                else None
+            ),
+            "smm_fit": (
+                _smm_fit_to_dict(self.smm_fit, ci=self.ci_level)
+                if self.smm_fit is not None
+                else None
+            ),
             "warnings": list(self.warnings),
             "metadata": _json_sanitize(self.metadata),
         }
@@ -732,6 +1179,229 @@ class EmpiricalStructuralDossier:
     def to_json(self, indent: int = 2) -> str:
         """Serialize the complete dossier to valid RFC 8259 JSON (NaN/Inf -> null)."""
         return json.dumps(self.to_dict(), indent=indent, allow_nan=False, ensure_ascii=False)
+
+    def to_html(
+        self,
+        *,
+        lang: str | None = None,
+        digits: int | None = None,
+    ) -> str:
+        """Render a self-contained UTF-8 HTML5 dossier with escaped dynamic content."""
+        use_lang = self.lang if lang is None else _resolve_lang(lang)
+        d = self.digits if digits is None else int(digits)
+        if d < 0:
+            raise ValueError(f"digits must be non-negative, got {d!r}")
+        is_es = use_lang == "es"
+        status_str = str(self.overall_status)
+        if status_str == "PASS":
+            badge_cls = "badge-pass"
+        elif "WARN" in status_str or "UNRESOLVED" in status_str:
+            badge_cls = "badge-warn"
+        else:
+            badge_cls = "badge-fail"
+
+        summary_lines = self.summary(lang=use_lang).splitlines()
+        summary_bullets = "".join(
+            f"<li>{html.escape(line.lstrip('- '), quote=True)}</li>"
+            for line in summary_lines[1:]
+        )
+
+        section_blocks: list[str] = []
+        for heading, df, use_idx in self._section_tables(use_lang):
+            tbl_html = _df_to_html_table(df, include_index=use_idx, digits=d)
+            section_blocks.append(
+                f"<section class=\"panel\"><h2>{html.escape(heading, quote=True)}</h2>{tbl_html}</section>"
+            )
+
+        rec_html = ""
+        if self.preflight.recommendations:
+            rec_head = (
+                "Recomendaciones de preflight"
+                if is_es
+                else "Preflight Recommendations"
+            )
+            rec_items = "".join(
+                f"<li>{html.escape(str(rec), quote=True)}</li>"
+                for rec in self.preflight.recommendations
+            )
+            rec_html = f"<section class=\"panel\"><h2>{rec_head}</h2><ul>{rec_items}</ul></section>"
+
+        warn_html = ""
+        if self.warnings:
+            warn_head = "Advertencias" if is_es else "Warnings"
+            warn_items = "".join(
+                f"<li>{html.escape(str(w), quote=True)}</li>"
+                for w in self.warnings
+            )
+            warn_html = f"<section class=\"panel panel-warn\"><h2>{warn_head}</h2><ul>{warn_items}</ul></section>"
+
+        spec_label = "Especificación" if is_es else "Specification"
+        summary_label = "Resumen ejecutivo" if is_es else "Executive Summary"
+        sha_short = html.escape(str(self.preflight.data_sha256[:16]), quote=True)
+        h_span = f"[{min(self.horizons)}..{max(self.horizons)}]" if self.horizons else "[]"
+        ci_pct = int(round(100 * self.ci_level))
+
+        return (
+            f"<!DOCTYPE html>\n"
+            f"<html lang=\"{use_lang}\">\n"
+            f"<head>\n"
+            f"<meta charset=\"utf-8\">\n"
+            f"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
+            f"<title>{html.escape(self.title, quote=True)}</title>\n"
+            f"<style>\n"
+            f"body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; "
+            f"margin: 0; padding: 24px; background: #f8fafc; color: #0f172a; line-height: 1.5; }}\n"
+            f".container {{ max-width: 1120px; margin: 0 auto; }}\n"
+            f"header {{ background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; "
+            f"padding: 20px 24px; margin-bottom: 18px; }}\n"
+            f"h1 {{ margin: 0 0 8px 0; font-size: 1.5rem; }}\n"
+            f"h2 {{ margin: 0 0 12px 0; font-size: 1.1rem; color: #1e293b; }}\n"
+            f".meta {{ color: #475569; font-size: 0.9rem; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }}\n"
+            f".badge {{ display: inline-block; padding: 2px 10px; border-radius: 999px; font-weight: 600; font-size: 0.8rem; }}\n"
+            f".badge-pass {{ background: #dcfce7; color: #166534; }}\n"
+            f".badge-warn {{ background: #fef3c7; color: #92400e; }}\n"
+            f".badge-fail {{ background: #fee2e2; color: #991b1b; }}\n"
+            f".panel {{ background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; "
+            f"padding: 16px 20px; margin-bottom: 16px; overflow-x: auto; }}\n"
+            f".panel-warn {{ border-color: #f59e0b; background: #fffbeb; }}\n"
+            f"table {{ width: 100%; border-collapse: collapse; font-size: 0.88rem; }}\n"
+            f"th, td {{ border-bottom: 1px solid #e2e8f0; padding: 7px 10px; text-align: left; white-space: nowrap; }}\n"
+            f"th {{ background: #f1f5f9; font-weight: 600; color: #334155; }}\n"
+            f"td.num {{ text-align: right; font-variant-numeric: tabular-nums; }}\n"
+            f".empty-note {{ color: #64748b; font-style: italic; }}\n"
+            f"code {{ background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }}\n"
+            f"</style>\n"
+            f"</head>\n"
+            f"<body>\n"
+            f"<div class=\"container\">\n"
+            f"<header>\n"
+            f"<h1>{html.escape(self.title, quote=True)}</h1>\n"
+            f"<div class=\"meta\">\n"
+            f"<span class=\"badge {badge_cls}\">{html.escape(status_str, quote=True)}</span>\n"
+            f"<span><strong>{spec_label}:</strong> <code>{html.escape(self.y, quote=True)} &lt;- {html.escape(self.x, quote=True)}</code> "
+            f"(lags={int(self.lags)}, horizons={html.escape(h_span, quote=True)}, CI={ci_pct}%)</span>\n"
+            f"<span><strong>data_sha256:</strong> <code>{sha_short}...</code></span>\n"
+            f"</div>\n"
+            f"</header>\n"
+            f"<section class=\"panel\"><h2>{summary_label}</h2><ul>{summary_bullets}</ul></section>\n"
+            f"{''.join(section_blocks)}\n"
+            f"{warn_html}\n"
+            f"{rec_html}\n"
+            f"</div>\n"
+            f"</body>\n"
+            f"</html>\n"
+        )
+
+    def to_bundle(
+        self,
+        output_dir: str | Path,
+        *,
+        languages: Sequence[str] | None = None,
+        digits: int | None = None,
+        overwrite: bool = True,
+    ) -> dict[str, Any]:
+        """Export self-contained bilingual HTML/Markdown/LaTeX/JSON bundle with SHA-256 manifest.
+
+        Written bundle artifacts contain only relative filenames and data digests,
+        never host filesystem paths.
+        """
+        import puremacro
+
+        use_langs: tuple[Literal["en", "es"], ...]
+        if isinstance(languages, (str, bytes)):
+            use_langs = (_resolve_lang(languages),)
+        elif languages is None:
+            use_langs = ("en", "es")
+        else:
+            seen: list[Literal["en", "es"]] = []
+            for lang_item in languages:
+                norm = _resolve_lang(lang_item)
+                if norm not in seen:
+                    seen.append(norm)
+            if not seen:
+                raise ValueError("languages must not be empty when provided.")
+            use_langs = tuple(seen)
+
+        d = self.digits if digits is None else int(digits)
+        if d < 0:
+            raise ValueError(f"digits must be non-negative, got {d!r}")
+
+        root = Path(output_dir)
+        root.mkdir(parents=True, exist_ok=True)
+
+        artifacts_spec: list[tuple[str, str, str, str | None]] = [
+            ("dossier.json", self.to_json(), "application/json", None),
+        ]
+        for lc in use_langs:
+            artifacts_spec.append(
+                (f"dossier_{lc}.html", self.to_html(lang=lc, digits=d), "text/html", lc)
+            )
+            artifacts_spec.append(
+                (f"dossier_{lc}.md", self.to_markdown(lang=lc, digits=d), "text/markdown", lc)
+            )
+            artifacts_spec.append(
+                (f"dossier_{lc}.tex", self.to_latex(lang=lc, digits=d), "application/x-tex", lc)
+            )
+
+        target_names = [item[0] for item in artifacts_spec] + ["manifest.json"]
+        if not overwrite:
+            for fname in target_names:
+                if (root / fname).exists():
+                    raise FileExistsError(f"Bundle artifact already exists: {fname}")
+
+        checksums: dict[str, str] = {}
+        artifact_entries: list[dict[str, Any]] = []
+        written_files: dict[str, str] = {}
+
+        for rel_name, content_str, media_type, lang_code in artifacts_spec:
+            payload = content_str.encode("utf-8")
+            dest = root / rel_name
+            dest.write_bytes(payload)
+            digest = hashlib.sha256(payload).hexdigest()
+            checksums[rel_name] = digest
+            written_files[rel_name] = str(dest)
+            artifact_entries.append(
+                {
+                    "path": rel_name,
+                    "sha256": digest,
+                    "bytes": len(payload),
+                    "media_type": media_type,
+                    "lang": lang_code,
+                }
+            )
+
+        manifest_payload: dict[str, Any] = {
+            "schema": "puremacro.workbench.bundle/1",
+            "puremacro_version": puremacro.__version__,
+            "title": self.title,
+            "default_lang": self.lang,
+            "languages": list(use_langs),
+            "overall_status": self.overall_status,
+            "passed": self.passed,
+            "data_sha256": self.preflight.data_sha256,
+            "artifacts": artifact_entries,
+            "checksums": dict(checksums),
+        }
+        manifest_bytes = (
+            json.dumps(manifest_payload, indent=2, allow_nan=False, ensure_ascii=False)
+            + "\n"
+        ).encode("utf-8")
+        manifest_path = root / "manifest.json"
+        manifest_path.write_bytes(manifest_bytes)
+        manifest_digest = hashlib.sha256(manifest_bytes).hexdigest()
+        written_files["manifest.json"] = str(manifest_path)
+
+        return {
+            "output_dir": str(root),
+            "languages": list(use_langs),
+            "data_sha256": self.preflight.data_sha256,
+            "overall_status": self.overall_status,
+            "files": written_files,
+            "checksums": checksums,
+            "manifest_sha256": manifest_digest,
+            "manifest_path": str(manifest_path),
+            "manifest": manifest_payload,
+        }
 
 
 def _validate_horizons(horizons: Sequence[int]) -> tuple[int, ...]:
@@ -1486,6 +2156,313 @@ def _resolve_moment_freq(est_df: pd.DataFrame, requested_freq: str | None, infer
     return "Q"
 
 
+def _evaluate_robust_and_smm(
+    *,
+    moment_targets: MomentTargets | None,
+    targets: Any | None,
+    moment_test_targets: MomentTargets | None,
+    moment_test: MomentTestResult | None,
+    model_moments: Any | None,
+    simulation: Any | None,
+    moment_test_covariance: Any | None,
+    moment_test_alpha: float,
+    moment_test_calibration: str,
+    moment_assume_independent: bool,
+    moment_cross_covariance: Any | None,
+    moment_confidence_set: MomentConfidenceSet | None,
+    moment_curve: QuadraticMomentCurve | None,
+    moment_domain: tuple[float, float],
+    moment_grid: MomentTestGridResult | None,
+    moment_grid_fn: Callable[[float], MomentTestResult] | None,
+    moment_grid_values: Sequence[float] | np.ndarray | None,
+    moment_parameter_name: str,
+    smm_fit: SMMFitResult | None,
+    smm_simulator: Callable[..., Any] | None,
+    smm_theta0: Any | None,
+    smm_plan: SimulationPlan | None,
+    smm_definition_id: str | None,
+    smm_kwargs: Mapping[str, Any] | None,
+    dossier_warnings: list[str],
+) -> tuple[
+    MomentTestResult | None,
+    MomentConfidenceSet | None,
+    MomentTestGridResult | None,
+    SMMFitResult | None,
+    MomentTargets | None,
+]:
+    """Run optional identification-robust tests/inversions and SMM estimation lazily."""
+    need_robust = any(
+        item is not None
+        for item in (
+            moment_test,
+            model_moments,
+            simulation,
+            moment_confidence_set,
+            moment_curve,
+            moment_grid,
+            moment_grid_fn,
+            moment_grid_values,
+        )
+    )
+    need_smm = any(
+        item is not None
+        for item in (
+            smm_fit,
+            smm_simulator,
+            smm_theta0,
+            smm_plan,
+            smm_definition_id,
+            smm_kwargs,
+        )
+    )
+    if not need_robust and not need_smm and moment_test_targets is None:
+        return None, None, None, None, moment_targets
+
+    from puremacro.structural.bridge import MomentTargets
+
+    resolved_targets: MomentTargets | None = moment_targets
+    if moment_test_targets is not None:
+        if not isinstance(moment_test_targets, MomentTargets):
+            raise TypeError(
+                f"moment_test_targets must be MomentTargets, got {type(moment_test_targets).__name__}"
+            )
+        effective_targets: MomentTargets | None = moment_test_targets
+        if resolved_targets is None:
+            resolved_targets = moment_test_targets
+    elif isinstance(targets, MomentTargets):
+        effective_targets = targets
+    else:
+        effective_targets = moment_targets
+
+    out_mt: MomentTestResult | None = None
+    out_cs: MomentConfidenceSet | None = None
+    out_grid: MomentTestGridResult | None = None
+    out_smm: SMMFitResult | None = None
+
+    if need_robust:
+        from puremacro.structural.robust import (
+            MomentConfidenceSet,
+            MomentTestGridResult,
+            MomentTestResult,
+            QuadraticMomentCurve,
+            evaluate_moment_grid,
+            invert_quadratic_moments,
+            moment_restriction_test,
+            simulated_moment_test,
+        )
+
+        if moment_test is not None:
+            if model_moments is not None or simulation is not None:
+                raise ValueError(
+                    "Pass either moment_test or (model_moments / simulation), not both."
+                )
+            if not isinstance(moment_test, MomentTestResult):
+                raise TypeError(
+                    f"moment_test must be MomentTestResult, got {type(moment_test).__name__}"
+                )
+            out_mt = moment_test
+        elif model_moments is not None and simulation is not None:
+            raise ValueError("Pass either model_moments or simulation, not both.")
+        elif model_moments is not None:
+            if effective_targets is None:
+                raise ValueError(
+                    "Evaluating model_moments requires MomentTargets via targets, "
+                    "moment_targets, or moment_test_targets."
+                )
+            out_mt = moment_restriction_test(
+                effective_targets,
+                model_moments,
+                covariance=moment_test_covariance,
+                alpha=moment_test_alpha,
+                calibration=moment_test_calibration,
+            )
+        elif simulation is not None:
+            from puremacro.structural.simulation import SimulatedMoments
+
+            if effective_targets is None:
+                raise ValueError(
+                    "Evaluating simulation requires MomentTargets via targets, "
+                    "moment_targets, or moment_test_targets."
+                )
+            if not isinstance(simulation, SimulatedMoments):
+                raise TypeError(
+                    f"simulation must be SimulatedMoments, got {type(simulation).__name__}"
+                )
+            out_mt = simulated_moment_test(
+                effective_targets,
+                simulation,
+                assume_independent=moment_assume_independent,
+                cross_covariance=moment_cross_covariance,
+                alpha=moment_test_alpha,
+            )
+
+        if out_mt is not None:
+            if not out_mt.valid:
+                dossier_warnings.append(
+                    f"Moment restriction test is unresolved ({out_mt.status})."
+                )
+            elif out_mt.accepted is False:
+                dossier_warnings.append(
+                    f"Moment restriction test rejected null (stat={out_mt.statistic:.4g}, p={out_mt.pvalue:.4g})."
+                )
+
+        if moment_confidence_set is not None:
+            if moment_curve is not None:
+                raise ValueError(
+                    "Pass either moment_confidence_set or moment_curve, not both."
+                )
+            if not isinstance(moment_confidence_set, MomentConfidenceSet):
+                raise TypeError(
+                    "moment_confidence_set must be MomentConfidenceSet, "
+                    f"got {type(moment_confidence_set).__name__}"
+                )
+            out_cs = moment_confidence_set
+        elif moment_curve is not None:
+            if not isinstance(moment_curve, QuadraticMomentCurve):
+                raise TypeError(
+                    f"moment_curve must be QuadraticMomentCurve, got {type(moment_curve).__name__}"
+                )
+            if effective_targets is None:
+                raise ValueError(
+                    "Inverting moment_curve requires MomentTargets via targets, "
+                    "moment_targets, or moment_test_targets."
+                )
+            out_cs = invert_quadratic_moments(
+                moment_curve,
+                effective_targets,
+                covariance=moment_test_covariance,
+                domain=moment_domain,
+                alpha=moment_test_alpha,
+                calibration=moment_test_calibration,
+            )
+
+        if out_cs is not None:
+            if not out_cs.resolved:
+                dossier_warnings.append(
+                    f"Robust confidence set is unresolved ({out_cs.status})."
+                )
+            if out_cs.truncated:
+                dossier_warnings.append(
+                    f"Robust confidence set for {out_cs.curve.parameter_name} is truncated at boundary {out_cs.domain}."
+                )
+            if out_cs.resolved and len(out_cs.intervals) == 0:
+                dossier_warnings.append(
+                    f"Robust confidence set for {out_cs.curve.parameter_name} is empty on {out_cs.domain} "
+                    f"(global_geometry={out_cs.global_geometry})."
+                )
+
+        if moment_grid is not None:
+            if moment_grid_fn is not None or moment_grid_values is not None:
+                raise ValueError(
+                    "Pass either moment_grid or moment_grid_values/moment_grid_fn, not both."
+                )
+            if not isinstance(moment_grid, MomentTestGridResult):
+                raise TypeError(
+                    f"moment_grid must be MomentTestGridResult, got {type(moment_grid).__name__}"
+                )
+            out_grid = moment_grid
+        elif moment_grid_fn is not None or moment_grid_values is not None:
+            if moment_grid_values is None:
+                raise ValueError("moment_grid_values is required when moment_grid_fn is supplied.")
+            if moment_grid_fn is not None:
+                if not callable(moment_grid_fn):
+                    raise TypeError("moment_grid_fn must be callable.")
+                out_grid = evaluate_moment_grid(
+                    moment_grid_fn,
+                    moment_grid_values,
+                    parameter_name=moment_parameter_name,
+                )
+            elif moment_curve is not None and effective_targets is not None:
+                use_targets = effective_targets
+                use_curve = moment_curve
+
+                def _curve_grid_eval(theta: float) -> MomentTestResult:
+                    return moment_restriction_test(
+                        use_targets,
+                        use_curve(theta),
+                        covariance=moment_test_covariance,
+                        alpha=moment_test_alpha,
+                        calibration=moment_test_calibration,
+                    )
+
+                grid_pname = (
+                    moment_parameter_name
+                    if moment_parameter_name != "theta"
+                    else moment_curve.parameter_name
+                )
+                out_grid = evaluate_moment_grid(
+                    _curve_grid_eval,
+                    moment_grid_values,
+                    parameter_name=grid_pname,
+                )
+            else:
+                raise ValueError(
+                    "moment_grid_values requires moment_grid_fn or (moment_curve and MomentTargets)."
+                )
+
+        if out_grid is not None:
+            n_invalid = int(np.sum(~out_grid.valid))
+            n_unsampled = int(len(out_grid.unresolved_cells()))
+            dossier_warnings.append(
+                f"Moment grid for {out_grid.parameter_name} evaluates sampled points only "
+                f"(continuous_complete=False, unresolved_cells={n_unsampled}, invalid_nodes={n_invalid})."
+            )
+
+    if need_smm:
+        from puremacro.structural.simulation import SMMFitResult, fit_simulated_moments
+
+        if smm_fit is not None:
+            if any(
+                item is not None
+                for item in (smm_simulator, smm_theta0, smm_plan, smm_definition_id, smm_kwargs)
+            ):
+                raise ValueError(
+                    "Pass either smm_fit or (smm_simulator, smm_theta0, smm_plan, smm_definition_id), not both."
+                )
+            if not isinstance(smm_fit, SMMFitResult):
+                raise TypeError(
+                    f"smm_fit must be SMMFitResult, got {type(smm_fit).__name__}"
+                )
+            out_smm = smm_fit
+        else:
+            if any(
+                item is None
+                for item in (smm_simulator, smm_theta0, smm_plan, smm_definition_id)
+            ):
+                raise ValueError(
+                    "SMM estimation requires all of smm_simulator, smm_theta0, "
+                    "smm_plan, and smm_definition_id."
+                )
+            if effective_targets is None:
+                raise ValueError(
+                    "SMM estimation requires MomentTargets via targets, moment_targets, or moment_test_targets."
+                )
+            assert smm_simulator is not None and smm_plan is not None and smm_definition_id is not None
+            extra_smm = dict(smm_kwargs) if smm_kwargs is not None else {}
+            out_smm = fit_simulated_moments(
+                smm_simulator,
+                effective_targets,
+                smm_theta0,
+                plan=smm_plan,
+                definition_id=smm_definition_id,
+                **extra_smm,
+            )
+
+        if not out_smm.success:
+            dossier_warnings.append("SMM optimization did not converge cleanly.")
+        if not out_smm.inference_valid:
+            reason_str = (
+                ", ".join(out_smm.inference_reasons)
+                if out_smm.inference_reasons
+                else "withheld"
+            )
+            dossier_warnings.append(
+                f"SMM asymptotic standard errors withheld ({reason_str})."
+            )
+
+    return out_mt, out_cs, out_grid, out_smm, resolved_targets
+
+
 def run_empirical_structural_workbench(
     data: pd.DataFrame,
     y: str,
@@ -1527,6 +2504,28 @@ def run_empirical_structural_workbench(
     priors: Mapping[str, Any] | Any | None = None,
     solver_result: Any | None = None,
     solver_diagnostics: Any | None = None,
+    moment_test_targets: MomentTargets | None = None,
+    moment_test: MomentTestResult | None = None,
+    model_moments: Any | None = None,
+    simulation: Any | None = None,
+    moment_test_covariance: Any | None = None,
+    moment_test_alpha: float = 0.05,
+    moment_test_calibration: str = "asymptotic",
+    moment_assume_independent: bool = False,
+    moment_cross_covariance: Any | None = None,
+    moment_confidence_set: MomentConfidenceSet | None = None,
+    moment_curve: QuadraticMomentCurve | None = None,
+    moment_domain: tuple[float, float] = (-float("inf"), float("inf")),
+    moment_grid: MomentTestGridResult | None = None,
+    moment_grid_fn: Callable[[float], MomentTestResult] | None = None,
+    moment_grid_values: Sequence[float] | np.ndarray | None = None,
+    moment_parameter_name: str = "theta",
+    smm_fit: SMMFitResult | None = None,
+    smm_simulator: Callable[..., Any] | None = None,
+    smm_theta0: Any | None = None,
+    smm_plan: SimulationPlan | None = None,
+    smm_definition_id: str | None = None,
+    smm_kwargs: Mapping[str, Any] | None = None,
     lang: Literal["en", "es"] = "en",
     title: str | None = None,
     digits: int = 3,
@@ -1826,7 +2825,42 @@ def run_empirical_structural_workbench(
         )
         dossier_warnings.extend(prior_posterior.warnings)
 
-    # 6. Solver Diagnostics
+    # 6. Identification-robust moment testing, confidence set inversion, and SMM
+    (
+        resolved_mt_res,
+        resolved_cs,
+        resolved_grid,
+        resolved_smm,
+        moment_targets,
+    ) = _evaluate_robust_and_smm(
+        moment_targets=moment_targets,
+        targets=targets,
+        moment_test_targets=moment_test_targets,
+        moment_test=moment_test,
+        model_moments=model_moments,
+        simulation=simulation,
+        moment_test_covariance=moment_test_covariance,
+        moment_test_alpha=moment_test_alpha,
+        moment_test_calibration=moment_test_calibration,
+        moment_assume_independent=moment_assume_independent,
+        moment_cross_covariance=moment_cross_covariance,
+        moment_confidence_set=moment_confidence_set,
+        moment_curve=moment_curve,
+        moment_domain=moment_domain,
+        moment_grid=moment_grid,
+        moment_grid_fn=moment_grid_fn,
+        moment_grid_values=moment_grid_values,
+        moment_parameter_name=moment_parameter_name,
+        smm_fit=smm_fit,
+        smm_simulator=smm_simulator,
+        smm_theta0=smm_theta0,
+        smm_plan=smm_plan,
+        smm_definition_id=smm_definition_id,
+        smm_kwargs=smm_kwargs,
+        dossier_warnings=dossier_warnings,
+    )
+
+    # 7. Solver Diagnostics
     coerced_diag = _coerce_solver_diagnostics(
         solver_result=solver_result,
         solver_diagnostics=solver_diagnostics,
@@ -1859,6 +2893,10 @@ def run_empirical_structural_workbench(
         prior_posterior=prior_posterior,
         irf_scorecard=irf_scorecard,
         solver_diagnostics=coerced_diag,
+        moment_test=resolved_mt_res,
+        moment_confidence_set=resolved_cs,
+        moment_grid=resolved_grid,
+        smm_fit=resolved_smm,
         warnings=tuple(dict.fromkeys(dossier_warnings)),
         metadata={
             "estimator": getattr(est_fn, "__name__", str(est_fn)),

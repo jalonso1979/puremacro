@@ -33,6 +33,9 @@ _MAX_FILE_BYTES = 16 * 1024 * 1024
 _MAX_TABLE_ROWS = 50_000
 _MAX_TABLE_COLS = 200
 _MAX_HORIZON = 120
+_MAX_HANK_NA = 150
+_MAX_MOMENT_DIM = 64
+_MAX_GRID_NODES = 250
 _MAX_LAGS = 40
 _MAX_GRID_SPECS = 64
 _MAX_TARIFF_SCENARIOS = 16
@@ -1215,6 +1218,423 @@ def _handle_validation_scorecard(args: Mapping[str, Any], allowed_root: Path | N
     }
 
 
+def _coerce_moment_targets_obj(payload: Mapping[str, Any]) -> Any:
+    import numpy as np
+    from puremacro.structural.bridge import MomentTargets
+
+    vals = payload.get("values")
+    cov = payload.get("covariance")
+    if not isinstance(vals, list) or not vals:
+        raise ValueError("targets.values must be a non-empty list of finite numbers")
+    if len(vals) > _MAX_MOMENT_DIM:
+        raise ValueError(f"targets.values exceeds maximum dimension of {_MAX_MOMENT_DIM}")
+    if not isinstance(cov, list) or len(cov) != len(vals):
+        raise ValueError("targets.covariance must be a square q x q matrix matching values")
+    labels = payload.get("labels")
+    if labels is None:
+        labels = [f"m{i}" for i in range(len(vals))]
+    return MomentTargets(
+        values=np.asarray(vals, dtype=float),
+        covariance=np.asarray(cov, dtype=float),
+        labels=tuple(str(lbl) for lbl in labels),
+        units=payload.get("units", "unspecified"),
+        metadata=dict(payload.get("metadata") or {}),
+    )
+
+
+def _coerce_quadratic_curve_obj(payload: Mapping[str, Any], *, default_labels: tuple[str, ...]) -> Any:
+    import numpy as np
+    from puremacro.structural.robust import QuadraticMomentCurve
+
+    offset = payload.get("offset")
+    loading = payload.get("loading")
+    if not isinstance(offset, list) or not isinstance(loading, list):
+        raise ValueError("curve.offset and curve.loading must be numeric arrays")
+    if len(offset) > _MAX_MOMENT_DIM or len(loading) > _MAX_MOMENT_DIM:
+        raise ValueError(f"curve vectors exceed maximum dimension of {_MAX_MOMENT_DIM}")
+    return QuadraticMomentCurve(
+        offset=np.asarray(offset, dtype=float),
+        loading=np.asarray(loading, dtype=float),
+        labels=tuple(str(x) for x in payload.get("labels", default_labels)),
+        definition_id=str(payload.get("definition_id", "mcp_quadratic_curve")),
+        linear=float(payload.get("linear", 1.0)),
+        quadratic=float(payload.get("quadratic", 0.0)),
+        center=float(payload.get("center", 0.0)),
+        scale=float(payload.get("scale", 1.0)),
+        parameter_name=str(payload.get("parameter_name", "theta")),
+        units=payload.get("units", "unspecified"),
+    )
+
+
+def _coerce_domain_pair(raw_domain: Any) -> tuple[float, float]:
+    if raw_domain is None:
+        return (-float("inf"), float("inf"))
+    if not isinstance(raw_domain, list) or len(raw_domain) != 2:
+        raise ValueError("domain must be a 2-element array [lower, upper]")
+    lo = -float("inf") if raw_domain[0] is None else float(raw_domain[0])
+    hi = float("inf") if raw_domain[1] is None else float(raw_domain[1])
+    if math.isnan(lo) or math.isnan(hi) or lo >= hi:
+        raise ValueError("domain bounds require lower < upper without NaN")
+    return (lo, hi)
+
+
+def _normalize_model_moments_payload(raw_mm: Any, *, target_labels: tuple[str, ...]) -> Any:
+    if isinstance(raw_mm, Mapping):
+        missing = [lbl for lbl in target_labels if lbl not in raw_mm]
+        extra = [k for k in raw_mm if k not in target_labels]
+        if missing or extra:
+            raise ValueError(
+                f"model_moments keys must match targets labels {list(target_labels)!r}"
+            )
+        return [float(raw_mm[lbl]) for lbl in target_labels]
+    return raw_mm
+
+
+def _handle_hank_fiscal_closures(args: Mapping[str, Any], allowed_root: Path | None) -> dict[str, Any]:
+    del allowed_root
+    from puremacro.models.hank_fiscal import compare_fiscal_closures
+    from puremacro.reports import df_to_markdown
+
+    horizon = int(args.get("horizon", 40))
+    if horizon < 1 or horizon > _MAX_HORIZON:
+        raise ValueError(f"horizon must lie in [1, {_MAX_HORIZON}], got {horizon}")
+    n_a = int(args.get("n_a", 100))
+    if n_a < 20 or n_a > _MAX_HANK_NA:
+        raise ValueError(f"n_a must lie in [20, {_MAX_HANK_NA}], got {n_a}")
+    a_max = float(args.get("a_max", 100.0))
+    if not math.isfinite(a_max) or a_max <= 0.0:
+        raise ValueError(f"a_max must be finite and positive, got {a_max}")
+    phi_B = float(args.get("phi_B", 0.08))
+    phi_G = float(args.get("phi_G", 0.0))
+    g_ss = float(args.get("g_ss", 0.0))
+    tol = float(args.get("tol", 1e-8))
+    if not math.isfinite(tol) or tol <= 0.0:
+        raise ValueError(f"tol must be finite and positive, got {tol}")
+    include_unfinanced = bool(args.get("include_unfinanced", True))
+
+    shock_seq = args.get("shock_seq")
+    if shock_seq is not None:
+        if not isinstance(shock_seq, list) or not shock_seq or len(shock_seq) > _MAX_HORIZON:
+            raise ValueError(f"shock_seq must be a list with 1..{_MAX_HORIZON} entries")
+        shock_seq = [float(v) for v in shock_seq]
+
+    df = compare_fiscal_closures(
+        shock_seq=shock_seq,
+        horizon=horizon,
+        phi_B=phi_B,
+        phi_G=phi_G,
+        include_unfinanced=include_unfinanced,
+        tol=tol,
+        g_ss=g_ss,
+        n_a=n_a,
+        a_max=a_max,
+    )
+    reset_df = df.reset_index()
+    out: dict[str, Any] = {
+        "parameters": {
+            "horizon": horizon,
+            "n_a": n_a,
+            "a_max": a_max,
+            "phi_B": phi_B,
+            "phi_G": phi_G,
+            "g_ss": g_ss,
+            "tol": tol,
+            "include_unfinanced": include_unfinanced,
+        },
+        "table": _to_json_safe(reset_df),
+    }
+    if args.get("include_markdown"):
+        out["markdown"] = df_to_markdown(
+            reset_df,
+            index=False,
+            digits=int(args.get("digits", 3)),
+        )
+    return out
+
+
+def _handle_cce_mg_panel_lp(args: Mapping[str, Any], allowed_root: Path | None) -> dict[str, Any]:
+    from puremacro.data import _coerce_time_column
+    from puremacro.lp.cce import cce_panel_lp
+    from puremacro.reports import df_to_markdown
+
+    df = _load_dataframe_from_args(args, allowed_root=allowed_root)
+    unit_col = str(args["unit_col"])
+    time_col = str(args["time_col"])
+    if unit_col not in df.columns or time_col not in df.columns:
+        raise ValueError(
+            f"unit_col ({unit_col!r}) and time_col ({time_col!r}) must exist in columns {list(df.columns)}"
+        )
+
+    horizons = args.get("horizons")
+    horizon = args.get("horizon")
+    n_lags = args.get("n_lags")
+    lags = args.get("lags")
+    if horizons is not None and horizon is not None:
+        raise ValueError("Pass either 'horizons' or 'horizon', not both")
+    if n_lags is not None and lags is not None:
+        raise ValueError("Pass either 'n_lags' or 'lags', not both")
+    if args.get("alpha") is not None and args.get("ci") is not None:
+        raise ValueError("Pass either 'alpha' or 'ci', not both")
+    _validate_lp_horizons(horizons, horizon, n_lags, lags)
+
+    parsed_t, is_dt = _coerce_time_column(df[time_col])
+    work = df.copy()
+    if is_dt:
+        work[time_col] = parsed_t
+    work = work.set_index([unit_col, time_col])
+
+    kwargs: dict[str, Any] = {
+        "y": str(args["y"]),
+        "x": str(args["x"]),
+        "controls": tuple(str(c) for c in (args.get("controls") or ())),
+        "entity_level": unit_col,
+        "time_level": time_col,
+        "estimator": str(args.get("estimator", "mean_group")),
+        "allow_index_gaps": bool(args.get("allow_index_gaps", False)),
+    }
+    if horizons is not None:
+        kwargs["horizons"] = [int(h) for h in horizons]
+    elif horizon is not None:
+        kwargs["horizon"] = int(horizon)
+    if n_lags is not None:
+        kwargs["n_lags"] = int(n_lags)
+    elif lags is not None:
+        kwargs["lags"] = int(lags)
+    if args.get("min_obs") is not None:
+        kwargs["min_obs"] = int(args["min_obs"])
+    if args.get("alpha") is not None:
+        kwargs["alpha"] = float(args["alpha"])
+    elif args.get("ci") is not None:
+        kwargs["ci"] = float(args["ci"])
+
+    res = cce_panel_lp(work, **kwargs)
+    horizons_out = [int(h) for h in res["h"].tolist()] if "h" in res.columns else []
+    out: dict[str, Any] = {
+        "estimator": str(kwargs["estimator"]),
+        "y_name": getattr(res, "y_name", str(args["y"])),
+        "x_name": getattr(res, "x_name", str(args["x"])),
+        "method": getattr(res, "method", "CCE-Panel-LP"),
+        "ci_level": getattr(res, "ci_level", None),
+        "horizons": horizons_out,
+        "table": _to_json_safe(res.reset_index(drop=True)),
+        "specification": _to_json_safe(res.attrs.get("specification", {})),
+        "summary": res.summary(),
+    }
+    if args.get("include_markdown"):
+        out["markdown"] = df_to_markdown(
+            res.to_frame(),
+            index=False,
+            digits=int(args.get("digits", 3)),
+        )
+    return out
+
+
+def _handle_identification_robust_set(args: Mapping[str, Any], allowed_root: Path | None) -> dict[str, Any]:
+    del allowed_root
+    import numpy as np
+    from puremacro.reports import df_to_markdown
+    from puremacro.structural.robust import (
+        evaluate_moment_grid,
+        invert_quadratic_moments,
+        moment_restriction_test,
+    )
+    from puremacro.workbench import (
+        _confidence_set_report_frame,
+        _moment_confidence_set_to_dict,
+        _moment_grid_to_dict,
+        _moment_targets_to_dict,
+        _moment_test_to_dict,
+    )
+
+    targets = _coerce_moment_targets_obj(args["targets"])
+    cov_override = None
+    if args.get("covariance") is not None:
+        cov_override = np.asarray(args["covariance"], dtype=float)
+    alpha = float(args.get("alpha", 0.05))
+    calibration = str(args.get("calibration", "asymptotic"))
+
+    raw_mm = args.get("model_moments")
+    raw_curve = args.get("curve")
+    raw_grid = args.get("grid")
+    raw_grid_moments = args.get("grid_moments")
+
+    if raw_mm is None and raw_curve is None and (raw_grid is None or raw_grid_moments is None):
+        raise ValueError(
+            "Provide at least one of 'model_moments', 'curve', or ('grid' with 'grid_moments')"
+        )
+
+    mt_res = None
+    if raw_mm is not None:
+        mm_norm = _normalize_model_moments_payload(raw_mm, target_labels=targets.labels)
+        mt_res = moment_restriction_test(
+            targets,
+            mm_norm,
+            covariance=cov_override,
+            alpha=alpha,
+            calibration=calibration,
+        )
+
+    curve_obj = None
+    cs_res = None
+    if raw_curve is not None:
+        curve_obj = _coerce_quadratic_curve_obj(raw_curve, default_labels=targets.labels)
+        domain = _coerce_domain_pair(args.get("domain"))
+        cs_res = invert_quadratic_moments(
+            curve_obj,
+            targets,
+            covariance=cov_override,
+            domain=domain,
+            alpha=alpha,
+            calibration=calibration,
+        )
+
+    grid_res = None
+    if raw_grid is not None:
+        if len(raw_grid) > _MAX_GRID_NODES:
+            raise ValueError(f"grid exceeds maximum of {_MAX_GRID_NODES} nodes")
+        grid_arr = np.asarray(raw_grid, dtype=float)
+        if raw_grid_moments is not None:
+            if len(raw_grid_moments) != len(grid_arr):
+                raise ValueError("grid_moments length must match grid length")
+            moments_map = {
+                float(g): _normalize_model_moments_payload(m, target_labels=targets.labels)
+                for g, m in zip(grid_arr, raw_grid_moments)
+            }
+            pname = str(args.get("parameter_name", curve_obj.parameter_name if curve_obj is not None else "theta"))
+            grid_res = evaluate_moment_grid(
+                lambda th: moment_restriction_test(
+                    targets,
+                    moments_map[float(th)],
+                    covariance=cov_override,
+                    alpha=alpha,
+                    calibration=calibration,
+                ),
+                grid_arr,
+                parameter_name=pname,
+            )
+        elif curve_obj is not None:
+            pname = str(args.get("parameter_name", curve_obj.parameter_name))
+            grid_res = evaluate_moment_grid(
+                lambda th: moment_restriction_test(
+                    targets,
+                    curve_obj(th),
+                    covariance=cov_override,
+                    alpha=alpha,
+                    calibration=calibration,
+                ),
+                grid_arr,
+                parameter_name=pname,
+            )
+        else:
+            raise ValueError("grid requires either 'curve' or 'grid_moments'")
+
+    out: dict[str, Any] = {
+        "alpha": alpha,
+        "calibration": calibration,
+        "targets": _moment_targets_to_dict(targets),
+        "moment_test": _moment_test_to_dict(mt_res) if mt_res is not None else None,
+        "confidence_set": _moment_confidence_set_to_dict(cs_res) if cs_res is not None else None,
+        "moment_grid": _moment_grid_to_dict(grid_res) if grid_res is not None else None,
+    }
+    if args.get("include_markdown"):
+        digits = int(args.get("digits", 3))
+        parts: list[str] = []
+        if mt_res is not None:
+            parts.append("## Moment Restriction Test\n\n" + df_to_markdown(mt_res.to_frame(), index=False, digits=digits))
+        if cs_res is not None:
+            parts.append("## Robust Confidence Set\n\n" + df_to_markdown(_confidence_set_report_frame(cs_res), index=False, digits=digits))
+        if grid_res is not None:
+            parts.append("## Moment Grid Tests (Sampled Nodes Only)\n\n" + df_to_markdown(grid_res.to_frame(), index=False, digits=digits))
+        out["markdown"] = "\n\n".join(parts)
+    return _to_json_safe(out)
+
+
+def _handle_run_workbench_dossier(args: Mapping[str, Any], allowed_root: Path | None) -> dict[str, Any]:
+    import numpy as np
+    from puremacro.workbench import run_empirical_structural_workbench
+
+    df = _load_dataframe_from_args(args, allowed_root=allowed_root)
+    horizons = args.get("horizons")
+    lags = args.get("lags", 2)
+    _validate_lp_horizons(horizons, None, None, int(lags))
+
+    est_fn = None
+    if args.get("estimator") is not None:
+        est_fn = _resolve_lp_estimator(str(args["estimator"]), _lp_estimator_map())
+
+    model_irf = None
+    if args.get("model_irf") is not None:
+        model_irf = _coerce_model_irf(args["model_irf"])
+
+    targets = None
+    if args.get("targets") is not None:
+        targets = _coerce_targets(args["targets"])
+
+    wb_kwargs: dict[str, Any] = {
+        "unit_col": args.get("unit_col"),
+        "time_col": args.get("time_col"),
+        "freq": args.get("freq"),
+        "strict_preflight": bool(args.get("strict_preflight", True)),
+        "run_stationarity": bool(args.get("run_stationarity", True)),
+        "run_seasonality": bool(args.get("run_seasonality", True)),
+        "horizons": [int(h) for h in horizons] if horizons is not None else tuple(range(9)),
+        "lags": int(lags),
+        "controls": tuple(str(c) for c in (args.get("controls") or ())),
+        "ci": float(args.get("ci", 0.90)),
+        "estimator": est_fn,
+        "run_sensitivity": bool(args.get("run_sensitivity", True)),
+        "model_irf": model_irf,
+        "targets": targets,
+        "lang": str(args.get("lang", "en")),
+        "digits": int(args.get("digits", 3)),
+    }
+
+    if args.get("moment_test_targets") is not None:
+        mt_obj = _coerce_moment_targets_obj(args["moment_test_targets"])
+        wb_kwargs["moment_test_targets"] = mt_obj
+    else:
+        mt_obj = None
+
+    if args.get("model_moments") is not None:
+        raw_mm = args["model_moments"]
+        if isinstance(raw_mm, Mapping) and mt_obj is not None:
+            raw_mm = _normalize_model_moments_payload(raw_mm, target_labels=mt_obj.labels)
+        wb_kwargs["model_moments"] = raw_mm
+    if args.get("moment_covariance") is not None:
+        wb_kwargs["moment_test_covariance"] = np.asarray(args["moment_covariance"], dtype=float)
+    if args.get("moment_alpha") is not None:
+        wb_kwargs["moment_test_alpha"] = float(args["moment_alpha"])
+    if args.get("moment_calibration") is not None:
+        wb_kwargs["moment_test_calibration"] = str(args["moment_calibration"])
+    if args.get("moment_curve") is not None:
+        default_lbls = mt_obj.labels if mt_obj is not None else ()
+        wb_kwargs["moment_curve"] = _coerce_quadratic_curve_obj(
+            args["moment_curve"],
+            default_labels=default_lbls,
+        )
+    if args.get("moment_domain") is not None:
+        wb_kwargs["moment_domain"] = _coerce_domain_pair(args["moment_domain"])
+    if args.get("moment_grid") is not None:
+        raw_g = args["moment_grid"]
+        if len(raw_g) > _MAX_GRID_NODES:
+            raise ValueError(f"moment_grid exceeds maximum of {_MAX_GRID_NODES} nodes")
+        wb_kwargs["moment_grid_values"] = np.asarray(raw_g, dtype=float)
+
+    dossier = run_empirical_structural_workbench(
+        df,
+        str(args["y"]),
+        str(args["x"]),
+        **wb_kwargs,
+    )
+    lang = str(args.get("lang", "en"))
+    digits = int(args.get("digits", 3))
+    out = _to_json_safe(dossier.to_dict())
+    out["summary"] = dossier.summary(lang=lang)
+    if args.get("include_markdown"):
+        out["markdown"] = dossier.to_markdown(lang=lang, digits=digits)
+    return out
+
+
 _READONLY_ANNOTATIONS: dict[str, Any] = {
     "readOnlyHint": True,
     "destructiveHint": False,
@@ -1448,6 +1868,227 @@ _RAW_TOOLS: tuple[dict[str, Any], ...] = (
         },
         "annotations": dict(_READONLY_ANNOTATIONS),
     },
+    {
+        "name": "hank_fiscal_closures",
+        "description": (
+            "Compare non-linear sequence-space HANK fiscal transitions across "
+            "balanced-budget and debt-rule closures with proportional vs lump-sum taxation."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "horizon": {"type": "integer", "minimum": 1, "maximum": _MAX_HORIZON},
+                "n_a": {"type": "integer", "minimum": 20, "maximum": _MAX_HANK_NA},
+                "a_max": {"type": "number", "exclusiveMinimum": 0.0, "maximum": 10000.0},
+                "phi_B": {"type": "number"},
+                "phi_G": {"type": "number"},
+                "g_ss": {"type": "number", "minimum": 0.0},
+                "tol": {"type": "number", "exclusiveMinimum": 0.0, "maximum": 1.0},
+                "include_unfinanced": {"type": "boolean"},
+                "shock_seq": {
+                    "type": ["array", "null"],
+                    "minItems": 1,
+                    "maxItems": _MAX_HORIZON,
+                    "items": {"type": "number"},
+                },
+                "digits": {"type": "integer", "minimum": 0, "maximum": 12},
+                "include_markdown": {"type": "boolean"},
+            },
+        },
+        "annotations": dict(_READONLY_ANNOTATIONS),
+    },
+    {
+        "name": "cce_mg_panel_lp",
+        "description": (
+            "Estimate Pesaran Common Correlated Effects Mean Group or Pooled panel "
+            "local projections (cce_panel_lp) to control for unobserved common factors."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["y", "x", "unit_col", "time_col"],
+            "properties": {
+                "rows": {"type": "array", "items": {"type": "object"}},
+                "columns": {"type": "object"},
+                "data_path": {"type": "string"},
+                "y": {"type": "string"},
+                "x": {"type": "string"},
+                "unit_col": {"type": "string"},
+                "time_col": {"type": "string"},
+                "controls": {"type": ["array", "null"], "items": {"type": "string"}},
+                "estimator": {"type": "string", "enum": ["mean_group", "pooled"]},
+                "horizons": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": _MAX_HORIZON + 1,
+                    "items": {"type": "integer", "minimum": 0, "maximum": _MAX_HORIZON},
+                },
+                "horizon": {"type": "integer", "minimum": 0, "maximum": _MAX_HORIZON},
+                "n_lags": {"type": "integer", "minimum": 0, "maximum": _MAX_LAGS},
+                "lags": {"type": "integer", "minimum": 0, "maximum": _MAX_LAGS},
+                "min_obs": {"type": ["integer", "null"], "minimum": 2},
+                "alpha": {"type": "number", "exclusiveMinimum": 0.0, "exclusiveMaximum": 1.0},
+                "ci": {"type": "number", "exclusiveMinimum": 0.0, "exclusiveMaximum": 1.0},
+                "allow_index_gaps": {"type": "boolean"},
+                "digits": {"type": "integer", "minimum": 0, "maximum": 12},
+                "include_markdown": {"type": "boolean"},
+            },
+        },
+        "annotations": dict(_READONLY_ANNOTATIONS),
+    },
+    {
+        "name": "identification_robust_set",
+        "description": (
+            "Run weak-identification-robust moment restriction tests, exact quadratic "
+            "confidence set inversions, or sampled grid moment evaluations."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["targets"],
+            "properties": {
+                "targets": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["values", "covariance"],
+                    "properties": {
+                        "values": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": _MAX_MOMENT_DIM,
+                            "items": {"type": "number"},
+                        },
+                        "covariance": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": _MAX_MOMENT_DIM,
+                            "items": {
+                                "type": "array",
+                                "items": {"type": "number"},
+                            },
+                        },
+                        "labels": {
+                            "type": ["array", "null"],
+                            "items": {"type": "string"},
+                        },
+                        "units": {"type": ["string", "array"]},
+                        "metadata": {"type": ["object", "null"]},
+                    },
+                },
+                "model_moments": {
+                    "type": ["array", "object", "null"],
+                },
+                "covariance": {
+                    "type": ["array", "null"],
+                    "items": {
+                        "type": "array",
+                        "items": {"type": "number"},
+                    },
+                },
+                "curve": {
+                    "type": ["object", "null"],
+                    "additionalProperties": False,
+                    "required": ["offset", "loading"],
+                    "properties": {
+                        "offset": {"type": "array", "items": {"type": "number"}},
+                        "loading": {"type": "array", "items": {"type": "number"}},
+                        "labels": {"type": ["array", "null"], "items": {"type": "string"}},
+                        "definition_id": {"type": "string"},
+                        "linear": {"type": "number"},
+                        "quadratic": {"type": "number"},
+                        "center": {"type": "number"},
+                        "scale": {"type": "number"},
+                        "parameter_name": {"type": "string"},
+                        "units": {"type": ["string", "array"]},
+                    },
+                },
+                "domain": {
+                    "type": ["array", "null"],
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {"type": ["number", "null"]},
+                },
+                "grid": {
+                    "type": ["array", "null"],
+                    "minItems": 2,
+                    "maxItems": _MAX_GRID_NODES,
+                    "items": {"type": "number"},
+                },
+                "grid_moments": {
+                    "type": ["array", "null"],
+                    "minItems": 2,
+                    "maxItems": _MAX_GRID_NODES,
+                },
+                "parameter_name": {"type": "string"},
+                "alpha": {"type": "number", "exclusiveMinimum": 0.0, "exclusiveMaximum": 1.0},
+                "calibration": {"type": "string", "enum": ["asymptotic", "gaussian_known"]},
+                "digits": {"type": "integer", "minimum": 0, "maximum": 12},
+                "include_markdown": {"type": "boolean"},
+            },
+        },
+        "annotations": dict(_READONLY_ANNOTATIONS),
+    },
+    {
+        "name": "run_workbench_dossier",
+        "description": (
+            "Run the unified preflight, LP/sensitivity, IRF comparison, optional structural "
+            "scorecard, and identification-robust workbench pipeline returning a JSON/Markdown dossier."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["y", "x"],
+            "properties": {
+                "rows": {"type": "array", "items": {"type": "object"}},
+                "columns": {"type": "object"},
+                "data_path": {"type": "string"},
+                "y": {"type": "string"},
+                "x": {"type": "string"},
+                "unit_col": {"type": ["string", "null"]},
+                "time_col": {"type": ["string", "null"]},
+                "freq": {"type": ["string", "null"]},
+                "controls": {"type": ["array", "null"], "items": {"type": "string"}},
+                "horizons": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": _MAX_HORIZON + 1,
+                    "items": {"type": "integer", "minimum": 0, "maximum": _MAX_HORIZON},
+                },
+                "lags": {"type": "integer", "minimum": 0, "maximum": _MAX_LAGS},
+                "ci": {"type": "number", "exclusiveMinimum": 0.0, "exclusiveMaximum": 1.0},
+                "estimator": {"type": ["string", "null"]},
+                "strict_preflight": {"type": "boolean"},
+                "run_stationarity": {"type": "boolean"},
+                "run_seasonality": {"type": "boolean"},
+                "run_sensitivity": {"type": "boolean"},
+                "model_irf": {"type": ["array", "object", "null"]},
+                "targets": {"type": ["array", "object", "null"]},
+                "moment_test_targets": {"type": ["object", "null"]},
+                "model_moments": {"type": ["array", "object", "null"]},
+                "moment_covariance": {"type": ["array", "null"]},
+                "moment_alpha": {"type": "number", "exclusiveMinimum": 0.0, "exclusiveMaximum": 1.0},
+                "moment_calibration": {"type": "string", "enum": ["asymptotic", "gaussian_known"]},
+                "moment_curve": {"type": ["object", "null"]},
+                "moment_domain": {
+                    "type": ["array", "null"],
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {"type": ["number", "null"]},
+                },
+                "moment_grid": {
+                    "type": ["array", "null"],
+                    "minItems": 2,
+                    "maxItems": _MAX_GRID_NODES,
+                    "items": {"type": "number"},
+                },
+                "lang": {"type": "string", "enum": ["en", "es"]},
+                "digits": {"type": "integer", "minimum": 0, "maximum": 12},
+                "include_markdown": {"type": "boolean"},
+            },
+        },
+        "annotations": dict(_READONLY_ANNOTATIONS),
+    },
 )
 
 PUREMACRO_MCP_TOOLS: Mapping[str, dict[str, Any]] = MappingProxyType(
@@ -1463,6 +2104,10 @@ _TOOL_HANDLERS: dict[str, Callable[[Mapping[str, Any], Path | None], dict[str, A
     "tariff_scenario_batch": _handle_tariff_scenario_batch,
     "connector_freshness_report": _handle_connector_freshness_report,
     "validation_scorecard": _handle_validation_scorecard,
+    "hank_fiscal_closures": _handle_hank_fiscal_closures,
+    "cce_mg_panel_lp": _handle_cce_mg_panel_lp,
+    "identification_robust_set": _handle_identification_robust_set,
+    "run_workbench_dossier": _handle_run_workbench_dossier,
 }
 
 
@@ -1556,8 +2201,9 @@ def _handle_jsonrpc_message(
                 "serverInfo": {"name": "puremacro", "version": _puremacro_version()},
                 "instructions": (
                     "Bounded, read-only computational MCP server for puremacro econometric "
-                    "diagnostics, local projections, IRF comparison, DSGE validation scorecards, "
-                    "tariff scenarios, connector freshness, and library validation."
+                    "diagnostics, local projections, CCE panel LP, IRF comparison, DSGE validation "
+                    "scorecards, HANK fiscal closures, identification-robust confidence sets, "
+                    "unified workbench dossiers, tariff scenarios, connector freshness, and library validation."
                 ),
             },
         )

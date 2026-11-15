@@ -12,6 +12,7 @@ Esta guía documenta seis APIs composables de PureMacro para validación de dato
 | 4. Scorecards DSGE | `puremacro.dsge.prior_posterior_comparison`, `puremacro.dsge.score_irf_against_targets` | `PriorPosteriorComparisonResult`, `IRFScorecardResult` | Cuantificar el aprendizaje previa-posterior, la salud MCMC y el ajuste de IRF del modelo frente a objetivos empíricos |
 | 5. Diagnósticos del solver | `puremacro.solvers.diagnostics` | `SolverDiagnosticRecord` | Separar convergencia numérica, exactitud de las ecuaciones y validez de régimen o soporte |
 | 6. Escenarios comerciales | `CompositeTariffScenario`, `combine_scenarios`, `summarize_scenario_batch` | `CompositeTariffScenario`, `ScenarioComparisonResult` | Combinar paquetes arancelarios bilaterales con reglas explícitas de conflicto y resumir bienestar multipaís |
+| 7. Banco robusto y CLI | `run_empirical_structural_workbench`, `EmpiricalStructuralDossier`, `puremacro.cli` | `EmpiricalStructuralDossier`, paquete HTML/LaTeX/Markdown/JSON | Unificar preflight, LP, scorecards, conjuntos robustos de momentos, SMM, exportación bilingüe y flujos CLI |
 
 ---
 
@@ -407,3 +408,69 @@ print(summary.to_payoff_matrix(metric="ev_pct_consumption"))
 
 - Las reglas de conflicto (`"last_wins"`, `"first_wins"`, `"error"`, `"max"`, `"sum"`) resuelven tasas arancelarias superpuestas `(importer, exporter, sector)` linealmente antes del equilibrio; `"sum"` no acota automáticamente las tasas más allá de la admisibilidad ad valorem estática.
 - `summarize_scenario_batch` hereda la estructura estática Dekle-Eaton-Kortum de `calib` (participaciones sectoriales de gasto constantes y déficits comerciales fijos bajo el numerario elegido); variaciones numéricas diminutas de bienestar dentro de `welfare_tol` reflejan tolerancias del solver más que diferencias económicas sustantivas.
+
+---
+
+## 7. Banco de trabajo robusto a la identificación, SMM y exportación bilingüe
+
+`run_empirical_structural_workbench` y `EmpiricalStructuralDossier` unifican preflight de panel, sensibilidad LP, comparación IRF, scorecards de validación, diagnósticos del solver, pruebas de restricción de momentos e inversión exacta 1D robusta a la identificación (`puremacro.structural.robust`), estimación opcional por método simulado de momentos (`puremacro.structural.simulation`) y exportación autocontenida en paquetes bilingües.
+
+```text
+run_empirical_structural_workbench(
+    data: pd.DataFrame,
+    y: str,
+    x: str,
+    *,
+    ...,
+    moment_test_targets: MomentTargets | None = None,
+    moment_test: MomentTestResult | None = None,
+    model_moments: Any | None = None,
+    simulation: SimulatedMoments | None = None,
+    moment_test_covariance: Any | None = None,
+    moment_test_alpha: float = 0.05,
+    moment_test_calibration: str = "asymptotic",
+    moment_confidence_set: MomentConfidenceSet | None = None,
+    moment_curve: QuadraticMomentCurve | None = None,
+    moment_domain: tuple[float, float] = (-inf, inf),
+    moment_grid: MomentTestGridResult | None = None,
+    moment_grid_fn: Callable[[float], MomentTestResult] | None = None,
+    moment_grid_values: Sequence[float] | None = None,
+    smm_fit: SMMFitResult | None = None,
+    smm_simulator: Callable[..., Any] | None = None,
+    smm_theta0: Any | None = None,
+    smm_plan: SimulationPlan | None = None,
+    smm_definition_id: str | None = None,
+    smm_kwargs: Mapping[str, Any] | None = None,
+    lang: Literal["en", "es"] = "en",
+) -> EmpiricalStructuralDossier
+```
+
+Nuevos atributos y métodos en `EmpiricalStructuralDossier`:
+- **Contratos estructurales adjuntos**: `.moment_test` (`MomentTestResult`), `.moment_confidence_set` (`MomentConfidenceSet`), `.moment_grid` (`MomentTestGridResult`) y `.smm_fit` (`SMMFitResult`).
+- **Secciones adicionales en `.to_frame(section=...)`**: `"moment_test"`, `"confidence_set"`, `"moment_grid"`, `"moment_grid_cells"`, `"smm_fit"` y `"smm_moments"`.
+- **HTML autocontenido y paquetes portables**:
+  - `dossier.to_html(lang="en" | "es", digits=3) -> str` genera un documento HTML5 UTF-8 autocontenido con escape HTML de todos los campos dinámicos y cero rutas del sistema anfitrión.
+  - `dossier.to_bundle(output_dir, *, languages=("en", "es"), digits=3, overwrite=True) -> dict[str, Any]` escribe `dossier.json`, `dossier_{en,es}.{html,md,tex}` y `manifest.json` con resúmenes SHA-256 usando únicamente nombres de archivo relativos (sin filtrar rutas del sistema de archivos anfitrión).
+
+### Flujos CLI unificados (`puremacro.cli`)
+
+La CLI conserva importaciones de biblioteca estándar en el nivel superior, devuelve código de salida `2` ante errores de argumentos o esquema JSON e imprime de forma segura en terminales Windows/POSIX:
+
+```bash
+# Exportar expediente bilingüe y paquete con manifiesto SHA-256 desde workbench o lp-grid
+python -m puremacro.cli workbench data.csv --y y --x shock --bundle-dir ./out --robust-spec spec.json --format html
+python -m puremacro.cli lp-grid data.csv --y y --x shock --lags 1..3 --workbench --bundle-dir ./out --lang es
+
+# Comparar cierres fiscales HANK financiados en espacio de secuencias (balanced_budget vs debt_rule)
+python -m puremacro.cli hank-fiscal --mode compare --horizon 40 --phi-b 0.08 --format markdown
+python -m puremacro.cli hank-fiscal --mode single --closure debt_rule --tax-type lump_sum --horizon 40 --format json
+
+# Evaluar hipótesis nulas de momentos, curvas cuadráticas y mallas desde un JSON
+python -m puremacro.cli robust-set spec.json --alpha 0.05 --calibration asymptotic --format markdown
+```
+
+### Alcance y límites
+
+- Las importaciones de nivel superior en `puremacro.workbench` siguen restringidas a biblioteca estándar, NumPy y pandas (`puremacro.structural.robust` y `puremacro.structural.simulation` se importan de forma perezosa solo cuando se solicitan).
+- La inversión exacta 1D mediante `invert_quadratic_moments` preserva intervalos desconectados, indicadores de truncamiento (`truncated`, `boundary_contact`) y estados `unresolved_*` (sin sustituir matrices singulares mediante pseudoinversas o regularización ridge).
+- Las mallas muestreadas (`moment_grid` / `evaluate_moment_grid`) conservan explícitamente `continuous_complete=False`, `accepted_runs()` y `unresolved_cells()` para no certificar falsamente interiores no evaluados como intervalos continuos de confianza.

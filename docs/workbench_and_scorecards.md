@@ -12,6 +12,7 @@ This guide documents six composable PureMacro APIs for data validation, specific
 | 4. DSGE scorecards | `puremacro.dsge.prior_posterior_comparison`, `puremacro.dsge.score_irf_against_targets` | `PriorPosteriorComparisonResult`, `IRFScorecardResult` | Quantify prior-to-posterior learning, MCMC health, and model IRF fit vs empirical targets |
 | 5. Solver diagnostics | `puremacro.solvers.diagnostics` | `SolverDiagnosticRecord` | Separate numerical convergence, equation accuracy, and regime/support validity |
 | 6. Trade scenarios | `CompositeTariffScenario`, `combine_scenarios`, `summarize_scenario_batch` | `CompositeTariffScenario`, `ScenarioComparisonResult` | Compose bilateral tariff policies with explicit conflict rules and summarize multi-country welfare |
+| 7. Robust workbench & CLI | `run_empirical_structural_workbench`, `EmpiricalStructuralDossier`, `puremacro.cli` | `EmpiricalStructuralDossier`, HTML/LaTeX/Markdown/JSON bundle | Unify preflight, LP, scorecards, robust moment sets, SMM, bilingual bundle export, and CLI workflows |
 
 ---
 
@@ -407,3 +408,69 @@ print(summary.to_payoff_matrix(metric="ev_pct_consumption"))
 
 - Conflict rules (`"last_wins"`, `"first_wins"`, `"error"`, `"max"`, `"sum"`) resolve overlapping `(importer, exporter, sector)` tariff rates linearly before solving equilibrium; `"sum"` does not cap rates automatically beyond static ad valorem admissibility.
 - `summarize_scenario_batch` inherits the static Dekle-Eaton-Kortum structure of `calib` (constant sectoral expenditure shares and trade deficits held fixed under the chosen numeraire); small numerical welfare swings within `welfare_tol` reflect solver tolerances rather than economically distinct rankings.
+
+---
+
+## 7. Identification-Robust Workbench, SMM Integration & Bilingual Bundle Export
+
+`run_empirical_structural_workbench` and `EmpiricalStructuralDossier` unify panel preflight, LP sensitivity, IRF comparisons, validation scorecards, solver diagnostics, identification-robust moment testing / 1D quadratic confidence set inversion (`puremacro.structural.robust`), optional simulated method of moments estimation (`puremacro.structural.simulation`), and self-contained bilingual bundle exports.
+
+```text
+run_empirical_structural_workbench(
+    data: pd.DataFrame,
+    y: str,
+    x: str,
+    *,
+    ...,
+    moment_test_targets: MomentTargets | None = None,
+    moment_test: MomentTestResult | None = None,
+    model_moments: Any | None = None,
+    simulation: SimulatedMoments | None = None,
+    moment_test_covariance: Any | None = None,
+    moment_test_alpha: float = 0.05,
+    moment_test_calibration: str = "asymptotic",
+    moment_confidence_set: MomentConfidenceSet | None = None,
+    moment_curve: QuadraticMomentCurve | None = None,
+    moment_domain: tuple[float, float] = (-inf, inf),
+    moment_grid: MomentTestGridResult | None = None,
+    moment_grid_fn: Callable[[float], MomentTestResult] | None = None,
+    moment_grid_values: Sequence[float] | None = None,
+    smm_fit: SMMFitResult | None = None,
+    smm_simulator: Callable[..., Any] | None = None,
+    smm_theta0: Any | None = None,
+    smm_plan: SimulationPlan | None = None,
+    smm_definition_id: str | None = None,
+    smm_kwargs: Mapping[str, Any] | None = None,
+    lang: Literal["en", "es"] = "en",
+) -> EmpiricalStructuralDossier
+```
+
+New `EmpiricalStructuralDossier` attributes and methods:
+- **Attached structural contracts**: `.moment_test` (`MomentTestResult`), `.moment_confidence_set` (`MomentConfidenceSet`), `.moment_grid` (`MomentTestGridResult`), and `.smm_fit` (`SMMFitResult`).
+- **Additional `.to_frame(section=...)` sections**: `"moment_test"`, `"confidence_set"`, `"moment_grid"`, `"moment_grid_cells"`, `"smm_fit"`, and `"smm_moments"`.
+- **Self-contained HTML & portable bundles**:
+  - `dossier.to_html(lang="en" | "es", digits=3) -> str` renders a standalone UTF-8 HTML5 document with escaped dynamic fields and zero host filesystem paths.
+  - `dossier.to_bundle(output_dir, *, languages=("en", "es"), digits=3, overwrite=True) -> dict[str, Any]` writes `dossier.json`, `dossier_{en,es}.{html,md,tex}`, and `manifest.json` containing SHA-256 checksums using relative filenames only (never leaking host directory paths).
+
+### Unified CLI Workflows (`puremacro.cli`)
+
+The CLI keeps stdlib-only top-level imports, exits with status `2` on argument or JSON schema errors, and uses encoding-safe stdout printing across Windows/POSIX terminals:
+
+```bash
+# Export an end-to-end bilingual dossier + SHA-256 bundle from LP-grid or workbench
+python -m puremacro.cli workbench data.csv --y y --x shock --bundle-dir ./out --robust-spec spec.json --format html
+python -m puremacro.cli lp-grid data.csv --y y --x shock --lags 1..3 --workbench --bundle-dir ./out --lang es
+
+# Compare financed sequence-space HANK fiscal closures (balanced_budget vs debt_rule)
+python -m puremacro.cli hank-fiscal --mode compare --horizon 40 --phi-b 0.08 --format markdown
+python -m puremacro.cli hank-fiscal --mode single --closure debt_rule --tax-type lump_sum --horizon 40 --format json
+
+# Evaluate identification-robust point nulls, quadratic curve sets, and moment grids from JSON
+python -m puremacro.cli robust-set spec.json --alpha 0.05 --calibration asymptotic --format markdown
+```
+
+### Scope and limits
+
+- Top-level imports in `puremacro.workbench` remain restricted to Python stdlib, NumPy, and pandas (`puremacro.structural.robust` and `puremacro.structural.simulation` load lazily only when robust or SMM parameters are requested).
+- Exact 1D confidence sets via `invert_quadratic_moments` preserve disconnected intervals, boundary truncation flags (`truncated`, `boundary_contact`), and `unresolved_*` statuses (never substituting pseudoinverses or ridge regularizers for singular covariances).
+- Sampled grids (`moment_grid` / `evaluate_moment_grid`) retain `continuous_complete=False`, `accepted_runs()`, and `unresolved_cells()` explicitly so untested grid interiors are never mislabeled as continuous confidence intervals.

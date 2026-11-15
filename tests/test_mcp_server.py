@@ -134,7 +134,7 @@ def test_top_level_imports_are_stdlib_only_and_lazy() -> None:
         check=True,
     )
     data = json.loads(proc.stdout)
-    assert len(data["tools"]) == 8
+    assert len(data["tools"]) == 12
     loaded = set(data["loaded"])
     lazy_submodules = {
         "statsmodels",
@@ -149,6 +149,9 @@ def test_top_level_imports_are_stdlib_only_and_lazy() -> None:
         "puremacro.trade",
         "puremacro.fetch",
         "puremacro.validation",
+        "puremacro.workbench",
+        "puremacro.structural",
+        "puremacro.models",
     }
     assert loaded.isdisjoint(lazy_submodules), f"Eagerly loaded: {sorted(loaded & lazy_submodules)}"
 
@@ -163,6 +166,10 @@ def test_tool_registry_schema_and_deepcopy() -> None:
         "tariff_scenario_batch",
         "connector_freshness_report",
         "validation_scorecard",
+        "hank_fiscal_closures",
+        "cce_mg_panel_lp",
+        "identification_robust_set",
+        "run_workbench_dossier",
     }
     assert set(PUREMACRO_MCP_TOOLS) == expected
     tools = list_tools()
@@ -278,7 +285,7 @@ def test_stdio_ndjson_handshake_notifications_and_errors() -> None:
     assert init_resp["result"]["capabilities"]["tools"]["listChanged"] is False
 
     assert ping_resp == {"jsonrpc": "2.0", "id": 0, "result": {}}
-    assert len(list_resp["result"]["tools"]) == 8
+    assert len(list_resp["result"]["tools"]) == 12
 
     assert call_resp["id"] == 3
     assert call_resp["result"]["isError"] is False
@@ -779,7 +786,7 @@ def test_subprocess_cli_smoke_list_and_stdio(tmp_path: Path) -> None:
         check=True,
     )
     listed = json.loads(list_proc.stdout)
-    assert len(listed["tools"]) == 8
+    assert len(listed["tools"]) == 12
 
     csv_path = tmp_path / "panel.csv"
     pd.DataFrame(_sample_panel_rows()).to_csv(csv_path, index=False)
@@ -821,5 +828,213 @@ def test_subprocess_cli_smoke_list_and_stdio(tmp_path: Path) -> None:
     responses = [json.loads(line) for line in stdio_proc.stdout.splitlines() if line.strip()]
     assert [r["id"] for r in responses] == [1, 2, 3]
     assert responses[0]["result"]["serverInfo"]["name"] == "puremacro"
-    assert len(responses[1]["result"]["tools"]) == 8
+    assert len(responses[1]["result"]["tools"]) == 12
     assert responses[2]["result"]["structuredContent"]["panel_shape"][0] == 8
+
+
+# ---------------------------------------------------------------------------
+# Expanded 4 read-only tools tests
+# ---------------------------------------------------------------------------
+
+
+def _sample_macro_panel_rows(n_units: int = 4, n_periods: int = 24) -> list[dict[str, object]]:
+    rng = np.random.default_rng(19)
+    dates = pd.date_range("2015-01-01", periods=n_periods, freq="QS")
+    f_t = rng.normal(0.0, 0.5, size=n_periods)
+    rows: list[dict[str, object]] = []
+    for u in range(n_units):
+        iso = f"C{u:02d}"
+        x = np.zeros(n_periods)
+        y = np.zeros(n_periods)
+        for t in range(1, n_periods):
+            x[t] = 0.35 * x[t - 1] + 0.4 * f_t[t] + rng.normal(0.0, 0.6)
+            y[t] = 0.30 * y[t - 1] - 0.65 * x[t] + 0.5 * f_t[t] + rng.normal(0.0, 0.3)
+        for t in range(n_periods):
+            rows.append(
+                {
+                    "country": iso,
+                    "date": dates[t].strftime("%Y-%m-%d"),
+                    "y": float(y[t]),
+                    "x": float(x[t]),
+                }
+            )
+    return rows
+
+
+def test_mcp_hank_fiscal_closures_and_bounds() -> None:
+    res = call_tool(
+        "hank_fiscal_closures",
+        {
+            "horizon": 20,
+            "n_a": 40,
+            "phi_B": 0.08,
+            "include_unfinanced": False,
+            "include_markdown": True,
+        },
+    )
+    assert res["parameters"]["horizon"] == 20
+    assert res["parameters"]["n_a"] == 40
+    assert len(res["table"]) == 4
+    assert all(row["status"].startswith("PASS") for row in res["table"])
+    assert "balanced_budget" in res["markdown"]
+    json.dumps(res, allow_nan=False)
+
+    with pytest.raises(ValueError, match="120"):
+        call_tool("hank_fiscal_closures", {"horizon": 121, "n_a": 40})
+    with pytest.raises(ValueError, match="150"):
+        call_tool("hank_fiscal_closures", {"horizon": 20, "n_a": 151})
+
+
+def test_mcp_cce_mg_panel_lp_and_allowed_root(tmp_path: Path) -> None:
+    panel_rows = _sample_macro_panel_rows()
+    csv_path = tmp_path / "cce_panel.csv"
+    pd.DataFrame(panel_rows).to_csv(csv_path, index=False)
+
+    res_mg = call_tool(
+        "cce_mg_panel_lp",
+        {
+            "data_path": "cce_panel.csv",
+            "y": "y",
+            "x": "x",
+            "unit_col": "country",
+            "time_col": "date",
+            "estimator": "mean_group",
+            "horizons": [0, 1, 2],
+            "n_lags": 1,
+            "include_markdown": True,
+        },
+        allowed_root=tmp_path,
+    )
+    assert res_mg["estimator"] == "mean_group"
+    assert res_mg["horizons"] == [0, 1, 2]
+    assert len(res_mg["table"]) == 3
+    assert "| h |" in res_mg["markdown"]
+    assert "beta" in res_mg["markdown"]
+    json.dumps(res_mg, allow_nan=False)
+
+    with pytest.raises(ValueError, match="either 'n_lags' or 'lags'"):
+        call_tool(
+            "cce_mg_panel_lp",
+            {
+                "rows": panel_rows,
+                "y": "y",
+                "x": "x",
+                "unit_col": "country",
+                "time_col": "date",
+                "n_lags": 1,
+                "lags": 1,
+            },
+        )
+
+    res_pooled = call_tool(
+        "cce_mg_panel_lp",
+        {
+            "rows": panel_rows,
+            "y": "y",
+            "x": "x",
+            "unit_col": "country",
+            "time_col": "date",
+            "estimator": "pooled",
+            "horizons": [0, 1],
+            "n_lags": 1,
+        },
+    )
+    assert res_pooled["estimator"] == "pooled"
+    assert len(res_pooled["table"]) == 2
+
+    with pytest.raises(PermissionError):
+        call_tool(
+            "cce_mg_panel_lp",
+            {
+                "data_path": "../outside.csv",
+                "y": "y",
+                "x": "x",
+                "unit_col": "country",
+                "time_col": "date",
+            },
+            allowed_root=tmp_path,
+        )
+
+
+def test_mcp_identification_robust_set() -> None:
+    res = call_tool(
+        "identification_robust_set",
+        {
+            "targets": {
+                "values": [4.0, 0.0],
+                "covariance": [[1.0, 0.0], [0.0, 0.5]],
+                "labels": ["m1", "m2"],
+            },
+            "model_moments": {"m1": 4.1, "m2": 0.0},
+            "curve": {
+                "offset": [0.0, 0.0],
+                "loading": [1.0, 0.0],
+                "linear": 0.0,
+                "quadratic": 1.0,
+                "parameter_name": "rho",
+                "definition_id": "mcp_quad",
+            },
+            "domain": [-2.2, 5.0],
+            "grid": [-2.0, 0.0, 2.0],
+            "include_markdown": True,
+        },
+    )
+    assert res["moment_test"]["accepted"] is True
+    assert res["confidence_set"]["resolved"] is True
+    assert res["confidence_set"]["n_intervals"] == 2
+    assert res["confidence_set"]["truncated"] is True
+    assert res["moment_grid"]["continuous_complete"] is False
+    assert "Robust Confidence Set" in res["markdown"]
+    json.dumps(res, allow_nan=False)
+
+
+def test_mcp_run_workbench_dossier_and_allowed_root(tmp_path: Path) -> None:
+    rng = np.random.default_rng(77)
+    dates = pd.date_range("2000-01-01", periods=60, freq="QS")
+    x = rng.normal(size=60)
+    y = -0.6 * x + rng.normal(scale=0.3, size=60)
+    ts_df = pd.DataFrame({"date": dates.strftime("%Y-%m-%d"), "y": y, "x": x})
+    csv_path = tmp_path / "ts_wb.csv"
+    ts_df.to_csv(csv_path, index=False)
+
+    res = call_tool(
+        "run_workbench_dossier",
+        {
+            "data_path": "ts_wb.csv",
+            "y": "y",
+            "x": "x",
+            "time_col": "date",
+            "horizons": [0, 1, 2, 3],
+            "lags": 1,
+            "run_sensitivity": False,
+            "moment_test_targets": {
+                "values": [1.0, 0.0],
+                "covariance": [[0.25, 0.0], [0.0, 0.25]],
+                "labels": ["m1", "m2"],
+            },
+            "model_moments": [1.0, 0.0],
+            "moment_curve": {
+                "offset": [0.0, 0.0],
+                "loading": [1.0, 0.2],
+                "parameter_name": "delta",
+                "definition_id": "mcp_wb_curve",
+            },
+            "lang": "es",
+            "include_markdown": True,
+        },
+        allowed_root=tmp_path,
+    )
+    assert res["passed"] is True
+    assert res["moment_test"]["accepted"] is True
+    assert res["moment_confidence_set"]["resolved"] is True
+    assert "Expediente" in res["summary"]
+    assert "Conjunto de confianza robusto" in res["markdown"]
+    serialized = json.dumps(res, allow_nan=False)
+    assert str(tmp_path) not in serialized
+
+    with pytest.raises(PermissionError):
+        call_tool(
+            "run_workbench_dossier",
+            {"data_path": "../escape.csv", "y": "y", "x": "x"},
+            allowed_root=tmp_path,
+        )

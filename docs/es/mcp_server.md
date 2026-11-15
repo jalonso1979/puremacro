@@ -106,13 +106,19 @@ Agrega `.cursor/mcp.json` en tu espacio de trabajo (o en la configuración globa
 | `tariff_scenario_batch` | `puremacro.trade.scenarios.CompositeTariffScenario` y `summarize_scenario_batch` | Compone aranceles simples o compuestos, audita solapamientos (`on_conflict`), resuelve equilibrio general y calcula EV/CV hicksiano | `scenarios` (máx. 16), `model_source` (`oecd_icio` / `synthetic` / `file`), `data_path`, `sigma`, `method`, `resolve_only`, `include_markdown` |
 | `connector_freshness_report` | `puremacro.fetch.freshness.connector_freshness_report` | Audita procedencia, identidades de dominio, revisiones y frescura de conectores (`openWorldHint: true` en modo `live`) | `mode` (`cache` / `recorded` / `live`), `sources`, `as_of`, `db_path`, `max_requests` (1–5), `min_interval_seconds`, `timeout_seconds`, `lang`, `include_markdown` |
 | `validation_scorecard` | `puremacro.validation.scorecard` | Lista o ejecuta casos matemáticos autocontenidos de la galería de validación por subsistema o identificador | `subsystem`, `case_ids`, `list_only` |
+| `hank_fiscal_closures` | `puremacro.models.hank_fiscal.compare_fiscal_closures` | Compara transiciones fiscales HANK no lineales en espacio de secuencias bajo presupuesto equilibrado y regla de deuda (`proportional` vs `lump_sum`) | `horizon` (1–120), `n_a` (20–150), `a_max`, `phi_B`, `phi_G`, `g_ss`, `tol`, `include_unfinanced`, `shock_seq`, `include_markdown` |
+| `cce_mg_panel_lp` | `puremacro.lp.cce.cce_panel_lp` | Estima proyecciones locales de panel con Efectos Correlacionados Comunes (CCE Mean Group o Pooled) controlando factores no observados | `rows` / `columns` / `data_path`, `y`, `x`, `unit_col`, `time_col`, `controls`, `estimator` (`mean_group` / `pooled`), `horizons` / `horizon`, `n_lags` / `lags`, `min_obs`, `ci` / `alpha`, `include_markdown` |
+| `identification_robust_set` | `puremacro.structural.robust` | Evalúa pruebas puntuales de restricción de momentos, inversión exacta 1D para curvas cuadráticas o mallas muestreadas de momentos | `targets` (`values`, `covariance`, `labels`, `units`), `model_moments`, `covariance`, `curve`, `domain`, `grid`, `grid_moments`, `alpha`, `calibration`, `include_markdown` |
+| `run_workbench_dossier` | `puremacro.workbench.run_empirical_structural_workbench` | Ejecuta el flujo unificado de preflight, LP/sensibilidad, comparación IRF, scorecard e inferencia robusta devolviendo el expediente | `rows` / `columns` / `data_path`, `y`, `x`, `unit_col`, `time_col`, `controls`, `horizons`, `lags`, `ci`, `estimator`, `model_irf`, `targets`, `moment_test_targets`, `model_moments`, `moment_curve`, `moment_domain`, `moment_grid`, `lang`, `include_markdown` |
 
 ### Límites operativos
 
 Para garantizar respuestas rápidas y acotadas en sesiones interactivas:
 
 - **Tablas de entrada**: máximo 50,000 filas × 200 columnas; lectura de archivos limitada a 16 MiB.
-- **Proyecciones locales**: horizontes en `[0, 120]`, rezagos en `[0, 40]` y hasta 64 combinaciones por rejilla de sensibilidad.
+- **Proyecciones locales y CCE**: horizontes en `[0, 120]`, rezagos en `[0, 40]` y hasta 64 combinaciones por rejilla de sensibilidad.
+- **Transiciones fiscales HANK**: horizonte acotado a `120` (`[1, 120]`) y tamaño de malla de activos `n_a` acotado a `150` (`[20, 150]`).
+- **Momentos robustos a la identificación**: dimensión máxima del vector de momentos igual a `64` y mallas muestreadas limitadas a `250` nodos.
 - **Lotes arancelarios**: hasta 16 escenarios por llamada (profundidad máxima de composición igual a 5).
 - **Sondeos `live` de conectores**: máximo 5 solicitudes por llamada (`max_requests` en `[1, 5]`); usa `mode="recorded"` o `mode="cache"` para auditorías sin red.
 

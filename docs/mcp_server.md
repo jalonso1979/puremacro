@@ -106,13 +106,19 @@ Add `.cursor/mcp.json` in your workspace (or global Cursor MCP settings):
 | `tariff_scenario_batch` | `puremacro.trade.scenarios.CompositeTariffScenario` & `summarize_scenario_batch` | Compose single/nested tariffs, audit overlaps (`on_conflict`), solve general equilibrium, and report Hicksian EV/CV | `scenarios` (max 16), `model_source` (`oecd_icio` / `synthetic` / `file`), `data_path`, `sigma`, `method`, `resolve_only`, `include_markdown` |
 | `connector_freshness_report` | `puremacro.fetch.freshness.connector_freshness_report` | Audit connector cohort provenance, domain identities, revisions, and staleness (`openWorldHint: true` in `live` mode) | `mode` (`cache` / `recorded` / `live`), `sources`, `as_of`, `db_path`, `max_requests` (1–5), `min_interval_seconds`, `timeout_seconds`, `lang`, `include_markdown` |
 | `validation_scorecard` | `puremacro.validation.scorecard` | List or run self-contained mathematical validation gallery cases by subsystem or case ID | `subsystem`, `case_ids`, `list_only` |
+| `hank_fiscal_closures` | `puremacro.models.hank_fiscal.compare_fiscal_closures` | Compare non-linear sequence-space HANK fiscal transitions across balanced-budget and debt-rule closures (`proportional` vs `lump_sum` taxes) | `horizon` (1–120), `n_a` (20–150), `a_max`, `phi_B`, `phi_G`, `g_ss`, `tol`, `include_unfinanced`, `shock_seq`, `include_markdown` |
+| `cce_mg_panel_lp` | `puremacro.lp.cce.cce_panel_lp` | Estimate Pesaran Common Correlated Effects Mean Group or Pooled panel local projections controlling for unobserved factors | `rows` / `columns` / `data_path`, `y`, `x`, `unit_col`, `time_col`, `controls`, `estimator` (`mean_group` / `pooled`), `horizons` / `horizon`, `n_lags` / `lags`, `min_obs`, `ci` / `alpha`, `include_markdown` |
+| `identification_robust_set` | `puremacro.structural.robust` | Evaluate point-null moment restriction tests, exact 1D quadratic confidence set inversions, or sampled moment grids | `targets` (`values`, `covariance`, `labels`, `units`), `model_moments`, `covariance`, `curve`, `domain`, `grid`, `grid_moments`, `alpha`, `calibration`, `include_markdown` |
+| `run_workbench_dossier` | `puremacro.workbench.run_empirical_structural_workbench` | Run the unified preflight, LP/sensitivity, IRF comparison, scorecard, and identification-robust workbench pipeline | `rows` / `columns` / `data_path`, `y`, `x`, `unit_col`, `time_col`, `controls`, `horizons`, `lags`, `ci`, `estimator`, `model_irf`, `targets`, `moment_test_targets`, `model_moments`, `moment_curve`, `moment_domain`, `moment_grid`, `lang`, `include_markdown` |
 
 ### Resource Caps
 
 To keep interactive tool calls bounded and responsive:
 
 - **Maximum table input**: 50,000 rows × 200 columns; file reads capped at 16 MiB.
-- **Local Projections**: horizons in `[0, 120]`, lag order in `[0, 40]`, sensitivity grids capped at 64 combinations.
+- **Local Projections & CCE**: horizons in `[0, 120]`, lag order in `[0, 40]`, sensitivity grids capped at 64 combinations.
+- **HANK fiscal transitions**: horizon capped at `120` (`[1, 120]`) and asset grid size `n_a` capped at `150` (`[20, 150]`).
+- **Identification-robust moments**: moment vector dimension capped at `64`, sampled moment grid capped at `250` nodes.
 - **Trade equilibrium batches**: up to 16 scenarios per call (composite nesting depth up to 5).
 - **Live connector probes**: capped at 5 requests per call (`max_requests` in `[1, 5]`); use `mode="recorded"` or `mode="cache"` for offline checks.
 
