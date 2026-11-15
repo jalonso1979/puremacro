@@ -131,6 +131,9 @@ _USER_DOCS = [
     "investment_research_validation.md",
     "svar_and_policy_counterfactuals.md",
     "portfolio_and_macro_allocation.md",
+    "macro_monitor.md",
+    "hank_distributional_bridge.md",
+    "trade_reallocation_incidence.md",
 ]
 
 

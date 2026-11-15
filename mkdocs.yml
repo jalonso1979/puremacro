@@ -76,6 +76,7 @@ nav:
           - Cross-country macro panels: cross_country_panels.md
           - Source registry & survey microdata: micro_data.md
           - Text as data (corpus, tokenizer, DTM): text_analysis.md
+          - Automated LatAm & Macro Freshness Monitor: macro_monitor.md
       - Econometric Engines:
           - VAR & FAVAR: var.md
           - Narrative Sign Restrictions SVAR: narrative_sign_svar.md
@@ -124,6 +125,7 @@ nav:
           - Non-Linear HANK Transitions: hank_nonlinear.md
           - Editable HANK equations and panels: hank_model_closure.md
           - Nonlinear HANK & 2nd-Order Aggregate Risk: hank_ssj_and_aggregate_risk.md
+          - Empirical Distributional LP-HANK Household Incidence Bridge: hank_distributional_bridge.md
           - Monetary Transmission Simulator: monetary_transmission.md
           - Macroeconomic Policy Simulators & Browser Labs: policy_simulators.md
           - Gertler-Karadi (2011) DSGE: gertler_karadi.md
@@ -175,6 +177,7 @@ nav:
           - Native MRIO tables: trade_mrio.md
           - Dynamic MRIO with sector-specific capital: trade_dynamic.md
           - Joint sourcing, capital and labor transitions: trade_reallocation.md
+          - Dynamic trade reallocation and household incidence: trade_reallocation_incidence.md
           - GPU, MLX and batched Jacobians: trade_gpu.md
       - Running Anywhere (iPad / browser): tablet.md
       - Local language models (iPad, Mac, Windows, Linux, Colab): local_llm.md
@@ -220,6 +223,7 @@ nav:
           - Paneles macro entre países: es/cross_country_panels.md
           - Registro de fuentes y microdatos de encuestas: es/micro_data.md
           - Texto como datos (corpus, tokenizador, DTM): es/text_analysis.md
+          - Monitor automatizado de actualidad macro y LatAm: es/macro_monitor.md
       - Motores econométricos:
           - VAR y FAVAR: es/var.md
           - SVAR con restricciones narrativas de signo: es/narrative_sign_svar.md
@@ -268,6 +272,7 @@ nav:
           - Transiciones no lineales en HANK: es/hank_nonlinear.md
           - Ecuaciones HANK editables y paneles: es/hank_model_closure.md
           - HANK no lineal y riesgo agregado de 2.º orden: es/hank_ssj_and_aggregate_risk.md
+          - Puente empírico LP distribucional-HANK de incidencia en hogares: es/hank_distributional_bridge.md
           - Simulador de transmisión monetaria: es/monetary_transmission.md
           - Simuladores de política macroeconómica y laboratorios interactivos: es/policy_simulators.md
           - DSGE de Gertler-Karadi (2011): es/gertler_karadi.md
@@ -319,6 +324,7 @@ nav:
           - Tablas MRIO nativas: es/trade_mrio.md
           - MRIO dinámico con capital específico por sector: es/trade_dynamic.md
           - Transiciones conjuntas de abastecimiento, capital y trabajo: es/trade_reallocation.md
+          - Reasignación comercial dinámica e incidencia en los hogares: es/trade_reallocation_incidence.md
           - GPU, MLX y jacobianos por lotes: es/trade_gpu.md
       - Ejecución en cualquier entorno (iPad / navegador): es/tablet.md
       - Modelos de lenguaje locales (iPad, Mac, Windows, Linux, Colab): es/local_llm.md
