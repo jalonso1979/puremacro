@@ -663,6 +663,38 @@ class TestOptimizedHotspotEquivalence:
         _, b_ns2, _ = _parameters(ns_calib)
         assert not np.array_equal(b_ns1, b_ns2)
 
+        # Mutating returned fd_tax / basic0 arrays must not poison calib cache.
+        out_poison = evaluate_consistent(
+            x, calib, tau, tfd, None, None, sigma=sigma, foreign_saving_units=foreign_saving_units
+        )
+        out_poison["fd_tax"][:] = 0.9
+        out_poison["basic0"][:] = -999.0
+        out_after_poison = evaluate_consistent(
+            x, calib, tau, tfd, None, None, sigma=sigma, foreign_saving_units=foreign_saving_units
+        )
+        assert np.array_equal(out_after_poison["residuals"], out_warm["residuals"])
+        assert np.array_equal(out_after_poison["fd_tax"], out_warm["fd_tax"])
+        assert np.array_equal(out_after_poison["basic0"], out_warm["basic0"])
+
+        # In-place mutation of calib input arrays must invalidate cache and re-validate.
+        calib_inplace = copy.deepcopy(calib)
+        assert calib_inplace.data_calibra is not None
+        out_pre_edit = evaluate_consistent(
+            x, calib_inplace, tau, tfd, None, None, sigma=sigma, foreign_saving_units=foreign_saving_units
+        )
+        calib_inplace.data_calibra[0, n] += 10.0
+        calib_inplace.data_calibra[n, n] += 1.0
+        out_post_edit = evaluate_consistent(
+            x, calib_inplace, tau, tfd, None, None, sigma=sigma, foreign_saving_units=foreign_saving_units
+        )
+        assert np.max(np.abs(out_post_edit["basic0"] - out_pre_edit["basic0"])) > 1.0
+        assert np.max(np.abs(out_post_edit["residuals"] - out_pre_edit["residuals"])) > 1e-4
+        calib_inplace.data_calibra[:] = np.nan
+        with pytest.raises(ValueError, match="finite calibration table"):
+            evaluate_consistent(
+                x, calib_inplace, tau, tfd, None, None, sigma=sigma, foreign_saving_units=foreign_saving_units
+            )
+
         # Invalid off-one domestic tariff still raises ValueError.
         bad_tau = tau.copy()
         bad_tau[0, 0, 0] = 1.01

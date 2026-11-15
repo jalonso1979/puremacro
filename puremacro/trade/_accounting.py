@@ -20,6 +20,7 @@ are available through ``foreign_saving_units``:
 """
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 import numpy as np
 
@@ -37,36 +38,40 @@ def _get_eval_deps() -> tuple[Any, Any, Any]:
     return _EVAL_DEPS
 
 
-def _calib_param_refs(calib: Any) -> tuple[Any, ...]:
-    """Return tuple of scalar dimensions and array references for cache validation."""
-    return (
-        int(calib.nc),
-        int(calib.ns),
-        int(calib.n_final_demand),
-        calib.a,
-        calib.afd,
-        calib.alpha,
-        calib.beta,
-        calib.tax,
-        calib.theta,
-        calib.ytot,
-        calib.l_endow,
-        calib.k_endow,
-        calib.invforT,
-        calib.data_calibra,
-        calib.tax_fd,
-        calib.T,
-    )
-
-
-def _refs_match(current: tuple[Any, ...], cached: tuple[Any, ...]) -> bool:
-    """Check scalar dimension equality and object identity without triggering ndarray.__eq__."""
-    return (
-        current[0] == cached[0]
-        and current[1] == cached[1]
-        and current[2] == cached[2]
-        and all(a is b for a, b in zip(current[3:], cached[3:]))
-    )
+def _calib_cache_key(calib: Any) -> tuple[Any, bytes] | None:
+    """Compute a metadata + 128-bit content digest over calibration scalars and input buffers."""
+    try:
+        h = hashlib.blake2b(digest_size=16)
+        shapes_dtypes: list[Any] = [int(calib.nc), int(calib.ns), int(calib.n_final_demand)]
+        for field in (
+            calib.a,
+            calib.afd,
+            calib.alpha,
+            calib.beta,
+            calib.tax,
+            calib.theta,
+            calib.ytot,
+            calib.l_endow,
+            calib.k_endow,
+            calib.invforT,
+            calib.data_calibra,
+            calib.tax_fd,
+            calib.T,
+        ):
+            h.update(b"|")
+            if field is None:
+                shapes_dtypes.append(None)
+                h.update(b"N")
+            else:
+                arr = field if isinstance(field, np.ndarray) else np.asarray(field)
+                shapes_dtypes.append((arr.shape, arr.dtype))
+                if arr.flags.c_contiguous and arr.dtype != object:
+                    h.update(arr.data)
+                else:
+                    h.update(arr.tobytes())
+        return tuple(shapes_dtypes), h.digest()
+    except Exception:
+        return None
 
 
 def _validate_tariff_schedule(
@@ -85,11 +90,14 @@ def _validate_tariff_schedule(
 
 def _parameters(calib):
     """Recover actual final-use tax shares, excluding financial saving from sales."""
-    cached = getattr(calib, "_consistent_params_cache", None)
-    if cached is not None:
-        cached_owner, cached_refs, cached_out = cached
-        if cached_owner is calib and _refs_match(_calib_param_refs(calib), cached_refs):
-            return cached_out
+    cache_key = _calib_cache_key(calib)
+    if cache_key is not None:
+        cached = getattr(calib, "_consistent_params_cache", None)
+        if cached is not None:
+            cached_owner, cached_key, cached_shares, cached_basic, cached_inv = cached
+            if cached_owner is calib and cached_key == cache_key:
+                # Return fresh writable copies so caller mutations never poison the cache.
+                return cached_shares.copy(), cached_basic.copy(), cached_inv
 
     nc, ns, nfd = calib.nc, calib.ns, calib.n_final_demand
     arrays = (calib.a, calib.afd, calib.alpha, calib.beta, calib.tax, calib.theta,
@@ -140,12 +148,20 @@ def _parameters(calib):
     expected_sums = (~inactive).astype(float)
     if not np.allclose(calib.afd.sum(0)[None], expected_sums, rtol=0, atol=1e-10):
         raise ValueError("Final goods basket weights must sum to one for each active category")
-    out = (shares, basic, inv)
-    try:
-        object.__setattr__(calib, "_consistent_params_cache", (calib, _calib_param_refs(calib), out))
-    except Exception:
-        pass
-    return out
+    if cache_key is not None:
+        cached_shares = shares.copy()
+        cached_shares.flags.writeable = False
+        cached_basic = basic.copy()
+        cached_basic.flags.writeable = False
+        try:
+            object.__setattr__(
+                calib,
+                "_consistent_params_cache",
+                (calib, cache_key, cached_shares, cached_basic, inv),
+            )
+        except Exception:
+            pass
+    return shares, basic, inv
 
 
 FOREIGN_SAVING_UNITS = ("numeraire", "world_income")
