@@ -20,11 +20,77 @@ are available through ``foreign_saving_units``:
 """
 from __future__ import annotations
 
+from typing import Any
 import numpy as np
+
+
+_EVAL_DEPS: tuple[Any, Any, Any] | None = None
+
+
+def _get_eval_deps() -> tuple[Any, Any, Any]:
+    """Lazily resolve circular trade module imports once and cache callables."""
+    global _EVAL_DEPS
+    if _EVAL_DEPS is None:
+        from .equilibrium import _get_ces_weights, unpack_equilibrium_vector
+        from .solver import _resolve_tariffs
+        _EVAL_DEPS = (_get_ces_weights, unpack_equilibrium_vector, _resolve_tariffs)
+    return _EVAL_DEPS
+
+
+def _calib_param_refs(calib: Any) -> tuple[Any, ...]:
+    """Return tuple of scalar dimensions and array references for cache validation."""
+    return (
+        int(calib.nc),
+        int(calib.ns),
+        int(calib.n_final_demand),
+        calib.a,
+        calib.afd,
+        calib.alpha,
+        calib.beta,
+        calib.tax,
+        calib.theta,
+        calib.ytot,
+        calib.l_endow,
+        calib.k_endow,
+        calib.invforT,
+        calib.data_calibra,
+        calib.tax_fd,
+        calib.T,
+    )
+
+
+def _refs_match(current: tuple[Any, ...], cached: tuple[Any, ...]) -> bool:
+    """Check scalar dimension equality and object identity without triggering ndarray.__eq__."""
+    return (
+        current[0] == cached[0]
+        and current[1] == cached[1]
+        and current[2] == cached[2]
+        and all(a is b for a, b in zip(current[3:], cached[3:]))
+    )
+
+
+def _validate_tariff_schedule(
+    schedule: np.ndarray, shape: tuple[int, int, int], nc: int, ns: int, cols: int
+) -> None:
+    """Verify tariff schedule shape, strict positivity, finiteness, and unit domestic entries."""
+    if schedule.shape != shape:
+        raise ValueError("Tariff multipliers must have the expected shape and be finite and positive")
+    if schedule.size and not (0.0 < float(schedule.min()) <= float(schedule.max()) < np.inf):
+        raise ValueError("Tariff multipliers must have the expected shape and be finite and positive")
+    if schedule.size:
+        diag = np.diagonal(schedule.reshape(nc, ns * cols, nc), axis1=0, axis2=2)
+        if float(np.max(np.abs(diag - 1.0))) > 1e-14:
+            raise ValueError("Import tariffs must be one on domestic transactions")
 
 
 def _parameters(calib):
     """Recover actual final-use tax shares, excluding financial saving from sales."""
+    cached = getattr(calib, "_consistent_params_cache", None)
+    if cached is not None:
+        cached_owner, cached_refs, cached_out = cached
+        if cached_owner is calib and _refs_match(_calib_param_refs(calib), cached_refs):
+            return cached_out
+
     nc, ns, nfd = calib.nc, calib.ns, calib.n_final_demand
     arrays = (calib.a, calib.afd, calib.alpha, calib.beta, calib.tax, calib.theta,
               calib.ytot, calib.l_endow, calib.k_endow, calib.invforT)
@@ -74,7 +140,12 @@ def _parameters(calib):
     expected_sums = (~inactive).astype(float)
     if not np.allclose(calib.afd.sum(0)[None], expected_sums, rtol=0, atol=1e-10):
         raise ValueError("Final goods basket weights must sum to one for each active category")
-    return shares, basic, inv
+    out = (shares, basic, inv)
+    try:
+        object.__setattr__(calib, "_consistent_params_cache", (calib, _calib_param_refs(calib), out))
+    except Exception:
+        pass
+    return out
 
 
 FOREIGN_SAVING_UNITS = ("numeraire", "world_income")
@@ -88,8 +159,7 @@ def evaluate(x, calib, tau, tau_fd, tauf, tauf_fd, *, sigma=0., fiscal_closure="
     docstring).
     """
     # The equilibrium and solver modules import this one, so they are imported at call time.
-    from .equilibrium import _get_ces_weights, unpack_equilibrium_vector
-    from .solver import _resolve_tariffs
+    _get_ces_weights, unpack_equilibrium_vector, _resolve_tariffs = _get_eval_deps()
 
     if foreign_saving_units not in FOREIGN_SAVING_UNITS:
         raise ValueError("foreign_saving_units must be 'numeraire' or 'world_income'")
@@ -104,12 +174,8 @@ def evaluate(x, calib, tau, tau_fd, tauf, tauf_fd, *, sigma=0., fiscal_closure="
     n = nc*ns
     fd_tax, basic0, inv = _parameters(calib)
     ta, tf, _, _ = _resolve_tariffs(calib, tau, tau_fd, tauf, tauf_fd)
-    for schedule, shape in ((ta, (n, ns, nc)), (tf, (n, nfd, nc))):
-        if schedule.shape != shape or not np.isfinite(schedule).all() or np.any(schedule <= 0):
-            raise ValueError("Tariff multipliers must have the expected shape and be finite and positive")
-        for c in range(nc):
-            if not np.allclose(schedule[c*ns:(c+1)*ns, :, c], 1., rtol=0, atol=1e-14):
-                raise ValueError("Import tariffs must be one on domestic transactions")
+    _validate_tariff_schedule(ta, (n, ns, nc), nc, ns, ns)
+    _validate_tariff_schedule(tf, (n, nfd, nc), nc, ns, nfd)
     v = unpack_equilibrium_vector(x, ns=ns, nc=nc, nfd=nfd)
     p, y, r, w, T, B = v.p, v.y, v.r, v.w, v.T, v.invforT
     pv = p.ravel(order="F")

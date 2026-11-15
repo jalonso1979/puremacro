@@ -45,20 +45,28 @@ def _entity_fe_ols(sub: pd.DataFrame, y_col: str, x_cols: Sequence[str],
     means; adding time FE on top creates perfect collinearity with those
     proxies. We therefore demean only by entity (Pesaran 2006, eq. 12).
     """
-    arr = sub[[y_col] + list(x_cols)].values.astype(float)
-    entity_idx = sub.index.get_level_values(entity_level).values
-    ent_means = pd.DataFrame(arr).groupby(entity_idx).transform("mean").values
-    arr = arr - ent_means
+    arr = sub[[y_col] + list(x_cols)].to_numpy(dtype=float, copy=True)
+    codes, uniques = pd.factorize(sub.index.get_level_values(entity_level), sort=False)
+    n_ent = len(uniques)
+    counts = np.bincount(codes, minlength=n_ent).astype(float)
+    inv_counts = 1.0 / counts
+    # Demean columns within entity and aggregate cluster scores in C via bincount weights.
+    n_cols = arr.shape[1]
+    for j in range(n_cols):
+        col = arr[:, j]
+        ent_mean = np.bincount(codes, weights=col, minlength=n_ent) * inv_counts
+        col -= ent_mean[codes]
     y_d = arr[:, 0]
     X_d = arr[:, 1:]
     beta, *_ = np.linalg.lstsq(X_d, y_d, rcond=None)
     u = y_d - X_d @ beta
-    # Cluster-robust SE by entity
+    # Cluster-robust SE by entity: sum(s_c s_c') == C' C where C is (n_ent, p) cluster scores.
     score = X_d * u[:, None]
-    S = np.zeros((X_d.shape[1], X_d.shape[1]))
-    for c in np.unique(entity_idx):
-        s_c = score[entity_idx == c].sum(axis=0)
-        S += np.outer(s_c, s_c)
+    p = X_d.shape[1]
+    cluster_scores = np.empty((n_ent, p), dtype=float)
+    for j in range(p):
+        cluster_scores[:, j] = np.bincount(codes, weights=score[:, j], minlength=n_ent)
+    S = cluster_scores.T @ cluster_scores
     XtX = X_d.T @ X_d
     XtX_inv = np.linalg.pinv(XtX)
     vcov = XtX_inv @ S @ XtX_inv
@@ -115,23 +123,22 @@ def _structural_lp_cols(x: str, y: str, ctl: Sequence[str], n_lags: int) -> list
     return cols
 
 
-def _estimate_unit_cce_ols(
-    sub_ent: pd.DataFrame,
-    y_col: str,
-    x_cols: Sequence[str],
+def _estimate_unit_cce_ols_arrays(
+    y_vec: np.ndarray,
+    X_mat: np.ndarray,
     effective_min_obs: int,
 ) -> tuple[float | None, str | None]:
-    """Run rank-checked unit-level CCE OLS; returns (beta_x, exclusion_reason)."""
-    k_regs = 1 + len(x_cols)
-    n_ent = len(sub_ent)
+    """Run rank-checked unit-level CCE OLS on contiguous NumPy arrays; returns (beta_x, exclusion_reason)."""
+    k_regs = 1 + X_mat.shape[1]
+    n_ent = int(y_vec.shape[0])
     if n_ent < effective_min_obs:
         return (
             None,
             f"insufficient observations ({n_ent} < {effective_min_obs}; k={k_regs})",
         )
-    y_vec = sub_ent[y_col].to_numpy(dtype=float)
-    X_mat = sub_ent[list(x_cols)].to_numpy(dtype=float)
-    Z = np.column_stack([np.ones(n_ent, dtype=float), X_mat])
+    Z = np.empty((n_ent, k_regs), dtype=float)
+    Z[:, 0] = 1.0
+    Z[:, 1:] = X_mat
     col_norms = np.linalg.norm(Z, axis=0)
     if np.any(col_norms <= 1e-12):
         return None, "collinear or zero-variance regressor column"
@@ -145,6 +152,18 @@ def _estimate_unit_cce_ols(
     if not np.isfinite(beta_i):
         return None, "non-finite slope estimate"
     return beta_i, None
+
+
+def _estimate_unit_cce_ols(
+    sub_ent: pd.DataFrame,
+    y_col: str,
+    x_cols: Sequence[str],
+    effective_min_obs: int,
+) -> tuple[float | None, str | None]:
+    """Run rank-checked unit-level CCE OLS; returns (beta_x, exclusion_reason)."""
+    y_vec = sub_ent[y_col].to_numpy(dtype=float)
+    X_mat = sub_ent[list(x_cols)].to_numpy(dtype=float)
+    return _estimate_unit_cce_ols_arrays(y_vec, X_mat, effective_min_obs)
 
 
 def _estimate_cce_mean_group_horizon(
@@ -163,14 +182,28 @@ def _estimate_cce_mean_group_horizon(
     effective_min_obs = (
         max(10, k_regs + 2) if min_obs_int is None else max(min_obs_int, k_regs + 1)
     )
-    grouped_sub = {ent: grp for ent, grp in sub.groupby(level=entity_level, sort=False)}
+    if sub.empty:
+        bounds: dict[Any, tuple[int, int]] = {}
+        vals = np.empty((0, k_regs), dtype=float)
+    else:
+        vals = sub[[col_dy] + list(x_cols)].to_numpy(dtype=float)
+        codes, present_entities = pd.factorize(sub.index.get_level_values(entity_level), sort=False)
+        if not bool(np.all(codes[:-1] <= codes[1:])):
+            order = np.argsort(codes, kind="mergesort")
+            codes = codes[order]
+            vals = vals[order]
+        split_pts = np.flatnonzero(codes[1:] != codes[:-1]) + 1
+        starts = np.concatenate(([0], split_pts))
+        ends = np.concatenate((split_pts, [len(codes)]))
+        bounds = {ent: (int(s), int(e)) for ent, s, e in zip(present_entities, starts, ends)}
+
     unit_betas: list[float] = []
     excluded: dict[Any, str] = {}
     obs_used = 0
 
     for ent in unique_entities:
-        sub_ent = grouped_sub.get(ent)
-        if sub_ent is None:
+        span = bounds.get(ent)
+        if span is None:
             reason = f"insufficient observations (0 < {effective_min_obs}; k={k_regs})"
             excluded[ent] = reason
             warnings.warn(
@@ -179,8 +212,9 @@ def _estimate_cce_mean_group_horizon(
                 stacklevel=3,
             )
             continue
-        beta_i, fail_reason = _estimate_unit_cce_ols(
-            sub_ent, y_col=col_dy, x_cols=x_cols, effective_min_obs=effective_min_obs
+        start, end = span
+        beta_i, fail_reason = _estimate_unit_cce_ols_arrays(
+            vals[start:end, 0], vals[start:end, 1:], effective_min_obs=effective_min_obs
         )
         if fail_reason is not None or beta_i is None:
             reason_msg = fail_reason or "invalid unit regression"
@@ -192,7 +226,7 @@ def _estimate_cce_mean_group_horizon(
             )
             continue
         unit_betas.append(beta_i)
-        obs_used += len(sub_ent)
+        obs_used += end - start
 
     n_used = len(unit_betas)
     if n_used < _MIN_MG_ENTITIES:
