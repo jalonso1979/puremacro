@@ -9,6 +9,75 @@ additions are included in 5.4.2. Versions 5.8.0, 5.9.0 and 6.0.0 were tagged
 but not published; their additions are included in 6.0.1, published on
 2026-10-29. See the [release procedure](RELEASING.md).
 
+## 6.6.0 (2026-11-15)
+
+**Empirical distributional LP–HANK household incidence bridge, dynamic trade
+reallocation household incidence with OECD ICIO calibration, offline-first
+LatAm & macro freshness monitor, identification-robust & SMM workbench extensions
+with bilingual bundles, expanded CLI/MCP tooling, and answer-preserving CCE /
+trade accounting speedups.**
+
+### Added
+
+- `puremacro.models.hank_distributional_bridge` (`EmpiricalGroupTargets`,
+  `HANKGroupIRFResult`, `HANKDistributionalBridgeResult`,
+  `extract_hank_group_irf`, `simulate_transfer_group_irf`,
+  `solve_hank_group_irf`, `score_hank_distributional`,
+  `bridge_hank_distributional`) bridges distributional/quantile LPs
+  (`puremacro.lp.distributional`) and one-asset HANK solvers
+  (`puremacro.models.hank_fiscal`, `puremacro.models.hank_sequence_space`)
+  across cohort, cross-section, and fixed-bin tracking with fail-closed
+  population-weighted conservation audits (`< 1e-10`), inequality-gradient
+  metrics, bilingual EN/ES exports, and `SolverDiagnosticRecord` propagation.
+- `puremacro.trade.reallocation_incidence` (`HouseholdGroupSpec`,
+  `ICIOCalibrationAudit`, `ReallocationCalibrationResult`, `TransitionError`,
+  `TransitionHouseholdIncidenceResult`, `calibrate_reallocation_from_icio`,
+  `make_sector_household_groups`, `reallocation_tariffs_from_scenarios`,
+  `evaluate_transition_household_incidence`) couples two-country, two-sector
+  dynamic trade reallocation transitions (`puremacro.trade.reallocation`) with
+  OECD ICIO aggregation and benchmark-normalized household demand (`fixed_baskets`,
+  `cobb_douglas`, `stone_geary`, `ces`), computing period and discounted Hicksian
+  EV/CV, Konus cost-of-living indices, CEV, and budget-weighted inequality spreads.
+- `puremacro.macro_monitor` (`MacroMonitorConfig`, `MacroMonitorReport`,
+  `run_macro_monitor`, `main`) composes connector freshness audits,
+  `preflight_panel`, rolling AR(1) 1-step nowcasts, bounded
+  `lp_sensitivity_grid` transmission checks, and bilingual EN/ES bundle exports
+  (`monitor.md`, `monitor.html`, `monitor.json`, CSVs, and SHA-256 `manifest.json`)
+  with strict RFC 8259 JSON serialization (`allow_nan=False`).
+- `puremacro.workbench` (`run_empirical_structural_workbench`,
+  `EmpiricalStructuralDossier`) integrates identification-robust moment tests
+  (`moment_test`), exact 1D quadratic confidence set inversions
+  (`moment_confidence_set`), sampled moment grids (`moment_grid`), `smm_fit`,
+  standalone `.to_html()`, and `.to_bundle()` bilingual ZIP-portable manifests.
+- `pyproject.toml` `[project.scripts]` exposes `puremacro` (`puremacro.cli:main`)
+  and `puremacro-mcp` (`puremacro.mcp_server:main`); `puremacro.cli` adds
+  `workbench`, `hank-fiscal`, and `robust-set` subcommands; and
+  `puremacro.mcp_server` adds four read-only tools (`hank_fiscal_closures`,
+  `cce_mg_panel_lp`, `identification_robust_set`, `run_workbench_dossier`).
+- `playground/02_fiscal_tariff_hank_lab.py` (compiled alongside `00_start_here.py`
+  and `01_workbench_demo.py` in `playground/build_playground.sh`), bilingual guides
+  (`docs/hank_distributional_bridge.md`, `docs/trade_reallocation_incidence.md`,
+  `docs/macro_monitor.md` and `docs/es/` mirrors) wired in `mkdocs.yml`, and
+  conformance suite `tests/test_conformance/test_65_models_conformance.py`.
+
+### Fixed
+
+- `puremacro.trade.reallocation_incidence`: aggregates bilateral tariff
+  schedules inside `(country, sector)` partitions by baseline expenditure weights
+  and fails closed when final-demand consumption category `"C"` is absent.
+- `puremacro.trade._accounting`: caches derived calibration parameter arrays
+  keyed by a `blake2b` digest over scalar dimensions and array bytes so in-place
+  array mutations invalidate stale cache entries while always returning fresh
+  writable copies; regenerated
+  `tests/fixtures/first_brief_tariffs/independent_validation.json` with identical
+  numerical checks and updated SHA-256 provenance for `_accounting.py`.
+
+### Internal
+
+- Vectorized and cached invariant computations in `puremacro.lp.cce` and
+  `puremacro.trade._accounting`, verified equivalent to naive reference
+  implementations within `< 1e-12` in `tests/test_conformance/test_65_models_conformance.py`.
+
 ## 6.5.0 (2026-11-14)
 
 **Pyodide-safe empirical-to-structural workbench, unified CLI and stdio MCP

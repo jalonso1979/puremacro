@@ -25,8 +25,9 @@ python -m pip install puremacro
 | **Redactar un informe de política** | Ejecute un [experimento arancelario con datos públicos](docs/es/first_brief_tariffs.md) y lea los efectos de bienestar nacionales y por hogares. |
 | **Aprender o enseñar** | Elija una [ruta de cuadernos](docs/es/notebooks.md) o use el [curso bilingüe y sus laboratorios interactivos](curso/README.md). Use la edición fija del curso indicada abajo. |
 
-**Estado comprobado 2026-11-14:** **6.5.0** está publicada en [PyPI](https://pypi.org/project/puremacro/6.5.0/). Instale con `python -m pip install puremacro==6.5.0` y use la documentación de su versión instalada.
+**Guía de versiones:** este código fuente y su documentación corresponden a **6.6.0**. Consulte [PyPI](https://pypi.org/project/puremacro/) para ver las versiones publicadas y use la documentación acorde con su versión instalada.
 Consulte las [pruebas recomendadas y próximos hitos](docs/es/research_reliability.md).
+En 6.6.0, el [puente distribucional HANK](docs/es/hank_distributional_bridge.md) (`bridge_hank_distributional`) conecta proyecciones locales distribucionales con cierres HANK de un activo; la [incidencia comercial dinámica](docs/es/trade_reallocation_incidence.md) (`evaluate_transition_household_incidence`) añade bienestar EV/CV y costo de vida de Konus calibrado con ICIO de la OCDE; el [monitor de frescura macroeconómica](docs/es/macro_monitor.md) (`run_macro_monitor`) automatiza auditorías offline-first con manifiestos SHA-256; y `puremacro.workbench`, la CLI (`workbench`, `hank-fiscal`, `robust-set`) y el [servidor MCP](docs/es/mcp_server.md) agregan conjuntos robustos a identificación, paquetes HTML/ZIP bilingües y cuatro nuevas herramientas de solo lectura.
 En 6.5.0, el [banco de trabajo y CLI](docs/es/workbench_and_scorecards.md) incorporan `puremacro.workbench`, `puremacro.cli`, preflight de paneles, grillas de sensibilidad LP, tableros IRF/DSGE, lotes `CompositeTariffScenario` y diagnósticos de resolvedor; el [servidor MCP](docs/es/mcp_server.md) expone herramientas de solo lectura por stdio; los [constructores de modelos](docs/es/models.md) añaden cierres financiados `hank_fiscal`; las [proyecciones locales](docs/es/lp.md) incorporan CCE Mean Group (`estimator="mean_group"`); y los flujos SMM soberanos y de escenarios comerciales refuerzan las guardas de Markov y convergencia.
 En 6.4.0, el [informe fiscal](docs/es/first_brief_fiscal.md) admite bases trimestrales propias, el [informe de frescura de conectores](docs/es/CONNECTOR_HEALTH.md) audita procedencia y revisiones acotadas, las [proyecciones locales](docs/es/lp.md) imponen contratos cronológicos y de especificación con IV de panel de efectos fijos bidireccionales, y se corrigen defectos numéricos y de datos (véanse los [avisos de corrección](docs/es/ADVISORY.md)).
 Desde 6.3.0, las [API de investigación](docs/es/research_api.md) incorporan derivadas y continuación de equilibrios, SMM con incertidumbre de simulación e inferencia robusta a identificación, junto con [HANK experimental de segundo orden](docs/es/hank_second_order.md).
@@ -898,7 +899,7 @@ verificación y la orden que reconstruye el archivo, se distribuye como
 
 ## Estado
 
-El **código fuente 6.5.0** incluye `puremacro.trade` y sus módulos MRIO, reincorporados
+El **código fuente 6.6.0** incluye `puremacro.trade` y sus módulos MRIO, reincorporados
 en 5.2.0, junto con las adiciones y correcciones del
 [historial de cambios](CHANGELOG.md). Instale la
 [distribución disponible en PyPI](https://pypi.org/project/puremacro/). La versión 4.8.1 es la última con los estudios de investigación

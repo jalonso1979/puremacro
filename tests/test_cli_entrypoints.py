@@ -38,10 +38,10 @@ def _repo_env(tmp_path: Path) -> dict[str, str]:
 
 
 def test_pyproject_scripts_declare_and_resolve_all_cli_entrypoints():
-    """pyproject.toml [project.scripts] preserves 6.5.0 and exposes CLI & MCP entry points."""
+    """pyproject.toml [project.scripts] preserves 6.6.0 and exposes CLI & MCP entry points."""
     data = _load_pyproject()
     project = data["project"]
-    assert project["version"] == "6.5.0"
+    assert project["version"] == "6.6.0"
 
     scripts = project["scripts"]
     expected = {
@@ -69,7 +69,7 @@ def test_sys_argv_cli_and_mcp_main_callables(monkeypatch: pytest.MonkeyPatch, ca
     )
     assert cli_main() == 0
     doctor_payload = json.loads(doctor_out.read_text(encoding="utf-8"))
-    assert doctor_payload["puremacro_version"] == "6.5.0"
+    assert doctor_payload["puremacro_version"] == "6.6.0"
     assert doctor_payload["required_failures"] == []
 
     capsys.readouterr()
@@ -96,7 +96,7 @@ def test_module_cli_doctor_and_mcp_list_tools_subprocesses(tmp_path: Path):
     )
     assert doc_proc.returncode == 0, doc_proc.stderr
     doc_payload = json.loads(doc_proc.stdout)
-    assert doc_payload["puremacro_version"] == "6.5.0"
+    assert doc_payload["puremacro_version"] == "6.6.0"
     assert doc_payload["required_failures"] == []
 
     mcp_proc = subprocess.run(

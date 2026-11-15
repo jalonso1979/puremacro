@@ -24,8 +24,9 @@ python -m pip install puremacro
 | **Write a policy brief** | Run a [tariff experiment on public data](docs/first_brief_tariffs.md) and read national and household welfare effects. |
 | **Learn or teach** | Choose a [notebook learning path](docs/notebooks.md) or use the [bilingual course and interactive labs](curso/README.md). Use the pinned course edition below. |
 
-**Status checked 2026-11-14:** **6.5.0** is published on [PyPI](https://pypi.org/project/puremacro/6.5.0/). Install with `python -m pip install puremacro==6.5.0` and use the documentation for your installed version.
+**Version guide:** this source and its documentation target **6.6.0**. See [PyPI](https://pypi.org/project/puremacro/) for published versions and match the documentation to your installed version.
 See the [recommended tests and next milestones](docs/research_reliability.md).
+In 6.6.0, the [HANK distributional bridge](docs/hank_distributional_bridge.md) (`bridge_hank_distributional`) connects distributional/quantile LPs to one-asset HANK closures; [dynamic trade reallocation incidence](docs/trade_reallocation_incidence.md) (`evaluate_transition_household_incidence`) adds OECD ICIO household EV/CV/Konus welfare; the [macro freshness monitor](docs/macro_monitor.md) (`run_macro_monitor`) automates offline-first freshness, preflight, and AR(1)/LP bundles; and `puremacro.workbench`, CLI (`workbench`, `hank-fiscal`, `robust-set`), and the [MCP server](docs/mcp_server.md) add identification-robust sets, standalone HTML/ZIP bundles, and four new read-only MCP tools.
 In 6.5.0, the [research workbench and CLI](docs/workbench_and_scorecards.md) add `puremacro.workbench`, `puremacro.cli`, panel preflighting, LP sensitivity grids, IRF/DSGE scorecards, `CompositeTariffScenario` batches, and solver diagnostics; the [MCP server](docs/mcp_server.md) exposes read-only tools over stdio; [model builders](docs/models.md) add financed `hank_fiscal` closures; [local projections](docs/lp.md) add CCE Mean Group (`estimator="mean_group"`); and sovereign SMM and trade scenario runners tighten Markov/convergence guards.
 In 6.4.0, the [fiscal brief](docs/first_brief_fiscal.md) accepts own-data quarterly datasets, [connector freshness reporting](docs/CONNECTOR_HEALTH.md) audits bounded provenance and revisions, [local projections](docs/lp.md) enforce chronological and specification contracts with two-way fixed-effects panel IV, and numerical/data defects are corrected (see [correctness advisories](docs/ADVISORY.md)).
 Since 6.3.0, the [research APIs](docs/research_api.md) add equilibrium derivatives and continuation, simulation-aware SMM and identification-robust inference, alongside [experimental second-order HANK](docs/hank_second_order.md).
@@ -1176,7 +1177,7 @@ command that rebuilds the file, ships as `puremacro/trade/_datafiles/SOURCES.md`
 
 ## Status
 
-The **6.5.0 source tree** includes `puremacro.trade` and its MRIO modules, restored in
+The **6.6.0 source tree** includes `puremacro.trade` and its MRIO modules, restored in
 5.2.0, plus the additions and fixes listed in the [changelog](CHANGELOG.md).
 For published distributions, check [PyPI](https://pypi.org/project/puremacro/).
 Release 4.8.1 is the last one with the research

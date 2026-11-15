@@ -1,4 +1,4 @@
-"""Regression tests verifying 6.5.0 status and validation meta-docs stay in sync."""
+"""Regression tests verifying 6.6.0 status and validation meta-docs stay in sync."""
 
 from __future__ import annotations
 
@@ -18,13 +18,13 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_roadmap_docs_sync_to_6_5_0() -> None:
+def test_roadmap_docs_sync_to_6_6_0() -> None:
     en = _read(DOCS_DIR / "1.0_path.md")
     es = _read(ES_DOCS_DIR / "1.0_path.md")
 
     for text in (en, es):
-        assert "6.5.0" in text
-        assert "2026-11-14" in text
+        assert "6.6.0" in text
+        assert "2026-11-15" in text
         assert "2026-11-03" not in text
         assert "6.1.0 is the" not in text
         assert "6.1.0 es" not in text
@@ -38,6 +38,12 @@ def test_roadmap_docs_sync_to_6_5_0() -> None:
             "puremacro.models.hank_fiscal",
             "solve_hank_fiscal",
             "compare_fiscal_closures",
+            "puremacro.models.hank_distributional_bridge",
+            "bridge_hank_distributional",
+            "puremacro.trade.reallocation_incidence",
+            "evaluate_transition_household_incidence",
+            "puremacro.macro_monitor",
+            "run_macro_monitor",
             "first_brief_fiscal.md",
             "first_brief_tariffs.md",
             "connector_freshness_report",
@@ -120,18 +126,24 @@ def test_structural_validation_status_validation_gallery_count() -> None:
     assert f"{by_mech['package']} de paquetes" in es
 
 
-def test_structural_validation_status_new_6_5_0_rows() -> None:
+def test_structural_validation_status_new_6_6_0_rows() -> None:
     en = _read(DOCS_DIR / "STRUCTURAL_VALIDATION_STATUS.md")
     es = _read(ES_DOCS_DIR / "STRUCTURAL_VALIDATION_STATUS.md")
 
     required_tokens = (
-        "6.5.0",
+        "6.6.0",
         "puremacro.models.hank_fiscal",
         "solve_hank_fiscal",
         "compare_fiscal_closures",
         "balanced_budget",
         "debt_rule",
         "boundary_asset_truncation",
+        "puremacro.models.hank_distributional_bridge",
+        "bridge_hank_distributional",
+        "puremacro.trade.reallocation_incidence",
+        "evaluate_transition_household_incidence",
+        "puremacro.macro_monitor",
+        "run_macro_monitor",
         "puremacro.workbench",
         "run_empirical_structural_workbench",
         "EmpiricalStructuralDossier",
