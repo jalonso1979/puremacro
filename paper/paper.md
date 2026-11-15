@@ -37,10 +37,10 @@ bibliography: paper.bib
      768 shippable library modules swept by the import invariant, 24,386 default /
      24,646 total (-m "") collected tests in `tests/`, 77 bilingual showcase
      notebook pairs (plus 2 non-numbered research pairs), 22 course lesson
-     notebooks (20 importing puremacro), 513 of 959 commits on local HEAD
-     (fea5d71a) carrying a Claude co-author trailer (vs 513 of 948 commits on
-     origin/main at 0d199411), and 28 commits by google-labs-jules[bot] (same on
-     both 0d199411 and fea5d71a). Dated full-gallery browser evidence remains the
+     notebooks (20 importing puremacro), 513 of 963 commits on `origin/main` after
+     the post-PyPI 6.6.0 docs alignment (vs 513 of 959 commits at fea5d71a and 513
+     of 948 at 0d199411) carrying a Claude co-author trailer, and 28 commits by
+     google-labs-jules[bot] (same across 0d199411, fea5d71a, and 6.6.0). Dated full-gallery browser evidence remains the
      2026-11-12 release-6.4.0 run where Pyodide 0.28.3 passed all 116 gallery
      checks in Node.js (plus 121 smoke tests); Pyodide 0.28.3 also passed 123
      smoke tests (`tools/pyodide_smoke.py`) on 2026-11-15 at fea5d71a, and
@@ -246,7 +246,7 @@ guidelines, and CI on three operating systems.
 Generative AI was used extensively in writing `puremacro`, its documentation and
 this paper. Anthropic's Claude models, used through the Claude Code agent (Claude
 Opus 5, Claude Opus 5.5, Claude Fable 5, Claude Fable 5.1 and Claude Sonnet 5.5), generated or
-co-wrote much of the code, tests, documentation and notebooks: 513 of the 948
+co-wrote much of the code, tests, documentation and notebooks: 513 of the 963
 commits on `origin/main` carry a Claude co-author trailer. Google's Jules coding agent
 contributed 28 commits (refactoring, performance and test improvements),
 each reviewed and merged by the author. Claude also drafted and revised this
@@ -286,10 +286,9 @@ and CI.
      (4) REVIEW ASSERTION: confirm that "reviewed, edited and validated all
          AI-assisted output before it was merged" is literally true, including
          for multi-agent workflow commits; if not, soften it to what is true.
-     (5) COUNTS, DATE & BIBLIOGRAPHY: counts ("513 of the 948 commits" on
-         origin/main at 0d199411; 513 of 959 commits on local HEAD at fea5d71a,
-         11 integration commits ahead prior to the 6.6.0 bump; "28 commits" by
-         Jules on both) and scale counts (992 modules, 384,677 lines, 768
+     (5) COUNTS, DATE & BIBLIOGRAPHY: counts ("513 of the 963 commits" on
+         origin/main after post-PyPI 6.6.0 docs alignment; 513 of 959 at
+         fea5d71a; 513 of 948 at 0d199411; "28 commits" by Jules) and scale counts (992 modules, 384,677 lines, 768
          shippable modules, 24,386 default / 24,646 total tests in `tests/`,
          116 gallery checks across 16 subsystems, 77 showcase pairs, 22 course
          notebooks) were recomputed on 2026-11-15 at fea5d71a per RELEASING.md
