@@ -193,14 +193,34 @@ def test_custom_icio_partition_raw_io_and_fine_scenario_bridge() -> None:
     )
     assert cal.stability["stable_graph"] is True
 
-    # Fine-country/sector TariffScenario maps to coarse 2x2 through calibration audit.
+    # Fine-country/sector TariffScenario maps to coarse 2x2 using exact expenditure weights.
     fine_scen = CompositeTariffScenario((
         TariffScenario(importer="USA", tariffs={("CHN", "C"): 0.30, ("DEU", "C"): 0.30}, name="us_mfg"),
     ))
     tar_path = reallocation_tariffs_from_scenarios(fine_scen, cal.economy, horizon=20, calibration=cal)
     assert tar_path.shape == (20, 2, 2)
-    assert tar_path[0, 0, 0] > 0.0
     assert tar_path[0, 1, 0] == 0.0
+
+    # Quantitative expenditure-weighting check vs exact ICIO baseline flows (not unweighted 1/57).
+    cal_usa = calibrate_reallocation_from_icio(raw_icio)
+    usa_idx = raw_icio.country_codes.index("USA")
+    chn_idx = raw_icio.country_codes.index("CHN")
+    c_idx = raw_icio.sector_codes.index("C")
+    row_idxs = [i for i, code in enumerate(raw_icio.country_codes) if code != "USA"]
+    goods_idxs = [raw_icio.sector_codes.index(s) for s in ("A", "B", "C")]
+    flows = cal_usa.audit.fine_expenditure_flows
+    chn_c_to_usa = float(flows[chn_idx, c_idx, usa_idx])
+    total_row_goods_to_usa = float(flows[np.ix_(row_idxs, goods_idxs, [usa_idx])].sum())
+    expected_rate = 0.30 * chn_c_to_usa / total_row_goods_to_usa
+    chn_scen = TariffScenario(importer="USA", tariffs={("CHN", "C"): 0.30}, name="chn_c_30")
+    tar_chn = reallocation_tariffs_from_scenarios(chn_scen, cal_usa.economy, horizon=2, calibration=cal_usa)
+    assert tar_chn[0, 0, 0] == pytest.approx(expected_rate, rel=1e-12)
+    assert abs(tar_chn[0, 0, 0] - 0.30 / (len(row_idxs) * len(goods_idxs))) > 1e-2
+
+    # Refuse non-zero intra-bloc tariffs inside a coarse region.
+    intra_scen = TariffScenario(importer="USA", tariffs={("MEX", "C"): 0.15}, name="intra_na")
+    with pytest.raises(ValueError, match="intra-bloc"):
+        reallocation_tariffs_from_scenarios(intra_scen, cal.economy, horizon=2, calibration=cal)
 
     # RawIOData input path.
     raw_obj = RawIOData(
@@ -374,6 +394,34 @@ def test_refusals_bilingual_reports_and_serialization() -> None:
             name="BadSum", country="AAA", labor_weights=(1.0, 1.0), non_labor_weight=1.0,
             expenditure_shares=(0.3, 0.4),
         )
+
+    # Refuse expenditure_basis='consumption' without 'C' column; return None aggregated_consumption otherwise.
+    raw_no_c = RawIOData(
+        source="no_c_test",
+        year=2023,
+        countries=("A", "B"),
+        sectors=("G", "S"),
+        fd_categories=("I", "Cx"),
+        intermediate_matrix=np.array([
+            [10.0, 2.0, 3.0, 1.0],
+            [2.0, 12.0, 1.0, 2.0],
+            [4.0, 1.0, 14.0, 2.0],
+            [1.0, 2.0, 2.0, 16.0],
+        ]),
+        final_demand_matrix=np.array([
+            [25.0, 8.0, 5.0, 2.0],
+            [18.0, 6.0, 2.0, 1.0],
+            [6.0, 2.0, 30.0, 9.0],
+            [2.0, 1.0, 22.0, 7.0],
+        ]),
+        value_added=np.array([30.0, 20.0, 35.0, 25.0]),
+        taxes_less_subsidies=np.zeros(4),
+        gross_output=np.array([46.0, 39.0, 56.0, 46.0]),
+    )
+    with pytest.raises(ValueError, match="requires final-demand code 'C'"):
+        calibrate_reallocation_from_icio(raw_no_c, expenditure_basis="consumption")
+    cal_no_c = calibrate_reallocation_from_icio(raw_no_c, expenditure_basis="final_demand")
+    assert cal_no_c.audit.aggregated_consumption is None
 
     # Refuse non-partitioning ICIO group mapping.
     raw_icio = load_icio_data(return_structured=True)

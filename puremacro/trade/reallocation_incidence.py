@@ -361,10 +361,11 @@ class ICIOCalibrationAudit:
     aggregated_capital_va: np.ndarray
     aggregated_output: np.ndarray
     aggregated_final_demand: np.ndarray
-    aggregated_consumption: np.ndarray
+    aggregated_consumption: np.ndarray | None
     aggregated_intermediate: np.ndarray
     aggregated_tls: np.ndarray
     aggregated_tfd: np.ndarray
+    fine_expenditure_flows: np.ndarray
     world_va_total: float
     world_labor_va_total: float
     labor_scale_factor: float
@@ -388,10 +389,13 @@ class ICIOCalibrationAudit:
             "aggregated_intermediate",
             "aggregated_tls",
             "aggregated_tfd",
+            "fine_expenditure_flows",
             "empirical_va_shares",
             "steady_state_va_shares",
         ):
-            object.__setattr__(self, name, readonly_array(np.array(getattr(self, name), dtype=float, copy=True)))
+            val = getattr(self, name)
+            if val is not None:
+                object.__setattr__(self, name, readonly_array(np.array(val, dtype=float, copy=True)))
         object.__setattr__(self, "stylized_assumptions", dict(self.stylized_assumptions))
         object.__setattr__(self, "warnings", tuple(self.warnings))
 
@@ -563,14 +567,29 @@ def calibrate_reallocation_from_icio(
         cap_source = "caller_override"
 
     f_tot = agg["F"].sum(axis=3)  # (src_c, src_s, dst_c)
-    c_fd_idx = io.fd_codes.index("C") if "C" in io.fd_codes else 0
-    f_cons = agg["F"][:, :, :, c_fd_idx]  # (src_c, src_s, dst_c)
+    fine_f_tot = io.final_demand.sum(axis=3)  # (nc_fine, ns_fine, nc_fine)
+    if "C" in io.fd_codes:
+        c_fd_idx = io.fd_codes.index("C")
+        f_cons: np.ndarray | None = agg["F"][:, :, :, c_fd_idx]
+        fine_cons: np.ndarray | None = io.final_demand[:, :, :, c_fd_idx]
+    else:
+        if expenditure_basis == "consumption":
+            raise ValueError(
+                f"expenditure_basis='consumption' requires final-demand code 'C' in fd_codes={io.fd_codes}"
+            )
+        f_cons = None
+        fine_cons = None
+
     if expenditure_basis == "final_demand":
         flow = f_tot
+        fine_flow = fine_f_tot
     elif expenditure_basis == "consumption":
+        assert f_cons is not None and fine_cons is not None
         flow = f_cons
+        fine_flow = fine_cons
     else:
         flow = f_tot + agg["Z"].sum(axis=3)
+        fine_flow = fine_f_tot + io.intermediate.sum(axis=3)
 
     if not np.isfinite(flow).all() or (flow <= 0).any():
         raise ValueError(
@@ -691,6 +710,7 @@ def calibrate_reallocation_from_icio(
         aggregated_intermediate=agg["Z"],
         aggregated_tls=agg["TLS"],
         aggregated_tfd=agg["TFD"],
+        fine_expenditure_flows=fine_flow,
         world_va_total=agg_va_total,
         world_labor_va_total=world_labor_va,
         labor_scale_factor=labor_scale_factor,
@@ -823,21 +843,41 @@ def _single_scenario_matrix(
     c_map = {m: idx for idx, g in enumerate(economy.countries) for m in calibration.audit.country_groups[g]}
     s_map = {m: idx for idx, g in enumerate(economy.sectors) for m in calibration.audit.sector_groups[g]}
 
-    # Aggregate bilateral tariffs across cross-region pairs using equal or coarse sector counts
-    # if raw fine flows aren't retained, or uniform average across mapped fine bilateral cells.
+    # Weight bilateral fine tariffs by baseline expenditure flows (src_c, src_s, dst_c)
+    # retained under the calibration's expenditure_basis.
+    weights_fine = calibration.audit.fine_expenditure_flows
+    expected_shape = (len(src_c), len(src_s), len(src_c))
+    if weights_fine.shape != expected_shape:
+        raise ValueError(
+            f"calibration.audit.fine_expenditure_flows must have shape {expected_shape}, got {weights_fine.shape}"
+        )
+    if not np.isfinite(weights_fine).all() or (weights_fine < 0.0).any():
+        raise ValueError("calibration.audit.fine_expenditure_flows must be finite and nonnegative")
+
     mat = np.zeros((2, 2), dtype=float)
-    counts = np.zeros((2, 2), dtype=float)
+    weight_den = np.zeros((2, 2), dtype=float)
     for o_i, o_code in enumerate(src_c):
         go = c_map[o_code]
         for d_i, d_code in enumerate(src_c):
             gd = c_map[d_code]
             if go == gd:
+                if np.any(tensor_fine[o_i, d_i, :] != 0.0):
+                    raise ValueError(
+                        f"ReallocationEconomy only models inter-regional tariffs; non-zero intra-bloc tariff "
+                        f"between {o_code!r} and {d_code!r} inside {economy.countries[go]!r}"
+                    )
                 continue
             for s_i, s_code in enumerate(src_s):
                 gs = s_map[s_code]
-                mat[gd, gs] += tensor_fine[o_i, d_i, s_i]
-                counts[gd, gs] += 1.0
-    return np.divide(mat, counts, out=np.zeros_like(mat), where=counts > 0)
+                w = float(weights_fine[o_i, s_i, d_i])
+                mat[gd, gs] += w * float(tensor_fine[o_i, d_i, s_i])
+                weight_den[gd, gs] += w
+    if np.any(weight_den <= 0.0):
+        raise ValueError(
+            "Cannot aggregate fine bilateral tariffs: cross-region import expenditure weight is zero "
+            "for at least one coarse (importer, sector) pair"
+        )
+    return mat / weight_den
 
 
 # ---------------------------------------------------------------------------
